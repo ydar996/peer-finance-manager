@@ -53,7 +53,7 @@ git init
 git add .
 git commit -m "Prepare Peer Finance Manager for cloud deployment"
 git branch -M main
-git remote add origin PASTE_YOUR_GITHUB_URL_HERE
+git remote add origin https://github.com/ydar996/peer-finance-manager.git
 git push -u origin main
 ```
 
@@ -63,12 +63,41 @@ If Git asks you to sign in, follow the browser login it opens.
 
 ## Step 2 — Start the API on Render (10 minutes)
 
-1. Go to [render.com](https://render.com) → sign up (GitHub login is easiest).
-2. Click **New +** → **Blueprint**.
-3. Connect your GitHub account and pick the repo you just pushed.
-4. Render reads `render.yaml` automatically. Click **Apply**.
-5. Wait until the service shows **Live** (green). Copy the URL — looks like `https://peer-finance-manager-xxxx.onrender.com`.
-6. Open that URL + `/api/health` in a browser. You should see something like `{"ok":true}`.
+### What this costs (roughly)
+
+| Item | Cost | Why you need it |
+|------|------|-----------------|
+| **Render Web Service (Starter)** | **~$7/month** | Keeps the API running (free tier sleeps after 15 min idle) |
+| **1 GB data disk** | **~$0.25/month** | Stores your member/money database |
+| **Netlify (website)** | **$0** on free tier | Login pages for members |
+| **GitHub** | **$0** | Holds your code |
+
+**Total: about $7–8/month** for Render. You’ll need a credit card on file; Render may do a $1 verification charge and refund it.
+
+**Important:** Do **not** use the page that says “Create a new Service” with tiles for Static Sites / Postgres / etc.  
+Use **Blueprint** instead — it reads our `render.yaml` file and sets up the server + data disk automatically.
+
+1. On [dashboard.render.com](https://dashboard.render.com), click **+ New** → **Blueprint**.
+2. **Blueprint Name:** type `peer-finance-manager` (the field must not be empty).
+3. **Branch:** `main` (already correct).
+4. **Blueprint Path:** leave as `render.yaml`.
+5. Click **Retry** if you previously saw “Blueprint file was found, but there was an issue.”
+6. You should now see a preview: 1 web service + 1 disk. Click **Apply**.
+7. Wait until the service shows **Live** (green). Copy the URL — looks like `https://peer-finance-manager-xxxx.onrender.com`.
+8. Test: `https://YOUR-APP.onrender.com/api/health` → `{"ok":true,"name":"Peer Finance Manager"}`
+
+**If you don’t see “Blueprint”** in the + New menu, use **Web Service** instead and set these manually:
+
+| Field | Value |
+|-------|--------|
+| Name | `peer-finance-manager` |
+| Root Directory | *(leave blank)* |
+| Build Command | `npm install` |
+| Start Command | `node peer-finance-manager/server.js` |
+| Plan | **Starter** (required for disk) |
+
+Then add a **Disk**: name `pfm-data`, mount path `/var/data`, 1 GB.  
+Environment variables: `NODE_ENV=production`, `PFM_DATA_DIR=/var/data`, `PFM_COOP_ROOT=/var/data`.
 
 **Add your data (important):**
 
