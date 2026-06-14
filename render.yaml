@@ -13,8 +13,6 @@ services:
         value: "20"
       - key: PFM_DATA_DIR
         value: /var/data
-      - key: PFM_COOP_ROOT
-        value: /var/data
     disk:
       name: pfm-data
       mountPath: /var/data

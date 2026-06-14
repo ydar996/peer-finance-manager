@@ -61,7 +61,10 @@ function getSchemaPath() {
 
 /** Project / cooperative root — workbooks, statements, Distributions folder */
 function getCoopRoot() {
-  if (process.env.PFM_COOP_ROOT) {
+  if (
+    process.env.PFM_COOP_ROOT &&
+    process.env.PFM_COOP_ROOT !== process.env.PFM_DATA_DIR
+  ) {
     return process.env.PFM_COOP_ROOT;
   }
   const root = getAppRoot();

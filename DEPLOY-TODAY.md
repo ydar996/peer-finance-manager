@@ -97,7 +97,8 @@ Use **Blueprint** instead — it reads our `render.yaml` file and sets up the se
 | Plan | **Starter** (required for disk) |
 
 Then add a **Disk**: name `pfm-data`, mount path `/var/data`, 1 GB.  
-Environment variables: `NODE_ENV=production`, `PFM_DATA_DIR=/var/data`, `PFM_COOP_ROOT=/var/data`.
+Environment variables: `NODE_ENV=production`, `PFM_DATA_DIR=/var/data`  
+(Do **not** set `PFM_COOP_ROOT` on Render — it breaks module loading.)
 
 **Add your data (important):**
 
