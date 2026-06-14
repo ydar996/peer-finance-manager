@@ -1,0 +1,6 @@
+[build]
+  publish = "peer-finance-manager/public"
+  command = "node scripts/netlify-build-config.js"
+
+[build.environment]
+  NODE_VERSION = "20"

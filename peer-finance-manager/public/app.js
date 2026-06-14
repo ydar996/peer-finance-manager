@@ -1,0 +1,2344 @@
+const fmt = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
+
+const PLACEHOLDER_PHOTO = "/placeholder-avatar.svg";
+const SESSION_KEY = "pfm_session";
+const ORG_SLUG_KEY = "pfm_org_slug";
+const DEFAULT_ORG_SLUG = "assurance";
+let sessionToken = localStorage.getItem(SESSION_KEY) || "";
+let currentUser = null;
+
+const nativeFetch = window.fetch.bind(window);
+window.fetch = function patchedFetch(url, options = {}) {
+  const path = typeof url === "string" ? url : url?.url || "";
+  if (
+    sessionToken &&
+    path.startsWith("/api/") &&
+    !path.startsWith("/api/auth/login")
+  ) {
+    const headers = new Headers(options.headers || {});
+    headers.set("Authorization", `Bearer ${sessionToken}`);
+    return nativeFetch(url, { ...options, headers });
+  }
+  return nativeFetch(url, options);
+};
+
+function getPortalFromPath() {
+  const path = window.location.pathname.replace(/\/$/, "") || "/";
+  if (path === "/register") return "register";
+  if (path === "/admin") return "admin";
+  if (path === "/staff") return "staff";
+  return "member";
+}
+
+const APP_NAME = "Peer Finance Manager";
+
+function applyAppBranding() {
+  document.querySelectorAll(".org-brand").forEach((el) => {
+    el.textContent = APP_NAME;
+  });
+}
+
+function applyOrganizationBranding(organizationName) {
+  applyAppBranding();
+
+  const orgName = String(organizationName || "").trim();
+  const appSubtitle = $("#appOrgSubtitle");
+  if (appSubtitle) {
+    appSubtitle.textContent = orgName
+      ? `${orgName} — Cooperative Banking — Member Deposit Accounts, Loan Accounts, and Books`
+      : "Cooperative Banking — Member Deposit Accounts, Loan Accounts, and Books";
+  }
+
+  document.querySelectorAll(".org-cooperative-name").forEach((el) => {
+    if (orgName) {
+      el.textContent = orgName;
+      el.classList.remove("hidden");
+    } else {
+      el.textContent = "";
+      el.classList.add("hidden");
+    }
+  });
+}
+
+function rememberOrgSlug(slug) {
+  if (slug) localStorage.setItem(ORG_SLUG_KEY, slug);
+}
+
+function preferredOrgSlug() {
+  return localStorage.getItem(ORG_SLUG_KEY) || DEFAULT_ORG_SLUG;
+}
+
+function fillOrgSlugInputs(slug = preferredOrgSlug()) {
+  document.querySelectorAll(".org-slug-input").forEach((input) => {
+    if (!input.value) input.value = slug;
+  });
+  refreshOrganizationPreview(slug);
+}
+
+async function refreshOrganizationPreview(slug) {
+  const normalized = String(slug || "").trim().toLowerCase();
+  if (!normalized) {
+    applyOrganizationBranding(null);
+    return;
+  }
+  try {
+    const res = await nativeFetch(`/api/organizations/lookup?slug=${encodeURIComponent(normalized)}`);
+    const data = await res.json();
+    if (res.ok) applyOrganizationBranding(data.organization.name);
+    else applyOrganizationBranding(null);
+  } catch (_) {
+    applyOrganizationBranding(null);
+  }
+}
+
+function userMatchesPortal(user, portal) {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  if (portal === "admin") return user.role === "admin";
+  if (portal === "staff") return user.role === "staff";
+  if (portal === "member") return user.role === "member";
+  return false;
+}
+
+function hideAllScreens() {
+  $("#loginScreenMember")?.classList.add("hidden");
+  $("#loginScreenStaff")?.classList.add("hidden");
+  $("#loginScreenAdmin")?.classList.add("hidden");
+  $("#registerScreen")?.classList.add("hidden");
+  $("#changePasswordScreen")?.classList.add("hidden");
+  $("#appShell")?.classList.add("hidden");
+}
+
+function showLoginForPortal(portal = getPortalFromPath(), message = "") {
+  if (portal === "register") {
+    hideAllScreens();
+    $("#registerScreen")?.classList.remove("hidden");
+    return;
+  }
+  hideAllScreens();
+  const screenId =
+    portal === "admin"
+      ? "loginScreenAdmin"
+      : portal === "staff"
+        ? "loginScreenStaff"
+        : "loginScreenMember";
+  $(`#${screenId}`)?.classList.remove("hidden");
+  const status = document.querySelector(`[data-login-status="${portal}"]`);
+  if (status && message) setFormStatus(status, message, false);
+  else if (status) status.textContent = "";
+  fillOrgSlugInputs();
+}
+
+function showChangePassword() {
+  hideAllScreens();
+  $("#changePasswordScreen")?.classList.remove("hidden");
+}
+
+function showApp() {
+  hideAllScreens();
+  $("#appShell")?.classList.remove("hidden");
+  if (currentUser?.organizationName) applyOrganizationBranding(currentUser.organizationName);
+}
+
+function roleLabel(role) {
+  if (role === "admin") return "Administrator";
+  if (role === "staff") return "Staff (Read-Only)";
+  if (role === "member") return "Member";
+  return role;
+}
+
+function applyRoleUi() {
+  const role = currentUser?.role || "";
+  document.querySelectorAll("#mainTabs .tab").forEach((tab) => {
+    const roles = (tab.dataset.roles || "").split(",").map((r) => r.trim());
+    tab.classList.toggle("hidden", !roles.includes(role));
+  });
+
+  let banner = $("#readonlyBanner");
+  if (role === "staff") {
+    if (!banner) {
+      banner = document.createElement("p");
+      banner.id = "readonlyBanner";
+      banner.className = "readonly-banner";
+      banner.textContent =
+        "You Are Signed In With a Read-Only Staff Account. Contact the Administrator to Record Changes.";
+      $("#mainTabs")?.insertAdjacentElement("afterend", banner);
+    }
+  } else if (banner) {
+    banner.remove();
+  }
+
+  const sessionUser = $("#sessionUser");
+  if (sessionUser && currentUser) {
+    sessionUser.textContent = `${currentUser.displayName || currentUser.email} · ${roleLabel(currentUser.role)}`;
+  }
+
+  if (role === "member") switchTab("my-account");
+  else if (role === "admin" || role === "staff") switchTab("books");
+
+  const registerBtn = $("#goRegisterMemberBtn");
+  if (registerBtn) registerBtn.classList.toggle("hidden", role !== "admin");
+}
+
+async function restoreSession() {
+  const portal = getPortalFromPath();
+  if (portal === "register") {
+    showLoginForPortal("register");
+    return false;
+  }
+  if (!sessionToken) {
+    showLoginForPortal(portal);
+    return false;
+  }
+  try {
+    const res = await fetch("/api/auth/me");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Session expired");
+    currentUser = data.user;
+    if (!userMatchesPortal(currentUser, portal)) {
+      sessionToken = "";
+      localStorage.removeItem(SESSION_KEY);
+      showLoginForPortal(portal, "Sign In With the Correct Account for This Page.");
+      return false;
+    }
+    if (currentUser.mustChangePassword) {
+      showChangePassword();
+      return false;
+    }
+    showApp();
+    applyRoleUi();
+    return true;
+  } catch (err) {
+    sessionToken = "";
+    localStorage.removeItem(SESSION_KEY);
+    showLoginForPortal(portal, err.message);
+    return false;
+  }
+}
+
+async function bootstrapApp() {
+  if (!currentUser) {
+    const ok = await restoreSession();
+    if (!ok) return;
+  }
+  const role = currentUser?.role;
+  if (role === "member") {
+    loadMyAccount();
+    return;
+  }
+  loadBooks();
+  loadMembers();
+  loadLoans();
+  loadStatementFiles();
+  if (role === "admin") {
+    loadRecordTabData();
+    loadUsers();
+  }
+}
+
+async function loadUsers() {
+  const body = $("#usersBody");
+  const memberBody = $("#memberCredentialsBody");
+  if (!body) return;
+  try {
+    const [usersRes, credsRes] = await Promise.all([
+      fetch("/api/users"),
+      fetch("/api/users/member-credentials"),
+    ]);
+    const { users } = await usersRes.json();
+    const { accounts } = await credsRes.json();
+
+    if (memberBody) {
+      if (!accounts?.length) {
+        memberBody.innerHTML =
+          '<tr><td colspan="4" class="subtle">No Member Portal Accounts Yet. Use Generate Member Credentials.</td></tr>';
+      } else {
+        memberBody.innerHTML = accounts
+          .map(
+            (a) => `
+          <tr>
+            <td>${escapeHtml(a.memberName)}</td>
+            <td>${escapeHtml(a.username || "—")}</td>
+            <td>${escapeHtml(a.email || "—")}</td>
+            <td>${a.mustChangePassword ? "Must Change on First Login" : "Password Set"}</td>
+          </tr>`
+          )
+          .join("");
+      }
+    }
+
+    if (!users?.length) {
+      body.innerHTML = '<tr><td colspan="5" class="subtle">No Accounts Yet</td></tr>';
+      return;
+    }
+    body.innerHTML = users
+      .map(
+        (u) => `
+      <tr>
+        <td>${escapeHtml(u.email)}</td>
+        <td>${escapeHtml(u.username || "—")}</td>
+        <td>${escapeHtml(roleLabel(u.role))}</td>
+        <td>${escapeHtml(u.memberName || "—")}</td>
+        <td>${escapeHtml(u.createdAt || "—")}</td>
+      </tr>`
+      )
+      .join("");
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    if (memberBody) {
+      memberBody.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+}
+
+async function loadMyAccount() {
+  const summary = $("#myAccountSummary");
+  const depositBody = $("#myDepositBody");
+  const loanLots = $("#myLoanLots");
+  try {
+    const res = await fetch("/api/me/account");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const profile = data.profile;
+    summary.innerHTML = `
+      <div class="book-card accent">
+        <p class="book-label">Deposit Account Balance</p>
+        <p class="book-amount money">${fmt.format(data.depositBalance || 0)}</p>
+      </div>
+      <div class="book-card">
+        <p class="book-label">Loan Outstanding</p>
+        <p class="book-amount money">${fmt.format(data.loanSummary?.outstanding || 0)}</p>
+      </div>`;
+
+    const depositTypes = DEPOSIT_LEDGER_TYPES;
+    const depositRows = withDepositRunningBalances(
+      (data.depositTransactions || []).filter((t) => depositTypes.has(t.type))
+    );
+    depositBody.innerHTML = depositRows.length
+      ? depositRows
+          .map(
+            (t) => `
+        <tr>
+          <td>${escapeHtml(t.transaction_date)}</td>
+          <td>${escapeHtml(formatTxType(t.type))}</td>
+          <td class="money">${fmt.format(t.amount)}</td>
+          <td class="money">${fmt.format(t.balance_after ?? 0)}</td>
+          <td>${escapeHtml(t.description || "")}</td>
+        </tr>`
+          )
+          .join("")
+      : '<tr><td colspan="5" class="subtle">No Deposit Account Activity</td></tr>';
+
+    const monthSelect = $("#myDepositStatementMonth");
+    if (monthSelect) {
+      const months =
+        data.statementMonths?.length
+          ? data.statementMonths
+          : statementMonthsFromDates(depositRows.map((t) => t.transaction_date));
+      monthSelect.innerHTML = months.length
+        ? months
+            .map(
+              (m) =>
+                `<option value="${m.year}-${m.month}">${escapeHtml(m.label)}</option>`
+            )
+            .join("")
+        : '<option value="">No Monthly Statements Available</option>';
+      $("#downloadMyDepositStatement").disabled = !months.length;
+    }
+
+    const lots = data.loanSummary?.lots || [];
+    loanLots.innerHTML = lots.length
+      ? lots
+          .map((lot) => {
+            const activityRows = buildLoanActivityRows(lot);
+            const loanMonths = statementMonthsFromDates(activityRows.map((row) => row.date));
+            const monthOptions = loanMonths.length
+              ? loanMonths
+                  .map(
+                    (m) =>
+                      `<option value="${m.year}-${m.month}">${escapeHtml(m.label)}</option>`
+                  )
+                  .join("")
+              : '<option value="">No Monthly Statements Available</option>';
+            return `
+        <div class="card" style="margin-bottom:12px">
+          <div class="panel-head">
+            <h4>Loan #${lot.loanNumber} · ${escapeHtml(lot.status || "active")}</h4>
+            <div class="panel-head-actions">
+              <select class="statement-select my-loan-statement-month" data-loan-number="${lot.loanNumber}" aria-label="Loan statement month">
+                ${monthOptions}
+              </select>
+              <button type="button" class="btn primary" data-member-id="${profile.member_id}" data-loan-number="${lot.loanNumber}" data-action="my-loan-statement" ${loanMonths.length ? "" : "disabled"}>
+                Download Monthly Statement
+              </button>
+            </div>
+          </div>
+          <p class="subtle">Principal ${fmt.format(lot.principal)} · Outstanding ${fmt.format(lot.outstanding)} · Repaid ${fmt.format(lot.collected || 0)}</p>
+          <div class="table-wrap compact">
+            <table>
+              <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th></tr></thead>
+              <tbody>${accountActivityTableRows(activityRows)}</tbody>
+            </table>
+          </div>
+        </div>`;
+          })
+          .join("")
+      : '<p class="subtle">No Loan Accounts</p>';
+
+    loanLots.querySelectorAll('[data-action="my-loan-statement"]').forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const loanNumber = btn.dataset.loanNumber;
+        const monthSelectEl = loanLots.querySelector(
+          `.my-loan-statement-month[data-loan-number="${loanNumber}"]`
+        );
+        const [year, month] = String(monthSelectEl?.value || "").split("-").map(Number);
+        downloadLoanStatement(btn.dataset.memberId, loanNumber, btn, { year, month }).catch((err) =>
+          alert(err.message)
+        );
+      });
+    });
+  } catch (err) {
+    if (summary) summary.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+    if (depositBody) depositBody.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    if (loanLots) loanLots.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+
+function $(sel) {
+  return document.querySelector(sel);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach((t) => {
+    t.classList.toggle("active", t.dataset.tab === name);
+  });
+  document.querySelectorAll(".panel").forEach((p) => {
+    p.classList.toggle("active", p.id === `panel-${name}`);
+  });
+  if (name !== "books") closeBookDetail();
+  if (name === "record") loadRecordTabData();
+  if (name === "users" && currentUser?.role === "admin") {
+    initMemberPickers();
+    loadUsers();
+  }
+  if (name === "my-account" && currentUser?.role === "member") loadMyAccount();
+}
+
+document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
+
+let selectedMemberId = null;
+let pendingAccountPanel = null;
+
+function formatDetailCell(value, format) {
+  if (format === "money") return fmt.format(Number(value) || 0);
+  if (format === "date") return formatDate(value);
+  return escapeHtml(value ?? "");
+}
+
+function bookCardHtml(slug, { accent, label, amount, note }) {
+  return `
+    <button type="button" class="book-card${accent ? " accent" : ""}" data-book-slug="${slug}">
+      <p class="book-label">${label}</p>
+      <p class="book-amount${typeof amount === "number" ? " money" : ""}">${typeof amount === "number" ? fmt.format(amount) : escapeHtml(amount)}</p>
+      ${note ? `<p class="book-note">${note}</p>` : ""}
+    </button>`;
+}
+
+function closeBookDetail() {
+  $("#booksDetail")?.classList.add("hidden");
+  $("#booksSummary")?.classList.remove("hidden");
+}
+
+async function openBookDetail(slug) {
+  const detailEl = $("#booksDetail");
+  const summaryEl = $("#booksSummary");
+  const body = $("#booksDetailBody");
+  try {
+    summaryEl?.classList.add("hidden");
+    detailEl?.classList.remove("hidden");
+    $("#booksDetailTitle").textContent = "Loading…";
+    body.innerHTML = `<tr><td>Loading…</td></tr>`;
+
+    const res = await fetch(`/api/books/detail/${encodeURIComponent(slug)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load details");
+
+    const detail = data.detail;
+    $("#booksDetailTitle").textContent = detail.title;
+
+    const summaryLine =
+      typeof detail.summary === "number"
+        ? `Total: ${fmt.format(detail.summary)}`
+        : `Count: ${detail.summary}`;
+    $("#booksDetailSummary").textContent = summaryLine;
+
+    const tabLink = $("#booksDetailTabLink");
+    if (detail.navigateTab) {
+      tabLink.hidden = false;
+      const tabLabels = {
+        members: "Members & Accounts",
+        loans: "Loans",
+        record: "Record",
+      };
+      tabLink.textContent = `Open ${tabLabels[detail.navigateTab] || detail.navigateTab}`;
+      tabLink.onclick = () => {
+        closeBookDetail();
+        switchTab(detail.navigateTab);
+        if (detail.navigateTab === "record") loadRecordTabData();
+      };
+    } else {
+      tabLink.hidden = true;
+    }
+
+    $("#booksDetailHead").innerHTML = `<tr>${detail.columns
+      .map((col) => `<th>${escapeHtml(col.label)}</th>`)
+      .join("")}</tr>`;
+
+    if (!detail.rows.length) {
+      body.innerHTML = `<tr><td colspan="${detail.columns.length}">No Records</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = detail.rows
+      .map((row) => {
+        const memberAttr = row.memberId
+          ? ` class="detail-member-row" data-member-id="${row.memberId}"`
+          : "";
+        const cells = detail.columns
+          .map((col) => {
+            const cls = col.format === "money" ? ' class="money"' : "";
+            return `<td${cls}>${formatDetailCell(row[col.key], col.format)}</td>`;
+          })
+          .join("");
+        return `<tr${memberAttr}>${cells}</tr>`;
+      })
+      .join("");
+
+    body.querySelectorAll(".detail-member-row").forEach((row) => {
+      row.addEventListener("click", () => {
+        selectedMemberId = Number(row.dataset.memberId);
+        closeBookDetail();
+        switchTab("members");
+        pendingAccountPanel = "deposit";
+        loadMembers();
+      });
+    });
+  } catch (err) {
+    $("#booksDetailTitle").textContent = "Details";
+    body.innerHTML = `<tr><td class="status err">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function bindBookCards() {
+  $("#booksGrid")?.querySelectorAll("[data-book-slug]").forEach((card) => {
+    card.addEventListener("click", () => openBookDetail(card.dataset.bookSlug));
+  });
+}
+
+async function loadBooks() {
+  const grid = $("#booksGrid");
+  try {
+    const res = await fetch("/api/books");
+    const { books } = await res.json();
+    if (!res.ok) throw new Error(books?.error || "Failed to load books");
+    grid.innerHTML = [
+      bookCardHtml("deposit-accounts", {
+        accent: true,
+        label: "Member Deposit Accounts (Total)",
+        amount: books.totalMemberDepositAccounts,
+        note: "Net of Deposits, Withdrawals, Distributions &amp; Fees",
+      }),
+      bookCardHtml("deposits-withdrawals", {
+        label: "Member Deposits &amp; Withdrawals",
+        amount: books.memberDeposits,
+      }),
+      bookCardHtml("registration-income", {
+        label: "Registration Income",
+        amount: books.registrationIncome,
+      }),
+      (books.cdInterestIncome || 0) > 0
+        ? bookCardHtml("cd-interest-income", {
+            label: "CD Interest Income",
+            amount: books.cdInterestIncome,
+            note: `Realized ${fmt.format(books.cdInterestRealized || 0)} · Accrued ${fmt.format(books.cdInterestAccrued || 0)}`,
+          })
+        : "",
+      (books.loanCount || 0) > 0
+        ? bookCardHtml("loan-interest-income", {
+            label: "Loan Interest Income",
+            amount: books.loanInterestIncome || 0,
+            note: "Includes Interest From Active Loan Repayments",
+          })
+        : "",
+      bookCardHtml("total-income", {
+        accent: true,
+        label: "Total Cooperative Income",
+        amount: books.totalCooperativeIncome || 0,
+        note: "Registration + Loan Interest + CD Interest",
+      }),
+      bookCardHtml("expenses", {
+        label: "Cooperative Expenses",
+        amount: books.expenses,
+      }),
+      bookCardHtml("distributions", {
+        label: "Distributions Paid",
+        amount: books.distributions,
+      }),
+      bookCardHtml("net-income", {
+        accent: true,
+        label: "Cooperative Net Income",
+        amount: books.cooperativeNetIncome || 0,
+        note: `Income ${fmt.format(books.totalCooperativeIncome || 0)} − Expenses ${fmt.format(books.expenses || 0)}`,
+      }),
+      (books.loanCount || 0) > 0
+        ? bookCardHtml("expected-loan-interest", {
+            label: "Expected Future Loan Interest",
+            amount: books.expectedLoanInterest || 0,
+            note: "Scheduled Interest Remaining on Active Loans",
+          })
+        : "",
+      bookCardHtml("loans", {
+        label: "Loans Outstanding",
+        amount: books.loansOutstanding,
+        note: books.loanCount
+          ? `${books.loanCount} Loans · Disbursed ${fmt.format(books.loansPrincipal)} · Repaid ${fmt.format(books.loansCollected)}`
+          : `Disbursed ${fmt.format(books.loansPrincipal)} · Repaid ${fmt.format(books.loansCollected)}`,
+      }),
+      books.cdBalance != null
+        ? bookCardHtml("cd-balance", {
+            label: "CD Account Balance",
+            amount: books.cdBalance,
+            note: books.cdBalanceAsOf
+              ? `As of ${books.cdBalanceAsOf} · Principal ${fmt.format((books.cdBalance || 0) - (books.cdInterestAccrued || 0))} · Interest ${fmt.format(books.cdInterestAccrued || 0)}`
+              : "Certificate of Deposit",
+          })
+        : "",
+      (books.investments || 0) > 0
+        ? bookCardHtml("investments", {
+            label: "Cooperative Investments",
+            amount: books.investments,
+            note: "Caribe Restaurant and Lounge",
+          })
+        : "",
+      bookCardHtml("members-profiles", {
+        label: "Members/Profiles on File",
+        amount: `${books.profileCount}/${books.memberCount}`,
+      }),
+    ].join("");
+    bindBookCards();
+  } catch (err) {
+    grid.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+$("#booksDetailBack")?.addEventListener("click", closeBookDetail);
+
+async function loadMembers() {
+  const res = await fetch("/api/members?profiles=true");
+  const { members } = await res.json();
+  const body = $("#membersBody");
+  if (!members.length) {
+    body.innerHTML =
+      '<tr><td colspan="4">No Members. Import Spreadsheet on the Import Tab.</td></tr>';
+    return;
+  }
+  body.innerHTML = members
+    .map(
+      (m) => `
+    <tr class="member-row${selectedMemberId === m.id ? " selected" : ""}" data-member-id="${m.id}">
+      <td><strong>${escapeHtml(m.display_name || m.name)}</strong><br /><span class="subtle">${escapeHtml(m.name)}</span></td>
+      <td class="money member-account-cell" data-account-panel="deposit">${fmt.format(m.deposit_balance ?? m.balance)}</td>
+      <td class="money member-account-cell" data-account-panel="loan">${fmt.format(m.loan_balance || 0)}</td>
+      <td>${m.profile_id ? '<span class="badge ok">On File</span>' : '<span class="badge warn">Missing</span>'}</td>
+    </tr>`
+    )
+    .join("");
+
+  body.querySelectorAll(".member-row").forEach((row) => {
+    row.querySelectorAll(".member-account-cell").forEach((cell) => {
+      cell.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectedMemberId = Number(row.dataset.memberId);
+        pendingAccountPanel = cell.dataset.accountPanel;
+        loadMembers();
+      });
+    });
+    row.addEventListener("click", () => {
+      selectedMemberId = Number(row.dataset.memberId);
+      pendingAccountPanel = null;
+      loadMembers();
+    });
+  });
+
+  if (!selectedMemberId && members.length) {
+    selectedMemberId = members[0].id;
+  }
+  if (selectedMemberId) {
+    showProfile(selectedMemberId);
+  }
+}
+
+function addressBlock(profile) {
+  const lines = [
+    profile.address_line1,
+    profile.address_line2,
+    [profile.city, profile.state, profile.postal_code].filter(Boolean).join(", "),
+    profile.country,
+  ].filter(Boolean);
+  return lines.length ? lines.map(escapeHtml).join("<br />") : "—";
+}
+
+function formatTxType(type) {
+  const labels = {
+    deposit: "Deposit",
+    withdrawal: "Withdrawal",
+    distribution: "Distribution",
+    membership_fee: "Registration Fee",
+    loan_disbursement: "Loan Disbursement",
+    loan_repayment: "Loan Repayment",
+    loan_overpayment: "Loan Overpayment",
+    late_fee: "Late Fee",
+  };
+  return labels[type] || String(type || "").replace(/_/g, " ");
+}
+
+const MONTH_LABELS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+const DEPOSIT_LEDGER_TYPES = new Set([
+  "deposit",
+  "withdrawal",
+  "distribution",
+  "membership_fee",
+]);
+
+function withDepositRunningBalances(transactions) {
+  const sorted = [...transactions]
+    .filter((t) => DEPOSIT_LEDGER_TYPES.has(t.type))
+    .sort((a, b) => {
+      const byDate = String(a.transaction_date).localeCompare(String(b.transaction_date));
+      return byDate !== 0 ? byDate : (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+
+  let balance = 0;
+  const balanceById = new Map();
+  for (const tx of sorted) {
+    balance += Number(tx.amount) || 0;
+    balanceById.set(Number(tx.id), balance);
+  }
+
+  return transactions.map((tx) => ({
+    ...tx,
+    balance_after: DEPOSIT_LEDGER_TYPES.has(tx.type)
+      ? balanceById.get(Number(tx.id)) ?? Number(tx.balance_after) ?? 0
+      : tx.balance_after,
+  }));
+}
+
+function statementMonthsFromDates(dates) {
+  const months = new Map();
+  for (const dateValue of dates) {
+    const match = String(dateValue || "").match(/^(\d{4})-(\d{2})/);
+    if (!match) continue;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const slug = `${year}-${String(month).padStart(2, "0")}`;
+    if (!months.has(slug)) {
+      months.set(slug, {
+        year,
+        month,
+        label: `${MONTH_LABELS[month - 1]} ${year}`,
+      });
+    }
+  }
+  return [...months.values()].sort((a, b) => b.year - a.year || b.month - a.month);
+}
+
+function buildLoanActivityRows(lot, newestFirst = true) {
+  let balance = Number(lot.principal) || 0;
+  const rows = [
+    {
+      date: lot.disbursementDate,
+      type: "Loan Disbursement",
+      amount: -balance,
+      balance,
+      description: lot.disbursementDescription || "Loan disbursement",
+    },
+  ];
+  const repayments = [...(lot.repayments || [])].sort((a, b) => {
+    const byDate = String(a.date).localeCompare(String(b.date));
+    return byDate !== 0 ? byDate : (Number(a.transactionId) || 0) - (Number(b.transactionId) || 0);
+  });
+  for (const payment of repayments) {
+    balance = Math.max(0, balance - (Number(payment.amount) || 0));
+    rows.push({
+      date: payment.date,
+      type: "Repayment",
+      amount: Number(payment.amount) || 0,
+      balance,
+      description: payment.description || "",
+    });
+  }
+  return newestFirst ? [...rows].reverse() : rows;
+}
+
+function accountActivityTableRows(rows) {
+  if (!rows.length) {
+    return '<tr><td colspan="5" class="subtle">No Activity</td></tr>';
+  }
+  return rows
+    .map(
+      (row) => `
+    <tr>
+      <td>${escapeHtml(row.date)}</td>
+      <td>${escapeHtml(row.type)}</td>
+      <td class="money">${fmt.format(row.amount)}</td>
+      <td class="money">${fmt.format(row.balance ?? 0)}</td>
+      <td>${escapeHtml(row.description || "")}</td>
+    </tr>`
+    )
+    .join("");
+}
+
+function depositTxTableRows(transactions) {
+  if (!transactions?.length) {
+    return '<tr><td colspan="5" class="subtle">No Transactions</td></tr>';
+  }
+  return transactions
+    .map(
+      (t) => `
+    <tr>
+      <td>${formatDate(t.transaction_date)}</td>
+      <td>${escapeHtml(formatTxType(t.type))}</td>
+      <td class="money">${fmt.format(t.amount)}</td>
+      <td class="money">${fmt.format(t.balance_after ?? 0)}</td>
+      <td>${escapeHtml(t.description || "")}</td>
+    </tr>`
+    )
+    .join("");
+}
+
+function txTableRows(transactions) {
+  if (!transactions?.length) {
+    return '<tr><td colspan="4" class="subtle">No Transactions</td></tr>';
+  }
+  return transactions
+    .map(
+      (t) => `
+    <tr>
+      <td>${formatDate(t.transaction_date)}</td>
+      <td>${escapeHtml(formatTxType(t.type))}</td>
+      <td class="money">${fmt.format(t.amount)}</td>
+      <td>${escapeHtml(t.description || "")}</td>
+    </tr>`
+    )
+    .join("");
+}
+
+function depositActivityPanelHtml(p) {
+  const txCount = p.deposit_transactions?.length || 0;
+  return `
+    <h4 class="section-title">Deposit Account Activity</h4>
+    <p class="subtle">Balance ${fmt.format(p.deposit_account_balance || 0)} · ${txCount} transaction${txCount === 1 ? "" : "s"} on record</p>
+    <div class="table-wrap compact">
+      <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th></tr></thead>
+        <tbody>${depositTxTableRows(p.deposit_transactions)}</tbody>
+      </table>
+    </div>`;
+}
+
+function loanActivityPanelHtml(p, memberId) {
+  const hasLots = p.loan_lots?.length > 0;
+  return `
+    <h4 class="section-title">Loan Account Activity</h4>
+    <p class="subtle">Outstanding ${fmt.format(p.loan_account_balance || 0)} · ${loanAccountSubtitle(p)}</p>
+    ${
+      hasLots
+        ? loanLotsSectionHtml(p.loan_lots, p.member_id || memberId)
+        : `<div class="table-wrap compact">
+      <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Description</th></tr></thead>
+        <tbody>${txTableRows(p.loan_transactions)}</tbody>
+      </table>
+    </div>`
+    }`;
+}
+
+function selectMemberAccountPanel(root, panel) {
+  if (!root) return;
+  root.querySelectorAll(".account-card[data-account-panel]").forEach((card) => {
+    card.classList.toggle("selected", card.dataset.accountPanel === panel);
+    card.setAttribute("aria-expanded", card.dataset.accountPanel === panel ? "true" : "false");
+  });
+  root.querySelectorAll("[data-account-panel-body]").forEach((body) => {
+    body.classList.toggle("hidden", body.dataset.accountPanelBody !== panel);
+  });
+  const detail = root.querySelector("#memberAccountDetail");
+  if (detail) detail.classList.remove("hidden");
+}
+
+function bindMemberAccountCards(root, memberId, initialPanel = "deposit") {
+  root.querySelectorAll(".account-card[data-account-panel]").forEach((card) => {
+    card.addEventListener("click", () => {
+      selectMemberAccountPanel(root, card.dataset.accountPanel);
+      root.querySelector("#memberAccountDetail")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  });
+  selectMemberAccountPanel(root, initialPanel);
+  bindLoanStatementButtons(root);
+}
+
+async function downloadLoanStatement(memberId, loanNumber, button, options = {}) {
+  const params = new URLSearchParams();
+  if (options.year && options.month) {
+    params.set("year", String(options.year));
+    params.set("month", String(options.month));
+  }
+  const query = params.toString();
+  const url = `/api/loans/ledger/${memberId}/${loanNumber}/statement${query ? `?${query}` : ""}`;
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Generating…";
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      let message = "Failed to generate statement";
+      try {
+        const data = await res.json();
+        message = data.error || message;
+      } catch (_) {}
+      throw new Error(message);
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const fileName = match?.[1] || `Loan ${loanNumber} Statement.pdf`;
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    const message =
+      err.name === "AbortError"
+        ? "Statement generation timed out. Please try again."
+        : err.message || "Failed to generate statement";
+    throw new Error(message);
+  } finally {
+    clearTimeout(timeout);
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Statement";
+    }
+  }
+}
+
+function bindLoanStatementButtons(root) {
+  root?.querySelectorAll(".loan-statement-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      downloadLoanStatement(btn.dataset.memberId, btn.dataset.loanNumber, btn).catch((err) => {
+        alert(err.message);
+      });
+    });
+  });
+}
+
+function loanAccountSubtitle(p) {
+  const parts = [];
+  if (p.active_loans) {
+    parts.push(`${p.active_loans} Active Loan(s)`);
+  } else {
+    parts.push("No Active Loan");
+  }
+  if (p.paid_loans) {
+    parts.push(`${p.paid_loans} Paid`);
+  }
+  if ((p.loan_overpayment_credit || 0) > 0) {
+    parts.push(`${fmt.format(p.loan_overpayment_credit)} Prepaid Credit`);
+  }
+  return parts.join(" · ");
+}
+
+function loanScheduleHtml(lot) {
+  if (!lot.schedule?.length) return "";
+  const rows = lot.schedule
+    .map(
+      (row) => `
+      <tr>
+        <td>${row.period}</td>
+        <td>${row.dueDate ? formatDate(row.dueDate) : "—"}</td>
+        <td class="money">${fmt.format(row.totalDue || 0)}</td>
+        <td class="money">${fmt.format(row.interest || 0)}</td>
+        <td class="money">${fmt.format(row.principal || 0)}</td>
+      </tr>`
+    )
+    .join("");
+  const scheduleMeta = [];
+  if (lot.scheduledMonthlyPayment != null) {
+    scheduleMeta.push(`Agreed payment ${fmt.format(lot.scheduledMonthlyPayment)}`);
+  }
+  if (lot.scheduledTotalInterest != null) {
+    scheduleMeta.push(`Total scheduled interest ${fmt.format(lot.scheduledTotalInterest)}`);
+  }
+  return `
+    <div class="loan-schedule-wrap">
+      <h5>${escapeHtml(lot.scheduleTitle || "Agreed Repayment Schedule")}</h5>
+      <p class="subtle">Informational Only — Actual Repayments Come From Bank Records.</p>
+      ${scheduleMeta.length ? `<p class="subtle">${scheduleMeta.join(" · ")}</p>` : ""}
+      <div class="table-wrap compact">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Due</th><th>Payment</th><th>Interest</th><th>Principal</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function loanLotsSectionHtml(lots, memberId) {
+  if (!lots?.length) {
+    return '<p class="subtle">No Loan Activity Recorded.</p>';
+  }
+  return lots
+    .map((lot) => {
+      const repayments = (lot.repayments || [])
+        .map(
+          (r) => `
+        <tr>
+          <td>${formatDate(r.date)}</td>
+          <td class="money">${fmt.format(r.amount)}</td>
+          <td>${escapeHtml(r.description || "")}</td>
+        </tr>`
+        )
+        .join("");
+      const noteLine = lot.principalNote
+        ? `<p class="subtle">${escapeHtml(lot.principalNote)}</p>`
+        : "";
+      return `
+      <div class="loan-lot-card">
+        <div class="loan-lot-head">
+          <strong>Loan ${lot.loanNumber}</strong>
+          <span class="badge ${lot.status === "paid" ? "ok" : ""}">${lot.status === "paid" ? "Paid" : "Active"}</span>
+          <button type="button" class="btn small loan-statement-btn" data-member-id="${lot.memberId || memberId}" data-loan-number="${lot.loanNumber}">Generate Statement</button>
+        </div>
+        <p class="subtle">Disbursed ${formatDate(lot.disbursementDate)} · Principal ${fmt.format(lot.principal)} · Repaid ${fmt.format(lot.collected)} · Interest earned ${fmt.format(lot.interestIncome || 0)}${lot.scheduledTotalInterest != null ? ` of ${fmt.format(lot.scheduledTotalInterest)} scheduled` : ""} · Outstanding ${fmt.format(lot.outstanding)}</p>
+        ${noteLine}
+        ${lot.disbursementDescription ? `<p class="subtle">Disbursement: ${escapeHtml(lot.disbursementDescription)}</p>` : ""}
+        ${loanScheduleHtml(lot)}
+        <div class="table-wrap compact">
+          <table>
+            <thead><tr><th>Date</th><th>Amount</th><th>Description</th></tr></thead>
+            <tbody>${repayments || '<tr><td colspan="3" class="subtle">No Repayments</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>`;
+    })
+    .join("");
+}
+
+async function showProfile(memberId) {
+  const res = await fetch(`/api/members/${memberId}/profile`);
+  const data = await res.json();
+  const el = $("#memberDetail");
+  if (!res.ok) {
+    el.innerHTML = `<p class="status err">${escapeHtml(data.error)}</p>`;
+    return;
+  }
+
+  const p = data.profile;
+  const photoSrc = p.photo_path || PLACEHOLDER_PHOTO;
+  const nokName = [p.next_of_kin_first_name, p.next_of_kin_last_name]
+    .filter(Boolean)
+    .join(" ");
+  const hasBiodata = Boolean(p.id);
+
+  el.innerHTML = `
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-photo-wrap">
+          <img class="profile-photo" src="${escapeHtml(photoSrc)}" alt="" />
+          <p class="photo-caption">Photo Placeholder</p>
+        </div>
+        <div class="profile-summary">
+          <h3>${escapeHtml(p.display_name || p.ledger_account_name)}</h3>
+          <p class="subtle">Account Name: <strong>${escapeHtml(p.ledger_account_name)}</strong></p>
+          ${currentUser?.role === "admin" ? `<button type="button" class="btn" data-edit-profile="${memberId}">Edit Profile</button>` : ""}
+          ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File — Use the Record Tab to Add or Update Profile.</p>'}
+          <p><span class="badge ok">${escapeHtml(p.cooperative_account_status || "active")}</span></p>
+        </div>
+      </div>
+
+      <div class="account-cards">
+        <button type="button" class="account-card deposit" data-account-panel="deposit" aria-expanded="false">
+          <h4>Deposit Account</h4>
+          <p class="account-balance money">${fmt.format(p.deposit_account_balance || 0)}</p>
+          <p class="subtle">Contributions, Withdrawals, Distributions, Registration Fee</p>
+          <p class="account-card-hint">Click for Full History</p>
+        </button>
+        <button type="button" class="account-card loan" data-account-panel="loan" aria-expanded="false">
+          <h4>Loan Account</h4>
+          <p class="account-balance money">${fmt.format(p.loan_account_balance || 0)}</p>
+          <p class="subtle">Outstanding Balance</p>
+          <p class="subtle">${loanAccountSubtitle(p)}</p>
+          <p class="account-card-hint">Click for Loans and Repayments</p>
+        </button>
+      </div>
+
+      <div id="memberAccountDetail" class="account-detail-wrap hidden">
+        <div data-account-panel-body="deposit">${depositActivityPanelHtml(p)}</div>
+        <div data-account-panel-body="loan" class="hidden">${loanActivityPanelHtml(p, memberId)}</div>
+      </div>
+
+      ${hasBiodata ? `
+      <div class="profile-grid">
+        <section>
+          <h4>Contact</h4>
+          <dl>
+            <dt>Email</dt><dd>${escapeHtml(p.email) || "—"}</dd>
+            <dt>Phone</dt><dd>${escapeHtml(p.phone) || "—"}</dd>
+            <dt>Gender</dt><dd>${escapeHtml(p.gender) || "—"}</dd>
+            <dt>Date of Birth</dt><dd>${formatDate(p.date_of_birth)}</dd>
+          </dl>
+        </section>
+        <section>
+          <h4>Address</h4>
+          <p>${addressBlock(p)}</p>
+        </section>
+        <section>
+          <h4>Payments (Zelle/Bank)</h4>
+          <dl>
+            <dt>Method</dt><dd>${escapeHtml(p.preferred_payment_method) || "—"}</dd>
+            <dt>Bank/Zelle Name</dt><dd>${escapeHtml(p.zelle_bank_name) || "—"}</dd>
+            <dt>Fee Paid</dt><dd>${p.membership_fee_paid ? "Yes" : "No"}</dd>
+            <dt>Joined</dt><dd>${p.joined_at || "—"}</dd>
+          </dl>
+        </section>
+        <section>
+          <h4>Next of Kin</h4>
+          <dl>
+            <dt>Name</dt><dd>${escapeHtml(nokName) || "—"}</dd>
+            <dt>Phone</dt><dd>${escapeHtml(p.next_of_kin_phone) || "—"}</dd>
+            <dt>Relationship</dt><dd>${escapeHtml(p.next_of_kin_relationship) || "—"}</dd>
+          </dl>
+        </section>
+        <section>
+          <h4>Application</h4>
+          <dl>
+            <dt>Signed</dt><dd>${formatDate(p.application_signed_at)}</dd>
+            <dt>Signature</dt><dd>${escapeHtml(p.signature_name) || "—"}</dd>
+          </dl>
+        </section>
+      </div>` : ""}
+    </div>`;
+  const initialPanel = pendingAccountPanel || "deposit";
+  pendingAccountPanel = null;
+  bindMemberAccountCards(el, memberId, initialPanel);
+  el.querySelector("[data-edit-profile]")?.addEventListener("click", () => {
+    openMemberProfileEditor(memberId);
+  });
+}
+
+async function loadLoans() {
+  const res = await fetch("/api/loans");
+  const { loans } = await res.json();
+  const body = $("#loansBody");
+  if (!loans.length) {
+    body.innerHTML =
+      '<tr><td colspan="10">No Loans Yet. Add Active Loans When Data Is Ready.</td></tr>';
+    return;
+  }
+  body.innerHTML = loans
+    .map((l) => {
+      const isLedger = l.source === "bank_ledger";
+      const loanLabel = isLedger ? `Loan ${l.loan_number}` : `#${l.id}`;
+      const rowId = escapeHtml(String(l.id));
+      return `
+    <tr class="loan-row" data-loan-key="${rowId}" data-member-id="${l.borrower_id || ""}" data-loan-number="${l.loan_number || ""}" data-ledger="${isLedger ? "1" : "0"}">
+      <td>${loanLabel}</td>
+      <td>${escapeHtml(l.borrower_name)}</td>
+      <td>${isLedger ? formatDate(l.start_date) : l.start_date || "—"}</td>
+      <td class="money">${fmt.format(l.principal)}</td>
+      <td class="money">${fmt.format(l.collected ?? 0)}</td>
+      <td class="money">${fmt.format(l.interest_income ?? 0)}</td>
+      <td class="money">${fmt.format(l.outstanding ?? 0)}</td>
+      <td>${escapeHtml(l.status)}</td>
+      <td>${isLedger ? l.repayment_count ?? 0 : l.schedule_imported ? "Scheduled" : "—"}</td>
+      <td>${
+        isLedger
+          ? `<button type="button" class="btn small loan-statement-btn" data-member-id="${l.borrower_id}" data-loan-number="${l.loan_number}">Statement</button>`
+          : "—"
+      }</td>
+    </tr>
+    <tr class="loan-detail-row hidden" data-detail-for="${rowId}">
+      <td colspan="10" class="loan-detail-cell">Click the loan row to load disbursement and repayment details.</td>
+    </tr>`;
+    })
+    .join("");
+
+  body.querySelectorAll(".loan-row").forEach((row) => {
+    row.addEventListener("click", () => toggleLoanDetail(row));
+  });
+  bindLoanStatementButtons(body);
+}
+
+async function toggleLoanDetail(row) {
+  const key = row.dataset.loanKey;
+  const detailRow = document.querySelector(`tr[data-detail-for="${key}"]`);
+  if (!detailRow) return;
+
+  if (!detailRow.classList.contains("hidden")) {
+    detailRow.classList.add("hidden");
+    return;
+  }
+
+  document.querySelectorAll(".loan-detail-row").forEach((r) => r.classList.add("hidden"));
+
+  if (row.dataset.ledger !== "1") {
+    detailRow.querySelector(".loan-detail-cell").innerHTML =
+      '<p class="subtle">Use the Member Profile for Transaction History on Manually Entered Loans.</p>';
+    detailRow.classList.remove("hidden");
+    return;
+  }
+
+  const cell = detailRow.querySelector(".loan-detail-cell");
+  cell.textContent = "Loading…";
+  detailRow.classList.remove("hidden");
+
+  try {
+    const res = await fetch(
+      `/api/loans/ledger/${row.dataset.memberId}/${row.dataset.loanNumber}`
+    );
+    const { loan } = await res.json();
+    if (!res.ok) throw new Error(loan?.error || "Failed to load loan details");
+    cell.innerHTML = `
+      <div class="loan-lot-card inline">
+        <div class="loan-lot-head">
+          <p class="subtle"><strong>Disbursement</strong> · ${formatDate(loan.disbursementDate)} · ${fmt.format(loan.principal)}</p>
+          <button type="button" class="btn small loan-statement-btn" data-member-id="${row.dataset.memberId}" data-loan-number="${row.dataset.loanNumber}">Generate Statement</button>
+        </div>
+        <p class="subtle">${escapeHtml(loan.disbursementDescription || "")}</p>
+        <div class="table-wrap compact">
+          <table>
+            <thead><tr><th>Date</th><th>Repayment</th><th>Description</th></tr></thead>
+            <tbody>${(loan.repayments || [])
+              .map(
+                (r) => `<tr>
+                  <td>${formatDate(r.date)}</td>
+                  <td class="money">${fmt.format(r.amount)}</td>
+                  <td>${escapeHtml(r.description || "")}</td>
+                </tr>`
+              )
+              .join("") || '<tr><td colspan="3" class="subtle">No Repayments</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>`;
+    bindLoanStatementButtons(detailRow);
+  } catch (err) {
+    cell.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+$("#refreshMembers").addEventListener("click", loadMembers);
+$("#goRegisterMemberBtn")?.addEventListener("click", () => switchTab("record"));
+$("#refreshBooks")?.addEventListener("click", loadBooks);
+
+$("#spreadsheetForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#spreadsheetStatus");
+  status.textContent = "Importing…";
+  status.className = "status";
+  const fd = new FormData(e.target);
+  if (e.target.replace.checked) fd.set("replace", "true");
+  try {
+    const res = await fetch("/api/import/spreadsheet", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    status.textContent = `Imported ${data.memberCount} members, ${data.transactionCount} transactions.`;
+    status.className = "status ok";
+    loadMembers();
+    loadBooks();
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = "status err";
+  }
+});
+
+$("#wpformsForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#wpformsStatus");
+  status.textContent = "Importing profiles…";
+  status.className = "status";
+  const fd = new FormData(e.target);
+  try {
+    const res = await fetch("/api/import/wpforms-profiles", {
+      method: "POST",
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    status.textContent = `Linked ${data.matchedCount} profiles (${data.unmatchedApplications?.length || 0} unmatched applications, ${data.membersWithoutApplication?.length || 0} accounts without applications).`;
+    status.className = "status ok";
+    loadMembers();
+    loadBooks();
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = "status err";
+  }
+});
+
+$("#scheduleForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#scheduleStatus");
+  const loanId = e.target.loanId.value;
+  const fd = new FormData();
+  fd.append("file", e.target.file.files[0]);
+  try {
+    const res = await fetch(`/api/loans/${loanId}/import-schedule`, {
+      method: "POST",
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    status.textContent = `Imported ${data.installmentsImported} installments.`;
+    status.className = "status ok";
+    loadLoans();
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = "status err";
+  }
+});
+
+$("#bankForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const res = await fetch("/api/bank-import/preview", { method: "POST", body: fd });
+  const data = await res.json();
+  $("#bankPreview").textContent = JSON.stringify(data, null, 2);
+});
+
+let selectedStatementFile = null;
+let selectedStatementSheet = null;
+
+async function loadStatementFiles() {
+  const list = $("#statementFileList");
+  const distSelect = $("#statementDistSelect");
+  try {
+    const res = await fetch("/api/statements/files");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    list.innerHTML = "";
+    if (!data.files?.length) {
+      list.innerHTML =
+        '<li class="empty-item">No Excel Workbooks Found. Place Assurance Status .xlsx Files in the Cooperative Folder.</li>';
+      return;
+    }
+
+    data.files.forEach((f) => {
+      const li = document.createElement("li");
+      li.dataset.file = f;
+      li.innerHTML = `<span class="badge">Excel</span><span>${escapeHtml(f)}</span>`;
+      li.addEventListener("click", () => selectStatementFile(f));
+      list.appendChild(li);
+    });
+
+    distSelect.innerHTML =
+      '<option value="">None — Use Distribution Column in Workbook Only</option>';
+    (data.distributionFiles || []).forEach((rel) => {
+      const opt = document.createElement("option");
+      opt.value = rel;
+      opt.textContent = rel.split(/[/\\]/).pop();
+      distSelect.appendChild(opt);
+    });
+  } catch (err) {
+    list.innerHTML = `<li class="empty-item">Error: ${escapeHtml(err.message)}</li>`;
+  }
+}
+
+async function selectStatementFile(filename) {
+  selectedStatementFile = filename;
+  selectedStatementSheet = null;
+  $("#statementFileList").querySelectorAll("li").forEach((li) => {
+    li.classList.toggle("selected", li.dataset.file === filename);
+  });
+
+  const info = $("#statementSelectedInfo");
+  info.classList.remove("hidden");
+  info.textContent = "Inspecting Workbook…";
+
+  try {
+    const res = await fetch("/api/statements/inspect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    selectedStatementSheet = data.suggestedSheet;
+    info.innerHTML = `<strong>${escapeHtml(filename)}</strong><br />Sheet: ${escapeHtml(selectedStatementSheet)} · ${data.memberCount || 0} Members`;
+    $("#generateStatementsBtn").disabled = !selectedStatementSheet;
+  } catch (err) {
+    info.textContent = err.message;
+    $("#generateStatementsBtn").disabled = true;
+  }
+}
+
+$("#refreshStatementFiles")?.addEventListener("click", loadStatementFiles);
+
+$("#statementDistSelect")?.addEventListener("change", () => {
+  if ($("#statementDistSelect").value) {
+    $("#statementDistFile").value = "";
+    $("#statementDistFileName").textContent = "";
+  }
+});
+
+$("#statementDistFile")?.addEventListener("change", () => {
+  const input = $("#statementDistFile");
+  if (input.files.length) {
+    $("#statementDistFileName").textContent = input.files[0].name;
+    $("#statementDistSelect").value = "";
+  } else {
+    $("#statementDistFileName").textContent = "";
+  }
+});
+
+$("#generateStatementsBtn")?.addEventListener("click", async () => {
+  if (!selectedStatementFile || !selectedStatementSheet) return;
+
+  const btn = $("#generateStatementsBtn");
+  const status = $("#statementStatus");
+  const wrap = $("#statementProgressWrap");
+  const fill = $("#statementProgressFill");
+  const text = $("#statementProgressText");
+  const member = $("#statementProgressMember");
+
+  btn.disabled = true;
+  status.textContent = "";
+  status.className = "status";
+  wrap.classList.remove("hidden");
+  fill.style.width = "0%";
+  text.textContent = "Starting…";
+  member.textContent = "";
+
+  try {
+    let distributionFilename = "";
+    const distFile = $("#statementDistFile");
+    if (distFile.files.length) {
+      const fd = new FormData();
+      fd.append("file", distFile.files[0]);
+      const up = await fetch("/api/statements/upload-distribution", { method: "POST", body: fd });
+      const upData = await up.json();
+      if (!up.ok) throw new Error(upData.error);
+      distributionFilename = upData.path;
+    } else {
+      distributionFilename = $("#statementDistSelect").value || "";
+    }
+
+    const res = await fetch("/api/statements/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: selectedStatementFile,
+        sheetName: selectedStatementSheet,
+        distributionFilename,
+      }),
+    });
+    const { jobId } = await res.json();
+    if (!res.ok || !jobId) throw new Error("Failed to start generation");
+
+    const poll = async () => {
+      const s = await fetch(`/api/statements/generate/status/${jobId}`);
+      const data = await s.json();
+      if (data.done) {
+        wrap.classList.add("hidden");
+        if (data.success) {
+          status.textContent = `Done — ${data.count} PDFs saved to ${data.outputDir}`;
+          status.className = "status ok";
+        } else {
+          status.textContent = data.error || "Generation failed";
+          status.className = "status err";
+        }
+        btn.disabled = false;
+        return;
+      }
+      const pct = data.total ? Math.round((data.current / data.total) * 100) : 0;
+      fill.style.width = `${pct}%`;
+      text.textContent = data.total
+        ? `${pct}% (${data.current} of ${data.total})`
+        : "Starting…";
+      member.textContent = data.member || "";
+      setTimeout(poll, 400);
+    };
+    poll();
+  } catch (err) {
+    wrap.classList.add("hidden");
+    status.textContent = err.message;
+    status.className = "status err";
+    btn.disabled = false;
+  }
+});
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+let cachedMembers = [];
+const memberPickerInstances = new Set();
+
+function memberDisplayName(m) {
+  return m.display_name || m.name;
+}
+
+function memberDobLabel(m) {
+  if (!m.date_of_birth) return "DOB not on file";
+  return formatDate(m.date_of_birth);
+}
+
+function memberSearchHaystack(m) {
+  const dob = m.date_of_birth || "";
+  const dobFormatted = dob ? formatDate(dob) : "";
+  return [m.name, m.display_name, dob, dobFormatted]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function filterMembersForPicker(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return cachedMembers.slice(0, 40);
+  return cachedMembers
+    .filter((m) => memberSearchHaystack(m).includes(q))
+    .slice(0, 40);
+}
+
+function closeAllMemberPickers(except) {
+  memberPickerInstances.forEach((picker) => {
+    if (picker !== except) picker.closeList();
+  });
+}
+
+function setupMemberPicker(root) {
+  const hidden = root.querySelector('input[type="hidden"]');
+  const input = root.querySelector(".member-picker-input");
+  const list = root.querySelector(".member-picker-list");
+  if (!hidden || !input || !list) return;
+
+  const picker = {
+    root,
+    hidden,
+    input,
+    list,
+    selectedMember: null,
+    closeList() {
+      list.classList.add("hidden");
+      list.innerHTML = "";
+    },
+    renderList(matches) {
+      list.innerHTML = "";
+      if (!matches.length) {
+        list.innerHTML = '<li class="member-picker-empty">No matching members</li>';
+        list.classList.remove("hidden");
+        return;
+      }
+      matches.forEach((m) => {
+        const li = document.createElement("li");
+        li.role = "option";
+        li.dataset.memberId = String(m.id);
+        li.innerHTML = `${escapeHtml(memberDisplayName(m))}<span class="member-picker-meta">${escapeHtml(memberDobLabel(m))}</span>`;
+        li.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          picker.selectMember(m);
+        });
+        list.appendChild(li);
+      });
+      list.classList.remove("hidden");
+    },
+    selectMember(member) {
+      picker.selectedMember = member;
+      hidden.value = String(member.id);
+      input.value = memberDisplayName(member);
+      picker.closeList();
+      const form = root.closest("form");
+      if (form?.id === "updateProfileForm") {
+        loadProfileIntoUpdateForm(member.id);
+      }
+    },
+    clearSelection() {
+      picker.selectedMember = null;
+      hidden.value = "";
+    },
+  };
+
+  input.addEventListener("focus", () => {
+    closeAllMemberPickers(picker);
+    picker.renderList(filterMembersForPicker(input.value));
+  });
+
+  input.addEventListener("input", () => {
+    if (
+      picker.selectedMember &&
+      input.value !== memberDisplayName(picker.selectedMember)
+    ) {
+      picker.clearSelection();
+    }
+    picker.renderList(filterMembersForPicker(input.value));
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") picker.closeList();
+  });
+
+  memberPickerInstances.add(picker);
+}
+
+function initMemberPickers() {
+  document.querySelectorAll(".member-picker").forEach((root) => {
+    if (root.dataset.pickerReady === "1") return;
+    setupMemberPicker(root);
+    root.dataset.pickerReady = "1";
+  });
+}
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".member-picker")) {
+    closeAllMemberPickers();
+  }
+});
+
+async function loadProfileIntoUpdateForm(memberId) {
+  const form = $("#updateProfileForm");
+  if (!form) return;
+  try {
+    const res = await fetch(`/api/members/${memberId}/profile`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load profile");
+    const p = data.profile;
+    const set = (name, value) => {
+      const el = form.querySelector(`[name="${name}"]`);
+      if (el) el.value = value ?? "";
+    };
+    set("memberId", memberId);
+    set("name", p.ledger_account_name);
+    set("firstName", p.first_name);
+    set("middleName", p.middle_name);
+    set("lastName", p.last_name);
+    set("gender", p.gender);
+    set("dateOfBirth", p.date_of_birth);
+    set("email", p.email);
+    set("phone", p.phone);
+    set("addressLine1", p.address_line1);
+    set("addressLine2", p.address_line2);
+    set("city", p.city);
+    set("state", p.state);
+    set("postalCode", p.postal_code);
+    set("country", p.country);
+    set("zelleBankName", p.zelle_bank_name);
+    set("nextOfKinFirstName", p.next_of_kin_first_name);
+    set("nextOfKinLastName", p.next_of_kin_last_name);
+    set("nextOfKinPhone", p.next_of_kin_phone);
+    set("nextOfKinRelationship", p.next_of_kin_relationship);
+    set("joinedAt", p.joined_at);
+    const picker = form.querySelector(".member-picker");
+    const pickerInput = picker?.querySelector(".member-picker-input");
+    if (pickerInput) {
+      pickerInput.value = p.display_name || p.ledger_account_name || "";
+    }
+  } catch (err) {
+    const status = $("#updateProfileStatus");
+    setFormStatus(status, err.message, false);
+  }
+}
+
+function openMemberProfileEditor(memberId) {
+  switchTab("record");
+  loadRecordTabData().then(() => loadProfileIntoUpdateForm(memberId));
+  document.getElementById("updateProfileForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function loadCdBalanceForm() {
+  const summaryEl = $("#cdBalanceCurrent");
+  const form = $("#cdBalanceForm");
+  if (!form) return;
+  try {
+    const res = await fetch("/api/settings/cd-balance");
+    const { cdBalance } = await res.json();
+    if (!res.ok) throw new Error(cdBalance?.error || "Failed to load CD balance");
+
+    const balanceInput = form.querySelector('[name="balance"]');
+    const asOfInput = form.querySelector('[name="asOfDate"]');
+    if (balanceInput && cdBalance.balance != null) {
+      balanceInput.value = Number(cdBalance.balance).toFixed(2);
+    }
+    if (asOfInput) {
+      asOfInput.value = cdBalance.asOf || todayIso();
+    }
+
+    if (summaryEl) {
+      if (cdBalance.balance == null) {
+        summaryEl.textContent =
+          "No CD balance on file yet. Enter the balance from your bank statement.";
+      } else {
+        summaryEl.textContent = [
+          `Last updated ${cdBalance.asOf ? formatDate(cdBalance.asOf) : "—"}`,
+          `Balance ${fmt.format(cdBalance.balance)}`,
+          `Principal ${fmt.format(cdBalance.openPrincipal || 0)}`,
+          `Accrued interest ${fmt.format(cdBalance.accruedInterest || 0)}`,
+        ].join(" · ");
+      }
+    }
+  } catch (err) {
+    if (summaryEl) {
+      summaryEl.textContent = err.message;
+      summaryEl.className = "subtle status err";
+    }
+  }
+}
+
+async function loadRecordTabData() {
+  try {
+    const [membersRes, categoriesRes, loansRes] = await Promise.all([
+      fetch("/api/members?profiles=true"),
+      fetch("/api/expense-categories"),
+      fetch("/api/loans?status=active"),
+    ]);
+    const { members } = await membersRes.json();
+    const { categories } = await categoriesRes.json();
+    const { loans } = await loansRes.json();
+    cachedMembers = members || [];
+    initMemberPickers();
+
+    const loanSelect = $("#repaymentLoanSelect");
+    if (loanSelect) {
+      loanSelect.innerHTML = '<option value="">Select Loan</option>';
+      (loans || []).forEach((l) => {
+        const opt = document.createElement("option");
+        opt.value = l.id;
+        opt.textContent = `#${l.id} — ${l.borrower_name} (${fmt.format(l.principal)})`;
+        loanSelect.appendChild(opt);
+      });
+    }
+
+    const catSelect = $("#expenseCategorySelect");
+    if (catSelect) {
+      catSelect.innerHTML = "";
+      (categories || []).forEach((c) => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        catSelect.appendChild(opt);
+      });
+    }
+
+    document.querySelectorAll('input[type="date"][name="transactionDate"], input[type="date"][name="startDate"], input[type="date"][name="paymentDate"], input[type="date"][name="expenseDate"], input[type="date"][name="asOfDate"], input[type="date"][name="creditedDate"]').forEach((input) => {
+      if (!input.value) input.value = todayIso();
+    });
+
+    await Promise.all([loadExpenses(), loadDistributions(), loadCdBalanceForm()]);
+  } catch (err) {
+    $("#expensesBody").innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function loadExpenses() {
+  const body = $("#expensesBody");
+  if (!body) return;
+  try {
+    const res = await fetch("/api/expenses?limit=25");
+    const { expenses } = await res.json();
+    if (!expenses?.length) {
+      body.innerHTML = '<tr><td colspan="4" class="subtle">No Expenses Recorded Yet</td></tr>';
+      return;
+    }
+    body.innerHTML = expenses
+      .map(
+        (e) => `
+      <tr>
+        <td>${escapeHtml(e.expense_date)}</td>
+        <td>${escapeHtml(e.category)}</td>
+        <td>${escapeHtml(e.description)}</td>
+        <td class="money">${fmt.format(e.amount)}</td>
+      </tr>`
+      )
+      .join("");
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function loadDistributions() {
+  const body = $("#distributionsBody");
+  if (!body) return;
+  try {
+    const res = await fetch("/api/distributions/recent?limit=25");
+    const { distributions } = await res.json();
+    if (!distributions?.length) {
+      body.innerHTML = '<tr><td colspan="4" class="subtle">No Distributions Recorded Yet</td></tr>';
+      return;
+    }
+    body.innerHTML = distributions
+      .map(
+        (d) => `
+      <tr>
+        <td>${escapeHtml(d.transaction_date)}</td>
+        <td>${escapeHtml(d.display_name || d.member_name)}</td>
+        <td>${escapeHtml(d.description || "—")}</td>
+        <td class="money">${fmt.format(d.amount)}</td>
+      </tr>`
+      )
+      .join("");
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function setFormStatus(el, message, ok) {
+  if (!el) return;
+  el.textContent = message;
+  el.className = ok ? "status ok" : "status err";
+}
+
+function formJson(form) {
+  const data = Object.fromEntries(new FormData(form).entries());
+  for (const key of Object.keys(data)) {
+    if (["memberId", "borrowerId", "guarantor1Id", "guarantor2Id", "loanId", "termMonths"].includes(key)) {
+      data[key] = Number(data[key]);
+    }
+    if (["amount", "principal", "annualRate", "balance", "membershipFeeAmount"].includes(key) && data[key] !== "") {
+      data[key] = Number(data[key]);
+    }
+  }
+  return data;
+}
+
+$("#registerMemberForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#registerMemberStatus");
+  status.textContent = "Registering…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    payload.recordMembershipFee = Boolean(e.target.recordMembershipFee?.checked);
+    if (!payload.recordMembershipFee) {
+      delete payload.membershipFeeDate;
+    }
+    const res = await fetch("/api/members", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(status, `Registered ${payload.name}.`, true);
+    e.target.reset();
+    if (e.target.recordMembershipFee) e.target.recordMembershipFee.checked = true;
+    loadMembers();
+    loadRecordTabData();
+    loadBooks();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#updateProfileForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#updateProfileStatus");
+  status.textContent = "Saving…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const memberId = payload.memberId;
+    delete payload.memberId;
+    const res = await fetch(`/api/members/${memberId}/profile`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(status, "Profile saved.", true);
+    loadMembers();
+    if (selectedMemberId === memberId) showProfile(memberId);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#membershipFeeForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#membershipFeeStatus");
+  status.textContent = "Recording…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const res = await fetch("/api/transactions/membership-fee", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(
+      status,
+      `Registration fee of ${fmt.format(Math.abs(data.amount))} recorded.`,
+      true
+    );
+    e.target.amount.value = "100";
+    loadMembers();
+    loadBooks();
+    if (selectedMemberId === payload.memberId) showProfile(payload.memberId);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#depositForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#depositStatus");
+  status.textContent = "Saving…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const res = await fetch("/api/transactions/member", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(status, `Recorded ${payload.type} of ${fmt.format(Math.abs(data.amount))}.`, true);
+    e.target.amount.value = "";
+    e.target.description.value = "";
+    e.target.reference.value = "";
+    loadMembers();
+    loadBooks();
+    if (selectedMemberId === payload.memberId) showProfile(payload.memberId);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#distributionForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#distributionStatus");
+  status.textContent = "Saving…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const res = await fetch("/api/distributions/member", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(
+      status,
+      `Distribution of ${fmt.format(Math.abs(data.amount))} credited.`,
+      true
+    );
+    e.target.amount.value = "";
+    e.target.reference.value = "";
+    loadMembers();
+    loadBooks();
+    loadDistributions();
+    if (selectedMemberId === payload.memberId) showProfile(payload.memberId);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#distributionBulkForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#distributionBulkStatus");
+  status.textContent = "Importing…";
+  status.className = "status";
+  try {
+    const fd = new FormData(e.target);
+    const res = await fetch("/api/distributions/import", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    let message = `Credited ${data.credited} member${data.credited === 1 ? "" : "s"}.`;
+    if (data.unmatched?.length) {
+      message += ` Unmatched: ${data.unmatched.join(", ")}.`;
+    }
+    setFormStatus(status, message, true);
+    e.target.reset();
+    document.querySelectorAll('#distributionBulkForm input[type="date"]').forEach((input) => {
+      if (!input.value) input.value = todayIso();
+    });
+    loadMembers();
+    loadBooks();
+    loadDistributions();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#newLoanForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#newLoanStatus");
+  status.textContent = "Creating Loan…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const res = await fetch("/api/loans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(status, `Loan #${data.loanId} created.`, true);
+    e.target.principal.value = "";
+    e.target.notes.value = "";
+    loadLoans();
+    loadBooks();
+    loadRecordTabData();
+    loadMembers();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#repaymentForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#repaymentStatus");
+  status.textContent = "Recording…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const loanId = payload.loanId;
+    delete payload.loanId;
+    const res = await fetch(`/api/loans/${loanId}/repayments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(status, `Repayment of ${fmt.format(payload.amount)} recorded.`, true);
+    e.target.amount.value = "";
+    e.target.description.value = "";
+    loadLoans();
+    loadBooks();
+    loadMembers();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#cdBalanceForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#cdBalanceStatus");
+  status.textContent = "Saving…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const res = await fetch("/api/settings/cd-balance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const saved = data.cdBalance;
+    setFormStatus(
+      status,
+      `CD balance updated to ${fmt.format(saved.balance)} as of ${formatDate(saved.asOf)} · accrued interest ${fmt.format(saved.accruedInterest)}.`,
+      true
+    );
+    await loadCdBalanceForm();
+    loadBooks();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#expenseForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#expenseStatus");
+  status.textContent = "Saving…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const res = await fetch("/api/expenses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(status, `Expense recorded (${payload.category}).`, true);
+    e.target.description.value = "";
+    e.target.amount.value = "";
+    loadExpenses();
+    loadBooks();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+  const portal = e.target.dataset.portal || getPortalFromPath();
+  const status = document.querySelector(`[data-login-status="${portal}"]`);
+  if (status) {
+    status.textContent = "Signing in…";
+    status.className = "status";
+  }
+  try {
+    const formData = Object.fromEntries(new FormData(e.target).entries());
+    rememberOrgSlug(formData.organizationSlug);
+    const res = await nativeFetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...formData, portal }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    sessionToken = data.token;
+    localStorage.setItem(SESSION_KEY, sessionToken);
+    currentUser = data.user;
+    if (data.mustChangePassword || currentUser.mustChangePassword) {
+      showChangePassword();
+      if (status) status.textContent = "";
+      return;
+    }
+    showApp();
+    applyRoleUi();
+    bootstrapApp();
+    if (status) setFormStatus(status, "", true);
+  } catch (err) {
+    if (status) setFormStatus(status, err.message, false);
+  }
+}
+
+document.querySelectorAll(".login-form").forEach((form) => {
+  form.addEventListener("submit", handleLoginSubmit);
+});
+
+document.querySelectorAll(".org-slug-input").forEach((input) => {
+  input.addEventListener("change", () => refreshOrganizationPreview(input.value));
+  input.addEventListener("blur", () => refreshOrganizationPreview(input.value));
+});
+
+$("#registerOrganizationForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#registerStatus");
+  status.textContent = "Creating cooperative…";
+  status.className = "status";
+  try {
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    const res = await nativeFetch("/api/auth/register-organization", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    rememberOrgSlug(data.organization.slug);
+    setFormStatus(
+      status,
+      `Created ${data.organization.name}. Sign in at /admin with organization code "${data.organization.slug}".`,
+      true
+    );
+    e.target.reset();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#changePasswordForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#changePasswordStatus");
+  status.textContent = "Saving…";
+  status.className = "status";
+  try {
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    if (payload.newPassword !== payload.confirmPassword) {
+      throw new Error("New passwords do not match");
+    }
+    const res = await fetch("/api/auth/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        currentPassword: payload.currentPassword,
+        newPassword: payload.newPassword,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    currentUser = data.user;
+    showApp();
+    applyRoleUi();
+    bootstrapApp();
+    setFormStatus(status, "Password Updated.", true);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#logoutBtn")?.addEventListener("click", async () => {
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } catch (_) {}
+  sessionToken = "";
+  currentUser = null;
+  localStorage.removeItem(SESSION_KEY);
+  showLoginForPortal(getPortalFromPath());
+});
+
+$("#provisionMembersBtn")?.addEventListener("click", async () => {
+  const status = $("#provisionMembersStatus");
+  if (
+    !confirm(
+      "Create member portal logins for all members without accounts? Temporary passwords will be generated."
+    )
+  ) {
+    return;
+  }
+  status.textContent = "Generating credentials…";
+  status.className = "status";
+  try {
+    const res = await fetch("/api/users/provision-members", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const created = data.created?.length || 0;
+    const skipped = data.skipped?.length || 0;
+    let message = `Created ${created} account(s)`;
+    if (skipped) message += `, skipped ${skipped}`;
+    if (data.exportFileName) {
+      message += `. Saved to data/exports/${data.exportFileName}`;
+    }
+    if (created && data.created) {
+      const preview = data.created
+        .slice(0, 5)
+        .map((row) => `${row.memberName}: ${row.username} / ${row.tempPassword}`)
+        .join("; ");
+      message += `. ${preview}${created > 5 ? "…" : ""}`;
+    }
+    setFormStatus(status, message, true);
+    loadUsers();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#downloadCredentialsBtn")?.addEventListener("click", async () => {
+  const status = $("#provisionMembersStatus");
+  try {
+    const res = await fetch("/api/users/member-credentials-export");
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Download failed");
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const fileName = match?.[1] || "member-credentials.csv";
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    if (status) setFormStatus(status, `Downloaded ${fileName}`, true);
+  } catch (err) {
+    if (status) setFormStatus(status, err.message, false);
+    else alert(err.message);
+  }
+});
+
+$("#createUserForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#createUserStatus");
+  status.textContent = "Creating account…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    if (payload.role !== "member") {
+      delete payload.memberId;
+      delete payload.username;
+    } else if (!payload.username) {
+      throw new Error("Member accounts require a username");
+    }
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(status, `Account created for ${payload.email}.`, true);
+    e.target.reset();
+    loadUsers();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#refreshUsers")?.addEventListener("click", () => loadUsers());
+$("#refreshMyAccount")?.addEventListener("click", () => loadMyAccount());
+$("#downloadMyDepositStatement")?.addEventListener("click", async () => {
+  try {
+    const monthSelect = $("#myDepositStatementMonth");
+    const value = monthSelect?.value || "";
+    const [year, month] = value.split("-").map(Number);
+    if (!year || !month) {
+      alert("Select a statement month first.");
+      return;
+    }
+    const res = await fetch(`/api/me/deposit-statement?year=${year}&month=${month}`);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Download failed");
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `deposit-statement-${year}-${String(month).padStart(2, "0")}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+bootstrapApp();

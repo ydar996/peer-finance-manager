@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Peer Finance Manager</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="loginScreenMember" class="login-screen" data-portal="member">
+      <div class="login-card">
+        <p class="brand org-brand">Peer Finance Manager</p>
+        <p class="subtle org-cooperative-name hidden"></p>
+        <h1>Member Portal</h1>
+        <p class="subtle org-subtitle">Sign In to View Your Deposit and Loan Accounts</p>
+        <form id="loginFormMember" class="entry-form login-form" data-portal="member">
+          <label>Organization Code
+            <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. assurance" autocomplete="organization" />
+          </label>
+          <label>Username
+            <input type="text" name="identifier" required autocomplete="username" />
+          </label>
+          <label>Password
+            <input type="password" name="password" required autocomplete="current-password" />
+          </label>
+          <button type="submit" class="btn primary">Sign In</button>
+        </form>
+        <p class="subtle login-foot">First Time? Use the Username and Temporary Password Provided by Your Cooperative. You Will Be Asked to Set a New Password.</p>
+        <p class="login-foot subtle"><a href="/register">Register a New Cooperative</a></p>
+        <p class="login-status status" data-login-status="member"></p>
+      </div>
+    </div>
+
+    <div id="loginScreenStaff" class="login-screen hidden" data-portal="staff">
+      <div class="login-card">
+        <p class="brand org-brand">Peer Finance Manager</p>
+        <p class="subtle org-cooperative-name hidden"></p>
+        <h1>Staff Sign In</h1>
+        <p class="subtle org-subtitle">Read-Only Cooperative Management Access</p>
+        <form id="loginFormStaff" class="entry-form login-form" data-portal="staff">
+          <label>Organization Code
+            <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. assurance" autocomplete="organization" />
+          </label>
+          <label>Email
+            <input type="email" name="identifier" required autocomplete="username" />
+          </label>
+          <label>Password
+            <input type="password" name="password" required autocomplete="current-password" />
+          </label>
+          <button type="submit" class="btn primary">Sign In</button>
+        </form>
+        <p class="login-status status" data-login-status="staff"></p>
+      </div>
+    </div>
+
+    <div id="loginScreenAdmin" class="login-screen hidden" data-portal="admin">
+      <div class="login-card">
+        <p class="brand org-brand">Peer Finance Manager</p>
+        <p class="subtle org-cooperative-name hidden"></p>
+        <h1>Administrator Sign In</h1>
+        <p class="subtle org-subtitle">Full Cooperative Management Access</p>
+        <form id="loginFormAdmin" class="entry-form login-form" data-portal="admin">
+          <label>Organization Code
+            <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. assurance" autocomplete="organization" />
+          </label>
+          <label>Email
+            <input type="email" name="identifier" required autocomplete="username" />
+          </label>
+          <label>Password
+            <input type="password" name="password" required autocomplete="current-password" />
+          </label>
+          <button type="submit" class="btn primary">Sign In</button>
+        </form>
+        <p class="login-foot subtle"><a href="/register">Register a New Cooperative</a></p>
+        <p class="login-status status" data-login-status="admin"></p>
+      </div>
+    </div>
+
+    <div id="registerScreen" class="login-screen hidden">
+      <div class="login-card">
+        <p class="brand">Peer Finance Manager</p>
+        <h1>Register Cooperative</h1>
+        <p class="subtle">Create a New Organization and Administrator Account</p>
+        <form id="registerOrganizationForm" class="entry-form">
+          <label>Cooperative Name
+            <input type="text" name="name" required placeholder="e.g. Acme Cooperative" />
+          </label>
+          <label>Organization Code
+            <input type="text" name="slug" required placeholder="e.g. acme" pattern="[a-zA-Z0-9-]+" />
+          </label>
+          <label>Administrator Email
+            <input type="email" name="adminEmail" required autocomplete="username" />
+          </label>
+          <label>Administrator Password
+            <input type="password" name="adminPassword" minlength="8" required autocomplete="new-password" />
+          </label>
+          <label>Administrator Name (Optional)
+            <input type="text" name="adminDisplayName" />
+          </label>
+          <button type="submit" class="btn primary">Create Cooperative</button>
+        </form>
+        <p class="login-foot subtle"><a href="/admin">Back to Sign In</a></p>
+        <p id="registerStatus" class="status"></p>
+      </div>
+    </div>
+
+    <div id="changePasswordScreen" class="login-screen hidden">
+      <div class="login-card">
+        <p class="brand org-brand">Peer Finance Manager</p>
+        <h1>Set Your Password</h1>
+        <p class="subtle">For Security, Choose a New Password Before Continuing.</p>
+        <form id="changePasswordForm" class="entry-form">
+          <label>Current / Temporary Password
+            <input type="password" name="currentPassword" required autocomplete="current-password" />
+          </label>
+          <label>New Password
+            <input type="password" name="newPassword" minlength="8" required autocomplete="new-password" />
+          </label>
+          <label>Confirm New Password
+            <input type="password" name="confirmPassword" minlength="8" required autocomplete="new-password" />
+          </label>
+          <button type="submit" class="btn primary">Save Password &amp; Continue</button>
+        </form>
+        <p id="changePasswordStatus" class="status"></p>
+      </div>
+    </div>
+
+    <div id="appShell" class="app hidden">
+      <header class="topbar">
+        <div>
+          <p class="brand org-brand" id="appOrgBrand">Peer Finance Manager</p>
+          <h1 id="appTitle">Cooperative Manager</h1>
+          <p class="subtle" id="appOrgSubtitle">Cooperative Banking — Member Deposit Accounts, Loan Accounts, and Books</p>
+        </div>
+        <div class="session-bar">
+          <p id="sessionUser" class="session-user"></p>
+          <button type="button" class="btn" id="logoutBtn">Sign Out</button>
+        </div>
+      </header>
+
+      <nav class="tabs" id="mainTabs">
+        <button type="button" class="tab active" data-tab="books" data-roles="admin,staff">Cooperative Books</button>
+        <button type="button" class="tab" data-tab="members" data-roles="admin,staff">Members &amp; Accounts</button>
+        <button type="button" class="tab" data-tab="statements" data-roles="admin,staff">Statements</button>
+        <button type="button" class="tab" data-tab="loans" data-roles="admin,staff">Loans</button>
+        <button type="button" class="tab" data-tab="record" data-roles="admin">Record</button>
+        <button type="button" class="tab" data-tab="import" data-roles="admin">Import</button>
+        <button type="button" class="tab" data-tab="users" data-roles="admin">Users</button>
+        <button type="button" class="tab" data-tab="my-account" data-roles="member">My Account</button>
+      </nav>
+
+      <section id="panel-books" class="panel active">
+        <div class="panel-head">
+          <h2>Cooperative Books</h2>
+          <button type="button" class="btn" id="refreshBooks">Refresh</button>
+        </div>
+        <p class="hint">On-Demand Summary of Cooperative Income, Member Deposit Liabilities, Loans, and Expenses. Click a Card for Details.</p>
+        <div id="booksSummary">
+          <div id="booksGrid" class="books-grid">
+            <p class="hint">Loading…</p>
+          </div>
+        </div>
+        <div id="booksDetail" class="books-detail hidden">
+          <div class="panel-head">
+            <h2 id="booksDetailTitle">Details</h2>
+            <div class="books-detail-actions">
+              <button type="button" class="btn" id="booksDetailTabLink" hidden>Open Full View</button>
+              <button type="button" class="btn" id="booksDetailBack">Back to Summary</button>
+            </div>
+          </div>
+          <p id="booksDetailSummary" class="hint"></p>
+          <div class="table-wrap">
+            <table>
+              <thead id="booksDetailHead"></thead>
+              <tbody id="booksDetailBody">
+                <tr><td>Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-members" class="panel">
+        <div class="panel-head">
+          <h2>Members &amp; Banking Profiles</h2>
+          <div class="panel-head-actions">
+            <button type="button" class="btn primary hidden" id="goRegisterMemberBtn">Register Member</button>
+            <button type="button" class="btn" id="refreshMembers">Refresh</button>
+          </div>
+        </div>
+        <p class="hint">Select a Member to View Their Biodata, Deposit Account, and Loan Account. Use <strong>Register Member</strong> on the Record Tab to Add Members Manually — Excel Import Is Optional.</p>
+
+        <div class="members-layout">
+          <div class="members-list-pane">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Deposit Account</th>
+                    <th>Loan Account</th>
+                    <th>Profile</th>
+                  </tr>
+                </thead>
+                <tbody id="membersBody">
+                  <tr><td colspan="4">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div id="memberDetail" class="member-banking-pane">
+            <div class="empty-pane">
+              <p>Select a Member to Open Their Banking Profile.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-statements" class="panel">
+        <div class="panel-head">
+          <h2>Periodic Statements (PDF)</h2>
+          <button type="button" class="btn" id="refreshStatementFiles">Refresh Files</button>
+        </div>
+        <p class="hint">Generate Monthly PDF Deposit Account Statements for All Members (<code>statements/YYYY-MM/</code>). For Loan Account Statements, Use <strong>Statement</strong> on the Loans Tab or Member Profile — One PDF per Loan, Saved to <code>statements/loan-accounts/</code>.</p>
+
+        <div class="card">
+          <h3>Monthly Workbook</h3>
+          <ul class="file-list" id="statementFileList">
+            <li class="empty-item">Loading…</li>
+          </ul>
+          <div id="statementSelectedInfo" class="statement-selected hidden"></div>
+        </div>
+
+        <div class="card">
+          <h3>Distribution/Interest (Optional)</h3>
+          <select id="statementDistSelect" class="statement-select">
+            <option value="">None — Use Distribution Column in Workbook Only</option>
+          </select>
+          <div class="statement-browse">
+            <span class="browse-label">Or Upload:</span>
+            <input type="file" id="statementDistFile" accept=".xlsx,.xls" />
+            <span class="file-name" id="statementDistFileName"></span>
+          </div>
+        </div>
+
+        <button type="button" class="btn primary" id="generateStatementsBtn" disabled>Generate PDF Statements</button>
+        <div class="progress-wrapper hidden" id="statementProgressWrap">
+          <div class="progress-bar"><div class="progress-bar-fill" id="statementProgressFill"></div></div>
+          <div class="progress-text" id="statementProgressText"></div>
+          <div class="progress-member" id="statementProgressMember"></div>
+        </div>
+        <p id="statementStatus" class="status"></p>
+      </section>
+
+      <section id="panel-loans" class="panel">
+        <div class="panel-head"><h2>Loan Portfolio</h2></div>
+        <p class="hint">Each Member's Loan Account Is Separate From Their Deposit Account. Active Loans Appear Here and on the Member Profile.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Loan</th>
+                <th>Borrower</th>
+                <th>Disbursed</th>
+                <th>Principal</th>
+                <th>Repaid</th>
+                <th>Interest Earned</th>
+                <th>Outstanding</th>
+                <th>Status</th>
+                <th>Repayments</th>
+                <th>Statement</th>
+              </tr>
+            </thead>
+            <tbody id="loansBody">
+              <tr><td colspan="10">No Loans Yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="panel-record" class="panel">
+        <div class="panel-head">
+          <h2>Manual Record</h2>
+        </div>
+        <p class="hint">Register Members, Record Deposits, Withdrawals, Distributions, Membership Fees, Loans, Loan Repayments, CD Balance Updates, and Expenses — All Without Excel. Use the Import Tab Only When You Have a Spreadsheet or Application File.</p>
+
+        <div class="record-grid">
+          <div class="card accent">
+            <h3>Register New Member</h3>
+            <p class="subtle">Add a Member to the Cooperative Ledger and Optionally Save Their Biodata and Registration Fee.</p>
+            <form id="registerMemberForm" class="entry-form">
+              <label>Ledger Account Name
+                <input type="text" name="name" required placeholder="e.g. Jane Doe" />
+              </label>
+              <label>First Name (Optional)
+                <input type="text" name="firstName" />
+              </label>
+              <label>Middle Name (Optional)
+                <input type="text" name="middleName" />
+              </label>
+              <label>Last Name (Optional)
+                <input type="text" name="lastName" />
+              </label>
+              <label>Date of Birth (Optional)
+                <input type="date" name="dateOfBirth" />
+              </label>
+              <label>Email (Optional)
+                <input type="email" name="email" />
+              </label>
+              <label>Phone (Optional)
+                <input type="tel" name="phone" />
+              </label>
+              <label>City (Optional)
+                <input type="text" name="city" />
+              </label>
+              <label>State (Optional)
+                <input type="text" name="state" />
+              </label>
+              <label>Zelle/Bank Name (Optional)
+                <input type="text" name="zelleBankName" placeholder="As shown on bank transfers" />
+              </label>
+              <label>Joined Date (Optional)
+                <input type="date" name="joinedAt" />
+              </label>
+              <label><input type="checkbox" name="recordMembershipFee" value="true" checked /> Record Registration Fee ($100)</label>
+              <label>Fee Date (If Recording Fee)
+                <input type="date" name="membershipFeeDate" />
+              </label>
+              <button type="submit" class="btn primary">Register Member</button>
+            </form>
+            <p id="registerMemberStatus" class="status"></p>
+          </div>
+
+          <div class="card">
+            <h3>Update Member Profile</h3>
+            <p class="subtle">Select a Member to Load Their Details, Then Change Phone, Address, Email, or Other Biodata.</p>
+            <form id="updateProfileForm" class="entry-form">
+              <label>Member
+                <div class="member-picker" data-input-name="memberId" data-placeholder="Search Member to Edit">
+                  <input type="hidden" name="memberId" required />
+                  <input type="text" class="member-picker-input" placeholder="Search Member to Edit" autocomplete="off" spellcheck="false" />
+                  <ul class="member-picker-list hidden" role="listbox"></ul>
+                </div>
+              </label>
+              <label>Ledger Account Name (Optional)
+                <input type="text" name="name" placeholder="Leave Blank to Keep Current" />
+              </label>
+              <label>First Name
+                <input type="text" name="firstName" />
+              </label>
+              <label>Middle Name
+                <input type="text" name="middleName" />
+              </label>
+              <label>Last Name
+                <input type="text" name="lastName" />
+              </label>
+              <label>Gender
+                <input type="text" name="gender" />
+              </label>
+              <label>Date of Birth
+                <input type="date" name="dateOfBirth" />
+              </label>
+              <label>Email
+                <input type="email" name="email" />
+              </label>
+              <label>Phone
+                <input type="tel" name="phone" />
+              </label>
+              <label>Address Line 1
+                <input type="text" name="addressLine1" />
+              </label>
+              <label>Address Line 2
+                <input type="text" name="addressLine2" />
+              </label>
+              <label>City
+                <input type="text" name="city" />
+              </label>
+              <label>State
+                <input type="text" name="state" />
+              </label>
+              <label>Postal Code
+                <input type="text" name="postalCode" />
+              </label>
+              <label>Country
+                <input type="text" name="country" />
+              </label>
+              <label>Zelle/Bank Name
+                <input type="text" name="zelleBankName" />
+              </label>
+              <label>Next of Kin First Name
+                <input type="text" name="nextOfKinFirstName" />
+              </label>
+              <label>Next of Kin Last Name
+                <input type="text" name="nextOfKinLastName" />
+              </label>
+              <label>Next of Kin Phone
+                <input type="tel" name="nextOfKinPhone" />
+              </label>
+              <label>Next of Kin Relationship
+                <input type="text" name="nextOfKinRelationship" />
+              </label>
+              <label>Joined Date
+                <input type="date" name="joinedAt" />
+              </label>
+              <button type="submit" class="btn primary">Save Profile</button>
+            </form>
+            <p id="updateProfileStatus" class="status"></p>
+          </div>
+
+          <div class="card">
+            <h3>Registration Fee</h3>
+            <p class="subtle">Record the One-Time Membership Fee for an Existing Member.</p>
+            <form id="membershipFeeForm" class="entry-form">
+              <label>Member
+                <div class="member-picker" data-input-name="memberId" data-placeholder="Search Member">
+                  <input type="hidden" name="memberId" required />
+                  <input type="text" class="member-picker-input" placeholder="Search Member" autocomplete="off" spellcheck="false" />
+                  <ul class="member-picker-list hidden" role="listbox"></ul>
+                </div>
+              </label>
+              <label>Amount
+                <input type="number" name="amount" step="0.01" min="0.01" value="100" required />
+              </label>
+              <label>Fee Date
+                <input type="date" name="feeDate" required />
+              </label>
+              <button type="submit" class="btn primary">Record Fee</button>
+            </form>
+            <p id="membershipFeeStatus" class="status"></p>
+          </div>
+          <div class="card accent">
+            <h3>CD Account Balance</h3>
+            <p class="subtle" id="cdBalanceCurrent">Loading Current CD Balance…</p>
+            <form id="cdBalanceForm" class="entry-form">
+              <label>Current Balance (From Bank Statement)
+                <input type="number" name="balance" step="0.01" min="0" required />
+              </label>
+              <label>As of Date
+                <input type="date" name="asOfDate" required />
+              </label>
+              <label>Note (Optional)
+                <input type="text" name="note" placeholder="e.g. March 2026 statement" />
+              </label>
+              <button type="submit" class="btn primary">Update CD Balance</button>
+            </form>
+            <p id="cdBalanceStatus" class="status"></p>
+          </div>
+          <div class="card">
+            <h3>Member Deposit Account</h3>
+            <form id="depositForm" class="entry-form">
+              <label>Member
+                <div class="member-picker" data-input-name="memberId" data-placeholder="Search by Name or DOB">
+                  <input type="hidden" name="memberId" required />
+                  <input type="text" class="member-picker-input" placeholder="Search by Name or DOB" autocomplete="off" spellcheck="false" />
+                  <ul class="member-picker-list hidden" role="listbox"></ul>
+                </div>
+              </label>
+              <label>Type
+                <select name="type" required>
+                  <option value="deposit">Deposit</option>
+                  <option value="withdrawal">Withdrawal</option>
+                </select>
+              </label>
+              <label>Amount
+                <input type="number" name="amount" step="0.01" min="0.01" required />
+              </label>
+              <label>Date
+                <input type="date" name="transactionDate" required />
+              </label>
+              <label>Description (Optional)
+                <input type="text" name="description" placeholder="e.g. May 2026 Zelle" />
+              </label>
+              <label>Reference (Optional)
+                <input type="text" name="reference" placeholder="Conf# or check no." />
+              </label>
+              <button type="submit" class="btn primary">Record Entry</button>
+            </form>
+            <p id="depositStatus" class="status"></p>
+          </div>
+
+          <div class="card accent">
+            <h3>Member Distribution</h3>
+            <p class="subtle">Credit Cooperative Income to One Member (Interest or Profit Share).</p>
+            <form id="distributionForm" class="entry-form">
+              <label>Member
+                <div class="member-picker" data-input-name="memberId" data-placeholder="Search by Name or DOB">
+                  <input type="hidden" name="memberId" required />
+                  <input type="text" class="member-picker-input" placeholder="Search by Name or DOB" autocomplete="off" spellcheck="false" />
+                  <ul class="member-picker-list hidden" role="listbox"></ul>
+                </div>
+              </label>
+              <label>Amount
+                <input type="number" name="amount" step="0.01" min="0.01" required />
+              </label>
+              <label>Credited Date
+                <input type="date" name="transactionDate" required />
+              </label>
+              <label>Label
+                <input type="text" name="label" required placeholder="e.g. Distribution - April 2026" />
+              </label>
+              <label>Reference (Optional)
+                <input type="text" name="reference" placeholder="Workbook or batch reference" />
+              </label>
+              <button type="submit" class="btn primary">Record Distribution</button>
+            </form>
+            <p id="distributionStatus" class="status"></p>
+          </div>
+
+          <div class="card">
+            <h3>Bulk Distribution (Excel)</h3>
+            <p class="subtle">Upload a Sheet With <strong>Member Name</strong> and an Amount Column (Distribution, Interest, Amount, or Dividend).</p>
+            <form id="distributionBulkForm" class="entry-form">
+              <label>Distribution Excel
+                <input type="file" name="file" accept=".xlsx,.xls" required />
+              </label>
+              <label>Label
+                <input type="text" name="label" required placeholder="e.g. Distribution - April 2026" />
+              </label>
+              <label>Credited Date
+                <input type="date" name="creditedDate" required />
+              </label>
+              <button type="submit" class="btn primary">Import Distribution Credits</button>
+            </form>
+            <p id="distributionBulkStatus" class="status"></p>
+          </div>
+
+          <div class="card">
+            <h3>New Loan</h3>
+            <form id="newLoanForm" class="entry-form">
+              <label>Borrower
+                <div class="member-picker" data-input-name="borrowerId" data-placeholder="Search Borrower by Name or DOB">
+                  <input type="hidden" name="borrowerId" required />
+                  <input type="text" class="member-picker-input" placeholder="Search by Name or DOB" autocomplete="off" spellcheck="false" />
+                  <ul class="member-picker-list hidden" role="listbox"></ul>
+                </div>
+              </label>
+              <label>Guarantor 1
+                <div class="member-picker" data-input-name="guarantor1Id" data-placeholder="Search Guarantor by Name or DOB">
+                  <input type="hidden" name="guarantor1Id" required />
+                  <input type="text" class="member-picker-input" placeholder="Search by Name or DOB" autocomplete="off" spellcheck="false" />
+                  <ul class="member-picker-list hidden" role="listbox"></ul>
+                </div>
+              </label>
+              <label>Guarantor 2
+                <div class="member-picker" data-input-name="guarantor2Id" data-placeholder="Search Guarantor by Name or DOB">
+                  <input type="hidden" name="guarantor2Id" required />
+                  <input type="text" class="member-picker-input" placeholder="Search by Name or DOB" autocomplete="off" spellcheck="false" />
+                  <ul class="member-picker-list hidden" role="listbox"></ul>
+                </div>
+              </label>
+              <label>Principal
+                <input type="number" name="principal" step="0.01" min="1" required />
+              </label>
+              <label>Start Date
+                <input type="date" name="startDate" required />
+              </label>
+              <label>Annual Rate
+                <input type="number" name="annualRate" step="0.01" value="0.08" />
+              </label>
+              <label>Term (Months)
+                <input type="number" name="termMonths" min="1" value="12" />
+              </label>
+              <label>Notes (Optional)
+                <input type="text" name="notes" />
+              </label>
+              <button type="submit" class="btn primary">Create Loan</button>
+            </form>
+            <p id="newLoanStatus" class="status"></p>
+          </div>
+
+          <div class="card">
+            <h3>Loan Repayment</h3>
+            <form id="repaymentForm" class="entry-form">
+              <label>Loan
+                <select name="loanId" id="repaymentLoanSelect" required></select>
+              </label>
+              <label>Amount
+                <input type="number" name="amount" step="0.01" min="0.01" required />
+              </label>
+              <label>Payment Date
+                <input type="date" name="paymentDate" required />
+              </label>
+              <label>Description (Optional)
+                <input type="text" name="description" placeholder="e.g. Zelle repayment" />
+              </label>
+              <button type="submit" class="btn primary">Record Repayment</button>
+            </form>
+            <p id="repaymentStatus" class="status"></p>
+          </div>
+
+          <div class="card">
+            <h3>Cooperative Expense</h3>
+            <form id="expenseForm" class="entry-form">
+              <label>Category
+                <select name="category" id="expenseCategorySelect" required></select>
+              </label>
+              <label>Description
+                <input type="text" name="description" required placeholder="What was purchased or paid" />
+              </label>
+              <label>Amount
+                <input type="number" name="amount" step="0.01" min="0.01" required />
+              </label>
+              <label>Date
+                <input type="date" name="expenseDate" required />
+              </label>
+              <button type="submit" class="btn primary">Record Expense</button>
+            </form>
+            <p id="expenseStatus" class="status"></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Recent Expenses</h3>
+          <div class="table-wrap compact">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr>
+              </thead>
+              <tbody id="expensesBody">
+                <tr><td colspan="4">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Recent Distributions</h3>
+          <div class="table-wrap compact">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Member</th><th>Label</th><th>Amount</th></tr>
+              </thead>
+              <tbody id="distributionsBody">
+                <tr><td colspan="4">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-import" class="panel">
+        <div class="panel-head"><h2>Data Import</h2></div>
+        <p class="hint">Optional Bulk Import From Spreadsheets and Application Files. For Day-to-Day Work, Use the <strong>Record</strong> Tab to Register Members and Enter Transactions Manually.</p>
+
+        <div class="card">
+          <h3>Cooperative Spreadsheet</h3>
+          <p class="hint">Import Deposits, Withdrawals, Membership Fees, and Distributions Into Member Deposit Accounts.</p>
+          <form id="spreadsheetForm">
+            <input type="file" name="file" accept=".xlsx,.xls" required />
+            <input type="text" name="sheetName" value="April 2026" placeholder="Sheet Name" />
+            <label><input type="checkbox" name="replace" value="true" /> Replace Existing Ledger</label>
+            <button type="submit" class="btn primary">Import Spreadsheet</button>
+          </form>
+          <p id="spreadsheetStatus" class="status"></p>
+        </div>
+
+        <div class="card">
+          <h3>Membership Applications (WPForms CSV)</h3>
+          <p class="hint">Import Member Biodata — Contact, Address, Next of Kin, Zelle Name. Links to Ledger Accounts.</p>
+          <form id="wpformsForm">
+            <input type="file" name="file" accept=".csv" required />
+            <button type="submit" class="btn primary">Import Profiles</button>
+          </form>
+          <p id="wpformsStatus" class="status"></p>
+        </div>
+
+        <div class="card">
+          <h3>Loan Repayment Schedule</h3>
+          <form id="scheduleForm">
+            <input type="number" name="loanId" placeholder="Loan ID" required min="1" />
+            <input type="file" name="file" accept=".xlsx,.xls,.csv" required />
+            <button type="submit" class="btn">Import Schedule</button>
+          </form>
+          <p id="scheduleStatus" class="status"></p>
+        </div>
+
+        <div class="card">
+          <h3>Bank Statement (Preview)</h3>
+          <form id="bankForm">
+            <input type="file" name="file" accept=".xlsx,.xls,.csv" required />
+            <button type="submit" class="btn">Preview Bank File</button>
+          </form>
+          <pre id="bankPreview" class="preview"></pre>
+        </div>
+      </section>
+
+      <section id="panel-users" class="panel">
+        <div class="panel-head">
+          <h2>User Accounts</h2>
+          <button type="button" class="btn" id="refreshUsers">Refresh</button>
+        </div>
+        <p class="hint">Create Staff Accounts, Provision Member Logins, and Manage Sign-In Pages.</p>
+        <div class="card">
+          <h3>Sign-In Pages</h3>
+          <p class="subtle">Each Role Has Its Own URL. Members and Staff Cannot Use Each Other's Login Page.</p>
+          <ul class="portal-links">
+            <li><strong>Member Portal:</strong> <a href="/member" target="_blank" rel="noopener">/member</a> — use your organization code at sign-in</li>
+            <li><strong>Staff Portal:</strong> <a href="/staff" target="_blank" rel="noopener">/staff</a></li>
+            <li><strong>Administrator Portal:</strong> <a href="/admin" target="_blank" rel="noopener">/admin</a></li>
+            <li><strong>New Cooperative:</strong> <a href="/register" target="_blank" rel="noopener">/register</a></li>
+          </ul>
+        </div>
+        <div class="record-grid">
+          <div class="card accent">
+            <h3>Provision All Member Logins</h3>
+            <p class="subtle">Creates a Username and Temporary Password for Every Member Without an Account. Passwords Must Be Changed on First Sign-In.</p>
+            <button type="button" class="btn primary" id="provisionMembersBtn">Generate Member Credentials</button>
+            <button type="button" class="btn" id="downloadCredentialsBtn">Download Credentials CSV</button>
+            <p class="subtle">Saved File: <code>data/exports/member-credentials-*.csv</code></p>
+            <p id="provisionMembersStatus" class="status"></p>
+          </div>
+          <div class="card accent">
+            <h3>Create Account</h3>
+            <form id="createUserForm" class="entry-form">
+              <label>Email
+                <input type="email" name="email" required />
+              </label>
+              <label>Username (Member Role Only)
+                <input type="text" name="username" pattern="[a-zA-Z0-9._-]+" />
+              </label>
+              <label>Password
+                <input type="password" name="password" minlength="8" required />
+              </label>
+              <label>Role
+                <select name="role" required>
+                  <option value="staff">Staff (Read-Only)</option>
+                  <option value="member">Member (Own Account Only)</option>
+                </select>
+              </label>
+              <label>Linked Member (For Member Role)
+                <div class="member-picker" data-input-name="memberId" data-placeholder="Search Member">
+                  <input type="hidden" name="memberId" />
+                  <input type="text" class="member-picker-input" placeholder="Search Member" autocomplete="off" spellcheck="false" />
+                  <ul class="member-picker-list hidden" role="listbox"></ul>
+                </div>
+              </label>
+              <label>Display Name (Optional)
+                <input type="text" name="displayName" />
+              </label>
+              <button type="submit" class="btn primary">Create Account</button>
+            </form>
+            <p id="createUserStatus" class="status"></p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Member Portal Accounts</h3>
+          <div class="table-wrap compact">
+            <table>
+              <thead>
+                <tr><th>Member</th><th>Username</th><th>Email</th><th>Password Status</th></tr>
+              </thead>
+              <tbody id="memberCredentialsBody">
+                <tr><td colspan="4">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h3>All Accounts</h3>
+          <div class="table-wrap compact">
+            <table>
+              <thead>
+                <tr><th>Email</th><th>Username</th><th>Role</th><th>Member</th><th>Created</th></tr>
+              </thead>
+              <tbody id="usersBody">
+                <tr><td colspan="5">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-my-account" class="panel">
+        <div class="panel-head">
+          <h2>My Account</h2>
+          <button type="button" class="btn" id="refreshMyAccount">Refresh</button>
+        </div>
+        <p class="hint">View Your Deposit and Loan Account History. Download Statements on Demand.</p>
+        <div id="myAccountSummary" class="books-grid"></div>
+        <div class="card">
+          <div class="panel-head">
+            <h3>Deposit Account</h3>
+            <div class="panel-head-actions">
+              <select id="myDepositStatementMonth" class="statement-select" aria-label="Statement month"></select>
+              <button type="button" class="btn primary" id="downloadMyDepositStatement" disabled>Download Monthly Statement (PDF)</button>
+            </div>
+          </div>
+          <div class="table-wrap compact">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th></tr>
+              </thead>
+              <tbody id="myDepositBody">
+                <tr><td colspan="5">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Loan Accounts</h3>
+          <div id="myLoanLots"></div>
+        </div>
+      </section>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

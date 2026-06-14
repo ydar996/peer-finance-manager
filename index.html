@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Assurance Investment and Cooperative Inc. | Statements</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div>
+          <p class="brand">Assurance Investment and Cooperative Inc.</p>
+          <h1>Statement of Account</h1>
+          <p class="subtle">Generate member statements for printing or PDF.</p>
+        </div>
+        <button id="printBtn" class="btn primary" type="button">
+          Print / Save PDF
+        </button>
+      </header>
+
+      <section class="panel controls">
+        <div class="control">
+          <label for="fileInput">Excel Workbook</label>
+          <input id="fileInput" type="file" accept=".xlsx,.xls" />
+          <p class="hint">Select `Assurance Status 1 2025.xlsx`.</p>
+        </div>
+        <div class="control">
+          <label for="memberSelect">Contributor</label>
+          <select id="memberSelect" disabled>
+            <option value="">Load workbook to select a member</option>
+          </select>
+        </div>
+        <div class="control">
+          <label for="monthSelect">Statement Month</label>
+          <select id="monthSelect" disabled></select>
+        </div>
+      </section>
+
+      <section class="panel statement" id="statement">
+        <div class="statement-title">
+          <p class="brand">Assurance Investment and Cooperative Inc.</p>
+          <h2>Statement of Account</h2>
+        </div>
+        <div class="statement-header">
+          <div>
+            <p class="label">Member</p>
+            <p id="memberName" class="value">—</p>
+          </div>
+          <div>
+            <p class="label">Statement Month</p>
+            <p id="statementMonth" class="value">—</p>
+          </div>
+          <div>
+            <p class="label">Prepared On</p>
+            <p id="preparedOn" class="value">—</p>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p class="label">Total Deposits 2023</p>
+            <p id="total2023" class="amount">—</p>
+          </div>
+          <div class="summary-card">
+            <p class="label">Total Deposits 2024</p>
+            <p id="total2024" class="amount">—</p>
+          </div>
+          <div class="summary-card">
+            <p class="label">Total Deposits 2025</p>
+            <p id="total2025" class="amount">—</p>
+          </div>
+          <div class="summary-card">
+            <p class="label">Total Deposits 2026</p>
+            <p id="total2026" class="amount">—</p>
+          </div>
+          <div class="summary-card">
+            <p class="label">Registration Deduction</p>
+            <p id="registrationDeduction" class="amount">—</p>
+          </div>
+          <div class="summary-card accent">
+            <p class="label">Account Balance</p>
+            <p id="accountBalance" class="amount">—</p>
+          </div>
+          <div class="summary-card">
+            <p class="label">Total Deposits to Date</p>
+            <p id="totalDeposits" class="amount">—</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="statement-table">
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Contribution</th>
+              </tr>
+            </thead>
+            <tbody id="monthsTableBody">
+              <tr>
+                <td colspan="2" class="empty">Load a workbook to view data.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <footer class="statement-footer">
+          <p class="subtle">
+            This statement is generated from Assurance Cooperative records and
+            is intended for member use only.
+          </p>
+        </footer>
+      </section>
+    </div>
+
+    <script>
+      (function () {
+        const local = "xlsx.full.min.js";
+        const primary =
+          "https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js";
+        const fallback =
+          "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+
+        function logStatus(message, data) {
+          if (data !== undefined) {
+            console.log(`[XLSX Loader] ${message}`, data);
+            return;
+          }
+          console.log(`[XLSX Loader] ${message}`);
+        }
+
+        function loadScript(src) {
+          return new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = src;
+            script.onload = () => {
+              logStatus("Loaded script", src);
+              resolve();
+            };
+            script.onerror = (error) => {
+              logStatus("Failed to load script", { src, error });
+              reject(error);
+            };
+            document.head.appendChild(script);
+          });
+        }
+
+        function loadApp() {
+          loadScript("app.js")
+            .then(() => logStatus("App script loaded"))
+            .catch((error) => logStatus("Failed to load app.js", error));
+        }
+
+        logStatus("Attempting to load XLSX library...");
+        loadScript(local)
+          .catch(() => loadScript(primary))
+          .catch(() => loadScript(fallback))
+          .then(loadApp)
+          .catch(() => {
+            alert(
+              "Unable to load the XLSX library. Please check your internet connection."
+            );
+          });
+      })();
+    </script>
+  </body>
+</html>

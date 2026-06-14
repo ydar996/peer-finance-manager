@@ -1,0 +1,47 @@
+{
+  "name": "assurcoop-statements",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Generate cooperative member statements as PDFs",
+  "scripts": {
+    "start": "node scripts/kill-port.js 3457 && node peer-finance-manager/server.js",
+    "start:cloud": "node peer-finance-manager/server.js",
+    "build:netlify": "node scripts/netlify-build-config.js",
+    "bundle:cloud-data": "node scripts/bundle-cloud-data.js",
+    "pfm": "npm start",
+    "statements:legacy-server": "node scripts/kill-port.js 3456 && node server.js",
+    "pfm:seed": "node peer-finance-manager/scripts/seed-from-spreadsheet.js",
+    "pfm:profiles": "node peer-finance-manager/scripts/import-wpforms-profiles.js",
+    "pfm:build": "node scripts/build-pfm-exe.js",
+    "generate:may-2026": "node scripts/generate-may-2026-from-bank.js",
+    "compare:bank": "node scripts/compare-workbook-bank.js",
+    "reconcile:bank-ledger": "node scripts/reconcile-bank-ledger.js",
+    "export:bank-audit": "node scripts/export-bank-ledger-audit.js",
+    "pfm:import-bank": "node peer-finance-manager/scripts/import-bank-ledger.js",
+    "pfm:sync-root": "node peer-finance-manager/scripts/sync-root-database.js",
+    "generate:jan-2026": "node scripts/generate-statements.js",
+    "generate:feb-2026": "node scripts/generate-feb-2026.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.10.0",
+    "express": "^4.18.2",
+    "multer": "^2.1.1",
+    "puppeteer": "^24.12.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "pkg": {
+    "assets": [
+      "peer-finance-manager/public/**/*",
+      "peer-finance-manager/db/schema.sql",
+      "lib/statement-generator.js",
+      "styles.css",
+      "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+    ]
+  }
+}

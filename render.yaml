@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: peer-finance-manager
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node peer-finance-manager/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PFM_DATA_DIR
+        value: /var/data
+      - key: PFM_COOP_ROOT
+        value: /var/data
+      - key: NODE_VERSION
+        value: "20"
+    disk:
+      name: pfm-data
+      mountPath: /var/data
+      sizeGB: 1

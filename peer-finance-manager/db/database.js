@@ -1,0 +1,104 @@
+const fs = require("fs");
+const path = require("path");
+const { getSchemaPath } = require("../lib/paths");
+const { loadBetterSqlite3 } = require("../lib/native-sqlite");
+const { trace } = require("../lib/trace-log");
+const { getOrgSlugOrNull } = require("../lib/org-context");
+const {
+  getOrgDataDir,
+  migrateLegacyDatabaseIfNeeded,
+  ASSURANCE_SLUG,
+} = require("../lib/organization-service");
+
+const dbByOrg = new Map();
+
+function applyAuthMigrations(database) {
+  const cols = database.prepare(`PRAGMA table_info(users)`).all().map((c) => c.name);
+  if (!cols.includes("username")) {
+    database.exec(`ALTER TABLE users ADD COLUMN username TEXT`);
+  }
+  if (!cols.includes("must_change_password")) {
+    database.exec(
+      `ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0`
+    );
+  }
+  database.exec(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL`
+  );
+}
+
+function openOrgDatabase(orgSlug) {
+  const slug = String(orgSlug || "").trim().toLowerCase();
+  if (!slug) throw new Error("Organization code is required");
+
+  if (dbByOrg.has(slug)) return dbByOrg.get(slug);
+
+  const orgDir = getOrgDataDir(slug);
+  const dbPath = path.join(orgDir, "peerfinance.db");
+  const schemaPath = getSchemaPath();
+
+  fs.mkdirSync(orgDir, { recursive: true });
+  fs.mkdirSync(path.join(orgDir, "uploads"), { recursive: true });
+  fs.mkdirSync(path.join(orgDir, "exports"), { recursive: true });
+
+  if (!fs.existsSync(schemaPath)) {
+    throw new Error(`Database schema not found: ${schemaPath}`);
+  }
+
+  trace.info("Opening organization database", { orgSlug: slug, dbPath, schemaPath });
+  const Database = loadBetterSqlite3();
+  const database = new Database(dbPath);
+  database.pragma("journal_mode = WAL");
+  database.pragma("foreign_keys = ON");
+  database.exec(fs.readFileSync(schemaPath, "utf8"));
+  applyAuthMigrations(database);
+  dbByOrg.set(slug, database);
+
+  if (slug === ASSURANCE_SLUG) {
+    const { ensureAssuranceAdminUser } = require("../lib/auth-service");
+    ensureAssuranceAdminUser();
+  }
+
+  trace.info("Organization database ready", { orgSlug: slug, dbPath });
+  return database;
+}
+
+function getDb(explicitOrgSlug) {
+  migrateLegacyDatabaseIfNeeded();
+  const slug = explicitOrgSlug || getOrgSlugOrNull();
+  if (!slug) {
+    throw new Error("No organization database selected");
+  }
+  return openOrgDatabase(slug);
+}
+
+function closeDb(orgSlug) {
+  if (orgSlug) {
+    const database = dbByOrg.get(orgSlug);
+    if (database) {
+      database.close();
+      dbByOrg.delete(orgSlug);
+      trace.info("Organization database closed", { orgSlug });
+    }
+    return;
+  }
+  for (const [slug, database] of dbByOrg.entries()) {
+    database.close();
+    trace.info("Organization database closed", { orgSlug: slug });
+  }
+  dbByOrg.clear();
+}
+
+module.exports = {
+  getDb,
+  closeDb,
+  openOrgDatabase,
+  get DB_PATH() {
+    const slug = getOrgSlugOrNull() || ASSURANCE_SLUG;
+    return path.join(getOrgDataDir(slug), "peerfinance.db");
+  },
+  get DATA_DIR() {
+    const slug = getOrgSlugOrNull() || ASSURANCE_SLUG;
+    return getOrgDataDir(slug);
+  },
+};

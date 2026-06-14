@@ -1,0 +1,37 @@
+---
+description: UI copy conventions for Assurance Cooperative Manager (labels, headers, buttons)
+globs: peer-finance-manager/public/**/*,public/**/*,generator.html,index.html
+alwaysApply: true
+---
+
+# UI Copy Standards
+
+Apply to all user-facing text: headers, paragraphs, hints, labels, buttons, badges, table headers, and dynamic strings in the web UI and PDF statement labels.
+
+## Title Case
+
+Use **Title Case** for headers, paragraph hints, form labels, buttons, badges, and section titles.
+
+Examples:
+- `Cooperative Books` (not `Cooperative books`)
+- `Deposit Account` (not `Deposit account`)
+- `Import Profiles` (not `Import profiles`)
+- `On File` (not `On file`)
+
+## Slash Compounds (No Spaces)
+
+When joining terms with a slash, **do not** put spaces around `/`.
+
+| Wrong | Right |
+|-------|-------|
+| `Deposit Account / Loan Account` | `Deposit Account/Loan Account` |
+| `Distribution / Interest` | `Distribution/Interest` |
+| `Zelle / Bank` | `Zelle/Bank` |
+| `Members / Profiles` | `Members/Profiles` |
+| `22 / 24` | `22/24` |
+
+This applies across the app, statements, and any new UI copy.
+
+## Em Dashes
+
+Em dashes (`—`) for clause breaks are fine with spaces (e.g. `None — Use Distribution Column in Workbook Only`).
