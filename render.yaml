@@ -3,7 +3,7 @@ services:
     name: peer-finance-manager
     env: node
     plan: starter
-    buildCommand: npm install
+    buildCommand: npm install && npx puppeteer browsers install chrome
     startCommand: node peer-finance-manager/server.js
     healthCheckPath: /api/health
     envVars:
@@ -13,6 +13,8 @@ services:
         value: "20"
       - key: PFM_DATA_DIR
         value: /var/data
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/project/src/.cache/puppeteer
     disk:
       name: pfm-data
       mountPath: /var/data

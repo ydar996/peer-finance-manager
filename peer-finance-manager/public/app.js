@@ -2127,8 +2127,18 @@ async function handleLoginSubmit(e) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...formData, portal }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+    const raw = await res.text();
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (_) {
+      throw new Error(
+        res.status >= 500
+          ? "Server is waking up or unavailable. Wait 30 seconds and try again."
+          : "Login failed — server returned an unexpected response."
+      );
+    }
+    if (!res.ok) throw new Error(data.error || "Login failed");
     sessionToken = data.token;
     localStorage.setItem(SESSION_KEY, sessionToken);
     currentUser = data.user;

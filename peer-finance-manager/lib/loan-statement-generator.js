@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const puppeteer = require("puppeteer");
+const { launchBrowser } = require("./puppeteer-launch");
 const { getCoopRoot, getStatementsDir } = require("./paths");
 const { getDb } = require("../db/database");
 const { MONTH_NAMES } = require("./constants");
@@ -32,22 +32,6 @@ function formatDisplayDate(value) {
     month: "long",
     day: "numeric",
   });
-}
-
-function resolveExecutablePath() {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    return process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
-  const candidates = [
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-  ];
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return undefined;
 }
 
 function getBorrowerProfile(memberId) {
@@ -323,13 +307,7 @@ async function generateLoanStatementPdf(loan, options = {}) {
   const fileName = `Loan ${loan.loanNumber} - ${borrowerSlug} - ${periodSlug}.pdf`;
   const outputPath = path.join(outputDir, fileName);
 
-  const executablePath = resolveExecutablePath();
-  const browser = await puppeteer.launch({
-    headless: "new",
-    executablePath,
-    args: ["--no-sandbox", "--disable-gpu"],
-    timeout: 60000,
-  });
+  const browser = await launchBrowser({ headless: "new", timeout: 60000 });
 
   try {
     const page = await browser.newPage();

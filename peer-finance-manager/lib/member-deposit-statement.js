@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const puppeteer = require("puppeteer");
+const { launchBrowser } = require("./puppeteer-launch");
 const { getCoopRoot, getStatementsDir } = require("./paths");
 const { getDb } = require("../db/database");
 const {
@@ -42,20 +42,6 @@ function sanitizeFilename(value) {
     .replace(/[<>:"/\\|?*]+/g, "-")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function resolveExecutablePath() {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
-  const candidates = [
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-  ];
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return undefined;
 }
 
 function lastDayOfMonth(year, month) {
@@ -291,11 +277,7 @@ async function generateMemberDepositStatementPdf(memberId, options = {}) {
   const fileName = `Deposit Statement - ${sanitizeFilename(data.memberName)} - ${periodSuffix}.pdf`;
   const outputPath = path.join(outDir, fileName);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: resolveExecutablePath(),
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });

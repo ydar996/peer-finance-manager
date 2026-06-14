@@ -1,5 +1,6 @@
 node_modules/
 .pkg-cache/
+.cache/
 data/
 statements/
 *.db
