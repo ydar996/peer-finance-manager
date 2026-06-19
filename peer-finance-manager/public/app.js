@@ -296,7 +296,7 @@ async function loadUsers() {
 
 async function loadMyAccount() {
   const summary = $("#myAccountSummary");
-  const depositHistory = $("#myDepositHistory");
+  const depositBody = $("#myDepositBody");
   const loanLots = $("#myLoanLots");
   try {
     const res = await fetch("/api/me/account");
@@ -318,9 +318,20 @@ async function loadMyAccount() {
     const depositRows = withDepositRunningBalances(
       (data.depositTransactions || []).filter((t) => depositTypes.has(t.type))
     );
-    if (depositHistory) {
-      depositHistory.innerHTML = memberPortalDepositMonthGroupsHtml(depositRows);
-    }
+    depositBody.innerHTML = depositRows.length
+      ? depositRows
+          .map(
+            (t) => `
+        <tr>
+          <td class="col-date">${escapeHtml(formatDate(t.transaction_date))}</td>
+          <td class="col-type">${escapeHtml(formatTxType(t.type))}</td>
+          <td class="money">${fmt.format(t.amount)}</td>
+          <td class="money">${fmt.format(t.balance_after ?? 0)}</td>
+          <td class="col-description">${escapeHtml(t.description || "")}</td>
+        </tr>`
+          )
+          .join("")
+      : '<tr><td colspan="5" class="subtle">No Deposit Account Activity</td></tr>';
 
     const monthSelect = $("#myDepositStatementMonth");
     if (monthSelect) {
@@ -367,8 +378,11 @@ async function loadMyAccount() {
             </div>
           </div>
           <p class="subtle">Principal ${fmt.format(lot.principal)} · Outstanding ${fmt.format(lot.outstanding)} · Repaid ${fmt.format(lot.collected || 0)}</p>
-          <div class="tx-month-groups">
-            ${memberPortalLoanMonthGroupsHtml(activityRows)}
+          <div class="table-wrap compact">
+            <table class="member-tx-table">
+              <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th class="col-description">Description</th></tr></thead>
+              <tbody>${accountActivityTableRows(activityRows, { memberPortal: true, formatDates: true })}</tbody>
+            </table>
           </div>
         </div>`;
           })
@@ -389,7 +403,7 @@ async function loadMyAccount() {
     });
   } catch (err) {
     if (summary) summary.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
-    if (depositHistory) depositHistory.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+    if (depositBody) depositBody.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
     if (loanLots) loanLots.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
   }
 }
@@ -992,106 +1006,6 @@ function statementMonthsFromDates(dates) {
   return [...months.values()].sort((a, b) => b.year - a.year || b.month - a.month);
 }
 
-function monthKeyFromDate(dateValue) {
-  const match = String(dateValue || "").match(/^(\d{4})-(\d{2})/);
-  if (!match) return "unknown";
-  return `${match[1]}-${match[2]}`;
-}
-
-function monthLabelFromKey(key) {
-  if (key === "unknown") return "Other";
-  const [year, month] = key.split("-").map(Number);
-  return `${MONTH_LABELS[month - 1]} ${year}`;
-}
-
-function groupRowsByMonth(rows, dateKey = "transaction_date") {
-  const groups = new Map();
-  for (const row of rows) {
-    const key = monthKeyFromDate(row[dateKey]);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(row);
-  }
-  return [...groups.keys()]
-    .sort((a, b) => {
-      if (a === "unknown") return 1;
-      if (b === "unknown") return -1;
-      return b.localeCompare(a);
-    })
-    .map((key) => ({
-      key,
-      label: monthLabelFromKey(key),
-      rows: groups.get(key).sort((a, b) => String(b[dateKey]).localeCompare(String(a[dateKey]))),
-    }));
-}
-
-function monthGroupSummary(rows) {
-  const count = rows.length;
-  const net = rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
-  const countLabel = `${count} Transaction${count === 1 ? "" : "s"}`;
-  return `${countLabel} · Net ${fmt.format(net)}`;
-}
-
-function memberPortalTxTableHeadHtml() {
-  return `<thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th class="col-description">Description</th></tr></thead>`;
-}
-
-function memberPortalDepositMonthGroupsHtml(rows) {
-  if (!rows.length) {
-    return '<p class="subtle">No Deposit Account Activity</p>';
-  }
-  const groups = groupRowsByMonth(rows, "transaction_date");
-  return groups
-    .map(
-      (group, index) => `
-    <details class="tx-month-group profile-disclosure"${index === 0 ? " open" : ""}>
-      <summary>${escapeHtml(group.label)} · ${escapeHtml(monthGroupSummary(group.rows))}</summary>
-      <div class="tx-month-group-body profile-disclosure-body">
-        <div class="table-wrap compact">
-          <table class="member-tx-table">
-            ${memberPortalTxTableHeadHtml()}
-            <tbody>${group.rows
-              .map(
-                (t) => `
-              <tr>
-                <td>${escapeHtml(formatDate(t.transaction_date))}</td>
-                <td>${escapeHtml(formatTxType(t.type))}</td>
-                <td class="money">${fmt.format(t.amount)}</td>
-                <td class="money">${fmt.format(t.balance_after ?? 0)}</td>
-                <td class="col-description">${escapeHtml(t.description || "")}</td>
-              </tr>`
-              )
-              .join("")}</tbody>
-          </table>
-        </div>
-      </div>
-    </details>`
-    )
-    .join("");
-}
-
-function memberPortalLoanMonthGroupsHtml(rows) {
-  if (!rows.length) {
-    return '<p class="subtle">No Activity</p>';
-  }
-  const groups = groupRowsByMonth(rows, "date");
-  return groups
-    .map(
-      (group, index) => `
-    <details class="tx-month-group profile-disclosure"${index === 0 ? " open" : ""}>
-      <summary>${escapeHtml(group.label)} · ${escapeHtml(monthGroupSummary(group.rows))}</summary>
-      <div class="tx-month-group-body profile-disclosure-body">
-        <div class="table-wrap compact">
-          <table class="member-tx-table">
-            ${memberPortalTxTableHeadHtml()}
-            <tbody>${accountActivityTableRows(group.rows, { memberPortal: true, formatDates: true })}</tbody>
-          </table>
-        </div>
-      </div>
-    </details>`
-    )
-    .join("");
-}
-
 function buildLoanActivityRows(lot, newestFirst = true) {
   let balance = Number(lot.principal) || 0;
   const rows = [
@@ -1129,8 +1043,8 @@ function accountActivityTableRows(rows, { memberPortal = false, formatDates = fa
     .map(
       (row) => `
     <tr>
-      <td>${formatDates ? escapeHtml(formatDate(row.date)) : escapeHtml(row.date)}</td>
-      <td>${escapeHtml(row.type)}</td>
+      <td class="col-date">${formatDates ? escapeHtml(formatDate(row.date)) : escapeHtml(row.date)}</td>
+      <td class="col-type">${escapeHtml(row.type)}</td>
       <td class="money">${fmt.format(row.amount)}</td>
       <td class="money">${fmt.format(row.balance ?? 0)}</td>
       <td${descClass}>${escapeHtml(row.description || "")}</td>

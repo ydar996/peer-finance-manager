@@ -80,7 +80,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
-- **2026-06-19** — Member portal transaction history grouped by month (collapsible sections per month for deposit and loan activity); most recent month expanded by default.
+- **2026-06-19** — Reverted member portal monthly transaction sections (flat list restored on all screen sizes); transaction rows use nowrap so dates and amounts do not break across lines on mobile.
 - **2026-06-19** — Full documentation sync: all project docs updated to match codebase; §0 strengthened with continuous documentation rule.
 - **2026-06-19** — Fixed Gbanju alias (`GBANJU P ARUWAYOOBE`); CD balance updated to $7,211.82 with term metrics and **Expected CD Interest** dashboard card; bank re-import now 0 skipped rows (57 loan repayments).
 - **2026-06-19** — Bank import through 2026-06-16: merged 3 new BoA deposits (Lolu $50, Mutiu $100.04, Clement $100.02) into `data/bank-statement-2026.csv`; ran `import-bank-ledger.js` (450 bank_import txs, last date 2026-06-16). **Production:** WinSCP upload `data/` → Render `/var/data` + Manual Deploy required.
@@ -154,7 +154,7 @@ Historically, everything lived in Excel (`Assurance Status` workbooks). This rep
 | ✅ Done | Auth: admin / staff / member roles; separate portals |
 | ✅ Done | Member self-service: balances, transactions, monthly statement PDF |
 | ✅ Done | Member portal **My Profile**: biodata (read-only), emergency contact (editable), optional photo upload |
-| ✅ Done | Member portal mobile UX: collapsible biodata/emergency sections; Description column toggle; **monthly transaction groups** on My Account |
+| ✅ Done | Member portal mobile UX: collapsible biodata/emergency sections; Description column toggle; flat transaction tables with nowrap rows |
 | ✅ Done | Manual Record tab: register member, profile edit, membership fee |
 | ✅ Done | Cooperative Books dashboard (incl. CD balance, **Expected CD Interest** card) |
 | ✅ Done | **Production:** Netlify (static UI) + Render (Express API + SQLite on disk) |

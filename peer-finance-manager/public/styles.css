@@ -190,19 +190,12 @@ th { background: #f8fafc; font-weight: 600; }
 .profile-disclosure-emergency .entry-form {
   max-width: 420px;
 }
-.tx-month-groups {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.member-tx-table th,
+.member-tx-table td {
+  white-space: nowrap;
 }
-.tx-month-group {
-  margin-top: 0;
-}
-.tx-month-group-body {
-  padding-top: 0;
-}
-.tx-month-group .table-wrap {
-  margin-top: 0;
+.member-tx-table tr {
+  white-space: nowrap;
 }
 .file-list { list-style: none; padding: 0; margin: 0; }
 .file-list li {
