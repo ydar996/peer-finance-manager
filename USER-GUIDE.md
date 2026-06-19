@@ -21,7 +21,7 @@
 - **My Profile** — expand **Membership Biodata** to review your details (read-only; contact the cooperative to change other fields)
 - **Emergency Contact** — expand to view or update your emergency contact (optional)
 - **Profile Photo** — optional upload
-- Deposit account balance and transaction history with running balance
+- Contributions account balance and transaction history with running balance
 - Loan account (if you have a loan)
 - Download **monthly statement PDF**
 
@@ -43,11 +43,11 @@
 
 | Tab | What it does |
 |-----|----------------|
-| **Cooperative Books** | Income, expenses, deposits, loans summary; CD balance and **Expected CD Interest** |
+| **Cooperative Books** | Income, expenses, member contributions, loans summary; CD balance and **Expected CD Interest** |
 | **Members & Accounts** | Member list, balances, full profiles (admin view) |
 | **Statements** | Generate batch PDF statements |
 | **Loans** | View and manage loans |
-| **Record** | Add members, record deposits, fees, expenses |
+| **Record** | Add members, record contributions, fees, expenses |
 | **Import** | Spreadsheet, bank preview, profiles; full bank import via `npm run pfm:import-bank` on PC |
 | **Users** | Member login accounts and credentials |
 

@@ -14,7 +14,7 @@ Use **Title Case** for headers, paragraph hints, form labels, buttons, badges, a
 
 Examples:
 - `Cooperative Books` (not `Cooperative books`)
-- `Deposit Account` (not `Deposit account`)
+- `Contributions Account` (not `Contributions account`)
 - `Import Profiles` (not `Import profiles`)
 - `On File` (not `On file`)
 
@@ -24,7 +24,7 @@ When joining terms with a slash, **do not** put spaces around `/`.
 
 | Wrong | Right |
 |-------|-------|
-| `Deposit Account / Loan Account` | `Deposit Account/Loan Account` |
+| `Contributions Account / Loan Account` | `Contributions Account/Loan Account` |
 | `Distribution / Interest` | `Distribution/Interest` |
 | `Zelle / Bank` | `Zelle/Bank` |
 | `Members / Profiles` | `Members/Profiles` |
@@ -40,7 +40,7 @@ Use a **colon** (`:`) instead for clause breaks and separators.
 
 | Wrong | Right |
 |-------|-------|
-| `Cooperative Asset Management — Member Deposit Accounts` | `Cooperative Asset Management: Member Deposit Accounts` |
+| `Cooperative Asset Management — Member Contributions Accounts` | `Cooperative Asset Management: Member Contributions Accounts` |
 | `None — Use Distribution Column` | `None: Use Distribution Column` |
 | `Done — 24 PDFs saved` | `Done: 24 PDFs saved` |
 | Empty table cell `—` | `:` |

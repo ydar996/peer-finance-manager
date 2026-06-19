@@ -80,7 +80,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
-- **2026-06-19** — Reverted member portal monthly transaction sections (flat list restored on all screen sizes); transaction rows use nowrap so dates and amounts do not break across lines on mobile.
+- **2026-06-19** — User-facing copy: **Deposit** renamed to **Contribution(s)** throughout app UI and PDF statements (Contributions Account, not Deposit Account). Bank/CD internal labels unchanged.
 - **2026-06-19** — Full documentation sync: all project docs updated to match codebase; §0 strengthened with continuous documentation rule.
 - **2026-06-19** — Fixed Gbanju alias (`GBANJU P ARUWAYOOBE`); CD balance updated to $7,211.82 with term metrics and **Expected CD Interest** dashboard card; bank re-import now 0 skipped rows (57 loan repayments).
 - **2026-06-19** — Bank import through 2026-06-16: merged 3 new BoA deposits (Lolu $50, Mutiu $100.04, Clement $100.02) into `data/bank-statement-2026.csv`; ran `import-bank-ledger.js` (450 bank_import txs, last date 2026-06-16). **Production:** WinSCP upload `data/` → Render `/var/data` + Manual Deploy required.
@@ -391,7 +391,7 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 1. **Title Case** — Headers, paragraph hints, labels, buttons, badges, and section titles use Title Case (e.g. `Cooperative Books`, `Import Profiles`, `On File`).
 
 2. **Slash compounds — no spaces** — When joining terms with `/`, do not space around the slash:
-   - `Deposit Account/Loan Account` (not `Deposit Account / Loan Account`)
+   - `Contributions Account/Loan Account` (not `Contributions Account / Loan Account`)
    - `Distribution/Interest`, `Zelle/Bank`, `Members/Profiles`, `22/24`
    - Same rule on PDF statement labels (e.g. `Interest/Distribution`)
 

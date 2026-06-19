@@ -48,8 +48,8 @@ function applyOrganizationBranding(organizationName) {
   const appSubtitle = $("#appOrgSubtitle");
   if (appSubtitle) {
     appSubtitle.textContent = orgName
-      ? `${orgName} : Cooperative Asset Management : Member Deposit Accounts, Loan Accounts, and Books`
-      : "Cooperative Asset Management : Member Deposit Accounts, Loan Accounts, and Books";
+      ? `${orgName} : Cooperative Asset Management : Member Contributions Accounts, Loan Accounts, and Books`
+      : "Cooperative Asset Management : Member Contributions Accounts, Loan Accounts, and Books";
   }
 
   document.querySelectorAll(".org-cooperative-name").forEach((el) => {
@@ -305,7 +305,7 @@ async function loadMyAccount() {
     const profile = data.profile;
     summary.innerHTML = `
       <div class="book-card accent">
-        <p class="book-label">Deposit Account Balance</p>
+        <p class="book-label">Contributions Account Balance</p>
         <p class="book-amount money">${fmt.format(data.depositBalance || 0)}</p>
       </div>
       <div class="book-card">
@@ -330,7 +330,7 @@ async function loadMyAccount() {
         </tr>`
           )
           .join("")
-      : '<tr><td colspan="5" class="subtle">No Deposit Account Activity</td></tr>';
+      : '<tr><td colspan="5" class="subtle">No Contributions Account Activity</td></tr>';
 
     const monthSelect = $("#myDepositStatementMonth");
     if (monthSelect) {
@@ -579,12 +579,12 @@ async function loadBooks() {
     grid.innerHTML = [
       bookCardHtml("deposit-accounts", {
         accent: true,
-        label: "Member Deposit Accounts (Total)",
+        label: "Member Contributions Accounts (Total)",
         amount: books.totalMemberDepositAccounts,
-        note: "Net of Deposits, Withdrawals, Distributions &amp; Fees",
+        note: "Net of Contributions, Withdrawals, Distributions &amp; Fees",
       }),
       bookCardHtml("deposits-withdrawals", {
-        label: "Member Deposits &amp; Withdrawals",
+        label: "Member Contributions &amp; Withdrawals",
         amount: books.memberDeposits,
       }),
       bookCardHtml("registration-income", {
@@ -725,7 +725,7 @@ function addressBlock(profile) {
 
 function formatTxType(type) {
   const labels = {
-    deposit: "Deposit",
+    deposit: "Contribution",
     withdrawal: "Withdrawal",
     distribution: "Distribution",
     membership_fee: "Registration Fee",
@@ -875,7 +875,7 @@ function txTableRows(transactions) {
 function depositActivityPanelHtml(p) {
   const txCount = p.deposit_transactions?.length || 0;
   return `
-    <h4 class="section-title">Deposit Account Activity</h4>
+    <h4 class="section-title">Contributions Account Activity</h4>
     <p class="subtle">Balance ${fmt.format(p.deposit_account_balance || 0)} · ${txCount} transaction${txCount === 1 ? "" : "s"} on record</p>
     <div class="table-wrap compact">
       <table>
@@ -1113,7 +1113,7 @@ async function showProfile(memberId) {
 
       <div class="account-cards">
         <button type="button" class="account-card deposit" data-account-panel="deposit" aria-expanded="false">
-          <h4>Deposit Account</h4>
+          <h4>Contributions Account</h4>
           <p class="account-balance money">${fmt.format(p.deposit_account_balance || 0)}</p>
           <p class="subtle">Contributions, Withdrawals, Distributions, Registration Fee</p>
           <p class="account-card-hint">Click for Full History</p>
@@ -2343,7 +2343,7 @@ $("#downloadMyDepositStatement")?.addEventListener("click", async () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `deposit-statement-${year}-${String(month).padStart(2, "0")}.pdf`;
+    a.download = `contributions-statement-${year}-${String(month).padStart(2, "0")}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
   } catch (err) {

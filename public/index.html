@@ -12,7 +12,7 @@
         <p class="brand org-brand">Peer Finance Manager</p>
         <p class="subtle org-cooperative-name hidden"></p>
         <h1>Member Portal</h1>
-        <p class="subtle org-subtitle">Sign In to View Your Deposit and Loan Accounts</p>
+        <p class="subtle org-subtitle">Sign In to View Your Contributions and Loan Accounts</p>
         <form id="loginFormMember" class="entry-form login-form" data-portal="member">
           <label>Organization Code
             <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. assurance" autocomplete="organization" />
@@ -130,7 +130,7 @@
         <div>
           <p class="brand org-brand" id="appOrgBrand">Peer Finance Manager</p>
           <h1 id="appTitle">Cooperative Manager</h1>
-          <p class="subtle" id="appOrgSubtitle">Cooperative Asset Management : Member Deposit Accounts, Loan Accounts, and Books</p>
+          <p class="subtle" id="appOrgSubtitle">Cooperative Asset Management : Member Contributions Accounts, Loan Accounts, and Books</p>
         </div>
         <div class="session-bar">
           <p id="sessionUser" class="session-user"></p>
@@ -154,7 +154,7 @@
           <h2>Cooperative Books</h2>
           <button type="button" class="btn" id="refreshBooks">Refresh</button>
         </div>
-        <p class="hint">On-Demand Summary of Cooperative Income, Member Deposit Liabilities, Loans, and Expenses. Click a Card for Details.</p>
+        <p class="hint">On-Demand Summary of Cooperative Income, Member Contributions Liabilities, Loans, and Expenses. Click a Card for Details.</p>
         <div id="booksSummary">
           <div id="booksGrid" class="books-grid">
             <p class="hint">Loading…</p>
@@ -188,7 +188,7 @@
             <button type="button" class="btn" id="refreshMembers">Refresh</button>
           </div>
         </div>
-        <p class="hint">Select a Member to View Their Biodata, Deposit Account, and Loan Account. Use <strong>Register Member</strong> on the Record Tab to Add Members Manually : Excel Import Is Optional.</p>
+        <p class="hint">Select a Member to View Their Biodata, Contributions Account, and Loan Account. Use <strong>Register Member</strong> on the Record Tab to Add Members Manually : Excel Import Is Optional.</p>
 
         <div class="members-layout">
           <div class="members-list-pane">
@@ -197,7 +197,7 @@
                 <thead>
                   <tr>
                     <th>Member</th>
-                    <th>Deposit Account</th>
+                    <th>Contributions Account</th>
                     <th>Loan Account</th>
                     <th>Profile</th>
                   </tr>
@@ -221,7 +221,7 @@
           <h2>Periodic Statements (PDF)</h2>
           <button type="button" class="btn" id="refreshStatementFiles">Refresh Files</button>
         </div>
-        <p class="hint">Generate Monthly PDF Deposit Account Statements for All Members (<code>statements/YYYY-MM/</code>). For Loan Account Statements, Use <strong>Statement</strong> on the Loans Tab or Member Profile : One PDF per Loan, Saved to <code>statements/loan-accounts/</code>.</p>
+        <p class="hint">Generate Monthly PDF Contributions Account Statements for All Members (<code>statements/YYYY-MM/</code>). For Loan Account Statements, Use <strong>Statement</strong> on the Loans Tab or Member Profile : One PDF per Loan, Saved to <code>statements/loan-accounts/</code>.</p>
 
         <div class="card">
           <h3>Monthly Workbook</h3>
@@ -254,7 +254,7 @@
 
       <section id="panel-loans" class="panel">
         <div class="panel-head"><h2>Loan Portfolio</h2></div>
-        <p class="hint">Each Member's Loan Account Is Separate From Their Deposit Account. Active Loans Appear Here and on the Member Profile.</p>
+        <p class="hint">Each Member's Loan Account Is Separate From Their Contributions Account. Active Loans Appear Here and on the Member Profile.</p>
         <div class="table-wrap">
           <table>
             <thead>
@@ -282,7 +282,7 @@
         <div class="panel-head">
           <h2>Manual Record</h2>
         </div>
-        <p class="hint">Register Members, Record Deposits, Withdrawals, Distributions, Membership Fees, Loans, Loan Repayments, CD Balance Updates, and Expenses : All Without Excel. Use the Import Tab Only When You Have a Spreadsheet or Application File.</p>
+        <p class="hint">Register Members, Record Contributions, Withdrawals, Distributions, Membership Fees, Loans, Loan Repayments, CD Balance Updates, and Expenses : All Without Excel. Use the Import Tab Only When You Have a Spreadsheet or Application File.</p>
 
         <div class="record-grid">
           <div class="card accent">
@@ -393,6 +393,9 @@
               <label>Next of Kin Last Name
                 <input type="text" name="nextOfKinLastName" />
               </label>
+              <label>Emergency Contact Email
+                <input type="email" name="nextOfKinEmail" />
+              </label>
               <label>Next of Kin Phone
                 <input type="tel" name="nextOfKinPhone" />
               </label>
@@ -446,7 +449,7 @@
             <p id="cdBalanceStatus" class="status"></p>
           </div>
           <div class="card">
-            <h3>Member Deposit Account</h3>
+            <h3>Member Contributions Account</h3>
             <form id="depositForm" class="entry-form">
               <label>Member
                 <div class="member-picker" data-input-name="memberId" data-placeholder="Search by Name or DOB">
@@ -457,7 +460,7 @@
               </label>
               <label>Type
                 <select name="type" required>
-                  <option value="deposit">Deposit</option>
+                  <option value="deposit">Contribution</option>
                   <option value="withdrawal">Withdrawal</option>
                 </select>
               </label>
@@ -644,7 +647,7 @@
 
         <div class="card">
           <h3>Cooperative Spreadsheet</h3>
-          <p class="hint">Import Deposits, Withdrawals, Membership Fees, and Distributions Into Member Deposit Accounts.</p>
+          <p class="hint">Import Contributions, Withdrawals, Membership Fees, and Distributions Into Member Contributions Accounts.</p>
           <form id="spreadsheetForm">
             <input type="file" name="file" accept=".xlsx,.xls" required />
             <input type="text" name="sheetName" value="April 2026" placeholder="Sheet Name" />
@@ -773,22 +776,26 @@
       <section id="panel-my-account" class="panel">
         <div class="panel-head">
           <h2>My Account</h2>
-          <button type="button" class="btn" id="refreshMyAccount">Refresh</button>
+          <div class="panel-head-actions">
+            <button type="button" class="btn description-toggle" id="toggleMyAccountDescriptions" aria-pressed="false">Show Descriptions</button>
+            <button type="button" class="btn" id="refreshMyAccount">Refresh</button>
+          </div>
         </div>
-        <p class="hint">View Your Deposit and Loan Account History. Download Statements on Demand.</p>
+        <p class="hint panel-intro-hint">View Your Profile, Contributions and Loan Account History, and Download Statements on Demand.</p>
+        <div id="myProfileSection" class="card my-profile-card hidden"></div>
         <div id="myAccountSummary" class="books-grid"></div>
         <div class="card">
           <div class="panel-head">
-            <h3>Deposit Account</h3>
+            <h3>Contributions Account</h3>
             <div class="panel-head-actions">
               <select id="myDepositStatementMonth" class="statement-select" aria-label="Statement month"></select>
               <button type="button" class="btn primary" id="downloadMyDepositStatement" disabled>Download Monthly Statement (PDF)</button>
             </div>
           </div>
           <div class="table-wrap compact">
-            <table>
+            <table class="member-tx-table">
               <thead>
-                <tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th></tr>
+                <tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th class="col-description">Description</th></tr>
               </thead>
               <tbody id="myDepositBody">
                 <tr><td colspan="5">Loading…</td></tr>
@@ -802,6 +809,6 @@
         </div>
       </section>
     </div>
-    <script src="app.js?v=20260613200346"></script>
+    <script src="app.js"></script>
   </body>
 </html>

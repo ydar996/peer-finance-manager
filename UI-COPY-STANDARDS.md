@@ -15,7 +15,7 @@ Use **Title Case** for headers, paragraph hints, form labels, buttons, badges, a
 | Wrong | Right |
 |-------|-------|
 | Cooperative books | Cooperative Books |
-| Deposit account | Deposit Account |
+| Deposit account | Contributions Account |
 | Import profiles | Import Profiles |
 | On file | On File |
 
@@ -27,7 +27,7 @@ When joining terms with a slash, **do not** put spaces around `/`.
 
 | Wrong | Right |
 |-------|-------|
-| Deposit Account / Loan Account | Deposit Account/Loan Account |
+| Contributions Account / Loan Account | Contributions Account/Loan Account |
 | Distribution / Interest | Distribution/Interest |
 | Zelle / Bank | Zelle/Bank |
 | Members / Profiles | Members/Profiles |
@@ -43,7 +43,7 @@ Use a **colon** (`:`) instead for clause breaks and separators.
 
 | Wrong | Right |
 |-------|-------|
-| Cooperative Asset Management — Member Deposit Accounts | Cooperative Asset Management: Member Deposit Accounts |
+| Cooperative Asset Management — Member Contributions Accounts | Cooperative Asset Management: Member Contributions Accounts |
 | None — Use Distribution Column | None: Use Distribution Column |
 | Done — 24 PDFs saved | Done: 24 PDFs saved |
 | Empty table cell — | : |
@@ -68,7 +68,11 @@ When referring to the **cooperative** or **organizations using the app**, do not
 | Cooperative Banking | Cooperative Asset Management |
 | Banking Profiles | Profiles (or Member Profiles) |
 
+Use **Contribution** (not Deposit) for money received from members. Use **Contributions Account** (not Deposit Account) for the member ledger account.
+
 **OK to keep "Bank"** when it means **Bank of America** or **Zelle/Bank** payment details (external bank, not the cooperative).
+
+**Keep "Certificate of Deposit"** when referring to the cooperative's CD investment at Bank of America.
 
 ---
 
