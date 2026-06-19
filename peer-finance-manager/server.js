@@ -106,7 +106,7 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true, name: "Peer Finance Manager" });
 });
 
-registerAuthRoutes(app);
+registerAuthRoutes(app, { upload });
 
 app.get("/", (req, res) => res.redirect("/member"));
 for (const portalPath of ["/member", "/staff", "/admin", "/register"]) {

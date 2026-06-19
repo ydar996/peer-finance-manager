@@ -48,8 +48,8 @@ function applyOrganizationBranding(organizationName) {
   const appSubtitle = $("#appOrgSubtitle");
   if (appSubtitle) {
     appSubtitle.textContent = orgName
-      ? `${orgName} — Cooperative Banking — Member Deposit Accounts, Loan Accounts, and Books`
-      : "Cooperative Banking — Member Deposit Accounts, Loan Accounts, and Books";
+      ? `${orgName} : Cooperative Asset Management : Member Deposit Accounts, Loan Accounts, and Books`
+      : "Cooperative Asset Management : Member Deposit Accounts, Loan Accounts, and Books";
   }
 
   document.querySelectorAll(".org-cooperative-name").forEach((el) => {
@@ -261,8 +261,8 @@ async function loadUsers() {
             (a) => `
           <tr>
             <td>${escapeHtml(a.memberName)}</td>
-            <td>${escapeHtml(a.username || "—")}</td>
-            <td>${escapeHtml(a.email || "—")}</td>
+            <td>${escapeHtml(a.username || ":")}</td>
+            <td>${escapeHtml(a.email || ":")}</td>
             <td>${a.mustChangePassword ? "Must Change on First Login" : "Password Set"}</td>
           </tr>`
           )
@@ -279,10 +279,10 @@ async function loadUsers() {
         (u) => `
       <tr>
         <td>${escapeHtml(u.email)}</td>
-        <td>${escapeHtml(u.username || "—")}</td>
+        <td>${escapeHtml(u.username || ":")}</td>
         <td>${escapeHtml(roleLabel(u.role))}</td>
-        <td>${escapeHtml(u.memberName || "—")}</td>
-        <td>${escapeHtml(u.createdAt || "—")}</td>
+        <td>${escapeHtml(u.memberName || ":")}</td>
+        <td>${escapeHtml(u.createdAt || ":")}</td>
       </tr>`
       )
       .join("");
@@ -421,7 +421,7 @@ function escapeHtml(value) {
 }
 
 function formatDate(value) {
-  if (!value) return "—";
+  if (!value) return ":";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString("en-US", {
@@ -710,7 +710,7 @@ function addressBlock(profile) {
     [profile.city, profile.state, profile.postal_code].filter(Boolean).join(", "),
     profile.country,
   ].filter(Boolean);
-  return lines.length ? lines.map(escapeHtml).join("<br />") : "—";
+  return lines.length ? lines.map(escapeHtml).join("<br />") : ":";
 }
 
 function formatTxType(type) {
@@ -998,7 +998,7 @@ function loanScheduleHtml(lot) {
       (row) => `
       <tr>
         <td>${row.period}</td>
-        <td>${row.dueDate ? formatDate(row.dueDate) : "—"}</td>
+        <td>${row.dueDate ? formatDate(row.dueDate) : ":"}</td>
         <td class="money">${fmt.format(row.totalDue || 0)}</td>
         <td class="money">${fmt.format(row.interest || 0)}</td>
         <td class="money">${fmt.format(row.principal || 0)}</td>
@@ -1015,7 +1015,7 @@ function loanScheduleHtml(lot) {
   return `
     <div class="loan-schedule-wrap">
       <h5>${escapeHtml(lot.scheduleTitle || "Agreed Repayment Schedule")}</h5>
-      <p class="subtle">Informational Only — Actual Repayments Come From Bank Records.</p>
+      <p class="subtle">Informational Only : Actual Repayments Come From Bank Records.</p>
       ${scheduleMeta.length ? `<p class="subtle">${scheduleMeta.join(" · ")}</p>` : ""}
       <div class="table-wrap compact">
         <table>
@@ -1096,7 +1096,7 @@ async function showProfile(memberId) {
           <h3>${escapeHtml(p.display_name || p.ledger_account_name)}</h3>
           <p class="subtle">Account Name: <strong>${escapeHtml(p.ledger_account_name)}</strong></p>
           ${currentUser?.role === "admin" ? `<button type="button" class="btn" data-edit-profile="${memberId}">Edit Profile</button>` : ""}
-          ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File — Use the Record Tab to Add or Update Profile.</p>'}
+          ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File : Use the Record Tab to Add or Update Profile.</p>'}
           <p><span class="badge ok">${escapeHtml(p.cooperative_account_status || "active")}</span></p>
         </div>
       </div>
@@ -1127,9 +1127,9 @@ async function showProfile(memberId) {
         <section>
           <h4>Contact</h4>
           <dl>
-            <dt>Email</dt><dd>${escapeHtml(p.email) || "—"}</dd>
-            <dt>Phone</dt><dd>${escapeHtml(p.phone) || "—"}</dd>
-            <dt>Gender</dt><dd>${escapeHtml(p.gender) || "—"}</dd>
+            <dt>Email</dt><dd>${escapeHtml(p.email) || ":"}</dd>
+            <dt>Phone</dt><dd>${escapeHtml(p.phone) || ":"}</dd>
+            <dt>Gender</dt><dd>${escapeHtml(p.gender) || ":"}</dd>
             <dt>Date of Birth</dt><dd>${formatDate(p.date_of_birth)}</dd>
           </dl>
         </section>
@@ -1140,25 +1140,25 @@ async function showProfile(memberId) {
         <section>
           <h4>Payments (Zelle/Bank)</h4>
           <dl>
-            <dt>Method</dt><dd>${escapeHtml(p.preferred_payment_method) || "—"}</dd>
-            <dt>Bank/Zelle Name</dt><dd>${escapeHtml(p.zelle_bank_name) || "—"}</dd>
+            <dt>Method</dt><dd>${escapeHtml(p.preferred_payment_method) || ":"}</dd>
+            <dt>Bank/Zelle Name</dt><dd>${escapeHtml(p.zelle_bank_name) || ":"}</dd>
             <dt>Fee Paid</dt><dd>${p.membership_fee_paid ? "Yes" : "No"}</dd>
-            <dt>Joined</dt><dd>${p.joined_at || "—"}</dd>
+            <dt>Joined</dt><dd>${p.joined_at || ":"}</dd>
           </dl>
         </section>
         <section>
           <h4>Next of Kin</h4>
           <dl>
-            <dt>Name</dt><dd>${escapeHtml(nokName) || "—"}</dd>
-            <dt>Phone</dt><dd>${escapeHtml(p.next_of_kin_phone) || "—"}</dd>
-            <dt>Relationship</dt><dd>${escapeHtml(p.next_of_kin_relationship) || "—"}</dd>
+            <dt>Name</dt><dd>${escapeHtml(nokName) || ":"}</dd>
+            <dt>Phone</dt><dd>${escapeHtml(p.next_of_kin_phone) || ":"}</dd>
+            <dt>Relationship</dt><dd>${escapeHtml(p.next_of_kin_relationship) || ":"}</dd>
           </dl>
         </section>
         <section>
           <h4>Application</h4>
           <dl>
             <dt>Signed</dt><dd>${formatDate(p.application_signed_at)}</dd>
-            <dt>Signature</dt><dd>${escapeHtml(p.signature_name) || "—"}</dd>
+            <dt>Signature</dt><dd>${escapeHtml(p.signature_name) || ":"}</dd>
           </dl>
         </section>
       </div>` : ""}
@@ -1189,17 +1189,17 @@ async function loadLoans() {
     <tr class="loan-row" data-loan-key="${rowId}" data-member-id="${l.borrower_id || ""}" data-loan-number="${l.loan_number || ""}" data-ledger="${isLedger ? "1" : "0"}">
       <td>${loanLabel}</td>
       <td>${escapeHtml(l.borrower_name)}</td>
-      <td>${isLedger ? formatDate(l.start_date) : l.start_date || "—"}</td>
+      <td>${isLedger ? formatDate(l.start_date) : l.start_date || ":"}</td>
       <td class="money">${fmt.format(l.principal)}</td>
       <td class="money">${fmt.format(l.collected ?? 0)}</td>
       <td class="money">${fmt.format(l.interest_income ?? 0)}</td>
       <td class="money">${fmt.format(l.outstanding ?? 0)}</td>
       <td>${escapeHtml(l.status)}</td>
-      <td>${isLedger ? l.repayment_count ?? 0 : l.schedule_imported ? "Scheduled" : "—"}</td>
+      <td>${isLedger ? l.repayment_count ?? 0 : l.schedule_imported ? "Scheduled" : ":"}</td>
       <td>${
         isLedger
           ? `<button type="button" class="btn small loan-statement-btn" data-member-id="${l.borrower_id}" data-loan-number="${l.loan_number}">Statement</button>`
-          : "—"
+          : ":"
       }</td>
     </tr>
     <tr class="loan-detail-row hidden" data-detail-for="${rowId}">
@@ -1376,7 +1376,7 @@ async function loadStatementFiles() {
     });
 
     distSelect.innerHTML =
-      '<option value="">None — Use Distribution Column in Workbook Only</option>';
+      '<option value="">None : Use Distribution Column in Workbook Only</option>';
     (data.distributionFiles || []).forEach((rel) => {
       const opt = document.createElement("option");
       opt.value = rel;
@@ -1485,7 +1485,7 @@ $("#generateStatementsBtn")?.addEventListener("click", async () => {
       if (data.done) {
         wrap.classList.add("hidden");
         if (data.success) {
-          status.textContent = `Done — ${data.count} PDFs saved to ${data.outputDir}`;
+          status.textContent = `Done : ${data.count} PDFs saved to ${data.outputDir}`;
           status.className = "status ok";
         } else {
           status.textContent = data.error || "Generation failed";
@@ -1712,7 +1712,7 @@ async function loadCdBalanceForm() {
           "No CD balance on file yet. Enter the balance from your bank statement.";
       } else {
         summaryEl.textContent = [
-          `Last updated ${cdBalance.asOf ? formatDate(cdBalance.asOf) : "—"}`,
+          `Last updated ${cdBalance.asOf ? formatDate(cdBalance.asOf) : ":"}`,
           `Balance ${fmt.format(cdBalance.balance)}`,
           `Principal ${fmt.format(cdBalance.openPrincipal || 0)}`,
           `Accrued interest ${fmt.format(cdBalance.accruedInterest || 0)}`,
@@ -1746,7 +1746,7 @@ async function loadRecordTabData() {
       (loans || []).forEach((l) => {
         const opt = document.createElement("option");
         opt.value = l.id;
-        opt.textContent = `#${l.id} — ${l.borrower_name} (${fmt.format(l.principal)})`;
+        opt.textContent = `#${l.id} : ${l.borrower_name} (${fmt.format(l.principal)})`;
         loanSelect.appendChild(opt);
       });
     }
@@ -1814,7 +1814,7 @@ async function loadDistributions() {
       <tr>
         <td>${escapeHtml(d.transaction_date)}</td>
         <td>${escapeHtml(d.display_name || d.member_name)}</td>
-        <td>${escapeHtml(d.description || "—")}</td>
+        <td>${escapeHtml(d.description || ":")}</td>
         <td class="money">${fmt.format(d.amount)}</td>
       </tr>`
       )

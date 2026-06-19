@@ -102,30 +102,80 @@ Environment variables: `NODE_ENV=production`, `PFM_DATA_DIR=/var/data`
 
 **Add your data (important):**
 
-1. In Render, open your service → **Disks** → confirm disk `pfm-data` is mounted at `/var/data`.
-2. Render → **Shell** (tab on the service).
-3. Upload is easiest via a one-time helper — in Shell run:
+Think of this like **copying a folder from your PC onto Render’s hard drive**.  
+The browser **Shell** tab cannot drag-and-drop files — you use a free app called **WinSCP** (like USB, but over the internet).
 
-```bash
-ls /var/data
+#### A — On your PC first (2 minutes)
+
+1. Find `cloud-data-bundle.zip` in your `AssurCoop` folder.
+2. **Right-click → Extract All** to your Desktop.
+3. You should get a folder with things like `registry.db` and `organizations` inside.
+
+#### B — One-time: give Render your “digital key” (5 minutes, only once)
+
+1. Open PowerShell and run:
+
+```powershell
+New-Item -ItemType Directory -Force -Path $env:USERPROFILE\.ssh
+ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\render_key -N '""'
 ```
 
-If empty, use Render’s **SFTP** or **Disk snapshot restore** from their docs, **or** this quick method:
+Press Enter for any questions. (If you see “No such file or directory”, the first line creates the missing `.ssh` folder.)
 
-- Install [WinSCP](https://winscp.net) or use Render Shell.
-- Unzip `cloud-data-bundle.zip` on your PC so you have folders: `organizations/`, `registry.db`, etc.
-- Upload everything into `/var/data` on Render (not inside a subfolder — `registry.db` should be at `/var/data/registry.db`).
+2. Show your public key:
 
-4. In Shell, verify:
+```powershell
+Get-Content $env:USERPROFILE\.ssh\render_key.pub
+```
+
+3. Copy the whole line it prints.
+4. On Render: click your **profile icon** (top right) → **Account Settings** → **SSH Public Keys** → **Add SSH Public Key** → paste → Save.
+
+#### C — Install WinSCP and connect (5 minutes)
+
+1. Download and install [WinSCP](https://winscp.net/eng/download.php) (free).
+2. On Render: open **peer-finance-manager** service → click **Connect** (top right).
+3. Copy the **SSH** command shown (looks like `ssh srv-xxxxx@ssh.oregon.render.com`).
+4. In WinSCP, click **New Site** and fill in:
+   - **File protocol:** SFTP
+   - **Host name:** the part after `@` (e.g. `ssh.oregon.render.com`)
+   - **User name:** the part before `@` (e.g. `srv-xxxxx`)
+   - **Advanced** → **SSH** → **Authentication** → **Private key file:** browse to `C:\Users\YOURNAME\.ssh\render_key`
+5. Click **Login** (say Yes if it asks about converting the key).
+
+#### D — Copy your data (2 minutes)
+
+1. **Left side** (your PC): open the folder you unzipped on your Desktop.
+2. **Right side** (Render): double-click into **`var`** → then **`data`** (full path: `/var/data`).
+3. Select everything on the left (`registry.db`, `organizations` folder, etc.).
+4. **Drag** to the right side.
+
+You should end up with `registry.db` directly inside `/var/data` — not inside another subfolder.
+
+#### E — Check it worked
+
+1. Back on Render → **Shell** tab, run:
 
 ```bash
 ls /var/data
 ls /var/data/organizations/assurance
 ```
 
-You should see `peerfinance.db` and `registry.db`.
+You should see `registry.db` and `peerfinance.db`.
 
-5. Click **Manual Deploy** → **Deploy latest commit** to restart with your data.
+2. Click **Manual Deploy** → **Deploy latest commit**.
+
+**Alternative (if WinSCP is painful):** In Render Shell, you can download the zip from a private link:
+
+```bash
+cd /var/data
+curl -L -o bundle.zip "PASTE_YOUR_ONEDRIVE_OR_DROPBOX_LINK_HERE"
+apt-get update && apt-get install -y unzip
+unzip -o bundle.zip
+ls /var/data
+```
+
+Only use a **private** share link you delete afterward — this file has member passwords.
 
 ---
 

@@ -1,6 +1,10 @@
 const { getDb } = require("../db/database");
 const { TRANSACTION_TYPES } = require("./constants");
 const { getMemberDepositAccountBalance } = require("./balance-service");
+const {
+  getCdBalanceSnapshot,
+  getCdTermMetrics,
+} = require("./cd-balance-service");
 const { getCooperativeSetting } = require("./cooperative-settings");
 const {
   getLoanPortfolioFromBankLedger,
@@ -163,13 +167,18 @@ function getCdInterestBreakdown() {
   let accrued = 0;
   if (openLots.length > 0 && cdBalanceSetting != null) {
     const balance = Number(cdBalanceSetting);
+    const termStartRaw = getCooperativeSetting("cd_term_start_balance");
+    const termStart = termStartRaw != null ? Number(termStartRaw) : null;
     const openPrincipal = openLots.reduce((sum, lot) => sum + lot.principal, 0);
-    accrued = balance - openPrincipal;
+    accrued =
+      termStart != null && Number.isFinite(termStart)
+        ? Math.max(0, balance - termStart)
+        : balance - openPrincipal;
     for (const lot of openLots) {
       const lotInterest =
         openLots.length === 1 ? accrued : (accrued * lot.principal) / openPrincipal;
       rows.push({
-        date: cdBalanceAsOf || "—",
+        date: cdBalanceAsOf || ":",
         status: "Active",
         principal: lot.principal,
         balanceOrProceeds: openLots.length === 1 ? balance : lot.principal + lotInterest,
@@ -227,6 +236,8 @@ function getCooperativeBooks() {
   const cooperativeNetIncome = totalCooperativeIncome - (expenses.total || 0);
   const cdBalanceSetting = getCooperativeSetting("cd_balance");
   const cdBalanceAsOf = getCooperativeSetting("cd_balance_as_of");
+  const cdSnapshot = getCdBalanceSnapshot();
+  const cdTermMetrics = cdSnapshot.termMetrics;
 
   const memberCount = db.prepare(`SELECT COUNT(*) AS c FROM members`).get().c;
   const profileCount = db
@@ -263,6 +274,13 @@ function getCooperativeBooks() {
     cdInterestIncome: cdInterest.cdInterestIncome,
     cdInterestRealized: cdInterest.cdInterestRealized,
     cdInterestAccrued: cdInterest.cdInterestAccrued,
+    cdTermInterestEarned: cdTermMetrics?.termInterestEarned ?? null,
+    cdTermStartBalance: cdTermMetrics?.termStartBalance ?? null,
+    cdTermDaysRemaining: cdTermMetrics?.daysRemaining ?? null,
+    expectedCdInterest: cdTermMetrics?.futureInterest ?? null,
+    cdMaturityDate: cdTermMetrics?.maturityDate ?? null,
+    cdAnnualRate: cdTermMetrics?.annualRate ?? null,
+    cdApy: cdTermMetrics?.apy ?? null,
     loanInterestIncome,
     expectedLoanInterest,
     totalCooperativeIncome,
@@ -286,6 +304,7 @@ const BOOK_DETAIL_SLUGS = {
   loans: "Loans Outstanding",
   expenses: "Cooperative Expenses",
   "cd-balance": "CD Account",
+  "expected-cd-interest": "Expected CD Interest",
   "cd-interest-income": "CD Interest Income",
   "loan-interest-income": "Loan Interest Income",
   "expected-loan-interest": "Expected Future Loan Interest",
@@ -539,13 +558,13 @@ function getBookDetail(slug) {
           type: "Balance Update",
           amount: row.balance,
           description: row.note
-            ? `Manual update — ${row.note}`
+            ? `Manual update : ${row.note}`
             : "Manual balance update",
         })),
         ...(balance != null && !snapshot.history.length
           ? [
               {
-                date: snapshot.asOf || "—",
+                date: snapshot.asOf || ":",
                 type: "Current Balance",
                 amount: Number(balance),
                 description: "Reported CD account balance",
@@ -553,6 +572,84 @@ function getBookDetail(slug) {
             ]
           : []),
       ],
+    };
+  }
+
+  if (slug === "expected-cd-interest") {
+    const snapshot = getCdBalanceSnapshot();
+    const metrics = snapshot.termMetrics;
+    if (!metrics) {
+      return {
+        slug,
+        title,
+        navigateTab: "record",
+        summary: 0,
+        columns: [
+          { key: "line", label: "Detail" },
+          { key: "value", label: "Value" },
+        ],
+        rows: [{ line: "CD term details", value: "Not configured" }],
+      };
+    }
+    const rows = [
+      {
+        line: "Current CD Balance",
+        value: snapshot.balance,
+        format: "money",
+      },
+      {
+        line: "Beginning Balance (This Term)",
+        value: metrics.termStartBalance,
+        format: "money",
+      },
+      {
+        line: "Interest Earned This Term",
+        value: metrics.termInterestEarned,
+        format: "money",
+      },
+      {
+        line: "Projected Interest to Maturity",
+        value: metrics.futureInterest,
+        format: "money",
+      },
+      {
+        line: "Total Projected Term Interest",
+        value: metrics.totalProjectedTermInterest,
+        format: "money",
+      },
+      {
+        line: "Annual Rate",
+        value: `${(metrics.annualRate * 100).toFixed(2)}%`,
+      },
+      {
+        line: "APY",
+        value: `${(metrics.apy * 100).toFixed(2)}%`,
+      },
+      {
+        line: "Renewal Date",
+        value: metrics.renewalDate,
+        format: "date",
+      },
+      {
+        line: "Maturity Date",
+        value: metrics.maturityDate,
+        format: "date",
+      },
+      {
+        line: "Days Remaining",
+        value: metrics.daysRemaining,
+      },
+    ];
+    return {
+      slug,
+      title,
+      navigateTab: "record",
+      summary: metrics.futureInterest,
+      columns: [
+        { key: "line", label: "Detail" },
+        { key: "value", label: "Value", format: "money" },
+      ],
+      rows,
     };
   }
 
@@ -800,8 +897,8 @@ function getBookDetail(slug) {
       rows: rows.map((row) => ({
         member: row.display_name || row.name,
         profile: row.profile_id ? "On File" : "Missing",
-        email: row.email || "—",
-        phone: row.phone || "—",
+        email: row.email || ":",
+        phone: row.phone || ":",
         memberId: row.member_id,
       })),
     };

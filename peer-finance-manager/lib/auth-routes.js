@@ -23,10 +23,15 @@ const {
   getMemberLoanLedgerSummary,
   hasBankLoanLedger,
 } = require("./loan-ledger-service");
-const { requireAuth, requireAdmin, getToken } = require("./auth-middleware");
-const path = require("path");
+const { requireAuth, requireAdmin, requireMemberSelf, getToken } = require("./auth-middleware");
+const {
+  saveMemberPhotoUpload,
+  updateMemberEmergencyContact,
+  resolveMemberPhotoFile,
+} = require("./member-self-service");
 
-function registerAuthRoutes(app) {
+function registerAuthRoutes(app, deps = {}) {
+  const upload = deps.upload;
   app.get("/api/organizations/lookup", (req, res) => {
     try {
       const organization = getOrganization(req.query.slug || "");
@@ -144,6 +149,52 @@ function registerAuthRoutes(app) {
       res.status(500).json({ error: err.message });
     }
   });
+
+  app.get("/api/members/:id/photo", requireAuth, requireMemberSelf("id"), (req, res) => {
+    try {
+      const memberId = Number(req.params.id);
+      const filePath = resolveMemberPhotoFile(memberId);
+      if (!filePath) return res.status(404).end();
+      res.sendFile(filePath);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/me/profile", requireAuth, (req, res) => {
+    try {
+      const user = req.user;
+      if (user.role !== ROLES.MEMBER || !user.memberId) {
+        return res.status(403).json({ error: "Member account required" });
+      }
+      const result = updateMemberEmergencyContact(user.memberId, req.body || {});
+      const profile = getMemberProfile(user.memberId);
+      res.json({ success: true, ...result, profile });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  if (upload) {
+    app.post(
+      "/api/me/profile/photo",
+      requireAuth,
+      upload.single("photo"),
+      (req, res) => {
+        try {
+          const user = req.user;
+          if (user.role !== ROLES.MEMBER || !user.memberId) {
+            return res.status(403).json({ error: "Member account required" });
+          }
+          const result = saveMemberPhotoUpload(user.memberId, req.file);
+          const profile = getMemberProfile(user.memberId);
+          res.json({ success: true, ...result, profile });
+        } catch (err) {
+          res.status(400).json({ error: err.message });
+        }
+      }
+    );
+  }
 
   app.get("/api/me/account", requireAuth, (req, res) => {
     try {

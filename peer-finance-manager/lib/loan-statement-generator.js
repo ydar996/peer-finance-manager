@@ -24,7 +24,7 @@ function sanitizeFilename(value) {
 }
 
 function formatDisplayDate(value) {
-  if (!value || value === "—") return "—";
+  if (!value || value === ":") return ":";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString("en-US", {
@@ -125,7 +125,7 @@ function buildScheduleHtml(loan) {
       (row) => `
       <tr>
         <td>${row.period}</td>
-        <td>${formatDisplayDate(row.dueDate || "—")}</td>
+        <td>${formatDisplayDate(row.dueDate || ":")}</td>
         <td class="money">${formatMoney(row.totalDue || 0)}</td>
         <td class="money">${formatMoney(row.interest || 0)}</td>
         <td class="money">${formatMoney(row.principal || 0)}</td>
@@ -141,7 +141,7 @@ function buildScheduleHtml(loan) {
   }
   return `
     <h3 style="margin-top:24px">${loan.scheduleTitle || "Agreed Repayment Schedule"}</h3>
-    <p class="subtle">Informational only — actual repayments come from bank records.</p>
+    <p class="subtle">Informational only : actual repayments come from bank records.</p>
     ${meta.length ? `<p class="subtle">${meta.join(" · ")}</p>` : ""}
     <div class="table-wrap">
       <table class="statement-table">

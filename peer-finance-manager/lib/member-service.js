@@ -52,6 +52,7 @@ function profileFieldsFromPayload(payload) {
     country: payload.country?.trim() || null,
     next_of_kin_first_name: payload.nextOfKinFirstName?.trim() || null,
     next_of_kin_last_name: payload.nextOfKinLastName?.trim() || null,
+    next_of_kin_email: payload.nextOfKinEmail?.trim() || null,
     next_of_kin_phone: payload.nextOfKinPhone?.trim() || null,
     next_of_kin_relationship: payload.nextOfKinRelationship?.trim() || null,
     preferred_payment_method: payload.preferredPaymentMethod?.trim() || "Zelle",
@@ -69,7 +70,7 @@ function upsertMemberProfile(db, memberId, fields) {
       member_id, photo_path, first_name, middle_name, last_name, display_name,
       gender, date_of_birth, email, phone,
       address_line1, address_line2, city, state, postal_code, country,
-      next_of_kin_first_name, next_of_kin_last_name, next_of_kin_phone,
+      next_of_kin_first_name, next_of_kin_last_name, next_of_kin_email, next_of_kin_phone,
       next_of_kin_relationship, application_signed_at, signature_name,
       preferred_payment_method, zelle_bank_name, cooperative_account_status,
       application_source, updated_at
@@ -77,7 +78,7 @@ function upsertMemberProfile(db, memberId, fields) {
       @member_id, NULL, @first_name, @middle_name, @last_name, @display_name,
       @gender, @date_of_birth, @email, @phone,
       @address_line1, @address_line2, @city, @state, @postal_code, @country,
-      @next_of_kin_first_name, @next_of_kin_last_name, @next_of_kin_phone,
+      @next_of_kin_first_name, @next_of_kin_last_name, @next_of_kin_email, @next_of_kin_phone,
       @next_of_kin_relationship, NULL, NULL,
       @preferred_payment_method, @zelle_bank_name, @cooperative_account_status,
       @application_source, datetime('now')
@@ -99,6 +100,7 @@ function upsertMemberProfile(db, memberId, fields) {
       country = excluded.country,
       next_of_kin_first_name = excluded.next_of_kin_first_name,
       next_of_kin_last_name = excluded.next_of_kin_last_name,
+      next_of_kin_email = excluded.next_of_kin_email,
       next_of_kin_phone = excluded.next_of_kin_phone,
       next_of_kin_relationship = excluded.next_of_kin_relationship,
       preferred_payment_method = excluded.preferred_payment_method,

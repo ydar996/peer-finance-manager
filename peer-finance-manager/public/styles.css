@@ -98,6 +98,24 @@ th { background: #f8fafc; font-weight: 600; }
   font-size: 11px;
   color: #94a3b8;
 }
+.my-profile-card .profile-header {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.my-profile-card .profile-photo-upload {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+.my-profile-card .profile-photo-upload input[type="file"] {
+  max-width: 220px;
+  font-size: 12px;
+}
 .profile-summary h3 { margin: 0 0 8px; }
 .profile-grid {
   display: grid;
@@ -231,7 +249,7 @@ th { background: #f8fafc; font-weight: 600; }
 }
 .members-list-pane .member-row { cursor: pointer; }
 .members-list-pane .member-row.selected { background: #e0f2fe; }
-.member-banking-pane {
+.member-profile-pane {
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;

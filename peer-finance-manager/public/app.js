@@ -48,8 +48,8 @@ function applyOrganizationBranding(organizationName) {
   const appSubtitle = $("#appOrgSubtitle");
   if (appSubtitle) {
     appSubtitle.textContent = orgName
-      ? `${orgName} — Cooperative Banking — Member Deposit Accounts, Loan Accounts, and Books`
-      : "Cooperative Banking — Member Deposit Accounts, Loan Accounts, and Books";
+      ? `${orgName} : Cooperative Asset Management : Member Deposit Accounts, Loan Accounts, and Books`
+      : "Cooperative Asset Management : Member Deposit Accounts, Loan Accounts, and Books";
   }
 
   document.querySelectorAll(".org-cooperative-name").forEach((el) => {
@@ -261,8 +261,8 @@ async function loadUsers() {
             (a) => `
           <tr>
             <td>${escapeHtml(a.memberName)}</td>
-            <td>${escapeHtml(a.username || "—")}</td>
-            <td>${escapeHtml(a.email || "—")}</td>
+            <td>${escapeHtml(a.username || ":")}</td>
+            <td>${escapeHtml(a.email || ":")}</td>
             <td>${a.mustChangePassword ? "Must Change on First Login" : "Password Set"}</td>
           </tr>`
           )
@@ -279,10 +279,10 @@ async function loadUsers() {
         (u) => `
       <tr>
         <td>${escapeHtml(u.email)}</td>
-        <td>${escapeHtml(u.username || "—")}</td>
+        <td>${escapeHtml(u.username || ":")}</td>
         <td>${escapeHtml(roleLabel(u.role))}</td>
-        <td>${escapeHtml(u.memberName || "—")}</td>
-        <td>${escapeHtml(u.createdAt || "—")}</td>
+        <td>${escapeHtml(u.memberName || ":")}</td>
+        <td>${escapeHtml(u.createdAt || ":")}</td>
       </tr>`
       )
       .join("");
@@ -303,6 +303,7 @@ async function loadMyAccount() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     const profile = data.profile;
+    renderMyProfileSection(profile);
     summary.innerHTML = `
       <div class="book-card accent">
         <p class="book-label">Deposit Account Balance</p>
@@ -421,7 +422,7 @@ function escapeHtml(value) {
 }
 
 function formatDate(value) {
-  if (!value) return "—";
+  if (!value) return ":";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString("en-US", {
@@ -634,8 +635,17 @@ async function loadBooks() {
             label: "CD Account Balance",
             amount: books.cdBalance,
             note: books.cdBalanceAsOf
-              ? `As of ${books.cdBalanceAsOf} · Principal ${fmt.format((books.cdBalance || 0) - (books.cdInterestAccrued || 0))} · Interest ${fmt.format(books.cdInterestAccrued || 0)}`
+              ? `As of ${books.cdBalanceAsOf} · Term start ${fmt.format(books.cdTermStartBalance ?? (books.cdBalance - (books.cdTermInterestEarned || 0)))} · Earned ${fmt.format(books.cdTermInterestEarned ?? books.cdInterestAccrued ?? 0)}`
               : "Certificate of Deposit",
+          })
+        : "",
+      books.cdBalance != null && books.expectedCdInterest != null
+        ? bookCardHtml("expected-cd-interest", {
+            label: "Expected CD Interest",
+            amount: books.expectedCdInterest,
+            note: books.cdMaturityDate
+              ? `To maturity ${books.cdMaturityDate} · ${(books.cdAnnualRate * 100).toFixed(2)}% rate · ${books.cdTermDaysRemaining ?? ":"} days left`
+              : "Interest not yet received this term",
           })
         : "",
       (books.investments || 0) > 0
@@ -710,7 +720,176 @@ function addressBlock(profile) {
     [profile.city, profile.state, profile.postal_code].filter(Boolean).join(", "),
     profile.country,
   ].filter(Boolean);
-  return lines.length ? lines.map(escapeHtml).join("<br />") : "—";
+  return lines.length ? lines.map(escapeHtml).join("<br />") : ":";
+}
+
+async function bindProfilePhotoImage(img, memberId) {
+  if (!img || !memberId) return;
+  try {
+    const res = await fetch(`/api/members/${memberId}/photo`);
+    if (!res.ok) {
+      img.src = PLACEHOLDER_PHOTO;
+      return;
+    }
+    const blob = await res.blob();
+    if (img.dataset.objectUrl) URL.revokeObjectURL(img.dataset.objectUrl);
+    const objectUrl = URL.createObjectURL(blob);
+    img.dataset.objectUrl = objectUrl;
+    img.src = objectUrl;
+  } catch {
+    img.src = PLACEHOLDER_PHOTO;
+  }
+}
+
+function emergencyContactName(profile) {
+  return [profile?.next_of_kin_first_name, profile?.next_of_kin_last_name]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function profileDemographicsGridHtml(p) {
+  const hasProfile = Boolean(p?.id || p?.first_name || p?.email || p?.phone);
+  if (!hasProfile) {
+    return '<p class="subtle">No Membership Biodata on File Yet. You Can Still Add an Emergency Contact Below.</p>';
+  }
+  return `
+    <div class="profile-grid">
+      <section>
+        <h4>Identity</h4>
+        <dl>
+          <dt>First Name</dt><dd>${escapeHtml(p.first_name) || ":"}</dd>
+          <dt>Middle Name</dt><dd>${escapeHtml(p.middle_name) || ":"}</dd>
+          <dt>Last Name</dt><dd>${escapeHtml(p.last_name) || ":"}</dd>
+          <dt>Display Name</dt><dd>${escapeHtml(p.display_name || p.ledger_account_name) || ":"}</dd>
+          <dt>Gender</dt><dd>${escapeHtml(p.gender) || ":"}</dd>
+          <dt>Date of Birth</dt><dd>${formatDate(p.date_of_birth)}</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>Contact</h4>
+        <dl>
+          <dt>Email</dt><dd>${escapeHtml(p.email) || ":"}</dd>
+          <dt>Phone</dt><dd>${escapeHtml(p.phone) || ":"}</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>Address</h4>
+        <p>${addressBlock(p)}</p>
+      </section>
+      <section>
+        <h4>Payments (Zelle/Bank)</h4>
+        <dl>
+          <dt>Method</dt><dd>${escapeHtml(p.preferred_payment_method) || ":"}</dd>
+          <dt>Bank/Zelle Name</dt><dd>${escapeHtml(p.zelle_bank_name) || ":"}</dd>
+          <dt>Registration Fee Paid</dt><dd>${p.membership_fee_paid ? "Yes" : "No"}</dd>
+          <dt>Joined</dt><dd>${p.joined_at || ":"}</dd>
+        </dl>
+      </section>
+      <section>
+        <h4>Membership Application</h4>
+        <dl>
+          <dt>Signed</dt><dd>${formatDate(p.application_signed_at)}</dd>
+          <dt>Signature</dt><dd>${escapeHtml(p.signature_name) || ":"}</dd>
+          <dt>Account Status</dt><dd>${escapeHtml(p.cooperative_account_status || "active")}</dd>
+        </dl>
+      </section>
+    </div>`;
+}
+
+function renderMyProfileSection(profile) {
+  const section = $("#myProfileSection");
+  if (!section || currentUser?.role !== "member") return;
+
+  const p = profile || {};
+  const memberId = p.member_id || currentUser?.memberId;
+  section.classList.remove("hidden");
+  section.innerHTML = `
+    <div class="profile-header">
+      <div class="profile-photo-wrap">
+        <img class="profile-photo" id="myProfilePhoto" src="${PLACEHOLDER_PHOTO}" alt="" />
+        <form id="myProfilePhotoForm" class="profile-photo-upload">
+          <label class="subtle">Profile Photo (Optional)
+            <input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif" />
+          </label>
+          <button type="submit" class="btn">Upload Photo</button>
+        </form>
+        <p id="myProfilePhotoStatus" class="status"></p>
+      </div>
+      <div class="profile-summary">
+        <h3>${escapeHtml(p.display_name || p.ledger_account_name || currentUser?.memberName || "My Profile")}</h3>
+        <p class="subtle">Account Name: <strong>${escapeHtml(p.ledger_account_name || currentUser?.memberName || ":")}</strong></p>
+        <p class="subtle">Review Your Membership Details Below. Contact the Cooperative to Change Biodata Other Than Emergency Contact.</p>
+      </div>
+    </div>
+    ${profileDemographicsGridHtml(p)}
+    <div class="card" style="margin-top:16px">
+      <h4>Emergency Contact</h4>
+      <p class="subtle">Optional. Saved to Your Membership Record and Visible to Cooperative Administrators.</p>
+      <form id="myEmergencyContactForm" class="entry-form">
+        <label>First Name
+          <input type="text" name="emergencyFirstName" value="${escapeHtml(p.next_of_kin_first_name || "")}" />
+        </label>
+        <label>Last Name
+          <input type="text" name="emergencyLastName" value="${escapeHtml(p.next_of_kin_last_name || "")}" />
+        </label>
+        <label>Email Address
+          <input type="email" name="emergencyEmail" value="${escapeHtml(p.next_of_kin_email || "")}" />
+        </label>
+        <label>Phone Number
+          <input type="tel" name="emergencyPhone" value="${escapeHtml(p.next_of_kin_phone || "")}" />
+        </label>
+        <label>Relationship (Optional)
+          <input type="text" name="emergencyRelationship" value="${escapeHtml(p.next_of_kin_relationship || "")}" placeholder="e.g. Spouse, Parent" />
+        </label>
+        <button type="submit" class="btn primary">Save Emergency Contact</button>
+      </form>
+      <p id="myEmergencyContactStatus" class="status"></p>
+    </div>`;
+
+  bindProfilePhotoImage($("#myProfilePhoto"), memberId);
+
+  $("#myProfilePhotoForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const status = $("#myProfilePhotoStatus");
+    status.textContent = "Uploading…";
+    status.className = "status";
+    try {
+      const fileInput = e.target.querySelector('input[type="file"]');
+      const file = fileInput?.files?.[0];
+      if (!file) throw new Error("Choose a photo first");
+      const fd = new FormData();
+      fd.append("photo", file);
+      const res = await fetch("/api/me/profile/photo", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setFormStatus(status, "Profile photo updated.", true);
+      fileInput.value = "";
+      await bindProfilePhotoImage($("#myProfilePhoto"), memberId);
+    } catch (err) {
+      setFormStatus(status, err.message, false);
+    }
+  });
+
+  $("#myEmergencyContactForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const status = $("#myEmergencyContactStatus");
+    status.textContent = "Saving…";
+    status.className = "status";
+    try {
+      const payload = formJson(e.target);
+      const res = await fetch("/api/me/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setFormStatus(status, "Emergency contact saved.", true);
+      if (data.profile) renderMyProfileSection(data.profile);
+    } catch (err) {
+      setFormStatus(status, err.message, false);
+    }
+  });
 }
 
 function formatTxType(type) {
@@ -998,7 +1177,7 @@ function loanScheduleHtml(lot) {
       (row) => `
       <tr>
         <td>${row.period}</td>
-        <td>${row.dueDate ? formatDate(row.dueDate) : "—"}</td>
+        <td>${row.dueDate ? formatDate(row.dueDate) : ":"}</td>
         <td class="money">${fmt.format(row.totalDue || 0)}</td>
         <td class="money">${fmt.format(row.interest || 0)}</td>
         <td class="money">${fmt.format(row.principal || 0)}</td>
@@ -1015,7 +1194,7 @@ function loanScheduleHtml(lot) {
   return `
     <div class="loan-schedule-wrap">
       <h5>${escapeHtml(lot.scheduleTitle || "Agreed Repayment Schedule")}</h5>
-      <p class="subtle">Informational Only — Actual Repayments Come From Bank Records.</p>
+      <p class="subtle">Informational Only : Actual Repayments Come From Bank Records.</p>
       ${scheduleMeta.length ? `<p class="subtle">${scheduleMeta.join(" · ")}</p>` : ""}
       <div class="table-wrap compact">
         <table>
@@ -1079,24 +1258,21 @@ async function showProfile(memberId) {
   }
 
   const p = data.profile;
-  const photoSrc = p.photo_path || PLACEHOLDER_PHOTO;
-  const nokName = [p.next_of_kin_first_name, p.next_of_kin_last_name]
-    .filter(Boolean)
-    .join(" ");
+  const nokName = emergencyContactName(p);
   const hasBiodata = Boolean(p.id);
 
   el.innerHTML = `
     <div class="profile-card">
       <div class="profile-header">
         <div class="profile-photo-wrap">
-          <img class="profile-photo" src="${escapeHtml(photoSrc)}" alt="" />
-          <p class="photo-caption">Photo Placeholder</p>
+          <img class="profile-photo" src="${PLACEHOLDER_PHOTO}" alt="" />
+          <p class="photo-caption">${p.photo_path ? "Member Photo" : "No Photo on File"}</p>
         </div>
         <div class="profile-summary">
           <h3>${escapeHtml(p.display_name || p.ledger_account_name)}</h3>
           <p class="subtle">Account Name: <strong>${escapeHtml(p.ledger_account_name)}</strong></p>
           ${currentUser?.role === "admin" ? `<button type="button" class="btn" data-edit-profile="${memberId}">Edit Profile</button>` : ""}
-          ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File — Use the Record Tab to Add or Update Profile.</p>'}
+          ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File : Use the Record Tab to Add or Update Profile.</p>'}
           <p><span class="badge ok">${escapeHtml(p.cooperative_account_status || "active")}</span></p>
         </div>
       </div>
@@ -1127,9 +1303,9 @@ async function showProfile(memberId) {
         <section>
           <h4>Contact</h4>
           <dl>
-            <dt>Email</dt><dd>${escapeHtml(p.email) || "—"}</dd>
-            <dt>Phone</dt><dd>${escapeHtml(p.phone) || "—"}</dd>
-            <dt>Gender</dt><dd>${escapeHtml(p.gender) || "—"}</dd>
+            <dt>Email</dt><dd>${escapeHtml(p.email) || ":"}</dd>
+            <dt>Phone</dt><dd>${escapeHtml(p.phone) || ":"}</dd>
+            <dt>Gender</dt><dd>${escapeHtml(p.gender) || ":"}</dd>
             <dt>Date of Birth</dt><dd>${formatDate(p.date_of_birth)}</dd>
           </dl>
         </section>
@@ -1140,25 +1316,26 @@ async function showProfile(memberId) {
         <section>
           <h4>Payments (Zelle/Bank)</h4>
           <dl>
-            <dt>Method</dt><dd>${escapeHtml(p.preferred_payment_method) || "—"}</dd>
-            <dt>Bank/Zelle Name</dt><dd>${escapeHtml(p.zelle_bank_name) || "—"}</dd>
+            <dt>Method</dt><dd>${escapeHtml(p.preferred_payment_method) || ":"}</dd>
+            <dt>Bank/Zelle Name</dt><dd>${escapeHtml(p.zelle_bank_name) || ":"}</dd>
             <dt>Fee Paid</dt><dd>${p.membership_fee_paid ? "Yes" : "No"}</dd>
-            <dt>Joined</dt><dd>${p.joined_at || "—"}</dd>
+            <dt>Joined</dt><dd>${p.joined_at || ":"}</dd>
           </dl>
         </section>
         <section>
-          <h4>Next of Kin</h4>
+          <h4>Emergency Contact</h4>
           <dl>
-            <dt>Name</dt><dd>${escapeHtml(nokName) || "—"}</dd>
-            <dt>Phone</dt><dd>${escapeHtml(p.next_of_kin_phone) || "—"}</dd>
-            <dt>Relationship</dt><dd>${escapeHtml(p.next_of_kin_relationship) || "—"}</dd>
+            <dt>Name</dt><dd>${escapeHtml(nokName) || ":"}</dd>
+            <dt>Email</dt><dd>${escapeHtml(p.next_of_kin_email) || ":"}</dd>
+            <dt>Phone</dt><dd>${escapeHtml(p.next_of_kin_phone) || ":"}</dd>
+            <dt>Relationship</dt><dd>${escapeHtml(p.next_of_kin_relationship) || ":"}</dd>
           </dl>
         </section>
         <section>
           <h4>Application</h4>
           <dl>
             <dt>Signed</dt><dd>${formatDate(p.application_signed_at)}</dd>
-            <dt>Signature</dt><dd>${escapeHtml(p.signature_name) || "—"}</dd>
+            <dt>Signature</dt><dd>${escapeHtml(p.signature_name) || ":"}</dd>
           </dl>
         </section>
       </div>` : ""}
@@ -1166,6 +1343,7 @@ async function showProfile(memberId) {
   const initialPanel = pendingAccountPanel || "deposit";
   pendingAccountPanel = null;
   bindMemberAccountCards(el, memberId, initialPanel);
+  bindProfilePhotoImage(el.querySelector(".profile-photo"), memberId);
   el.querySelector("[data-edit-profile]")?.addEventListener("click", () => {
     openMemberProfileEditor(memberId);
   });
@@ -1189,17 +1367,17 @@ async function loadLoans() {
     <tr class="loan-row" data-loan-key="${rowId}" data-member-id="${l.borrower_id || ""}" data-loan-number="${l.loan_number || ""}" data-ledger="${isLedger ? "1" : "0"}">
       <td>${loanLabel}</td>
       <td>${escapeHtml(l.borrower_name)}</td>
-      <td>${isLedger ? formatDate(l.start_date) : l.start_date || "—"}</td>
+      <td>${isLedger ? formatDate(l.start_date) : l.start_date || ":"}</td>
       <td class="money">${fmt.format(l.principal)}</td>
       <td class="money">${fmt.format(l.collected ?? 0)}</td>
       <td class="money">${fmt.format(l.interest_income ?? 0)}</td>
       <td class="money">${fmt.format(l.outstanding ?? 0)}</td>
       <td>${escapeHtml(l.status)}</td>
-      <td>${isLedger ? l.repayment_count ?? 0 : l.schedule_imported ? "Scheduled" : "—"}</td>
+      <td>${isLedger ? l.repayment_count ?? 0 : l.schedule_imported ? "Scheduled" : ":"}</td>
       <td>${
         isLedger
           ? `<button type="button" class="btn small loan-statement-btn" data-member-id="${l.borrower_id}" data-loan-number="${l.loan_number}">Statement</button>`
-          : "—"
+          : ":"
       }</td>
     </tr>
     <tr class="loan-detail-row hidden" data-detail-for="${rowId}">
@@ -1376,7 +1554,7 @@ async function loadStatementFiles() {
     });
 
     distSelect.innerHTML =
-      '<option value="">None — Use Distribution Column in Workbook Only</option>';
+      '<option value="">None : Use Distribution Column in Workbook Only</option>';
     (data.distributionFiles || []).forEach((rel) => {
       const opt = document.createElement("option");
       opt.value = rel;
@@ -1485,7 +1663,7 @@ $("#generateStatementsBtn")?.addEventListener("click", async () => {
       if (data.done) {
         wrap.classList.add("hidden");
         if (data.success) {
-          status.textContent = `Done — ${data.count} PDFs saved to ${data.outputDir}`;
+          status.textContent = `Done : ${data.count} PDFs saved to ${data.outputDir}`;
           status.className = "status ok";
         } else {
           status.textContent = data.error || "Generation failed";
@@ -1668,6 +1846,7 @@ async function loadProfileIntoUpdateForm(memberId) {
     set("zelleBankName", p.zelle_bank_name);
     set("nextOfKinFirstName", p.next_of_kin_first_name);
     set("nextOfKinLastName", p.next_of_kin_last_name);
+    set("nextOfKinEmail", p.next_of_kin_email);
     set("nextOfKinPhone", p.next_of_kin_phone);
     set("nextOfKinRelationship", p.next_of_kin_relationship);
     set("joinedAt", p.joined_at);
@@ -1712,10 +1891,11 @@ async function loadCdBalanceForm() {
           "No CD balance on file yet. Enter the balance from your bank statement.";
       } else {
         summaryEl.textContent = [
-          `Last updated ${cdBalance.asOf ? formatDate(cdBalance.asOf) : "—"}`,
+          `Last updated ${cdBalance.asOf ? formatDate(cdBalance.asOf) : ":"}`,
           `Balance ${fmt.format(cdBalance.balance)}`,
-          `Principal ${fmt.format(cdBalance.openPrincipal || 0)}`,
-          `Accrued interest ${fmt.format(cdBalance.accruedInterest || 0)}`,
+          `Term start ${fmt.format(cdBalance.termMetrics?.termStartBalance || 0)}`,
+          `Earned this term ${fmt.format(cdBalance.termMetrics?.termInterestEarned ?? cdBalance.accruedInterest ?? 0)}`,
+          `Expected to maturity ${fmt.format(cdBalance.termMetrics?.futureInterest ?? 0)}`,
         ].join(" · ");
       }
     }
@@ -1746,7 +1926,7 @@ async function loadRecordTabData() {
       (loans || []).forEach((l) => {
         const opt = document.createElement("option");
         opt.value = l.id;
-        opt.textContent = `#${l.id} — ${l.borrower_name} (${fmt.format(l.principal)})`;
+        opt.textContent = `#${l.id} : ${l.borrower_name} (${fmt.format(l.principal)})`;
         loanSelect.appendChild(opt);
       });
     }
@@ -1814,7 +1994,7 @@ async function loadDistributions() {
       <tr>
         <td>${escapeHtml(d.transaction_date)}</td>
         <td>${escapeHtml(d.display_name || d.member_name)}</td>
-        <td>${escapeHtml(d.description || "—")}</td>
+        <td>${escapeHtml(d.description || ":")}</td>
         <td class="money">${fmt.format(d.amount)}</td>
       </tr>`
       )
@@ -2135,7 +2315,7 @@ async function handleLoginSubmit(e) {
       throw new Error(
         res.status >= 500
           ? "Server is waking up or unavailable. Wait 30 seconds and try again."
-          : "Login failed — server returned an unexpected response."
+          : "Login failed : server returned an unexpected response."
       );
     }
     if (!res.ok) throw new Error(data.error || "Login failed");

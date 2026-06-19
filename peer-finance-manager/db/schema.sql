@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS member_profiles (
   country TEXT,
   next_of_kin_first_name TEXT,
   next_of_kin_last_name TEXT,
+  next_of_kin_email TEXT,
   next_of_kin_phone TEXT,
   next_of_kin_relationship TEXT,
   application_signed_at TEXT,

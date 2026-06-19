@@ -12,6 +12,16 @@ const {
 
 const dbByOrg = new Map();
 
+function applyProfileMigrations(database) {
+  const cols = database
+    .prepare(`PRAGMA table_info(member_profiles)`)
+    .all()
+    .map((c) => c.name);
+  if (!cols.includes("next_of_kin_email")) {
+    database.exec(`ALTER TABLE member_profiles ADD COLUMN next_of_kin_email TEXT`);
+  }
+}
+
 function applyAuthMigrations(database) {
   const cols = database.prepare(`PRAGMA table_info(users)`).all().map((c) => c.name);
   if (!cols.includes("username")) {
@@ -39,6 +49,7 @@ function openOrgDatabase(orgSlug) {
 
   fs.mkdirSync(orgDir, { recursive: true });
   fs.mkdirSync(path.join(orgDir, "uploads"), { recursive: true });
+  fs.mkdirSync(path.join(orgDir, "uploads", "photos"), { recursive: true });
   fs.mkdirSync(path.join(orgDir, "exports"), { recursive: true });
 
   if (!fs.existsSync(schemaPath)) {
@@ -52,6 +63,7 @@ function openOrgDatabase(orgSlug) {
   database.pragma("foreign_keys = ON");
   database.exec(fs.readFileSync(schemaPath, "utf8"));
   applyAuthMigrations(database);
+  applyProfileMigrations(database);
   dbByOrg.set(slug, database);
 
   if (slug === ASSURANCE_SLUG) {

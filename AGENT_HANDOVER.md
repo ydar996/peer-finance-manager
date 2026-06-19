@@ -1,10 +1,74 @@
-# Agent Handover — Assurance Cooperative (AssurCoop)
+# Agent Handover — Peer Finance Manager (AssurCoop)
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** June 2026  
-**Organization:** Assurance Investment and Cooperative Inc.  
-**Workspace:** `C:\Users\yinka\Documents\AssurCoop`
+**Last updated:** June 19, 2026  
+**Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
+**Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
+**Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
+**GitHub:** `ydar996/peer-finance-manager`
+
+---
+
+## 0. IMMUTABLE AGENT INSTRUCTIONS (always follow)
+
+**Every agent session that changes code, config, or operations MUST update project documentation before finishing.**
+
+### Required documentation updates (checklist)
+
+| When you change… | Update these files |
+|------------------|-------------------|
+| Any feature, bug fix, or behavior | **AGENT_HANDOVER.md** — § Changelog + § Outstanding tasks |
+| User-visible screens, login, or workflows | **USER-GUIDE.md** |
+| Deploy, cloud, Git push, or data upload | **UPDATE-AND-PUBLISH.md** and/or **DEPLOY-TODAY.md** |
+| Architecture, ports, stack, folder layout | **README.md** — Architecture + Project layout |
+| UI labels/buttons (Title Case rules) | `.cursor/rules/ui-copy-standards.mdc` and **UI-COPY-STANDARDS.md** if conventions change |
+| Data upload to production (WinSCP) | **UPLOAD-DATA-TO-PRODUCTION.md** |
+
+### Changelog rule
+
+Append a dated bullet under **§ Changelog** in this file:
+
+```
+- **YYYY-MM-DD** — What changed, why, and any production/deploy notes.
+```
+
+### Outstanding tasks rule
+
+- Mark completed items ✅ or remove them.
+- Add new tasks discovered during the session.
+- Keep **High / Medium / Low** priorities current.
+
+### Production safety rules
+
+1. **Never commit** `data/`, `*.db`, credentials CSV, or `.env` — they are gitignored.
+2. **Never set** `PFM_COOP_ROOT` on Render — breaks module loading (use `PFM_DATA_DIR` only).
+3. **Code deploy** = `git push` → Netlify + Render auto-deploy. **Data deploy** = WinSCP to `/var/data` + Render Manual Deploy (separate step).
+4. **Do not git commit** unless the user explicitly asks.
+5. After cloud-affecting changes, note whether user must **re-upload data** or only **git push**.
+6. **No em dashes** in user-facing app copy — use colons (`:`). See `.cursor/rules/ui-copy-standards.mdc`.
+
+### Document map (keep all current)
+
+| Document | Audience | Purpose |
+|----------|----------|---------|
+| [USER-GUIDE.md](./USER-GUIDE.md) | Yinka, staff, members | Simple how-to use the live app |
+| [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) | Yinka | How to change code and publish safely |
+| [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) | Yinka | WinSCP: copy `data/` folder to live server |
+| [UI-COPY-STANDARDS.md](./UI-COPY-STANDARDS.md) | Agents/devs | No em dashes, Title Case, wording rules |
+| [DEPLOY-TODAY.md](./DEPLOY-TODAY.md) | Yinka | First-time cloud setup (already done) |
+| [README.md](./README.md) | Developers | Technical overview |
+| **AGENT_HANDOVER.md** | Agents | Background, architecture, tasks, changelog |
+
+---
+
+## Changelog
+
+- **2026-06-19** — Fixed Gbanju alias (`GBANJU P ARUWAYOOBE`); CD balance updated to $7,211.82 with term metrics and **Expected CD Interest** dashboard card; bank re-import now 0 skipped rows (57 loan repayments).
+- **2026-06-19** — Bank import through 2026-06-16: merged 3 new BoA deposits (Lolu $50, Mutiu $100.04, Clement $100.02) into `data/bank-statement-2026.csv`; ran `import-bank-ledger.js` (450 bank_import txs, last date 2026-06-16). **Production:** WinSCP upload `data/` → Render `/var/data` + Manual Deploy required.
+- **2026-06-19** — Added USER-GUIDE, UPDATE-AND-PUBLISH, immutable doc rules (§0). Production live on Netlify + Render.
+- **2026-06-13** — Cloud deploy: Render API + Netlify UI; multi-org auth; member portal with running balances and monthly PDFs; Puppeteer Chrome install on Render for PDFs; data upload via WinSCP to `/var/data`.
+- **2026-06** — Multi-organization registry, per-org SQLite, separate login portals (`/member`, `/staff`, `/admin`), manual Record tab, member credential provisioning.
 
 ---
 
@@ -58,20 +122,24 @@ Historically, everything lived in Excel (`Assurance Status` workbooks). This rep
 | ✅ Done | `compare-workbook-bank.js` reconciliation |
 | ✅ Done | `generate-may-2026-from-bank.js` pipeline |
 
-### PeerFinanceManager (port 3457)
+### PeerFinanceManager (port 3457 local / production cloud)
 
 | Status | Item |
 |--------|------|
-| ✅ Done | SQLite schema: members, transactions, distributions, loans, installments, expenses, bank_imports |
-| ✅ Done | Spreadsheet seed import (24 members, 366 transactions from April 2026 sheet) |
-| ✅ Done | Member banking profiles from WPForms CSV (22/24 linked) |
-| ✅ Done | Profile UI with photo placeholder |
-| ✅ Done | Loan validation/create/schedule-import APIs |
-| 🟡 Partial | Bank import — preview only (`lib/bank-import.js` stub) |
-| 🟡 Partial | PFM `bank-import.js` does not use root `lib/bank-statement-parser.js` yet |
+| ✅ Done | SQLite schema + per-org databases (`data/organizations/{slug}/`) |
+| ✅ Done | Multi-org registry (`data/registry.db`) |
+| ✅ Done | Auth: admin / staff / member roles; separate portals |
+| ✅ Done | Member self-service: balances, transactions, monthly statement PDF |
+| ✅ Done | Manual Record tab: register member, profile edit, membership fee |
+| ✅ Done | Cooperative Books dashboard |
+| ✅ Done | **Production:** Netlify (static UI) + Render (Express API + SQLite on disk) |
+| ✅ Done | Member credential export CSV |
+| ✅ Done | Puppeteer PDF on Render (Chrome installed at build) |
+| 🟡 Partial | Bank import — preview only |
+| 🟡 Partial | Active loans not fully loaded |
 | ❌ Not done | Expenses UI / import |
-| ❌ Not done | Active loans loaded into system |
-| ❌ Not done | Windows `.exe` may need rebuild after recent changes (`npm run pfm:build`) |
+| ❌ Not done | Supabase live sync (optional future) |
+| ❌ Not done | Auto-sync PC database ↔ cloud database |
 
 ### Data files in repo
 
@@ -93,7 +161,36 @@ Abraham Udom, Adedayo Tolani, Clement Aribisala, Gbanju Aruwayo-Obe, Kelvin Amed
 
 ## 3. Architecture (for agents)
 
-### Single app (unified June 2026)
+### Production (live — June 2026)
+
+```
+Members/Admin browser
+        │
+        ▼
+┌───────────────────┐      proxy /api/*       ┌────────────────────────────┐
+│ Netlify           │ ───────────────────────► │ Render (Node/Express)      │
+│ peer-finance-     │                          │ peer-finance-manager.      │
+│ manager.netlify   │                          │ onrender.com               │
+│ .app              │                          │ SQLite: /var/data/         │
+│ Static UI only    │                          │ organizations/assurance/   │
+└───────────────────┘                          └────────────────────────────┘
+        │                                                  ▲
+        │                                                  │ WinSCP upload
+        │                                          ┌───────┴────────┐
+        │                                          │ PC data/ folder │
+        └─ publish: git push ──► GitHub ──────────┘ (not in git)    │
+```
+
+| Layer | Config files |
+|-------|----------------|
+| Netlify | `netlify.toml`, `RENDER_API_URL` env var |
+| Render | `render.yaml`, `PFM_DATA_DIR=/var/data`, Puppeteer Chrome at build |
+| Local PC | `PeerFinanceManager.exe`, `data/` folder |
+
+**Publish code:** `git push` → auto-deploy both services. See [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).  
+**Publish data:** WinSCP → `/var/data` → Render Manual Deploy.
+
+### Local development
 
 **Assurance Cooperative Manager** (`PeerFinanceManager.exe` / port **3457**) is the one app:
 
@@ -144,15 +241,22 @@ npm run pfm:build          # Package PFM as .exe
 
 ## 4. Outstanding tasks (prioritized)
 
+### High — operational / product
+
+| # | Task | Notes |
+|---|------|-------|
+| 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
+| 2 | **Wire full bank import into PFM** | Reuse `lib/bank-statement-parser.js` in `bank-import.js`. |
+| 3 | **Cooperative expenses** | Table exists; no UI/import. |
+| 4 | **Profiles for Olawale George & Kehinde Agboola** | No WPForms row. |
+| 5 | **PC ↔ cloud data sync** | Manual WinSCP only today; document after each local data change. |
+| 6 | **Verify PDF statements on production** | After Puppeteer Chrome deploy; member monthly download. |
+
 ### High — user said they will provide info later
 
 | # | Task | Notes |
 |---|------|-------|
-| 1 | **Load active loans** | User to provide loan details (borrowers, amounts, schedules). Framework exists: `createLoan`, schedule CSV import. Known bank activity: checks 1187 (−₦8,400), 1190 (−₦5,000) disbursements; multiple Zelle loan repayments (Gbanju, Oluwabiyi, Yomi, Taiwo proxy). |
-| 2 | **Wire full bank import into PFM** | Reuse `lib/bank-statement-parser.js` in `peer-finance-manager/lib/bank-import.js`. Match deposits to members, repayments to loans, flag expenses. User mentioned BoA template may come later. |
-| 3 | **Cooperative expenses** | `expenses` table exists; no UI or import. User to clarify categories and sample data. |
-| 4 | **Profiles for Olawale George & Kehinde Agboola** | Applications not in WPForms export; user may supply separately. |
-| 5 | **Member photos** | `member_profiles.photo_path` is NULL; placeholder SVG in use. Need upload UI or manual path. |
+| 7 | **Member photos** | `photo_path` NULL; placeholder SVG. |
 
 ### Medium — operational
 
@@ -269,4 +373,6 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 
 ---
 
-*End of handover. UI copy rules: `.cursor/rules/ui-copy-standards.mdc`. For user-facing usage, see [README.md](./README.md).*
+*End of handover. UI copy rules: `.cursor/rules/ui-copy-standards.mdc`.*
+
+**User docs:** [USER-GUIDE.md](./USER-GUIDE.md) · **Publish updates:** [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) · **Technical:** [README.md](./README.md)

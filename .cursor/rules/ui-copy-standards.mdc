@@ -32,6 +32,19 @@ When joining terms with a slash, **do not** put spaces around `/`.
 
 This applies across the app, statements, and any new UI copy.
 
-## Em Dashes
+## Em Dashes (Forbidden)
 
-Em dashes (`—`) for clause breaks are fine with spaces (e.g. `None — Use Distribution Column in Workbook Only`).
+**Never use em dashes** (`—`, Unicode U+2014) in user-facing app copy.
+
+Use a **colon** (`:`) instead for clause breaks and separators.
+
+| Wrong | Right |
+|-------|-------|
+| `Cooperative Asset Management — Member Deposit Accounts` | `Cooperative Asset Management: Member Deposit Accounts` |
+| `None — Use Distribution Column` | `None: Use Distribution Column` |
+| `Done — 24 PDFs saved` | `Done: 24 PDFs saved` |
+| Empty table cell `—` | `:` |
+
+This applies to HTML, `app.js` strings, PDF/statement generators (`loan-statement-generator.js`), and API-driven book detail labels (`cooperative-books.js`).
+
+En dashes (`–`) are also forbidden in user-facing copy; use a colon or hyphen-minus (`-`) only when a true hyphen is needed (e.g. `peer-finance-manager`).

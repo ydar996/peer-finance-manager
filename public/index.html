@@ -130,7 +130,7 @@
         <div>
           <p class="brand org-brand" id="appOrgBrand">Peer Finance Manager</p>
           <h1 id="appTitle">Cooperative Manager</h1>
-          <p class="subtle" id="appOrgSubtitle">Cooperative Banking — Member Deposit Accounts, Loan Accounts, and Books</p>
+          <p class="subtle" id="appOrgSubtitle">Cooperative Asset Management : Member Deposit Accounts, Loan Accounts, and Books</p>
         </div>
         <div class="session-bar">
           <p id="sessionUser" class="session-user"></p>
@@ -182,13 +182,13 @@
 
       <section id="panel-members" class="panel">
         <div class="panel-head">
-          <h2>Members &amp; Banking Profiles</h2>
+          <h2>Members &amp; Profiles</h2>
           <div class="panel-head-actions">
             <button type="button" class="btn primary hidden" id="goRegisterMemberBtn">Register Member</button>
             <button type="button" class="btn" id="refreshMembers">Refresh</button>
           </div>
         </div>
-        <p class="hint">Select a Member to View Their Biodata, Deposit Account, and Loan Account. Use <strong>Register Member</strong> on the Record Tab to Add Members Manually — Excel Import Is Optional.</p>
+        <p class="hint">Select a Member to View Their Biodata, Deposit Account, and Loan Account. Use <strong>Register Member</strong> on the Record Tab to Add Members Manually : Excel Import Is Optional.</p>
 
         <div class="members-layout">
           <div class="members-list-pane">
@@ -208,9 +208,9 @@
               </table>
             </div>
           </div>
-          <div id="memberDetail" class="member-banking-pane">
+          <div id="memberDetail" class="member-profile-pane">
             <div class="empty-pane">
-              <p>Select a Member to Open Their Banking Profile.</p>
+              <p>Select a Member to View Their Profile.</p>
             </div>
           </div>
         </div>
@@ -221,7 +221,7 @@
           <h2>Periodic Statements (PDF)</h2>
           <button type="button" class="btn" id="refreshStatementFiles">Refresh Files</button>
         </div>
-        <p class="hint">Generate Monthly PDF Deposit Account Statements for All Members (<code>statements/YYYY-MM/</code>). For Loan Account Statements, Use <strong>Statement</strong> on the Loans Tab or Member Profile — One PDF per Loan, Saved to <code>statements/loan-accounts/</code>.</p>
+        <p class="hint">Generate Monthly PDF Deposit Account Statements for All Members (<code>statements/YYYY-MM/</code>). For Loan Account Statements, Use <strong>Statement</strong> on the Loans Tab or Member Profile : One PDF per Loan, Saved to <code>statements/loan-accounts/</code>.</p>
 
         <div class="card">
           <h3>Monthly Workbook</h3>
@@ -234,7 +234,7 @@
         <div class="card">
           <h3>Distribution/Interest (Optional)</h3>
           <select id="statementDistSelect" class="statement-select">
-            <option value="">None — Use Distribution Column in Workbook Only</option>
+            <option value="">None : Use Distribution Column in Workbook Only</option>
           </select>
           <div class="statement-browse">
             <span class="browse-label">Or Upload:</span>
@@ -282,7 +282,7 @@
         <div class="panel-head">
           <h2>Manual Record</h2>
         </div>
-        <p class="hint">Register Members, Record Deposits, Withdrawals, Distributions, Membership Fees, Loans, Loan Repayments, CD Balance Updates, and Expenses — All Without Excel. Use the Import Tab Only When You Have a Spreadsheet or Application File.</p>
+        <p class="hint">Register Members, Record Deposits, Withdrawals, Distributions, Membership Fees, Loans, Loan Repayments, CD Balance Updates, and Expenses : All Without Excel. Use the Import Tab Only When You Have a Spreadsheet or Application File.</p>
 
         <div class="record-grid">
           <div class="card accent">
@@ -656,7 +656,7 @@
 
         <div class="card">
           <h3>Membership Applications (WPForms CSV)</h3>
-          <p class="hint">Import Member Biodata — Contact, Address, Next of Kin, Zelle Name. Links to Ledger Accounts.</p>
+          <p class="hint">Import Member Biodata : Contact, Address, Next of Kin, Zelle Name. Links to Ledger Accounts.</p>
           <form id="wpformsForm">
             <input type="file" name="file" accept=".csv" required />
             <button type="submit" class="btn primary">Import Profiles</button>
@@ -694,7 +694,7 @@
           <h3>Sign-In Pages</h3>
           <p class="subtle">Each Role Has Its Own URL. Members and Staff Cannot Use Each Other's Login Page.</p>
           <ul class="portal-links">
-            <li><strong>Member Portal:</strong> <a href="/member" target="_blank" rel="noopener">/member</a> — use your organization code at sign-in</li>
+            <li><strong>Member Portal:</strong> <a href="/member" target="_blank" rel="noopener">/member</a> : use your organization code at sign-in</li>
             <li><strong>Staff Portal:</strong> <a href="/staff" target="_blank" rel="noopener">/staff</a></li>
             <li><strong>Administrator Portal:</strong> <a href="/admin" target="_blank" rel="noopener">/admin</a></li>
             <li><strong>New Cooperative:</strong> <a href="/register" target="_blank" rel="noopener">/register</a></li>

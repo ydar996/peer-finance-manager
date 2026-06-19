@@ -1,12 +1,17 @@
-# Assurance Cooperative — Project Documentation
+# Peer Finance Manager — Project Documentation
 
-**Assurance Investment and Cooperative Inc.** is a mutual-benefit cooperative that tracks member deposits, distributions, withdrawals, loans, and monthly account statements. This repository contains the software used to run those operations.
+**Assurance Investment and Cooperative Inc.** is a mutual-benefit cooperative that tracks member deposits, distributions, withdrawals, loans, and monthly account statements.
 
-There is **one application** — **Assurance Cooperative Manager** (formerly PeerFinanceManager). It handles day-to-day finance operations **and** periodic PDF statement reports.
+**Live (production):** https://peer-finance-manager.netlify.app  
+**Local app:** `PeerFinanceManager.exe` on port **3457**
 
-| Port | Purpose |
-|------|---------|
-| **3457** | Members, profiles, ledger, imports, loans, **and PDF statements** |
+| Doc | Who it's for |
+|-----|----------------|
+| **[USER-GUIDE.md](./USER-GUIDE.md)** | Members, staff, admin — simple how-to |
+| **[UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md)** | Yinka: change app & publish safely |
+| **[UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)** | Yinka: WinSCP data upload (step by step) |
+| **[DEPLOY-TODAY.md](./DEPLOY-TODAY.md)** | First-time cloud setup (done) |
+| **[AGENT_HANDOVER.md](./AGENT_HANDOVER.md)** | Developers / AI agents |
 
 ---
 
@@ -282,6 +287,16 @@ May 2026 had **10 members** with bank deposits; **14** had no May payment. All *
 
 ## Architecture overview
 
+### Production (live)
+
+- **Netlify** — website (login UI) at `peer-finance-manager.netlify.app`
+- **Render** — API + SQLite database on persistent disk (`/var/data`)
+- **GitHub** — `ydar996/peer-finance-manager` — push code to deploy
+
+See [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) for routine updates.
+
+### Local development
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Assurance Status .xlsx                       │
@@ -331,8 +346,11 @@ May 2026 had **10 members** with bank deposits; **14** had no May payment. All *
 
 ```
 AssurCoop/
-├── README.md                    ← This file
-├── AGENT_HANDOVER.md            ← Background & outstanding work for developers/agents
+├── README.md                    ← Technical overview
+├── USER-GUIDE.md                ← Simple user manual (members/admin)
+├── UPDATE-AND-PUBLISH.md        ← How to change & publish safely
+├── DEPLOY-TODAY.md              ← First-time cloud setup
+├── AGENT_HANDOVER.md            ← Agent handover + changelog + tasks
 ├── server.js                    ← Statement Generator server
 ├── generator.html               ← Statement UI
 ├── lib/
@@ -350,5 +368,8 @@ AssurCoop/
 
 ## Further reading
 
+- **User guide (simple):** [USER-GUIDE.md](./USER-GUIDE.md)
+- **Update & publish:** [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md)
 - **Agent / developer handover:** [AGENT_HANDOVER.md](./AGENT_HANDOVER.md)
+- **First-time deploy:** [DEPLOY-TODAY.md](./DEPLOY-TODAY.md)
 - **Port usage notes:** `Ports in Use by Applications.md`
