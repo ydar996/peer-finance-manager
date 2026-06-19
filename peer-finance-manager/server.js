@@ -59,6 +59,7 @@ const {
 } = require("./lib/constants");
 
 const { getDataDir, getPublicDir } = require("./lib/paths");
+const { getOrgDataDir } = require("./lib/organization-service");
 const { registerStatementRoutes } = require("./lib/statement-routes");
 const { registerAuthRoutes } = require("./lib/auth-routes");
 const {
@@ -72,8 +73,9 @@ const { canAccessMember, canViewCooperative, ROLES } = require("./lib/auth-servi
 
 const upload = multer({
   dest: (req, file, cb) => {
-    const { DATA_DIR } = require("./db/database");
-    const dir = path.join(DATA_DIR, "uploads");
+    const slug = req.user?.organizationSlug || req.organization?.slug;
+    if (!slug) return cb(new Error("No organization selected"));
+    const dir = path.join(getOrgDataDir(slug), "uploads");
     fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },

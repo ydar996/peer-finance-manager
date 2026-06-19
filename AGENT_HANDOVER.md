@@ -80,7 +80,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
-- **2026-06-19** — User-facing copy: **Deposit** renamed to **Contribution(s)** throughout app UI and PDF statements (Contributions Account, not Deposit Account). Bank/CD internal labels unchanged.
+- **2026-06-19** — Fixed member profile photo upload: restore org context after multer async parse (was "No organization selected"); mobile Upload Photo button styled as primary full-width.
 - **2026-06-19** — Full documentation sync: all project docs updated to match codebase; §0 strengthened with continuous documentation rule.
 - **2026-06-19** — Fixed Gbanju alias (`GBANJU P ARUWAYOOBE`); CD balance updated to $7,211.82 with term metrics and **Expected CD Interest** dashboard card; bank re-import now 0 skipped rows (57 loan repayments).
 - **2026-06-19** — Bank import through 2026-06-16: merged 3 new BoA deposits (Lolu $50, Mutiu $100.04, Clement $100.02) into `data/bank-statement-2026.csv`; ran `import-bank-ledger.js` (450 bank_import txs, last date 2026-06-16). **Production:** WinSCP upload `data/` → Render `/var/data` + Manual Deploy required.

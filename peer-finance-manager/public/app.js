@@ -845,10 +845,10 @@ function renderMyProfileSection(profile) {
       <div class="profile-photo-wrap">
         <img class="profile-photo" id="myProfilePhoto" src="${PLACEHOLDER_PHOTO}" alt="" />
         <form id="myProfilePhotoForm" class="profile-photo-upload">
-          <label class="subtle profile-upload-label">Profile Photo (Optional)
+          <label class="subtle profile-photo-file-label">Choose Photo (Optional)
             <input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif" />
           </label>
-          <button type="submit" class="btn">Upload Photo</button>
+          <button type="submit" class="btn primary profile-photo-submit-btn">Upload Photo</button>
         </form>
         <p id="myProfilePhotoStatus" class="status"></p>
       </div>

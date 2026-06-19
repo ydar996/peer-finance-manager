@@ -116,6 +116,11 @@ th { background: #f8fafc; font-weight: 600; }
   max-width: 220px;
   font-size: 12px;
 }
+.my-profile-card .profile-photo-upload .profile-photo-submit-btn {
+  width: 100%;
+  min-height: 44px;
+  font-weight: 600;
+}
 .profile-summary h3 { margin: 0 0 8px; }
 .profile-grid {
   display: grid;
@@ -413,6 +418,9 @@ tr.loan-row:hover { background: #f8fafc; }
   }
   .my-profile-card .profile-photo-upload input[type="file"] {
     max-width: 100%;
+  }
+  .my-profile-card .profile-photo-upload .profile-photo-submit-btn {
+    width: 100%;
   }
   .profile-summary-hint,
   .profile-disclosure:not([open]) .profile-disclosure-note,

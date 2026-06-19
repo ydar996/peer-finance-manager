@@ -24,11 +24,16 @@ const {
   hasBankLoanLedger,
 } = require("./loan-ledger-service");
 const { requireAuth, requireAdmin, requireMemberSelf, getToken } = require("./auth-middleware");
+const { runWithOrg } = require("./org-context");
 const {
   saveMemberPhotoUpload,
   updateMemberEmergencyContact,
   resolveMemberPhotoFile,
 } = require("./member-self-service");
+
+function requestOrgSlug(req) {
+  return req.user?.organizationSlug || req.organization?.slug || null;
+}
 
 function registerAuthRoutes(app, deps = {}) {
   const upload = deps.upload;
@@ -186,9 +191,15 @@ function registerAuthRoutes(app, deps = {}) {
           if (user.role !== ROLES.MEMBER || !user.memberId) {
             return res.status(403).json({ error: "Member account required" });
           }
-          const result = saveMemberPhotoUpload(user.memberId, req.file);
-          const profile = getMemberProfile(user.memberId);
-          res.json({ success: true, ...result, profile });
+          const slug = requestOrgSlug(req);
+          if (!slug) {
+            return res.status(400).json({ error: "No organization selected" });
+          }
+          runWithOrg(slug, () => {
+            const result = saveMemberPhotoUpload(user.memberId, req.file);
+            const profile = getMemberProfile(user.memberId);
+            res.json({ success: true, ...result, profile });
+          });
         } catch (err) {
           res.status(400).json({ error: err.message });
         }
