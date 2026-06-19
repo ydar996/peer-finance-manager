@@ -149,6 +149,47 @@ th { background: #f8fafc; font-weight: 600; }
   margin: 2px 0 0;
   font-size: 14px;
 }
+.profile-field {
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+.profile-field-label {
+  font-weight: 600;
+  color: #334155;
+}
+.profile-field-value { color: #0f172a; }
+.profile-field-empty::after { content: "\00a0"; }
+.profile-disclosure {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-top: 12px;
+  background: #fff;
+}
+.profile-disclosure summary {
+  padding: 12px 14px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.profile-disclosure summary::-webkit-details-marker { display: none; }
+.profile-disclosure summary::before {
+  content: "▸ ";
+  color: #64748b;
+}
+.profile-disclosure[open] summary::before { content: "▾ "; }
+.profile-disclosure-body {
+  padding: 0 14px 14px;
+}
+.profile-disclosure-note {
+  margin: 0 0 12px;
+}
+.profile-disclosure-emergency .entry-form {
+  max-width: 420px;
+}
 .file-list { list-style: none; padding: 0; margin: 0; }
 .file-list li {
   display: flex;
@@ -352,6 +393,40 @@ tr.loan-row:hover { background: #f8fafc; }
 }
 @media (max-width: 640px) {
   .record-grid { grid-template-columns: minmax(0, 1fr); }
+  #panel-my-account > .hint { display: none; }
+  .my-profile-card .profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+  .my-profile-card .profile-photo-upload {
+    width: 100%;
+    max-width: 280px;
+  }
+  .my-profile-card .profile-photo-upload input[type="file"] {
+    max-width: 100%;
+  }
+  .profile-summary-hint,
+  .profile-disclosure:not([open]) .profile-disclosure-note,
+  .profile-disclosure:not([open]) .profile-upload-label {
+    display: none;
+  }
+  .profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .profile-disclosure summary {
+    padding: 14px 12px;
+    font-size: 15px;
+  }
+  .account-card .subtle,
+  .account-card-hint {
+    display: none;
+  }
+  .account-card[aria-expanded="true"] .subtle,
+  .account-card[aria-expanded="true"] .account-card-hint {
+    display: block;
+  }
 }
 .record-grid .card {
   min-width: 0;

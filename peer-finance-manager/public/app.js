@@ -423,6 +423,16 @@ function escapeHtml(value) {
 
 function formatDate(value) {
   if (!value) return ":";
+  const s = String(value).trim();
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) {
+    const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    return d.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString("en-US", {
@@ -747,6 +757,41 @@ function emergencyContactName(profile) {
     .join(" ");
 }
 
+function formatAccountStatus(status) {
+  const raw = String(status || "active").trim();
+  if (!raw) return "Active";
+  return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+}
+
+function profileFieldValue(value, { asDate = false } = {}) {
+  if (asDate) {
+    if (!value) return "";
+    const formatted = formatDate(value);
+    return formatted === ":" ? "" : formatted;
+  }
+  const text = value == null ? "" : String(value).trim();
+  return text ? escapeHtml(text) : "";
+}
+
+function profileFieldRow(label, value, { asDate = false } = {}) {
+  const display = profileFieldValue(value, { asDate });
+  const valueHtml = display
+    ? `<span class="profile-field-value">${display}</span>`
+    : `<span class="profile-field-value profile-field-empty"></span>`;
+  return `<p class="profile-field"><span class="profile-field-label">${escapeHtml(label)}:</span> ${valueHtml}</p>`;
+}
+
+function profileDisclosureHtml(summary, bodyHtml, { extraClass = "" } = {}) {
+  const cls = extraClass ? ` profile-disclosure ${extraClass}` : " profile-disclosure";
+  return `
+    <details class="${cls.trim()}">
+      <summary>${escapeHtml(summary)}</summary>
+      <div class="profile-disclosure-body">
+        ${bodyHtml}
+      </div>
+    </details>`;
+}
+
 function profileDemographicsGridHtml(p) {
   const hasProfile = Boolean(p?.id || p?.first_name || p?.email || p?.phone);
   if (!hasProfile) {
@@ -756,42 +801,34 @@ function profileDemographicsGridHtml(p) {
     <div class="profile-grid">
       <section>
         <h4>Identity</h4>
-        <dl>
-          <dt>First Name</dt><dd>${escapeHtml(p.first_name) || ":"}</dd>
-          <dt>Middle Name</dt><dd>${escapeHtml(p.middle_name) || ":"}</dd>
-          <dt>Last Name</dt><dd>${escapeHtml(p.last_name) || ":"}</dd>
-          <dt>Display Name</dt><dd>${escapeHtml(p.display_name || p.ledger_account_name) || ":"}</dd>
-          <dt>Gender</dt><dd>${escapeHtml(p.gender) || ":"}</dd>
-          <dt>Date of Birth</dt><dd>${formatDate(p.date_of_birth)}</dd>
-        </dl>
+        ${profileFieldRow("First Name", p.first_name)}
+        ${profileFieldRow("Middle Name", p.middle_name)}
+        ${profileFieldRow("Last Name", p.last_name)}
+        ${profileFieldRow("Display Name", p.display_name || p.ledger_account_name)}
+        ${profileFieldRow("Gender", p.gender)}
+        ${profileFieldRow("Date of Birth", p.date_of_birth, { asDate: true })}
       </section>
       <section>
         <h4>Contact</h4>
-        <dl>
-          <dt>Email</dt><dd>${escapeHtml(p.email) || ":"}</dd>
-          <dt>Phone</dt><dd>${escapeHtml(p.phone) || ":"}</dd>
-        </dl>
+        ${profileFieldRow("Email", p.email)}
+        ${profileFieldRow("Phone", p.phone)}
       </section>
       <section>
         <h4>Address</h4>
-        <p>${addressBlock(p)}</p>
+        <p class="profile-field-value">${addressBlock(p)}</p>
       </section>
       <section>
         <h4>Payments (Zelle/Bank)</h4>
-        <dl>
-          <dt>Method</dt><dd>${escapeHtml(p.preferred_payment_method) || ":"}</dd>
-          <dt>Bank/Zelle Name</dt><dd>${escapeHtml(p.zelle_bank_name) || ":"}</dd>
-          <dt>Registration Fee Paid</dt><dd>${p.membership_fee_paid ? "Yes" : "No"}</dd>
-          <dt>Joined</dt><dd>${p.joined_at || ":"}</dd>
-        </dl>
+        ${profileFieldRow("Method", p.preferred_payment_method)}
+        ${profileFieldRow("Bank/Zelle Name", p.zelle_bank_name)}
+        ${profileFieldRow("Registration Fee Paid", p.membership_fee_paid ? "Yes" : "No")}
+        ${profileFieldRow("Joined", p.joined_at)}
       </section>
       <section>
         <h4>Membership Application</h4>
-        <dl>
-          <dt>Signed</dt><dd>${formatDate(p.application_signed_at)}</dd>
-          <dt>Signature</dt><dd>${escapeHtml(p.signature_name) || ":"}</dd>
-          <dt>Account Status</dt><dd>${escapeHtml(p.cooperative_account_status || "active")}</dd>
-        </dl>
+        ${profileFieldRow("Signed", p.application_signed_at, { asDate: true })}
+        ${profileFieldRow("Signature", p.signature_name)}
+        ${profileFieldRow("Account Status", formatAccountStatus(p.cooperative_account_status))}
       </section>
     </div>`;
 }
@@ -808,7 +845,7 @@ function renderMyProfileSection(profile) {
       <div class="profile-photo-wrap">
         <img class="profile-photo" id="myProfilePhoto" src="${PLACEHOLDER_PHOTO}" alt="" />
         <form id="myProfilePhotoForm" class="profile-photo-upload">
-          <label class="subtle">Profile Photo (Optional)
+          <label class="subtle profile-upload-label">Profile Photo (Optional)
             <input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif" />
           </label>
           <button type="submit" class="btn">Upload Photo</button>
@@ -817,14 +854,21 @@ function renderMyProfileSection(profile) {
       </div>
       <div class="profile-summary">
         <h3>${escapeHtml(p.display_name || p.ledger_account_name || currentUser?.memberName || "My Profile")}</h3>
-        <p class="subtle">Account Name: <strong>${escapeHtml(p.ledger_account_name || currentUser?.memberName || ":")}</strong></p>
-        <p class="subtle">Review Your Membership Details Below. Contact the Cooperative to Change Biodata Other Than Emergency Contact.</p>
+        <p class="profile-field"><span class="profile-field-label">Account Name:</span> <span class="profile-field-value">${escapeHtml(p.ledger_account_name || currentUser?.memberName || "")}</span></p>
+        <p class="subtle profile-summary-hint">Expand a section below to review biodata or update your emergency contact.</p>
       </div>
     </div>
-    ${profileDemographicsGridHtml(p)}
-    <div class="card" style="margin-top:16px">
-      <h4>Emergency Contact</h4>
-      <p class="subtle">Optional. Saved to Your Membership Record and Visible to Cooperative Administrators.</p>
+    ${profileDisclosureHtml(
+      "Membership Biodata",
+      `
+      <p class="subtle profile-disclosure-note">Review your membership details. Contact the cooperative to change biodata other than emergency contact.</p>
+      ${profileDemographicsGridHtml(p)}
+    `
+    )}
+    ${profileDisclosureHtml(
+      "Emergency Contact",
+      `
+      <p class="subtle profile-disclosure-note">Optional. Saved to your membership record and visible to cooperative administrators.</p>
       <form id="myEmergencyContactForm" class="entry-form">
         <label>First Name
           <input type="text" name="emergencyFirstName" value="${escapeHtml(p.next_of_kin_first_name || "")}" />
@@ -844,7 +888,9 @@ function renderMyProfileSection(profile) {
         <button type="submit" class="btn primary">Save Emergency Contact</button>
       </form>
       <p id="myEmergencyContactStatus" class="status"></p>
-    </div>`;
+    `,
+      { extraClass: "profile-disclosure-emergency" }
+    )}`;
 
   bindProfilePhotoImage($("#myProfilePhoto"), memberId);
 
