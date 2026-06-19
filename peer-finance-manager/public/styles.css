@@ -190,6 +190,20 @@ th { background: #f8fafc; font-weight: 600; }
 .profile-disclosure-emergency .entry-form {
   max-width: 420px;
 }
+.tx-month-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tx-month-group {
+  margin-top: 0;
+}
+.tx-month-group-body {
+  padding-top: 0;
+}
+.tx-month-group .table-wrap {
+  margin-top: 0;
+}
 .file-list { list-style: none; padding: 0; margin: 0; }
 .file-list li {
   display: flex;
@@ -427,6 +441,15 @@ tr.loan-row:hover { background: #f8fafc; }
   .account-card[aria-expanded="true"] .account-card-hint {
     display: block;
   }
+  .description-toggle {
+    display: inline-flex;
+  }
+  #panel-my-account:not(.show-descriptions) .member-tx-table .col-description {
+    display: none;
+  }
+}
+.description-toggle {
+  display: none;
 }
 .record-grid .card {
   min-width: 0;

@@ -8,7 +8,7 @@
 
 **Recommendation:** Use less common high ports for your personal projects (e.g. 4500, 9876, 3456, 5500) so they don't collide with common defaults (3000, 5000, 8000, 8080).
 
-**Last updated:** 2026-06-02 (by Grok after scanning project folders and code)
+**Last updated:** 2026-06-19 (AssurCoop ports corrected)
 
 ## Applications and Their Ports
 
@@ -17,7 +17,7 @@
 | UltraLifeNavigator      | `C:\Users\yinka\Documents\UltraLifeNavigator`   | **4500**                | Private life vision + daily goals + accountability tool (FastAPI). Supports `PORT` env var override. | `uvicorn app.main:app --reload --port 4500`<br>or `.\start.ps1`<br>or `python app/main.py`<br>README.md, start.ps1, app/main.py |
 | StoryTeller             | `C:\Users\yinka\Documents\StoryTeller`          | **9000** (main)<br>9000-9010 (kill range in launcher) | Big story-to-video + Image Studio + Video tools app (FastAPI). The launcher kills anything on 9000 before starting. | `uvicorn ... --port 9000`<br>`StoryTeller.exe` or `Start_StoryTeller.bat`<br>README.md, backend/launch scripts, docs |
 | SimpleFreshApp          | `C:\Users\yinka\Documents\SimpleFreshApp`       | **9876**                | Simple daily thoughts / notes web app (Python).                            | Runs on PORT=9876 defined in code. See README for address. |
-| AssurCoop               | `C:\Users\yinka\Documents\AssurCoop`            | **3456**                | Node.js statement generator tool. Has its own kill-port script.            | `npm start` (kills 3456 then node server.js). server.js, package.json |
+| AssurCoop               | `C:\Users\yinka\Documents\AssurCoop`            | **3457** (main app)<br>**3456** (legacy statement server) | **Assurance Cooperative Manager** — Node.js ledger, member portal, PDF statements. Primary: `npm start` or `PeerFinanceManager.exe`. Legacy 3456: `npm run statements:legacy-server` only. | `npm start` → port 3457. `peer-finance-manager/server.js`, `package.json` |
 | ehr-backend             | `C:\Users\yinka\Documents\ehr-backend`          | **5000** (or env PORT)  | Node/Express backend for EHR system.                                       | `node server.js` or nodemon. server.js sets `const PORT = process.env.PORT || 5000` |
 | CarePower               | `C:\Users\yinka\Documents\CarePower`            | **5000** (frontend)<br>**5001** (API/backend) | Fullstack React frontend + backend. Uses concurrently to run both.        | `npm start` from root (see package.json scripts with PORT=5000/5001) |
 | EHR-Africa              | `C:\Users\yinka\Documents\EHR-Africa`           | **5500**                | EHR UI / framework (often served with Python http.server or VS Code Live Server). | Typical: `python -m http.server 5500` or equivalent. See READMEs and HOW-TO-USE. |

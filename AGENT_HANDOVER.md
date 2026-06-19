@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** June 19, 2026  
+**Last updated:** June 19, 2026 (documentation sync)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -12,22 +12,37 @@ This document gives the next developer or AI agent enough context to continue wo
 
 ## 0. IMMUTABLE AGENT INSTRUCTIONS (always follow)
 
-**Every agent session that changes code, config, or operations MUST update project documentation before finishing.**
+**Every change we make — and every outstanding task we discover, start, complete, or reprioritize — MUST be documented immediately and continuously for the next agent. Not at the end of a session. Not "when the user asks." Not only on commit.**
+
+Documentation is the handoff contract between sessions. If it is stale, the next agent will guess or re-read chat transcripts and waste the user's time.
+
+### Continuous documentation rule (non-negotiable)
+
+1. **Read this file first** at the start of every session — before relying on chat history or agent transcripts.
+2. **Document as you go** — in the same session, ideally the same turn when the change lands:
+   - **§ Changelog** — append a dated bullet the moment you implement a feature, fix, or behavior change.
+   - **§ Outstanding tasks** — add, update, mark ✅, or remove tasks the moment their status changes.
+   - **Other docs** — update per the checklist below whenever those areas are affected.
+3. **Before ending any session** that touched code or config: verify changelog and outstanding tasks match the final state (including uncommitted local changes).
+4. **If the user commits without you:** on the next session, reconcile `git log` against this file and backfill any gaps immediately.
+
+**Failure to keep docs current is a session failure — treat it like leaving broken code.**
 
 ### Required documentation updates (checklist)
 
-| When you change… | Update these files |
-|------------------|-------------------|
+| When you change… | Update these files (immediately) |
+|------------------|----------------------------------|
 | Any feature, bug fix, or behavior | **AGENT_HANDOVER.md** — § Changelog + § Outstanding tasks |
 | User-visible screens, login, or workflows | **USER-GUIDE.md** |
 | Deploy, cloud, Git push, or data upload | **UPDATE-AND-PUBLISH.md** and/or **DEPLOY-TODAY.md** |
 | Architecture, ports, stack, folder layout | **README.md** — Architecture + Project layout |
 | UI labels/buttons (Title Case rules) | `.cursor/rules/ui-copy-standards.mdc` and **UI-COPY-STANDARDS.md** if conventions change |
 | Data upload to production (WinSCP) | **UPLOAD-DATA-TO-PRODUCTION.md** |
+| Port numbers | **Ports in Use by Applications.md** (project copy + Desktop master) |
 
 ### Changelog rule
 
-Append a dated bullet under **§ Changelog** in this file:
+Append a dated bullet under **§ Changelog** in this file **as soon as the change is made**:
 
 ```
 - **YYYY-MM-DD** — What changed, why, and any production/deploy notes.
@@ -35,9 +50,10 @@ Append a dated bullet under **§ Changelog** in this file:
 
 ### Outstanding tasks rule
 
-- Mark completed items ✅ or remove them.
-- Add new tasks discovered during the session.
-- Keep **High / Medium / Low** priorities current.
+- **Add** new tasks the moment they are discovered — do not wait.
+- **Mark completed** items ✅ or remove them the moment they are done.
+- **Reprioritize** when scope or urgency changes.
+- Keep **High / Medium / Low** sections current; fix duplicate numbering when editing.
 
 ### Production safety rules
 
@@ -64,9 +80,16 @@ Append a dated bullet under **§ Changelog** in this file:
 
 ## Changelog
 
+- **2026-06-19** — Member portal transaction history grouped by month (collapsible sections per month for deposit and loan activity); most recent month expanded by default.
+- **2026-06-19** — Full documentation sync: all project docs updated to match codebase; §0 strengthened with continuous documentation rule.
 - **2026-06-19** — Fixed Gbanju alias (`GBANJU P ARUWAYOOBE`); CD balance updated to $7,211.82 with term metrics and **Expected CD Interest** dashboard card; bank re-import now 0 skipped rows (57 loan repayments).
 - **2026-06-19** — Bank import through 2026-06-16: merged 3 new BoA deposits (Lolu $50, Mutiu $100.04, Clement $100.02) into `data/bank-statement-2026.csv`; ran `import-bank-ledger.js` (450 bank_import txs, last date 2026-06-16). **Production:** WinSCP upload `data/` → Render `/var/data` + Manual Deploy required.
-- **2026-06-19** — Added USER-GUIDE, UPDATE-AND-PUBLISH, immutable doc rules (§0). Production live on Netlify + Render.
+- **2026-06-19** — Added USER-GUIDE, UPDATE-AND-PUBLISH, UPLOAD-DATA-TO-PRODUCTION, immutable doc rules (§0). Production live on Netlify + Render.
+- **2026-06-18** — Member profile portal UX (`c8521cc`): collapsible **Membership Biodata** and **Emergency Contact**; mobile-friendly layout; inline labels (`Middle Name:`, `Account Status: Active`). **Production:** `git push` only.
+- **2026-06-18** — Member self-service (`5041977`): profile biodata view, emergency contact edit, optional photo upload (`member-self-service.js`); admin **Cooperative Books** CD metrics; UI copy standards (Title Case, no em dashes).
+- **2026-06-18** — Bank ledger import wired: `peer-finance-manager/lib/import-bank-ledger.js` + `npm run pfm:import-bank` merges `All deposits.xlsx` + `data/bank-statement-2026.csv` into SQLite with **real bank dates** (deposits, withdrawals, loan repayments, expenses, CD transactions).
+- **2026-06-18** — Date display fix: `formatDate()` / `formatDisplayDate()` parse `YYYY-MM-DD` as local calendar dates (fixes DOB and transaction dates showing one day early in US time zones). Files: `peer-finance-manager/public/app.js`, `lib/loan-statement-generator.js`. **Production:** `git push` only.
+- **2026-06-18** — Mobile My Account: **Description** column hidden by default on small screens; **Show Descriptions** / **Hide Descriptions** toggle on member portal. **Production:** `git push` only (verify committed).
 - **2026-06-13** — Cloud deploy: Render API + Netlify UI; multi-org auth; member portal with running balances and monthly PDFs; Puppeteer Chrome install on Render for PDFs; data upload via WinSCP to `/var/data`.
 - **2026-06** — Multi-organization registry, per-org SQLite, separate login portals (`/member`, `/staff`, `/admin`), manual Record tab, member credential provisioning.
 
@@ -98,7 +121,7 @@ Historically, everything lived in Excel (`Assurance Status` workbooks). This rep
 - Membership fee: ₦100
 - Loan: 2 guarantors, 6+ months membership, max = min(borrower deposits, guarantors combined), 8% / 12 months default
 - Late fee: $25 after 22nd (logic in `loan-service.js`)
-- Spreadsheet import dates deposits on **last day of month** (placeholder until real bank dates used)
+- Spreadsheet import dates deposits on **last day of month** (placeholder); **bank import** uses real dates from BoA CSV
 
 **Bank CSV (`lib/bank-statement-parser.js`):**
 
@@ -130,12 +153,16 @@ Historically, everything lived in Excel (`Assurance Status` workbooks). This rep
 | ✅ Done | Multi-org registry (`data/registry.db`) |
 | ✅ Done | Auth: admin / staff / member roles; separate portals |
 | ✅ Done | Member self-service: balances, transactions, monthly statement PDF |
+| ✅ Done | Member portal **My Profile**: biodata (read-only), emergency contact (editable), optional photo upload |
+| ✅ Done | Member portal mobile UX: collapsible biodata/emergency sections; Description column toggle; **monthly transaction groups** on My Account |
 | ✅ Done | Manual Record tab: register member, profile edit, membership fee |
-| ✅ Done | Cooperative Books dashboard |
+| ✅ Done | Cooperative Books dashboard (incl. CD balance, **Expected CD Interest** card) |
 | ✅ Done | **Production:** Netlify (static UI) + Render (Express API + SQLite on disk) |
 | ✅ Done | Member credential export CSV |
 | ✅ Done | Puppeteer PDF on Render (Chrome installed at build) |
-| 🟡 Partial | Bank import — preview only |
+| ✅ Done | Bank ledger import via `npm run pfm:import-bank` (`import-bank-ledger.js` + `parse-bank-sources.js`) |
+| ✅ Done | Date display fix for `YYYY-MM-DD` values (timezone-safe local parsing) |
+| 🟡 Partial | Bank import UI tab — preview endpoint exists; full import is CLI/script today |
 | 🟡 Partial | Active loans not fully loaded |
 | ❌ Not done | Expenses UI / import |
 | ❌ Not done | Supabase live sync (optional future) |
@@ -149,7 +176,8 @@ Historically, everything lived in Excel (`Assurance Status` workbooks). This rep
 | `Assurance Status 5 2026.xlsx` | May 2026 sheet with bank-filled deposits |
 | `Assurance Status 2 2026.xlsx` | February 2026 only (older) |
 | `wpforms-5-...csv` | 22 membership applications |
-| `stmt (1).csv` | User's BoA export (Feb–Jun 2026); not in repo by default — in Downloads |
+| `data/bank-statement-2026.csv` | BoA export merged for ledger import (not in git by default) |
+| `All deposits.xlsx` | Historical bank deposits merged with CSV for import |
 
 ### Members (24 on ledger)
 
@@ -204,8 +232,9 @@ Excel workbook ──► statement-generator.js ──► PDFs (Statements tab)
        │
        └──► import-spreadsheet.js ──► SQLite (same app)
 
-Bank CSV ──► bank-statement-parser.js ──► month columns / compare scripts
-                (not yet fully wired into PFM bank-import)
+Bank CSV + All deposits.xlsx ──► parse-bank-sources.js ──► import-bank-ledger.js ──► SQLite
+       │
+       └──► bank-statement-parser.js ──► compare scripts / month PDF pipelines
 ```
 
 ### Critical files — read these first
@@ -214,9 +243,12 @@ Bank CSV ──► bank-statement-parser.js ──► month columns / compare sc
 |----------|------|-----|
 | 1 | `lib/statement-generator.js` | All statement logic, balance edge cases, PDF HTML |
 | 2 | `peer-finance-manager/lib/import-spreadsheet.js` | How workbook maps to ledger |
-| 3 | `lib/bank-statement-parser.js` | BoA CSV + Narrative + name aliases |
-| 4 | `peer-finance-manager/lib/member-name-match.js` | Application ↔ ledger names |
-| 5 | `peer-finance-manager/db/schema.sql` | DB shape |
+| 3 | `peer-finance-manager/lib/import-bank-ledger.js` | Bank CSV + xlsx → ledger transactions |
+| 4 | `peer-finance-manager/lib/parse-bank-sources.js` | Merges BoA CSV with All deposits.xlsx |
+| 5 | `lib/bank-statement-parser.js` | BoA CSV + Narrative + name aliases (statements/compare) |
+| 6 | `peer-finance-manager/lib/member-name-match.js` | Application ↔ ledger names |
+| 7 | `peer-finance-manager/lib/member-self-service.js` | Member portal profile, photo, emergency contact |
+| 8 | `peer-finance-manager/db/schema.sql` | DB shape |
 
 ### Ports
 
@@ -228,13 +260,15 @@ Bank CSV ──► bank-statement-parser.js ──► month columns / compare sc
 ### npm scripts reference
 
 ```powershell
-npm start                  # Statement Generator
-npm run pfm                # PeerFinanceManager
+npm start                  # Assurance Cooperative Manager (port 3457)
+npm run pfm                # Same as npm start
 npm run pfm:seed           # Ledger from spreadsheet
 npm run pfm:profiles       # WPForms → profiles
+npm run pfm:import-bank    # Bank CSV + xlsx → ledger (real dates)
 npm run generate:may-2026  # Bank + workbook → May PDFs
 npm run compare:bank       # Workbook vs bank CSV
 npm run pfm:build          # Package PFM as .exe
+npm run statements:legacy-server  # Deprecated port 3456 only
 ```
 
 ---
@@ -246,37 +280,38 @@ npm run pfm:build          # Package PFM as .exe
 | # | Task | Notes |
 |---|------|-------|
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
-| 2 | **Wire full bank import into PFM** | Reuse `lib/bank-statement-parser.js` in `bank-import.js`. |
-| 3 | **Cooperative expenses** | Table exists; no UI/import. |
-| 4 | **Profiles for Olawale George & Kehinde Agboola** | No WPForms row. |
-| 5 | **PC ↔ cloud data sync** | Manual WinSCP only today; document after each local data change. |
-| 6 | **Verify PDF statements on production** | After Puppeteer Chrome deploy; member monthly download. |
+| 2 | **Cooperative expenses** | Table exists; no UI/import. |
+| 3 | **Profiles for Olawale George & Kehinde Agboola** | No WPForms row. |
+| 4 | **PC ↔ cloud data sync** | Manual WinSCP only today; re-upload after each local data change. |
+| 5 | **Wire bank import into Import tab UI** | CLI `pfm:import-bank` works; admin UI still preview-only. |
+| 6 | **Commit/push pending UI fixes** | Mobile Description toggle, loan-statement date fix, monthly transaction groups — verify committed and deployed. |
 
 ### High — user said they will provide info later
 
 | # | Task | Notes |
 |---|------|-------|
-| 7 | **Member photos** | `photo_path` NULL; placeholder SVG. |
+| 7 | **Member photos** | Upload works in portal; most members still on placeholder SVG. |
 
 ### Medium — operational
 
 | # | Task | Notes |
 |---|------|-------|
-| 6 | **June 2026 statements** | Bank CSV already has June deposits (partial month). Generalize `generate-may-2026-from-bank.js` → `generate-month-from-bank.js` with month argument. |
-| 7 | **April distribution on statements** | May statements use February distribution column (workbook fallback). Confirm when April/May distribution amounts are finalized. |
-| 8 | **January 2026 verification** | Workbook has Jan 2026 column (₦800.58 total); bank CSV starts 2 Feb 2026 — cannot reconcile January from current export. |
-| 9 | **Regenerate April PDFs** | After distribution layout fix (Feb placement), April folder may still have old layout if not re-run. |
-| 10 | **Real transaction dates in ledger** | Spreadsheet import uses last-day-of-month placeholders. Bank CSV has actual dates — import should use them. |
-| 11 | **Currency display consistency** | Statements use NGN; PFM UI uses USD formatter. Cosmetic unless user wants one currency. |
+| 8 | **June 2026 statements** | Bank CSV has June deposits (partial month). Generalize `generate-may-2026-from-bank.js` → month argument. |
+| 9 | **April distribution on statements** | May statements use February distribution column (workbook fallback). Confirm when amounts finalized. |
+| 10 | **January 2026 verification** | Workbook has Jan 2026 column; bank CSV starts 2 Feb 2026. |
+| 11 | **Regenerate April PDFs** | After distribution layout fix, April folder may have old layout if not re-run. |
+| 12 | **Spreadsheet import placeholder dates** | `pfm:seed` still uses last-day-of-month; bank-imported txs have real dates. |
+| 13 | **Currency display consistency** | Statements use NGN; PFM UI uses USD formatter. Cosmetic unless user wants one currency. |
+| 14 | **Verify PDF statements on production** | Member monthly download after Puppeteer Chrome deploy. |
 
 ### Low — engineering hygiene
 
 | # | Task | Notes |
 |---|------|-------|
-| 12 | **Unify bank parsers** | Root `bank-statement-parser.js` vs PFM `bank-import.js` duplication. |
-| 13 | **PFM bank-import tests** | No automated tests yet. |
-| 14 | **Rebuild PFM exe** | After schema/profile changes. |
-| 15 | **Ejiro / withdrawal regression** | Always verify Ejiro balance when touching `statement-generator.js`. |
+| 15 | **Unify bank parsers** | Root `bank-statement-parser.js` vs PFM `parse-bank-sources.js` overlap. |
+| 16 | **PFM bank-import tests** | No automated tests yet. |
+| 17 | **Rebuild PFM exe** | After schema/profile/UI changes. |
+| 18 | **Ejiro / withdrawal regression** | Always verify Ejiro balance when touching `statement-generator.js`. |
 
 ---
 
@@ -300,7 +335,11 @@ npm run pfm:build          # Package PFM as .exe
 
 9. **Puppeteer** — Requires Chrome or Edge on Windows. Worker runs in separate process (`scripts/run-generation-worker.js`).
 
-10. **User rules** — Do not git commit unless asked. Use `gh` for PRs. Real shell environment.
+10. **Timezone date display** — `YYYY-MM-DD` strings parsed as `new Date('2026-06-08')` show one day early in US time zones. Fixed in `formatDate()` / `formatDisplayDate()` by parsing as local calendar date. Verify after any new date formatting code.
+
+11. **User rules** — Do not git commit unless asked. Use `gh` for PRs. Real shell environment.
+
+12. **Documentation** — §0 requires continuous updates. Read `AGENT_HANDOVER.md` first every session.
 
 ---
 
@@ -310,6 +349,7 @@ npm run pfm:build          # Package PFM as .exe
 # Ledger + profiles
 npm run pfm:seed
 npm run pfm:profiles
+npm run pfm:import-bank   # After updating bank CSV / All deposits.xlsx
 
 # Reconciliation
 npm run compare:bank
@@ -319,8 +359,7 @@ npm run generate:may-2026
 # Manually spot-check: Ejiro (₦995.59), Gbanju May deposit (₦170.12), distribution after February in table
 
 # Apps start
-npm start   # → http://localhost:3456/generator.html
-npm run pfm # → http://localhost:3457
+npm start   # → http://localhost:3457 (Assurance Cooperative Manager)
 ```
 
 ---
@@ -337,13 +376,11 @@ npm run pfm # → http://localhost:3457
 
 ## 8. Suggested next session plan
 
-When the user returns with loan/expense data:
-
-1. Import loan records + schedules into PFM
-2. Complete bank import: deposits → transactions, repayments → loan installments, expenses → expenses table
+1. Wire **Import tab** bank UI to call `import-bank-ledger` (CLI already works)
+2. Import loan records + schedules when user provides data
 3. Generalize month-from-bank script for June onward
 4. Add Olawale / Kehinde profiles if applications supplied
-5. Optional: single “monthly close” command — bank reconcile → update workbook → generate PDFs → refresh ledger
+5. Optional: single “monthly close” command — bank reconcile → update workbook → generate PDFs → refresh ledger → WinSCP upload
 
 ---
 
@@ -369,6 +406,11 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 | Name aliases (bank) | `MEMBER_BANK_ALIASES` in `bank-statement-parser.js` |
 | Name aliases (applications) | `APPLICATION_TO_LEDGER` in `member-name-match.js` |
 | Loan rules | `peer-finance-manager/lib/constants.js` |
+| Date formatting (UI) | `formatDate` in `peer-finance-manager/public/app.js` |
+| Date formatting (PDF) | `formatDisplayDate` in `loan-statement-generator.js` |
+| Member self-service | `peer-finance-manager/lib/member-self-service.js` |
+| Bank ledger import | `peer-finance-manager/lib/import-bank-ledger.js` |
+| CD dashboard | `peer-finance-manager/lib/cooperative-books.js`, `cd-balance-service.js` |
 | DB tables | `peer-finance-manager/db/schema.sql` |
 
 ---

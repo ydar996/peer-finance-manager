@@ -11,7 +11,7 @@
 | **[UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md)** | Yinka: change app & publish safely |
 | **[UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)** | Yinka: WinSCP data upload (step by step) |
 | **[DEPLOY-TODAY.md](./DEPLOY-TODAY.md)** | First-time cloud setup (done) |
-| **[AGENT_HANDOVER.md](./AGENT_HANDOVER.md)** | Developers / AI agents |
+| **[AGENT_HANDOVER.md](./AGENT_HANDOVER.md)** | Developers / AI agents — **read first**; changelog + tasks + continuous doc rules |
 
 ---
 
@@ -197,23 +197,35 @@ npm run generate:feb-2026
 ### What the app manages
 
 - **Member ledger** — deposits, withdrawals, fees, distributions as transactions
-- **Member banking profiles** — contact, address, next of kin, Zelle name (from WPForms applications)
+- **Member banking profiles** — contact, address, next of kin, Zelle name (from WPForms applications); member portal self-service (biodata view, emergency contact edit, photo upload)
 - **Periodic PDF statements** — Statements tab (see above)
 - **Loans framework** — rules, validation, schedule import (no live loans loaded yet)
-- **Bank import** — preview only; full matching not implemented
+- **Bank ledger import** — `npm run pfm:import-bank` merges BoA CSV + `All deposits.xlsx` into SQLite with real transaction dates; Import tab UI still preview-only
+- **Cooperative Books** — dashboard with CD balance and **Expected CD Interest** card
 - **Expenses** — database table ready; UI not built
 
 ### How to use (web UI)
 
 1. Launch the app and open **http://localhost:3457**.
-2. **Members tab** — view balances; click **Profile** for full banking profile (photo placeholder included); click **Transactions** for ledger entries.
-3. **Statements tab** — generate monthly PDF account statements.
-4. **Loans tab** — view loans (empty until loans are added).
-5. **Import tab:**
+2. **Members tab** — view balances; click **Profile** for full banking profile (photo placeholder or uploaded photo); click **Transactions** for ledger entries.
+3. **Cooperative Books tab** — income, expenses, deposits, loans summary; CD balance and expected interest.
+4. **Statements tab** — generate monthly PDF account statements.
+5. **Loans tab** — view loans (empty until loans are added).
+6. **Import tab:**
    - **Cooperative spreadsheet** — seeds/replaces the SQLite ledger from an Assurance Status workbook
    - **WPForms CSV** — imports membership application profiles
    - **Loan schedule** — CSV/Excel installment import for a loan ID
-   - **Bank statement** — preview only
+   - **Bank statement** — preview in UI; full import via `npm run pfm:import-bank`
+
+### Member portal (production: `/member`)
+
+Members can sign in and use **My Account** to:
+
+- View deposit and loan balances with transaction history (running balance)
+- Expand **Membership Biodata** (read-only) and **Emergency Contact** (editable)
+- Upload an optional profile photo
+- Download monthly statement PDFs
+- On mobile: **Description** column hidden by default; tap **Show Descriptions** to expand
 
 ### Loan rules (configured, not yet populated)
 
@@ -228,9 +240,14 @@ npm run generate:feb-2026
 
 ### Data storage
 
-SQLite database: `peer-finance-manager/data/peerfinance.db`
+| Path | Contents |
+|------|----------|
+| `data/registry.db` | Multi-org registry (auth, org list) |
+| `data/organizations/assurance/peerfinance.db` | Assurance ledger + profiles |
+| `data/organizations/assurance/exports/` | Credential CSV, profile JSON exports |
+| `data/bank-statement-2026.csv` | BoA export for bank import (local, gitignored) |
 
-Exports: `peer-finance-manager/data/exports/member-profiles.json`
+Exports: `data/organizations/assurance/exports/member-profiles.json`
 
 ### Key files
 
@@ -244,16 +261,21 @@ Exports: `peer-finance-manager/data/exports/member-profiles.json`
 | `peer-finance-manager/lib/member-name-match.js` | Application ↔ ledger name mapping |
 | `peer-finance-manager/lib/balance-service.js` | Balances and transactions |
 | `peer-finance-manager/lib/loan-service.js` | Loan eligibility and lifecycle |
-| `peer-finance-manager/lib/bank-import.js` | Bank preview stub |
+| `peer-finance-manager/lib/import-bank-ledger.js` | Bank CSV + xlsx → ledger import |
+| `peer-finance-manager/lib/parse-bank-sources.js` | Merges BoA CSV with All deposits.xlsx |
+| `peer-finance-manager/lib/member-self-service.js` | Member portal profile, photo, emergency contact |
+| `peer-finance-manager/lib/cooperative-books.js` | Cooperative Books dashboard |
+| `peer-finance-manager/lib/bank-import.js` | Bank import preview (UI) |
 | `peer-finance-manager/public/` | Web UI |
 
 ### npm scripts (PeerFinanceManager)
 
 | Script | Action |
 |--------|--------|
-| `npm run pfm` | Start the web app |
+| `npm run pfm` | Start the web app (same as `npm start`, port 3457) |
 | `npm run pfm:seed` | Import ledger from `Assurance Status 4 2026.xlsx` / April 2026 |
 | `npm run pfm:profiles` | Import profiles from WPForms CSV in project root |
+| `npm run pfm:import-bank` | Import bank transactions from CSV + All deposits.xlsx |
 | `npm run pfm:build` | Build standalone Windows `.exe` (optional) |
 
 ---
@@ -269,7 +291,7 @@ Exports: `peer-finance-manager/data/exports/member-profiles.json`
 - **Olawale George** — active depositor; application missing from export
 - **Kehinde Agboola** — on ledger; application missing from export
 
-Each profile stores demographics, address, next of kin, Zelle/bank display name, application signature date, and a **photo placeholder** (`placeholder-avatar.svg`). Photos can be added later by setting `photo_path` on the profile.
+Each profile stores demographics, address, next of kin, Zelle/bank display name, application signature date, and an optional **profile photo** (upload via member portal or admin). Placeholder SVG shown when no photo uploaded.
 
 ---
 
@@ -307,20 +329,22 @@ See [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) for routine updates.
 ┌─────────────────────────────────────────────────────────────────┐
 │           Assurance Cooperative Manager (port 3457)              │
 │  • SQLite ledger & member profiles                               │
-│  • Imports (spreadsheet, WPForms, bank preview)                │
+│  • Imports (spreadsheet, WPForms, bank ledger CLI)              │
 │  • Loans framework                                               │
 │  • Periodic PDF statements (Puppeteer) → statements/YYYY-MM/   │
+│  • Member portal (profile, emergency contact, mobile UX)        │
 └─────────────────────────────────────────────────────────────────┘
 
              ┌───────────────────┐
              │  Bank CSV (BoA)   │
+             │  + All deposits   │
              │  + Narrative col  │
              └─────────┬─────────┘
                        │
          ┌─────────────┴─────────────┐
          ▼                           ▼
-  lib/bank-statement-parser    compare-workbook-bank
-  generate-may-2026-from-bank
+  pfm:import-bank              compare-workbook-bank
+  (ledger import)              generate-may-2026-from-bank
 ```
 
 **Technology stack:** Node.js, Express, SheetJS (`xlsx`), Puppeteer, better-sqlite3, plain HTML/CSS/JS front ends. No React framework.
@@ -339,6 +363,8 @@ See [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) for routine updates.
 | Distribution missing | Check for `* Distribution - {month}` column in workbook, or upload a distribution file |
 | Profile shows “Missing” | Run `npm run pfm:profiles` |
 | Bank vs workbook mismatch | Run `npm run compare:bank`; trust workbook for mislabeled loan rows |
+| Date shows one day early | Known timezone bug — fixed in `formatDate()`; push latest code |
+| Docs out of date | Read and update [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) first every session |
 
 ---
 
@@ -350,7 +376,10 @@ AssurCoop/
 ├── USER-GUIDE.md                ← Simple user manual (members/admin)
 ├── UPDATE-AND-PUBLISH.md        ← How to change & publish safely
 ├── DEPLOY-TODAY.md              ← First-time cloud setup
-├── AGENT_HANDOVER.md            ← Agent handover + changelog + tasks
+├── AGENT_HANDOVER.md            ← Agent handover + changelog + tasks (read first)
+├── UPLOAD-DATA-TO-PRODUCTION.md ← WinSCP data upload guide
+├── UI-COPY-STANDARDS.md         ← Title Case, no em dashes
+├── data/                        ← SQLite + bank CSV (gitignored, WinSCP to Render)
 ├── server.js                    ← Statement Generator server
 ├── generator.html               ← Statement UI
 ├── lib/

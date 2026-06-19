@@ -776,7 +776,10 @@
       <section id="panel-my-account" class="panel">
         <div class="panel-head">
           <h2>My Account</h2>
-          <button type="button" class="btn" id="refreshMyAccount">Refresh</button>
+          <div class="panel-head-actions">
+            <button type="button" class="btn description-toggle" id="toggleMyAccountDescriptions" aria-pressed="false">Show Descriptions</button>
+            <button type="button" class="btn" id="refreshMyAccount">Refresh</button>
+          </div>
         </div>
         <p class="hint panel-intro-hint">View Your Profile, Deposit and Loan Account History, and Download Statements on Demand.</p>
         <div id="myProfileSection" class="card my-profile-card hidden"></div>
@@ -789,15 +792,8 @@
               <button type="button" class="btn primary" id="downloadMyDepositStatement" disabled>Download Monthly Statement (PDF)</button>
             </div>
           </div>
-          <div class="table-wrap compact">
-            <table>
-              <thead>
-                <tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th></tr>
-              </thead>
-              <tbody id="myDepositBody">
-                <tr><td colspan="5">Loading…</td></tr>
-              </tbody>
-            </table>
+          <div id="myDepositHistory" class="tx-month-groups">
+            <p class="subtle">Loading…</p>
           </div>
         </div>
         <div class="card">

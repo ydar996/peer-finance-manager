@@ -4,6 +4,8 @@ Rules for all **user-facing text** in the app: headers, hints, labels, buttons, 
 
 Agents and developers should follow this document and `.cursor/rules/ui-copy-standards.mdc` when changing the UI.
 
+**Agents:** Also follow [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) §0 — document every change and outstanding task immediately for the next agent.
+
 ---
 
 ## Title Case
@@ -70,4 +72,4 @@ When referring to the **cooperative** or **organizations using the app**, do not
 
 ---
 
-*Last updated: June 2026*
+*Last updated: June 19, 2026*

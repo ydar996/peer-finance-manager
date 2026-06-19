@@ -65,7 +65,7 @@ Check:
 
 ## When you change MEMBER DATA (not code)
 
-If you added deposits, members, bank imports, or other edits **only on your PC**:
+If you added deposits, members, **bank imports** (`npm run pfm:import-bank`), CD balance updates, or other edits **only on your PC**:
 
 **Full step-by-step guide:** [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)
 
@@ -97,6 +97,7 @@ Short version:
 | Set `PFM_COOP_ROOT` on Render | Breaks the app (documented bug — leave unset) |
 | Commit `data/` or `.db` files to Git | Private member data — stays local + WinSCP only |
 | Panic if first login is slow | Render wakes from idle (~30 sec) |
+| Forget to update docs after changes | Agents must update [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) continuously — see §0 |
 
 ---
 
@@ -117,4 +118,4 @@ Short version:
 
 ---
 
-*Last updated: June 2026. First-time setup: [DEPLOY-TODAY.md](./DEPLOY-TODAY.md).*
+*Last updated: June 19, 2026. First-time setup: [DEPLOY-TODAY.md](./DEPLOY-TODAY.md). Data upload: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md).*

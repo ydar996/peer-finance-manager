@@ -1,5 +1,7 @@
 # Go Live Today — Simple Steps
 
+> **Status:** First-time cloud setup is **complete** (June 2026). For routine code and data updates, use [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) and [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md). Keep this file for reference or rebuilding from scratch.
+
 Your app needs **two free websites** working together:
 
 | Piece | Service | What it does |

@@ -16,11 +16,18 @@
    - **Password:** *(sent to you — temporary)*
 3. Click **Sign In**
 
-**What you can see:**
-- Deposit account balance
-- Transaction history with running balance
+**What you can see on My Account:**
+
+- **My Profile** — expand **Membership Biodata** to review your details (read-only; contact the cooperative to change other fields)
+- **Emergency Contact** — expand to view or update your emergency contact (optional)
+- **Profile Photo** — optional upload
+- Deposit account balance and transaction history with running balance, grouped **by month** (expand each month to see details)
 - Loan account (if you have a loan)
 - Download **monthly statement PDF**
+
+**On a phone:** transaction tables hide the **Description** column by default so dates and amounts fit better. Tap **Show Descriptions** at the top of My Account if you need the full detail. Tap **Hide Descriptions** to collapse again.
+
+**Transaction history** is grouped by month. Tap a month heading (e.g. **June 2026 · 3 Transactions**) to expand or collapse that month. The most recent month is open by default.
 
 **First visit may be slow** (up to 30 seconds) if the server was idle — wait and try again.
 
@@ -38,12 +45,12 @@
 
 | Tab | What it does |
 |-----|----------------|
-| **Cooperative Books** | Income, expenses, deposits, loans summary |
-| **Members & Accounts** | Member list, balances, profiles |
+| **Cooperative Books** | Income, expenses, deposits, loans summary; CD balance and **Expected CD Interest** |
+| **Members & Accounts** | Member list, balances, full profiles (admin view) |
 | **Statements** | Generate batch PDF statements |
 | **Loans** | View and manage loans |
 | **Record** | Add members, record deposits, fees, expenses |
-| **Import** | Spreadsheet, bank, profiles |
+| **Import** | Spreadsheet, bank preview, profiles; full bank import via `npm run pfm:import-bank` on PC |
 | **Users** | Member login accounts and credentials |
 
 ---
@@ -73,7 +80,8 @@ You can still use **PeerFinanceManager.exe** on your PC (double-click in the `As
 | "Invalid username or password" | Check org code `assurance`, username, and password (case-sensitive) |
 | Blank page or login spins | Wait 30 seconds and refresh — server may be waking up |
 | PDF download fails | Wait for admin to confirm Render deploy is Live; try again in a minute |
-| Numbers look wrong online | Cloud data may be old — admin may need to re-upload database (see UPDATE-AND-PUBLISH.md) |
+| Numbers look wrong online | Cloud data may be old — admin may need to re-upload database (see [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)) |
+| Birthday or date off by one day | Fixed in latest app code — admin should `git push` to deploy |
 
 ---
 
@@ -86,4 +94,4 @@ You can still use **PeerFinanceManager.exe** on your PC (double-click in the `As
 
 ---
 
-*Last updated: June 2026. For how to change and publish the app, see [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).*
+*Last updated: June 19, 2026. For how to change and publish the app, see [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).*

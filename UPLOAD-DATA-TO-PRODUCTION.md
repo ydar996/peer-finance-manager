@@ -2,7 +2,7 @@
 
 Use this when you change **member or money data on your PC** and want the **live website** to match.
 
-Examples: bank import, new deposits, CD balance update, new members, credential changes.
+Examples: bank import (`npm run pfm:import-bank`), new deposits, CD balance update, new members, credential changes, updated `bank-statement-2026.csv`.
 
 **Your live site:** https://peer-finance-manager.netlify.app
 
@@ -36,7 +36,8 @@ C:\Users\yinka\Documents\AssurCoop\data
 
 Inside that folder you should have things like:
 - `registry.db`
-- `organizations` folder (with `assurance` inside)
+- `organizations` folder (with `assurance` inside, including `peerfinance.db`)
+- `bank-statement-2026.csv` (if you use bank import)
 
 ---
 
@@ -138,4 +139,4 @@ Routine code updates: see [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).
 
 ---
 
-*Last updated: June 2026*
+*Last updated: June 19, 2026*
