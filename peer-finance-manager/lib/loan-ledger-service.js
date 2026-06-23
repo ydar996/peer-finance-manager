@@ -4,6 +4,7 @@ const {
   matchLotToReference,
   applyPrincipalCorrection,
   applyWorkbookInterestToLot,
+  computeInterestFromSchedule,
 } = require("./loan-details-reference");
 
 function applyPaymentToLot(lot, amount, tx, note) {
@@ -171,6 +172,37 @@ function consolidateRepayments(repayments) {
   return [...merged.values()];
 }
 
+function round2(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function principalOutstandingAfterCollected(lot, collected) {
+  const principal = Number(lot.principal) || 0;
+  const paid = Number(collected) || 0;
+  if (paid >= principal - 0.005) return 0;
+  if (lot.schedule?.length) {
+    const { principalRepaid } = computeInterestFromSchedule(paid, lot.schedule);
+    return Math.max(0, round2(principal - principalRepaid));
+  }
+  return Math.max(0, round2(principal - paid));
+}
+
+function attachRepaymentBalances(lot) {
+  const repayments = consolidateRepayments(lot.repayments);
+  const sorted = [...repayments].sort((a, b) => {
+    const byDate = String(a.date).localeCompare(String(b.date));
+    return byDate !== 0 ? byDate : (Number(a.transactionId) || 0) - (Number(b.transactionId) || 0);
+  });
+  let cumulative = 0;
+  return sorted.map((row) => {
+    cumulative = round2(cumulative + (Number(row.amount) || 0));
+    return {
+      ...row,
+      balanceAfter: principalOutstandingAfterCollected(lot, cumulative),
+    };
+  });
+}
+
 function enrichLoanLot(memberId, borrower, lot) {
   return {
     memberId,
@@ -193,7 +225,7 @@ function enrichLoanLot(memberId, borrower, lot) {
     schedule: lot.schedule ?? null,
     status: lot.status,
     disbursementDescription: lot.disbursementDescription,
-    repayments: consolidateRepayments(lot.repayments),
+    repayments: attachRepaymentBalances(lot),
     ledgerKey: `${memberId}-${lot.loanNumber}`,
   };
 }

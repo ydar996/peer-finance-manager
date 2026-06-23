@@ -1062,17 +1062,57 @@ function sortRepaymentsChronological(repayments) {
 }
 
 function loanRepaymentRowsWithBalance(lot) {
-  let balance = loanTotalDue(lot);
-  return sortRepaymentsChronological(lot.repayments).map((payment) => {
-    const amount = Number(payment.amount) || 0;
-    balance = Math.max(0, Math.round((balance - amount) * 100) / 100);
+  let cumulative = 0;
+  const rows = sortRepaymentsChronological(lot.repayments).map((payment) => {
+    cumulative = Math.round((cumulative + (Number(payment.amount) || 0)) * 100) / 100;
     return {
       date: payment.date,
-      amount,
-      balance,
+      amount: Number(payment.amount) || 0,
+      balance:
+        payment.balanceAfter != null
+          ? payment.balanceAfter
+          : principalOutstandingAfterCollectedClient(lot, cumulative),
       description: payment.description || "",
     };
   });
+  return [...rows].reverse();
+}
+
+function principalOutstandingAfterCollectedClient(lot, collected) {
+  const principal = Number(lot?.principal) || 0;
+  const paid = Number(collected) || 0;
+  if (paid >= principal - 0.005) return 0;
+  if (lot.schedule?.length) {
+    const { principalRepaid } = computeInterestFromScheduleClient(paid, lot.schedule);
+    return Math.max(0, Math.round((principal - principalRepaid) * 100) / 100);
+  }
+  return Math.max(0, Math.round((principal - paid) * 100) / 100);
+}
+
+function computeInterestFromScheduleClient(collected, installments) {
+  if (!installments?.length || collected <= 0.005) {
+    return { principalRepaid: 0 };
+  }
+  let remaining = collected;
+  let principalRepaid = 0;
+  for (const period of installments) {
+    const totalDue =
+      period.totalDue ||
+      Math.round(((period.interest || 0) + (period.principal || 0)) * 100) / 100;
+    if (totalDue <= 0.005) continue;
+    if (remaining >= totalDue - 0.005) {
+      principalRepaid += period.principal || 0;
+      remaining = Math.round((remaining - totalDue) * 100) / 100;
+      continue;
+    }
+    if (remaining > 0.005) {
+      const ratio = remaining / totalDue;
+      principalRepaid += (period.principal || 0) * ratio;
+      remaining = 0;
+    }
+    break;
+  }
+  return { principalRepaid: Math.round(principalRepaid * 100) / 100 };
 }
 
 function loanRepaymentTableHtml(lot) {
@@ -1099,7 +1139,7 @@ function loanRepaymentTableHtml(lot) {
     .join("");
   return `
     <h5 class="loan-repayments-title">Actual Repayments</h5>
-    <p class="subtle loan-repayments-hint">Each payment reduces the balance until it reaches zero.</p>
+    <p class="subtle loan-repayments-hint">Most recent payment first. Balance is principal still owed after each payment.</p>
     <div class="table-wrap compact">
       <table>
         <thead><tr><th>Date</th><th>Amount</th><th>Balance</th><th>Description</th></tr></thead>
@@ -1109,23 +1149,31 @@ function loanRepaymentTableHtml(lot) {
 }
 
 function buildLoanActivityRows(lot, newestFirst = true) {
-  let balance = loanTotalDue(lot);
+  const principal = Number(lot.principal) || 0;
   const rows = [
     {
       date: lot.disbursementDate,
       type: "Loan Disbursement",
-      amount: -balance,
-      balance,
+      amount: -principal,
+      balance: principal,
       description: lot.disbursementDescription || "Loan disbursement",
     },
   ];
-  for (const payment of loanRepaymentRowsWithBalance(lot)) {
+  for (const payment of sortRepaymentsChronological(lot.repayments)) {
+    let cumulative = rows
+      .filter((row) => row.type === "Repayment")
+      .reduce((sum, row) => sum + row.amount, 0);
+    cumulative = Math.round((cumulative + (Number(payment.amount) || 0)) * 100) / 100;
+    const balance =
+      payment.balanceAfter != null
+        ? payment.balanceAfter
+        : principalOutstandingAfterCollectedClient(lot, cumulative);
     rows.push({
       date: payment.date,
       type: "Repayment",
-      amount: payment.amount,
-      balance: payment.balance,
-      description: payment.description,
+      amount: Number(payment.amount) || 0,
+      balance,
+      description: payment.description || "",
     });
   }
   return newestFirst ? [...rows].reverse() : rows;

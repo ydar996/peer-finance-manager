@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-06-21** — Loan repayment **Balance** now tracks **principal still owed** (matches Paid status); repayments list newest-first. Fixes paid loans showing non-zero balance when total payable included unearned scheduled interest.
 - **2026-06-21** — Loan account UX: **Agreed Loan Repayment Schedule** collapsed by default (no Due column; Balance column); actual repayments show running **Balance**; active loans expanded, paid loans collapsed.
 - **2026-06-21** — Strengthened continuous documentation: `.cursor/rules/continuous-documentation.mdc` (`alwaysApply`); §0 self-instructing rules — agents must update docs in the same turn as every change; user must never need to ask for doc updates.
 - **2026-06-21** — Admin can upload member profile photos from **Members & Accounts** (`POST /api/members/:id/photo`); members retain self-service upload/update. **Production:** `git push` only.
