@@ -4,7 +4,7 @@ Rules for all **user-facing text** in the app: headers, hints, labels, buttons, 
 
 Agents and developers should follow this document and `.cursor/rules/ui-copy-standards.mdc` when changing the UI.
 
-**Agents:** Also follow [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) §0 — document every change and outstanding task immediately for the next agent.
+**Agents:** Follow [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) §0 and `.cursor/rules/continuous-documentation.mdc`. Document every change in the **same turn** — the user must never have to ask for doc updates.
 
 ---
 

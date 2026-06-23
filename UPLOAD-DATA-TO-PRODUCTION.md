@@ -6,6 +6,8 @@ Examples: bank import (`npm run pfm:import-bank`), new deposits, CD balance upda
 
 **Your live site:** https://peer-finance-manager.netlify.app
 
+> **AI agents:** After any edit to this guide or data-upload workflow, update [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) § Changelog in the same turn. See `.cursor/rules/continuous-documentation.mdc`.
+
 ---
 
 ## Code vs Data (Quick Reminder)

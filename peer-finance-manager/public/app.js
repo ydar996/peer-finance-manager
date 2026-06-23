@@ -364,27 +364,34 @@ async function loadMyAccount() {
                   )
                   .join("")
               : '<option value="">No Monthly Statements Available</option>';
+            const isPaid = lot.status === "paid";
             return `
-        <div class="card" style="margin-bottom:12px">
-          <div class="panel-head">
+        <details class="card loan-lot-disclosure profile-disclosure my-loan-card" style="margin-bottom:12px"${isPaid ? "" : " open"}>
+          <summary class="loan-lot-summary my-loan-summary">
             <h4>Loan #${lot.loanNumber} · ${escapeHtml(lot.status || "active")}</h4>
-            <div class="panel-head-actions">
-              <select class="statement-select my-loan-statement-month" data-loan-number="${lot.loanNumber}" aria-label="Loan statement month">
-                ${monthOptions}
-              </select>
-              <button type="button" class="btn primary" data-member-id="${profile.member_id}" data-loan-number="${lot.loanNumber}" data-action="my-loan-statement" ${loanMonths.length ? "" : "disabled"}>
-                Download Monthly Statement
-              </button>
+            <span class="loan-lot-summary-meta subtle">${isPaid ? "Paid in Full" : `Outstanding ${fmt.format(lot.outstanding)}`}</span>
+          </summary>
+          <div class="loan-lot-body">
+            <div class="panel-head">
+              <p class="subtle">Principal ${fmt.format(lot.principal)} · Repaid ${fmt.format(lot.collected || 0)} · Outstanding ${fmt.format(lot.outstanding)}</p>
+              <div class="panel-head-actions">
+                <select class="statement-select my-loan-statement-month" data-loan-number="${lot.loanNumber}" aria-label="Loan statement month">
+                  ${monthOptions}
+                </select>
+                <button type="button" class="btn primary" data-member-id="${profile.member_id}" data-loan-number="${lot.loanNumber}" data-action="my-loan-statement" ${loanMonths.length ? "" : "disabled"}>
+                  Download Monthly Statement
+                </button>
+              </div>
+            </div>
+            ${loanScheduleHtml(lot)}
+            <div class="table-wrap compact">
+              <table class="member-tx-table">
+                <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th class="col-description">Description</th></tr></thead>
+                <tbody>${accountActivityTableRows(activityRows, { memberPortal: true, formatDates: true })}</tbody>
+              </table>
             </div>
           </div>
-          <p class="subtle">Principal ${fmt.format(lot.principal)} · Outstanding ${fmt.format(lot.outstanding)} · Repaid ${fmt.format(lot.collected || 0)}</p>
-          <div class="table-wrap compact">
-            <table class="member-tx-table">
-              <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th class="col-description">Description</th></tr></thead>
-              <tbody>${accountActivityTableRows(activityRows, { memberPortal: true, formatDates: true })}</tbody>
-            </table>
-          </div>
-        </div>`;
+        </details>`;
           })
           .join("")
       : '<p class="subtle">No Loan Accounts</p>';
@@ -1035,8 +1042,74 @@ function statementMonthsFromDates(dates) {
   return [...months.values()].sort((a, b) => b.year - a.year || b.month - a.month);
 }
 
+function loanTotalDue(lot) {
+  if (lot?.scheduledTotalPayable != null && lot.scheduledTotalPayable > 0) {
+    return lot.scheduledTotalPayable;
+  }
+  const scheduleSum = (lot?.schedule || []).reduce(
+    (sum, row) => sum + (Number(row.totalDue) || 0),
+    0
+  );
+  if (scheduleSum > 0.005) return scheduleSum;
+  return Number(lot?.principal) || 0;
+}
+
+function sortRepaymentsChronological(repayments) {
+  return [...(repayments || [])].sort((a, b) => {
+    const byDate = String(a.date).localeCompare(String(b.date));
+    return byDate !== 0 ? byDate : (Number(a.transactionId) || 0) - (Number(b.transactionId) || 0);
+  });
+}
+
+function loanRepaymentRowsWithBalance(lot) {
+  let balance = loanTotalDue(lot);
+  return sortRepaymentsChronological(lot.repayments).map((payment) => {
+    const amount = Number(payment.amount) || 0;
+    balance = Math.max(0, Math.round((balance - amount) * 100) / 100);
+    return {
+      date: payment.date,
+      amount,
+      balance,
+      description: payment.description || "",
+    };
+  });
+}
+
+function loanRepaymentTableHtml(lot) {
+  const rows = loanRepaymentRowsWithBalance(lot);
+  if (!rows.length) {
+    return `
+    <div class="table-wrap compact">
+      <table>
+        <thead><tr><th>Date</th><th>Amount</th><th>Balance</th><th>Description</th></tr></thead>
+        <tbody><tr><td colspan="4" class="subtle">No Repayments</td></tr></tbody>
+      </table>
+    </div>`;
+  }
+  const body = rows
+    .map(
+      (row) => `
+        <tr>
+          <td>${formatDate(row.date)}</td>
+          <td class="money">${fmt.format(row.amount)}</td>
+          <td class="money">${fmt.format(row.balance)}</td>
+          <td>${escapeHtml(row.description)}</td>
+        </tr>`
+    )
+    .join("");
+  return `
+    <h5 class="loan-repayments-title">Actual Repayments</h5>
+    <p class="subtle loan-repayments-hint">Each payment reduces the balance until it reaches zero.</p>
+    <div class="table-wrap compact">
+      <table>
+        <thead><tr><th>Date</th><th>Amount</th><th>Balance</th><th>Description</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>`;
+}
+
 function buildLoanActivityRows(lot, newestFirst = true) {
-  let balance = Number(lot.principal) || 0;
+  let balance = loanTotalDue(lot);
   const rows = [
     {
       date: lot.disbursementDate,
@@ -1046,18 +1119,13 @@ function buildLoanActivityRows(lot, newestFirst = true) {
       description: lot.disbursementDescription || "Loan disbursement",
     },
   ];
-  const repayments = [...(lot.repayments || [])].sort((a, b) => {
-    const byDate = String(a.date).localeCompare(String(b.date));
-    return byDate !== 0 ? byDate : (Number(a.transactionId) || 0) - (Number(b.transactionId) || 0);
-  });
-  for (const payment of repayments) {
-    balance = Math.max(0, balance - (Number(payment.amount) || 0));
+  for (const payment of loanRepaymentRowsWithBalance(lot)) {
     rows.push({
       date: payment.date,
       type: "Repayment",
-      amount: Number(payment.amount) || 0,
-      balance,
-      description: payment.description || "",
+      amount: payment.amount,
+      balance: payment.balance,
+      description: payment.description,
     });
   }
   return newestFirst ? [...rows].reverse() : rows;
@@ -1248,17 +1316,20 @@ function loanAccountSubtitle(p) {
 
 function loanScheduleHtml(lot) {
   if (!lot.schedule?.length) return "";
+  let balance = loanTotalDue(lot);
   const rows = lot.schedule
-    .map(
-      (row) => `
+    .map((row) => {
+      const payment = Number(row.totalDue) || 0;
+      balance = Math.max(0, Math.round((balance - payment) * 100) / 100);
+      return `
       <tr>
         <td>${row.period}</td>
-        <td>${row.dueDate ? formatDate(row.dueDate) : ":"}</td>
-        <td class="money">${fmt.format(row.totalDue || 0)}</td>
+        <td class="money">${fmt.format(payment)}</td>
         <td class="money">${fmt.format(row.interest || 0)}</td>
         <td class="money">${fmt.format(row.principal || 0)}</td>
-      </tr>`
-    )
+        <td class="money">${fmt.format(balance)}</td>
+      </tr>`;
+    })
     .join("");
   const scheduleMeta = [];
   if (lot.scheduledMonthlyPayment != null) {
@@ -1267,61 +1338,60 @@ function loanScheduleHtml(lot) {
   if (lot.scheduledTotalInterest != null) {
     scheduleMeta.push(`Total scheduled interest ${fmt.format(lot.scheduledTotalInterest)}`);
   }
+  scheduleMeta.push(`Total payable ${fmt.format(loanTotalDue(lot))}`);
   return `
-    <div class="loan-schedule-wrap">
-      <h5>${escapeHtml(lot.scheduleTitle || "Agreed Repayment Schedule")}</h5>
-      <p class="subtle">Informational Only : Actual Repayments Come From Bank Records.</p>
-      ${scheduleMeta.length ? `<p class="subtle">${scheduleMeta.join(" · ")}</p>` : ""}
-      <div class="table-wrap compact">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Due</th><th>Payment</th><th>Interest</th><th>Principal</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+    <details class="profile-disclosure loan-schedule-disclosure">
+      <summary>Agreed Loan Repayment Schedule</summary>
+      <div class="profile-disclosure-body">
+        <p class="subtle profile-disclosure-note">Informational Only : Actual Repayments Come From Bank Records.</p>
+        ${scheduleMeta.length ? `<p class="subtle">${scheduleMeta.join(" · ")}</p>` : ""}
+        <div class="table-wrap compact">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Payment</th><th>Interest</th><th>Principal</th><th>Balance</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
       </div>
-    </div>`;
+    </details>`;
+}
+
+function loanLotSummaryLine(lot) {
+  const isPaid = lot.status === "paid";
+  return `Disbursed ${formatDate(lot.disbursementDate)} · Principal ${fmt.format(lot.principal)} · Repaid ${fmt.format(lot.collected)} · Interest earned ${fmt.format(lot.interestIncome || 0)}${lot.scheduledTotalInterest != null ? ` of ${fmt.format(lot.scheduledTotalInterest)} scheduled` : ""} · Outstanding ${fmt.format(lot.outstanding)}`;
+}
+
+function loanLotCardHtml(lot, memberId) {
+  const isPaid = lot.status === "paid";
+  const noteLine = lot.principalNote
+    ? `<p class="subtle">${escapeHtml(lot.principalNote)}</p>`
+    : "";
+  return `
+      <details class="loan-lot-card loan-lot-disclosure profile-disclosure"${isPaid ? "" : " open"}>
+        <summary class="loan-lot-summary">
+          <strong>Loan ${lot.loanNumber}</strong>
+          <span class="badge ${isPaid ? "ok" : ""}">${isPaid ? "Paid" : "Active"}</span>
+          <span class="loan-lot-summary-meta subtle">${isPaid ? "Paid in Full" : `Outstanding ${fmt.format(lot.outstanding)}`}</span>
+        </summary>
+        <div class="loan-lot-body">
+          <div class="loan-lot-actions">
+            <button type="button" class="btn small loan-statement-btn" data-member-id="${lot.memberId || memberId}" data-loan-number="${lot.loanNumber}">Generate Statement</button>
+          </div>
+          <p class="subtle">${loanLotSummaryLine(lot)}</p>
+          ${noteLine}
+          ${lot.disbursementDescription ? `<p class="subtle">Disbursement: ${escapeHtml(lot.disbursementDescription)}</p>` : ""}
+          ${loanScheduleHtml(lot)}
+          ${loanRepaymentTableHtml(lot)}
+        </div>
+      </details>`;
 }
 
 function loanLotsSectionHtml(lots, memberId) {
   if (!lots?.length) {
     return '<p class="subtle">No Loan Activity Recorded.</p>';
   }
-  return lots
-    .map((lot) => {
-      const repayments = (lot.repayments || [])
-        .map(
-          (r) => `
-        <tr>
-          <td>${formatDate(r.date)}</td>
-          <td class="money">${fmt.format(r.amount)}</td>
-          <td>${escapeHtml(r.description || "")}</td>
-        </tr>`
-        )
-        .join("");
-      const noteLine = lot.principalNote
-        ? `<p class="subtle">${escapeHtml(lot.principalNote)}</p>`
-        : "";
-      return `
-      <div class="loan-lot-card">
-        <div class="loan-lot-head">
-          <strong>Loan ${lot.loanNumber}</strong>
-          <span class="badge ${lot.status === "paid" ? "ok" : ""}">${lot.status === "paid" ? "Paid" : "Active"}</span>
-          <button type="button" class="btn small loan-statement-btn" data-member-id="${lot.memberId || memberId}" data-loan-number="${lot.loanNumber}">Generate Statement</button>
-        </div>
-        <p class="subtle">Disbursed ${formatDate(lot.disbursementDate)} · Principal ${fmt.format(lot.principal)} · Repaid ${fmt.format(lot.collected)} · Interest earned ${fmt.format(lot.interestIncome || 0)}${lot.scheduledTotalInterest != null ? ` of ${fmt.format(lot.scheduledTotalInterest)} scheduled` : ""} · Outstanding ${fmt.format(lot.outstanding)}</p>
-        ${noteLine}
-        ${lot.disbursementDescription ? `<p class="subtle">Disbursement: ${escapeHtml(lot.disbursementDescription)}</p>` : ""}
-        ${loanScheduleHtml(lot)}
-        <div class="table-wrap compact">
-          <table>
-            <thead><tr><th>Date</th><th>Amount</th><th>Description</th></tr></thead>
-            <tbody>${repayments || '<tr><td colspan="3" class="subtle">No Repayments</td></tr>'}</tbody>
-          </table>
-        </div>
-      </div>`;
-    })
-    .join("");
+  return lots.map((lot) => loanLotCardHtml(lot, memberId)).join("");
 }
 
 async function showProfile(memberId) {
@@ -1510,28 +1580,10 @@ async function toggleLoanDetail(row) {
     );
     const { loan } = await res.json();
     if (!res.ok) throw new Error(loan?.error || "Failed to load loan details");
-    cell.innerHTML = `
-      <div class="loan-lot-card inline">
-        <div class="loan-lot-head">
-          <p class="subtle"><strong>Disbursement</strong> · ${formatDate(loan.disbursementDate)} · ${fmt.format(loan.principal)}</p>
-          <button type="button" class="btn small loan-statement-btn" data-member-id="${row.dataset.memberId}" data-loan-number="${row.dataset.loanNumber}">Generate Statement</button>
-        </div>
-        <p class="subtle">${escapeHtml(loan.disbursementDescription || "")}</p>
-        <div class="table-wrap compact">
-          <table>
-            <thead><tr><th>Date</th><th>Repayment</th><th>Description</th></tr></thead>
-            <tbody>${(loan.repayments || [])
-              .map(
-                (r) => `<tr>
-                  <td>${formatDate(r.date)}</td>
-                  <td class="money">${fmt.format(r.amount)}</td>
-                  <td>${escapeHtml(r.description || "")}</td>
-                </tr>`
-              )
-              .join("") || '<tr><td colspan="3" class="subtle">No Repayments</td></tr>'}</tbody>
-          </table>
-        </div>
-      </div>`;
+    cell.innerHTML = loanLotCardHtml(loan, row.dataset.memberId).replace(
+      'class="loan-lot-card loan-lot-disclosure profile-disclosure"',
+      'class="loan-lot-card loan-lot-disclosure profile-disclosure inline"'
+    );
     bindLoanStatementButtons(detailRow);
   } catch (err) {
     cell.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;

@@ -11,7 +11,9 @@
 | **[UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md)** | Yinka: change app & publish safely |
 | **[UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)** | Yinka: WinSCP data upload (step by step) |
 | **[DEPLOY-TODAY.md](./DEPLOY-TODAY.md)** | First-time cloud setup (done) |
-| **[AGENT_HANDOVER.md](./AGENT_HANDOVER.md)** | Developers / AI agents — **read first**; changelog + tasks + continuous doc rules |
+| **[AGENT_HANDOVER.md](./AGENT_HANDOVER.md)** | Developers / AI agents — **read first**; changelog + tasks; **auto-update docs every change** (§0) |
+
+> **AI agents:** Read [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) §0 and `.cursor/rules/continuous-documentation.mdc` first. Update documentation in the **same turn** as every code change. The user must never have to ask for doc updates.
 
 ---
 

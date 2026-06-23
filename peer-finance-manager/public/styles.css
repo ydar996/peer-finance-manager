@@ -378,6 +378,47 @@ th { background: #f8fafc; font-weight: 600; }
   background: #fff;
 }
 .loan-lot-card.inline { margin: 8px 0 0; }
+.loan-lot-disclosure > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.loan-lot-disclosure > summary::-webkit-details-marker { display: none; }
+.loan-lot-disclosure > summary::before {
+  content: "▸ ";
+  color: #64748b;
+  font-size: 12px;
+}
+.loan-lot-disclosure[open] > summary::before { content: "▾ "; }
+.loan-lot-disclosure[open] > summary {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.loan-lot-summary-meta { margin-left: auto; font-size: 12px; }
+.loan-lot-body { padding-top: 4px; }
+.loan-lot-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+.loan-lot-actions .btn.small { margin-left: 0; }
+.loan-schedule-disclosure { margin: 12px 0; }
+.loan-repayments-title {
+  margin: 16px 0 4px;
+  font-size: 13px;
+}
+.loan-repayments-hint { margin: 0 0 8px; }
+.my-loan-card > summary.my-loan-summary {
+  align-items: center;
+}
+.my-loan-card > summary.my-loan-summary h4 {
+  margin: 0;
+  font-size: 15px;
+}
 .loan-lot-head {
   display: flex;
   align-items: center;

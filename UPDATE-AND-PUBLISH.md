@@ -22,6 +22,7 @@ Once live, updates are mostly: **change code → push to GitHub → wait**.
 ### Step 1 — Make changes on your PC
 
 - Edit with Cursor/agent, or ask the agent to implement features.
+- **Agents must update docs immediately** (same turn as the change): [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) changelog + tasks, and [USER-GUIDE.md](./USER-GUIDE.md) when screens/workflows change. See `.cursor/rules/continuous-documentation.mdc`. You should never need to ask for this.
 - Test locally when you can:
   ```powershell
   npm start
@@ -97,7 +98,7 @@ Short version:
 | Set `PFM_COOP_ROOT` on Render | Breaks the app (documented bug — leave unset) |
 | Commit `data/` or `.db` files to Git | Private member data — stays local + WinSCP only |
 | Panic if first login is slow | Render wakes from idle (~30 sec) |
-| Forget to update docs after changes | Agents must update [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) continuously — see §0 |
+| Forget to update docs after changes | **Session failure** — agents auto-update via `.cursor/rules/continuous-documentation.mdc` in the same turn as every change; see [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) §0 |
 
 ---
 

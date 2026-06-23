@@ -22,7 +22,7 @@
 - **Emergency Contact** — expand to view or update your emergency contact (optional)
 - **Profile Photo** — optional upload or update (members can change a photo the cooperative already added)
 - Contributions account balance and transaction history with running balance
-- Loan account (if you have a loan)
+- Loan account (if you have a loan): expand **Loan Account** to see each loan; **Actual Repayments** show a running **Balance** after each payment; paid loans are collapsed by default
 - Download **monthly statement PDF**
 
 **On a phone:** transaction tables hide the **Description** column by default so dates and amounts fit better. Tap **Show Descriptions** at the top of My Account if you need the full detail. Tap **Hide Descriptions** to collapse again. Swipe sideways on a table if you need to see every column. Each transaction stays on one line.

@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** June 21, 2026 (admin member photo upload)  
+**Last updated:** June 21, 2026 (loan account UX)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -12,21 +12,37 @@ This document gives the next developer or AI agent enough context to continue wo
 
 ## 0. IMMUTABLE AGENT INSTRUCTIONS (always follow)
 
+> **Self-instructing rule for every agent, now and forever:**  
+> **Read this section first. Document every change immediately in the same turn. The user must never have to ask you to update documentation.**
+
 **Every change we make — and every outstanding task we discover, start, complete, or reprioritize — MUST be documented immediately and continuously for the next agent. Not at the end of a session. Not "when the user asks." Not only on commit.**
 
 Documentation is the handoff contract between sessions. If it is stale, the next agent will guess or re-read chat transcripts and waste the user's time.
 
+**Cursor enforces this via:** `.cursor/rules/continuous-documentation.mdc` (`alwaysApply: true`) — agents must follow it on every task without being reminded.
+
 ### Continuous documentation rule (non-negotiable)
 
 1. **Read this file first** at the start of every session — before relying on chat history or agent transcripts.
-2. **Document as you go** — in the same session, ideally the same turn when the change lands:
+2. **Document as you go** — in the same session, **in the same turn** when the change lands (before your reply to the user):
    - **§ Changelog** — append a dated bullet the moment you implement a feature, fix, or behavior change.
    - **§ Outstanding tasks** — add, update, mark ✅, or remove tasks the moment their status changes.
    - **Other docs** — update per the checklist below whenever those areas are affected.
-3. **Before ending any session** that touched code or config: verify changelog and outstanding tasks match the final state (including uncommitted local changes).
-4. **If the user commits without you:** on the next session, reconcile `git log` against this file and backfill any gaps immediately.
+3. **Never wait for the user** to say "update the docs," "sync documentation," or "update the handover." That request should never be needed.
+4. **Before ending any session** that touched code or config: verify changelog and outstanding tasks match the final state (including uncommitted local changes).
+5. **If the user commits without you:** on the next session, reconcile `git log` against this file and backfill any gaps immediately.
 
 **Failure to keep docs current is a session failure — treat it like leaving broken code.**
+
+### Per-change checklist (do this every time)
+
+| Step | Action | When |
+|------|--------|------|
+| 1 | Read `AGENT_HANDOVER.md` §0 + changelog + tasks | Start of every session |
+| 2 | Implement code/config change | During work |
+| 3 | Update `AGENT_HANDOVER.md` changelog + tasks | **Same turn** as step 2 |
+| 4 | Update other docs from table below | **Same turn** if affected |
+| 5 | Verify docs match final repo state | Before session ends |
 
 ### Required documentation updates (checklist)
 
@@ -72,6 +88,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 | [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) | Yinka | How to change code and publish safely |
 | [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) | Yinka | WinSCP: copy `data/` folder to live server |
 | [UI-COPY-STANDARDS.md](./UI-COPY-STANDARDS.md) | Agents/devs | No em dashes, Title Case, wording rules |
+| [.cursor/rules/continuous-documentation.mdc](./.cursor/rules/continuous-documentation.mdc) | Agents (auto) | **Always applied** — doc updates same turn as every change |
 | [DEPLOY-TODAY.md](./DEPLOY-TODAY.md) | Yinka | First-time cloud setup (already done) |
 | [README.md](./README.md) | Developers | Technical overview |
 | **AGENT_HANDOVER.md** | Agents | Background, architecture, tasks, changelog |
@@ -80,6 +97,8 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-06-21** — Loan account UX: **Agreed Loan Repayment Schedule** collapsed by default (no Due column; Balance column); actual repayments show running **Balance**; active loans expanded, paid loans collapsed.
+- **2026-06-21** — Strengthened continuous documentation: `.cursor/rules/continuous-documentation.mdc` (`alwaysApply`); §0 self-instructing rules — agents must update docs in the same turn as every change; user must never need to ask for doc updates.
 - **2026-06-21** — Admin can upload member profile photos from **Members & Accounts** (`POST /api/members/:id/photo`); members retain self-service upload/update. **Production:** `git push` only.
 - **2026-06-19** — Fixed member profile photo upload: restore org context after multer async parse (was "No organization selected"); mobile Upload Photo button styled as primary full-width.
 - **2026-06-19** — Full documentation sync: all project docs updated to match codebase; §0 strengthened with continuous documentation rule.
@@ -339,7 +358,7 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 
 11. **User rules** — Do not git commit unless asked. Use `gh` for PRs. Real shell environment.
 
-12. **Documentation** — §0 requires continuous updates. Read `AGENT_HANDOVER.md` first every session.
+12. **Documentation** — `.cursor/rules/continuous-documentation.mdc` is `alwaysApply: true`. Update docs in the **same turn** as every change. Read `AGENT_HANDOVER.md` first every session. The user must never need to ask for doc updates.
 
 ---
 
@@ -415,6 +434,6 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 
 ---
 
-*End of handover. UI copy rules: `.cursor/rules/ui-copy-standards.mdc`.*
+*End of handover. UI copy: `.cursor/rules/ui-copy-standards.mdc`. Continuous docs: `.cursor/rules/continuous-documentation.mdc` (always apply).*
 
 **User docs:** [USER-GUIDE.md](./USER-GUIDE.md) · **Publish updates:** [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) · **Technical:** [README.md](./README.md)

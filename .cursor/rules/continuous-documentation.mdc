@@ -1,0 +1,52 @@
+---
+description: Mandatory continuous documentation — update AGENT_HANDOVER and related docs in the same turn as every app change. The user must never have to ask for doc updates.
+alwaysApply: true
+---
+
+# Continuous Documentation (Mandatory)
+
+**Read [AGENT_HANDOVER.md](../../AGENT_HANDOVER.md) §0 at the start of every session.**
+
+## Non-negotiable rule
+
+Every code, config, schema, script, or user-visible change **MUST** be documented **immediately** — in the **same session**, ideally the **same turn** as the change lands.
+
+- **Not** at session end only.
+- **Not** when the user asks.
+- **Not** only on git commit.
+
+**The user must never have to request documentation updates.** If docs are stale, the session failed — treat it like leaving broken code.
+
+## Required workflow (every change)
+
+1. **Before relying on chat history:** read `AGENT_HANDOVER.md` (§0 + changelog + outstanding tasks).
+2. **Implement** the change.
+3. **In the same turn** (before replying to the user), update all affected docs per the checklist in `AGENT_HANDOVER.md` §0:
+   - **Always:** `AGENT_HANDOVER.md` — append § Changelog bullet + update § Outstanding tasks.
+   - **When applicable:** `USER-GUIDE.md`, `README.md`, `UPDATE-AND-PUBLISH.md`, `UPLOAD-DATA-TO-PRODUCTION.md`, `UI-COPY-STANDARDS.md`, `.cursor/rules/ui-copy-standards.mdc`, port docs.
+4. **Before ending any session** that touched code or config: verify docs match the final state (including uncommitted local changes).
+5. **If the user commits without you:** on the next session, run `git log` and backfill any changelog gaps immediately.
+
+## Changelog format
+
+Append under `AGENT_HANDOVER.md` § Changelog as soon as the change is made:
+
+```
+- **YYYY-MM-DD** — What changed, why, and production/deploy notes (git push only vs WinSCP data upload).
+```
+
+## Outstanding tasks
+
+- Add new tasks the moment they are discovered.
+- Mark ✅ or remove the moment they are completed.
+- Reprioritize when scope changes.
+
+## Document map
+
+| Change type | Update |
+|-------------|--------|
+| Any feature, fix, behavior | `AGENT_HANDOVER.md` |
+| User-visible screens/workflows | `USER-GUIDE.md` |
+| Deploy / publish / data upload | `UPDATE-AND-PUBLISH.md`, `UPLOAD-DATA-TO-PRODUCTION.md` |
+| Architecture / ports / layout | `README.md` |
+| UI labels / copy conventions | `UI-COPY-STANDARDS.md`, `ui-copy-standards.mdc` |

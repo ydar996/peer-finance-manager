@@ -6,6 +6,8 @@ alwaysApply: true
 
 # UI Copy Standards
 
+**Agents:** When you change user-facing copy, update [AGENT_HANDOVER.md](../AGENT_HANDOVER.md) § Changelog in the **same turn**. Follow `.cursor/rules/continuous-documentation.mdc` — the user must never have to ask for doc updates.
+
 Apply to all user-facing text: headers, paragraphs, hints, labels, buttons, badges, table headers, and dynamic strings in the web UI and PDF statement labels.
 
 ## Title Case
