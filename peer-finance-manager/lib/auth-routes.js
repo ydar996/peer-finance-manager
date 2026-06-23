@@ -23,6 +23,7 @@ const {
   getMemberLoanLedgerSummary,
   hasBankLoanLedger,
 } = require("./loan-ledger-service");
+const path = require("path");
 const { requireAuth, requireAdmin, requireMemberSelf, getToken } = require("./auth-middleware");
 const { runWithOrg } = require("./org-context");
 const {
@@ -181,28 +182,46 @@ function registerAuthRoutes(app, deps = {}) {
   });
 
   if (upload) {
+    function handleMemberPhotoUpload(req, res, memberId) {
+      const slug = requestOrgSlug(req);
+      if (!slug) {
+        return res.status(400).json({ error: "No organization selected" });
+      }
+      runWithOrg(slug, () => {
+        try {
+          const result = saveMemberPhotoUpload(memberId, req.file);
+          const profile = getMemberProfile(memberId);
+          res.json({ success: true, ...result, profile });
+        } catch (err) {
+          res.status(400).json({ error: err.message });
+        }
+      });
+    }
+
     app.post(
       "/api/me/profile/photo",
       requireAuth,
       upload.single("photo"),
       (req, res) => {
-        try {
-          const user = req.user;
-          if (user.role !== ROLES.MEMBER || !user.memberId) {
-            return res.status(403).json({ error: "Member account required" });
-          }
-          const slug = requestOrgSlug(req);
-          if (!slug) {
-            return res.status(400).json({ error: "No organization selected" });
-          }
-          runWithOrg(slug, () => {
-            const result = saveMemberPhotoUpload(user.memberId, req.file);
-            const profile = getMemberProfile(user.memberId);
-            res.json({ success: true, ...result, profile });
-          });
-        } catch (err) {
-          res.status(400).json({ error: err.message });
+        const user = req.user;
+        if (user.role !== ROLES.MEMBER || !user.memberId) {
+          return res.status(403).json({ error: "Member account required" });
         }
+        handleMemberPhotoUpload(req, res, user.memberId);
+      }
+    );
+
+    app.post(
+      "/api/members/:id/photo",
+      requireAuth,
+      requireAdmin,
+      upload.single("photo"),
+      (req, res) => {
+        const memberId = Number(req.params.id);
+        if (!memberId) {
+          return res.status(400).json({ error: "Invalid member id" });
+        }
+        handleMemberPhotoUpload(req, res, memberId);
       }
     );
   }

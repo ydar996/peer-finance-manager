@@ -20,7 +20,7 @@
 
 - **My Profile** — expand **Membership Biodata** to review your details (read-only; contact the cooperative to change other fields)
 - **Emergency Contact** — expand to view or update your emergency contact (optional)
-- **Profile Photo** — optional upload
+- **Profile Photo** — optional upload or update (members can change a photo the cooperative already added)
 - Contributions account balance and transaction history with running balance
 - Loan account (if you have a loan)
 - Download **monthly statement PDF**
@@ -44,7 +44,7 @@
 | Tab | What it does |
 |-----|----------------|
 | **Cooperative Books** | Income, expenses, member contributions, loans summary; CD balance and **Expected CD Interest** |
-| **Members & Accounts** | Member list, balances, full profiles (admin view) |
+| **Members & Accounts** | Member list, balances, full profiles; select a member to **Upload Photo** (admin) |
 | **Statements** | Generate batch PDF statements |
 | **Loans** | View and manage loans |
 | **Record** | Add members, record contributions, fees, expenses |

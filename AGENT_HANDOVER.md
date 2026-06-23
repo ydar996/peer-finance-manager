@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** June 19, 2026 (documentation sync)  
+**Last updated:** June 21, 2026 (admin member photo upload)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -80,6 +80,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-06-21** — Admin can upload member profile photos from **Members & Accounts** (`POST /api/members/:id/photo`); members retain self-service upload/update. **Production:** `git push` only.
 - **2026-06-19** — Fixed member profile photo upload: restore org context after multer async parse (was "No organization selected"); mobile Upload Photo button styled as primary full-width.
 - **2026-06-19** — Full documentation sync: all project docs updated to match codebase; §0 strengthened with continuous documentation rule.
 - **2026-06-19** — Fixed Gbanju alias (`GBANJU P ARUWAYOOBE`); CD balance updated to $7,211.82 with term metrics and **Expected CD Interest** dashboard card; bank re-import now 0 skipped rows (57 loan repayments).
@@ -284,13 +285,12 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 | 3 | **Profiles for Olawale George & Kehinde Agboola** | No WPForms row. |
 | 4 | **PC ↔ cloud data sync** | Manual WinSCP only today; re-upload after each local data change. |
 | 5 | **Wire bank import into Import tab UI** | CLI `pfm:import-bank` works; admin UI still preview-only. |
-| 6 | **Commit/push pending UI fixes** | Mobile Description toggle, loan-statement date fix, monthly transaction groups — verify committed and deployed. |
 
 ### High — user said they will provide info later
 
 | # | Task | Notes |
 |---|------|-------|
-| 7 | **Member photos** | Upload works in portal; most members still on placeholder SVG. |
+| 7 | **Member photos** | Admin and member upload supported; most members still on placeholder SVG. |
 
 ### Medium — operational
 

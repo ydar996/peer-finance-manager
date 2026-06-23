@@ -105,18 +105,21 @@ th { background: #f8fafc; font-weight: 600; }
   flex-wrap: wrap;
   margin-bottom: 16px;
 }
-.my-profile-card .profile-photo-upload {
+.my-profile-card .profile-photo-upload,
+.profile-card .profile-photo-upload {
   margin-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 6px;
   align-items: center;
 }
-.my-profile-card .profile-photo-upload input[type="file"] {
+.my-profile-card .profile-photo-upload input[type="file"],
+.profile-card .profile-photo-upload input[type="file"] {
   max-width: 220px;
   font-size: 12px;
 }
-.my-profile-card .profile-photo-upload .profile-photo-submit-btn {
+.my-profile-card .profile-photo-upload .profile-photo-submit-btn,
+.profile-card .profile-photo-upload .profile-photo-submit-btn {
   width: 100%;
   min-height: 44px;
   font-weight: 600;
@@ -412,14 +415,17 @@ tr.loan-row:hover { background: #f8fafc; }
     text-align: center;
     gap: 16px;
   }
-  .my-profile-card .profile-photo-upload {
+  .my-profile-card .profile-photo-upload,
+  .profile-card .profile-photo-upload {
     width: 100%;
     max-width: 280px;
   }
-  .my-profile-card .profile-photo-upload input[type="file"] {
+  .my-profile-card .profile-photo-upload input[type="file"],
+  .profile-card .profile-photo-upload input[type="file"] {
     max-width: 100%;
   }
-  .my-profile-card .profile-photo-upload .profile-photo-submit-btn {
+  .my-profile-card .profile-photo-upload .profile-photo-submit-btn,
+  .profile-card .profile-photo-upload .profile-photo-submit-btn {
     width: 100%;
   }
   .profile-summary-hint,

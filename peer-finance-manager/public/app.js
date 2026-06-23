@@ -751,6 +751,35 @@ async function bindProfilePhotoImage(img, memberId) {
   }
 }
 
+function bindAdminProfilePhotoUpload(root, memberId) {
+  const form = root?.querySelector("#adminProfilePhotoForm");
+  if (!form) return;
+
+  const status = root.querySelector("#adminProfilePhotoStatus");
+  const img = root.querySelector(".profile-photo");
+  const caption = root.querySelector(".photo-caption");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setFormStatus(status, "Uploading…");
+    try {
+      const file = form.querySelector('input[type="file"]')?.files?.[0];
+      if (!file) throw new Error("Choose a photo first");
+      const fd = new FormData();
+      fd.append("photo", file);
+      const res = await fetch(`/api/members/${memberId}/photo`, { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      setFormStatus(status, "Profile photo saved.", true);
+      form.reset();
+      if (caption) caption.textContent = "Member Photo";
+      await bindProfilePhotoImage(img, memberId);
+    } catch (err) {
+      setFormStatus(status, err.message, false);
+    }
+  });
+}
+
 function emergencyContactName(profile) {
   return [profile?.next_of_kin_first_name, profile?.next_of_kin_last_name]
     .filter(Boolean)
@@ -1314,6 +1343,18 @@ async function showProfile(memberId) {
         <div class="profile-photo-wrap">
           <img class="profile-photo" src="${PLACEHOLDER_PHOTO}" alt="" />
           <p class="photo-caption">${p.photo_path ? "Member Photo" : "No Photo on File"}</p>
+          ${
+            currentUser?.role === "admin"
+              ? `
+          <form id="adminProfilePhotoForm" class="profile-photo-upload">
+            <label class="subtle profile-photo-file-label">Choose Photo
+              <input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif" />
+            </label>
+            <button type="submit" class="btn primary profile-photo-submit-btn">Upload Photo</button>
+          </form>
+          <p id="adminProfilePhotoStatus" class="status"></p>`
+              : ""
+          }
         </div>
         <div class="profile-summary">
           <h3>${escapeHtml(p.display_name || p.ledger_account_name)}</h3>
@@ -1391,6 +1432,7 @@ async function showProfile(memberId) {
   pendingAccountPanel = null;
   bindMemberAccountCards(el, memberId, initialPanel);
   bindProfilePhotoImage(el.querySelector(".profile-photo"), memberId);
+  bindAdminProfilePhotoUpload(el, memberId);
   el.querySelector("[data-edit-profile]")?.addEventListener("click", () => {
     openMemberProfileEditor(memberId);
   });
