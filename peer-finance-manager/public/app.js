@@ -1042,12 +1042,20 @@ function statementMonthsFromDates(dates) {
   return [...months.values()].sort((a, b) => b.year - a.year || b.month - a.month);
 }
 
+function schedulePeriodAmount(row) {
+  const interest = Number(row.interest) || 0;
+  const principal = Number(row.principal) || 0;
+  const totalDue = Number(row.totalDue);
+  if (totalDue > 0.005) return totalDue;
+  return Math.round((interest + principal) * 100) / 100;
+}
+
 function loanTotalDue(lot) {
   if (lot?.scheduledTotalPayable != null && lot.scheduledTotalPayable > 0) {
     return lot.scheduledTotalPayable;
   }
   const scheduleSum = (lot?.schedule || []).reduce(
-    (sum, row) => sum + (Number(row.totalDue) || 0),
+    (sum, row) => sum + schedulePeriodAmount(row),
     0
   );
   if (scheduleSum > 0.005) return scheduleSum;
@@ -1367,12 +1375,11 @@ function loanScheduleHtml(lot) {
   let balance = loanTotalDue(lot);
   const rows = lot.schedule
     .map((row) => {
-      const payment = Number(row.totalDue) || 0;
-      balance = Math.max(0, Math.round((balance - payment) * 100) / 100);
+      const periodTotal = schedulePeriodAmount(row);
+      balance = Math.max(0, Math.round((balance - periodTotal) * 100) / 100);
       return `
       <tr>
         <td>${row.period}</td>
-        <td class="money">${fmt.format(payment)}</td>
         <td class="money">${fmt.format(row.interest || 0)}</td>
         <td class="money">${fmt.format(row.principal || 0)}</td>
         <td class="money">${fmt.format(balance)}</td>
@@ -1391,12 +1398,12 @@ function loanScheduleHtml(lot) {
     <details class="profile-disclosure loan-schedule-disclosure">
       <summary>Agreed Loan Repayment Schedule</summary>
       <div class="profile-disclosure-body">
-        <p class="subtle profile-disclosure-note">Informational Only : Actual Repayments Come From Bank Records.</p>
+        <p class="subtle profile-disclosure-note">Informational Only : Actual Repayments Come From Bank Records. Balance drops by interest plus principal each period.</p>
         ${scheduleMeta.length ? `<p class="subtle">${scheduleMeta.join(" · ")}</p>` : ""}
         <div class="table-wrap compact">
           <table>
             <thead>
-              <tr><th>#</th><th>Payment</th><th>Interest</th><th>Principal</th><th>Balance</th></tr>
+              <tr><th>#</th><th>Interest</th><th>Principal</th><th>Balance</th></tr>
             </thead>
             <tbody>${rows}</tbody>
           </table>
