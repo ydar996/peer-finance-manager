@@ -2,11 +2,20 @@ const { getDb } = require("../db/database");
 const { addTransaction } = require("./balance-service");
 const { MEMBERSHIP_FEE, TRANSACTION_TYPES } = require("./constants");
 const { buildFullName, zelleNameFromApplication } = require("./member-name-match");
+const {
+  formatPersonName,
+  formatNamePart,
+  normalizeProfileFields,
+} = require("./text-format");
 
 function resolveLedgerName({ name, firstName, middleName, lastName }) {
   const trimmed = String(name || "").trim();
-  if (trimmed) return trimmed;
-  const full = buildFullName(firstName, middleName, lastName);
+  if (trimmed) return formatPersonName(trimmed);
+  const full = buildFullName(
+    formatNamePart(firstName),
+    formatNamePart(middleName),
+    formatNamePart(lastName)
+  );
   if (!full) throw new Error("Ledger account name or member name is required");
   return full;
 }
@@ -35,7 +44,7 @@ function profileFieldsFromPayload(payload) {
     buildFullName(firstName, middleName, lastName) ||
     null;
 
-  return {
+  return normalizeProfileFields({
     first_name: firstName,
     middle_name: middleName,
     last_name: lastName,
@@ -61,7 +70,7 @@ function profileFieldsFromPayload(payload) {
       zelleNameFromApplication(firstName, middleName, lastName),
     cooperative_account_status: payload.cooperativeAccountStatus?.trim() || "active",
     application_source: payload.applicationSource?.trim() || "Manual entry",
-  };
+  });
 }
 
 function upsertMemberProfile(db, memberId, fields) {
@@ -216,7 +225,7 @@ function updateMemberProfile(memberId, payload = {}) {
     : incoming;
 
   if (payload.name?.trim() && payload.name.trim() !== member.name) {
-    const newName = payload.name.trim();
+    const newName = formatPersonName(payload.name.trim());
     const clash = db.prepare(`SELECT id FROM members WHERE name = ? AND id != ?`).get(newName, memberId);
     if (clash) throw new Error(`Member name "${newName}" is already in use`);
     db.prepare(`UPDATE members SET name = ? WHERE id = ?`).run(newName, memberId);

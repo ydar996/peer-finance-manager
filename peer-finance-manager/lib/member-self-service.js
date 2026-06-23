@@ -1,4 +1,9 @@
 const fs = require("fs");
+const {
+  formatNamePart,
+  formatEmail,
+  formatTitleField,
+} = require("./text-format");
 const path = require("path");
 const { getDb, DATA_DIR } = require("../db/database");
 
@@ -93,11 +98,11 @@ function updateMemberEmergencyContact(memberId, payload = {}) {
 
   ensureMemberProfileRow(db, memberId);
 
-  const firstName = payload.emergencyFirstName?.trim() || null;
-  const lastName = payload.emergencyLastName?.trim() || null;
-  const email = payload.emergencyEmail?.trim() || null;
+  const firstName = formatNamePart(payload.emergencyFirstName?.trim()) || null;
+  const lastName = formatNamePart(payload.emergencyLastName?.trim()) || null;
+  const email = formatEmail(payload.emergencyEmail) || null;
   const phone = payload.emergencyPhone?.trim() || null;
-  const relationship = payload.emergencyRelationship?.trim() || null;
+  const relationship = formatTitleField(payload.emergencyRelationship?.trim()) || null;
 
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error("Emergency contact email is not valid");

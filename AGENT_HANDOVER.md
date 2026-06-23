@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** June 21, 2026 (loan account UX)  
+**Last updated:** June 18, 2026 (member biodata Title Case)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-06-18** — Member biodata Title Case: `peer-finance-manager/lib/text-format.js` normalizes names (e.g. `saheed a salami` → `Saheed A. Salami`), city, gender, address, and relationship on create/update/import; display path formats legacy DB rows. WPForms import keeps raw `applicationName` for ledger matching. **Production:** `git push` only.
 - **2026-06-21** — Typography hierarchy: section headers larger/bolder than description (`.subtle`) text app-wide.
 - **2026-06-21** — Agreed Loan Repayment Schedule: removed empty Payment column; balance reduces by interest plus principal each period.
 - **2026-06-21** — Loan repayment **Balance** now tracks **principal still owed** (matches Paid status); repayments list newest-first. Fixes paid loans showing non-zero balance when total payable included unearned scheduled interest.

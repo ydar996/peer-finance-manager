@@ -3,6 +3,7 @@ const { getMemberAccountSummary } = require("./cooperative-books");
 const { attachDepositRunningBalances } = require("./balance-service");
 const { getMemberLoanLots, hasBankLoanLedger } = require("./loan-ledger-service");
 const { TRANSACTION_TYPES } = require("./constants");
+const { formatPersonName, formatMemberProfileForDisplay } = require("./text-format");
 
 function listMembersWithProfiles() {
   const db = getDb();
@@ -25,7 +26,16 @@ function listMembersWithProfiles() {
       .prepare(`SELECT COUNT(*) AS c FROM transactions WHERE member_id = ?`)
       .get(m.id).c;
     return {
-      ...m,
+      ...formatMemberProfileForDisplay({
+        ...m,
+        ledger_account_name: m.name,
+        display_name: m.display_name,
+      }),
+      id: m.id,
+      name: formatPersonName(m.name) || m.name,
+      joined_at: m.joined_at,
+      membership_fee_paid: m.membership_fee_paid,
+      profile_id: m.profile_id,
       deposit_balance: accounts.depositAccountBalance,
       loan_balance: accounts.loanAccountBalance,
       active_loans: accounts.activeLoans,
@@ -75,8 +85,9 @@ function getMemberProfile(memberId) {
       : [];
 
   return {
-    ...profile,
+    ...formatMemberProfileForDisplay(profile),
     member_id: memberId,
+    name: formatPersonName(profile.ledger_account_name) || profile.ledger_account_name,
     deposit_account_balance: accounts.depositAccountBalance,
     loan_account_balance: accounts.loanAccountBalance,
     loan_overpayment_credit: accounts.loanOverpaymentCredit || 0,

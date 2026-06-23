@@ -6,6 +6,7 @@ const {
   resolveLedgerMemberName,
   zelleNameFromApplication,
 } = require("./member-name-match");
+const { normalizeProfileFields } = require("./text-format");
 
 function parseCsvLine(line) {
   const result = [];
@@ -76,8 +77,7 @@ function rowToProfileFields(row) {
   const last = row["Last Name"]?.trim() || null;
   const applicationName = buildFullName(first, middle, last);
 
-  return {
-    applicationName,
+  const fields = normalizeProfileFields({
     first_name: first,
     middle_name: middle,
     last_name: last,
@@ -108,7 +108,9 @@ function rowToProfileFields(row) {
     zelle_bank_name: zelleNameFromApplication(first, middle, last),
     cooperative_account_status: "active",
     application_source: "WPForms membership application",
-  };
+  });
+
+  return { ...fields, applicationName };
 }
 
 function importWpformsProfiles(csvPath, options = {}) {
@@ -180,9 +182,10 @@ function importWpformsProfiles(csvPath, options = {}) {
 
       insertMember.run(ledgerName);
       const member = getMember.get(ledgerName);
-      upsertProfile.run({ member_id: member.id, ...fields });
+      const { applicationName, ...profileFields } = fields;
+      upsertProfile.run({ member_id: member.id, ...profileFields });
       matched.push({
-        applicationName: fields.applicationName,
+        applicationName,
         ledgerName,
         memberId: member.id,
       });
