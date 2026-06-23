@@ -4,11 +4,70 @@ body {
   font-family: "Segoe UI", system-ui, sans-serif;
   background: #f1f5f9;
   color: #0f172a;
+  font-size: 15px;
+  line-height: 1.5;
 }
 .app { max-width: 1280px; margin: 0 auto; padding: 24px; }
 .brand { font-size: 12px; color: #64748b; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.06em; }
 h1 { margin: 0 0 4px; font-size: 28px; }
-.subtle { color: #64748b; margin: 0; }
+.subtle {
+  color: #64748b;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Section headers sit above description/subtle text in size and weight */
+.section-title,
+.account-card h4,
+.profile-grid h4,
+.loan-repayments-title,
+.panel-head h3,
+.panel-head h4,
+.card h3,
+.loan-lot-summary strong {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.section-title {
+  margin: 20px 0 8px;
+  font-size: 16px;
+}
+
+.account-card h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #334155;
+}
+
+.profile-grid h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.loan-repayments-title {
+  margin: 16px 0 4px;
+  font-size: 14px;
+}
+
+.loan-lot-summary strong {
+  font-size: 15px;
+}
+
+.profile-disclosure summary {
+  padding: 12px 14px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  color: #1e293b;
+}
 .tabs { display: flex; gap: 8px; margin: 24px 0 16px; }
 .tab {
   border: 1px solid #cbd5e1;
@@ -21,6 +80,12 @@ h1 { margin: 0 0 4px; font-size: 28px; }
 .panel { display: none; }
 .panel.active { display: block; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.panel-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
 .panel-head-actions { display: flex; gap: 8px; align-items: center; }
 .table-wrap { overflow-x: auto; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -43,8 +108,8 @@ th { background: #f8fafc; font-weight: 600; }
   padding: 20px;
   margin-bottom: 16px;
 }
-.card h3 { margin: 0 0 8px; font-size: 16px; }
-.hint { color: #64748b; font-size: 13px; margin: 0 0 12px; }
+.card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 600; color: #1e293b; }
+.hint { color: #64748b; font-size: 12px; margin: 0 0 12px; line-height: 1.45; }
 .card form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .status { font-size: 13px; margin-top: 10px; min-height: 20px; }
 .status.ok { color: #047857; }
@@ -124,7 +189,7 @@ th { background: #f8fafc; font-weight: 600; }
   min-height: 44px;
   font-weight: 600;
 }
-.profile-summary h3 { margin: 0 0 8px; }
+.profile-summary h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600; color: #1e293b; }
 .profile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -134,13 +199,6 @@ th { background: #f8fafc; font-weight: 600; }
   background: #f8fafc;
   border-radius: 10px;
   padding: 14px;
-}
-.profile-grid h4 {
-  margin: 0 0 10px;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #64748b;
 }
 .profile-grid dl { margin: 0; }
 .profile-grid dt {
@@ -174,14 +232,6 @@ th { background: #f8fafc; font-weight: 600; }
   border-radius: 10px;
   margin-top: 12px;
   background: #fff;
-}
-.profile-disclosure summary {
-  padding: 12px 14px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
 }
 .profile-disclosure summary::-webkit-details-marker { display: none; }
 .profile-disclosure summary::before {
@@ -343,7 +393,10 @@ th { background: #f8fafc; font-weight: 600; }
 .account-card.deposit.selected { border-color: #16a34a; box-shadow: 0 0 0 2px #16a34a; }
 .account-card.loan { background: #fff7ed; border-color: #fdba74; }
 .account-card.loan.selected { border-color: #ea580c; box-shadow: 0 0 0 2px #ea580c; }
-.account-card h4 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; color: #64748b; }
+.account-card .subtle {
+  font-size: 12px;
+  line-height: 1.4;
+}
 .account-card-hint {
   margin: 10px 0 0;
   font-size: 12px;
@@ -407,17 +460,12 @@ th { background: #f8fafc; font-weight: 600; }
 }
 .loan-lot-actions .btn.small { margin-left: 0; }
 .loan-schedule-disclosure { margin: 12px 0; }
-.loan-repayments-title {
-  margin: 16px 0 4px;
-  font-size: 13px;
-}
 .loan-repayments-hint { margin: 0 0 8px; }
 .my-loan-card > summary.my-loan-summary {
   align-items: center;
 }
 .my-loan-card > summary.my-loan-summary h4 {
   margin: 0;
-  font-size: 15px;
 }
 .loan-lot-head {
   display: flex;
@@ -435,7 +483,6 @@ tr.loan-row:hover { background: #f8fafc; }
 }
 .loan-lot-head .btn.small { flex-shrink: 0; }
 .account-balance { font-size: 24px; font-weight: 700; margin: 0; }
-.section-title { margin: 20px 0 8px; font-size: 14px; }
 .table-wrap.compact table { font-size: 12px; }
 .table-wrap.compact th, .table-wrap.compact td { padding: 8px 10px; }
 .record-grid {
