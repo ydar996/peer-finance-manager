@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** June 18, 2026 (member biodata Title Case)  
+**Last updated:** June 18, 2026 (navigation responsiveness pass)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -97,7 +97,10 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
-- **2026-06-18** — Member biodata Title Case: `peer-finance-manager/lib/text-format.js` normalizes names (e.g. `saheed a salami` → `Saheed A. Salami`), city, gender, address, and relationship on create/update/import; display path formats legacy DB rows. WPForms import keeps raw `applicationName` for ledger matching. **Production:** `git push` only.
+- **2026-06-18** — Navigation responsiveness pass: tab re-click resets sub-views (books detail, member account panels, loan rows); async request guards on books, members, profiles, loans, My Account, Record, and statements; loading/busy states on Refresh actions; book detail → member uses instant `selectMember()`; Record tab skips redundant refetch on re-click; mobile tab bar wraps/scrolls. **Production:** `git push` only.
+- **2026-06-18** — Fixed unresponsive tab navigation: re-clicking **Cooperative Books** now returns to the summary from book detail; member row clicks no longer refetch the full list (avoids race conditions); stale async profile/book detail loads are cancelled. **Production:** `git push` only.
+- **2026-06-18** — Cooperative Books: added subtitle on **Member Contributions & Withdrawals** card clarifying it excludes distributions and registration fees. **Production:** `git push` only.
+- **2026-06-18** — Member biodata Title Case: `peer-finance-manager/lib/text-format.js` normalizes names (e.g. `saheed a salami` → `Saheed A. Salami`), city, gender, address, and relationship on create/update/import; display path formats legacy DB rows. WPForms import keeps raw `applicationName` for ledger matching. **Deployed:** `2ce0dd7` (`git push`).
 - **2026-06-21** — Typography hierarchy: section headers larger/bolder than description (`.subtle`) text app-wide.
 - **2026-06-21** — Agreed Loan Repayment Schedule: removed empty Payment column; balance reduces by interest plus principal each period.
 - **2026-06-21** — Loan repayment **Balance** now tracks **principal still owed** (matches Paid status); repayments list newest-first. Fixes paid loans showing non-zero balance when total payable included unearned scheduled interest.

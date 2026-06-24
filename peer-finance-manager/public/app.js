@@ -10,6 +10,36 @@ const DEFAULT_ORG_SLUG = "assurance";
 let sessionToken = localStorage.getItem(SESSION_KEY) || "";
 let currentUser = null;
 
+let activeTab = null;
+let selectedMemberId = null;
+let pendingAccountPanel = null;
+let loadedProfileMemberId = null;
+let membersListRequestId = 0;
+let profileRequestId = 0;
+let bookDetailRequestId = 0;
+let booksRequestId = 0;
+let loansRequestId = 0;
+let loanDetailRequestId = 0;
+let myAccountRequestId = 0;
+let recordTabRequestId = 0;
+let profileFormRequestId = 0;
+let statementInspectRequestId = 0;
+
+function setButtonBusy(button, busy, busyLabel = "Loading…") {
+  if (!button) return;
+  if (busy) {
+    if (!button.dataset.busyLabel) button.dataset.busyLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = busyLabel;
+  } else {
+    button.disabled = false;
+    if (button.dataset.busyLabel) {
+      button.textContent = button.dataset.busyLabel;
+      delete button.dataset.busyLabel;
+    }
+  }
+}
+
 const nativeFetch = window.fetch.bind(window);
 window.fetch = function patchedFetch(url, options = {}) {
   const path = typeof url === "string" ? url : url?.url || "";
@@ -295,11 +325,18 @@ async function loadUsers() {
 }
 
 async function loadMyAccount() {
+  const requestId = ++myAccountRequestId;
   const summary = $("#myAccountSummary");
   const depositBody = $("#myDepositBody");
   const loanLots = $("#myLoanLots");
+  const refreshBtn = $("#refreshMyAccount");
+  if (summary) summary.innerHTML = '<p class="subtle">Loading account…</p>';
+  if (depositBody) depositBody.innerHTML = '<tr><td colspan="5" class="subtle">Loading…</td></tr>';
+  if (loanLots) loanLots.innerHTML = '<p class="subtle">Loading loans…</p>';
+  setButtonBusy(refreshBtn, true);
   try {
     const res = await fetch("/api/me/account");
+    if (requestId !== myAccountRequestId) return;
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     const profile = data.profile;
@@ -409,9 +446,12 @@ async function loadMyAccount() {
       });
     });
   } catch (err) {
+    if (requestId !== myAccountRequestId) return;
     if (summary) summary.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
     if (depositBody) depositBody.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
     if (loanLots) loanLots.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+  } finally {
+    if (requestId === myAccountRequestId) setButtonBusy(refreshBtn, false);
   }
 }
 
@@ -449,28 +489,78 @@ function formatDate(value) {
   });
 }
 
-function switchTab(name) {
+function switchTab(name, options = {}) {
+  const sameTab = activeTab === name;
+  closeBookDetail();
+  collapseLoanDetails(true);
+
   document.querySelectorAll(".tab").forEach((t) => {
     t.classList.toggle("active", t.dataset.tab === name);
   });
   document.querySelectorAll(".panel").forEach((p) => {
     p.classList.toggle("active", p.id === `panel-${name}`);
   });
-  if (name !== "books") closeBookDetail();
-  if (name === "record") loadRecordTabData();
-  if (name === "users" && currentUser?.role === "admin") {
+
+  if (name === "members") resetMemberProfileView();
+  if (name === "record" && !sameTab && !options.skipRecordLoad) loadRecordTabData();
+  if (name === "users" && currentUser?.role === "admin" && !sameTab) {
     initMemberPickers();
     loadUsers();
   }
-  if (name === "my-account" && currentUser?.role === "member") loadMyAccount();
+  if (name === "my-account" && currentUser?.role === "member" && !sameTab) loadMyAccount();
+
+  activeTab = name;
 }
 
 document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => switchTab(btn.dataset.tab));
 });
 
-let selectedMemberId = null;
-let pendingAccountPanel = null;
+function hideLoanDetailRows(clearContent = false) {
+  document.querySelectorAll(".loan-detail-row").forEach((row) => {
+    row.classList.add("hidden");
+    if (clearContent) {
+      const cell = row.querySelector(".loan-detail-cell");
+      if (cell) {
+        cell.textContent = "Click the loan row to load disbursement and repayment details.";
+      }
+    }
+  });
+}
+
+function cancelLoanDetailLoads() {
+  loanDetailRequestId += 1;
+}
+
+function collapseLoanDetails(clearContent = false) {
+  cancelLoanDetailLoads();
+  hideLoanDetailRows(clearContent);
+}
+
+function resetMemberProfileView() {
+  const root = $("#memberDetail");
+  if (!root) return;
+  root.querySelector("#memberAccountDetail")?.classList.add("hidden");
+  root.querySelectorAll(".account-card[data-account-panel]").forEach((card) => {
+    card.classList.remove("selected");
+    card.setAttribute("aria-expanded", "false");
+  });
+  root.querySelectorAll("details.profile-disclosure, details.loan-lot-disclosure, details.loan-schedule-disclosure").forEach((el) => {
+    el.open = false;
+  });
+}
+
+function navigateToMemberFromBooks(memberId, accountPanel = "deposit") {
+  const membersLoaded = Boolean($("#membersBody")?.querySelector(".member-row"));
+  switchTab("members");
+  if (membersLoaded) {
+    selectMember(memberId, accountPanel);
+  } else {
+    selectedMemberId = memberId;
+    pendingAccountPanel = accountPanel;
+    loadMembers();
+  }
+}
 
 function formatDetailCell(value, format) {
   if (format === "money") return fmt.format(Number(value) || 0);
@@ -488,11 +578,13 @@ function bookCardHtml(slug, { accent, label, amount, note }) {
 }
 
 function closeBookDetail() {
+  bookDetailRequestId += 1;
   $("#booksDetail")?.classList.add("hidden");
   $("#booksSummary")?.classList.remove("hidden");
 }
 
 async function openBookDetail(slug) {
+  const requestId = ++bookDetailRequestId;
   const detailEl = $("#booksDetail");
   const summaryEl = $("#booksSummary");
   const body = $("#booksDetailBody");
@@ -504,6 +596,7 @@ async function openBookDetail(slug) {
 
     const res = await fetch(`/api/books/detail/${encodeURIComponent(slug)}`);
     const data = await res.json();
+    if (requestId !== bookDetailRequestId) return;
     if (!res.ok) throw new Error(data.error || "Failed to load details");
 
     const detail = data.detail;
@@ -525,9 +618,7 @@ async function openBookDetail(slug) {
       };
       tabLink.textContent = `Open ${tabLabels[detail.navigateTab] || detail.navigateTab}`;
       tabLink.onclick = () => {
-        closeBookDetail();
         switchTab(detail.navigateTab);
-        if (detail.navigateTab === "record") loadRecordTabData();
       };
     } else {
       tabLink.hidden = true;
@@ -559,14 +650,11 @@ async function openBookDetail(slug) {
 
     body.querySelectorAll(".detail-member-row").forEach((row) => {
       row.addEventListener("click", () => {
-        selectedMemberId = Number(row.dataset.memberId);
-        closeBookDetail();
-        switchTab("members");
-        pendingAccountPanel = "deposit";
-        loadMembers();
+        navigateToMemberFromBooks(Number(row.dataset.memberId), "deposit");
       });
     });
   } catch (err) {
+    if (requestId !== bookDetailRequestId) return;
     $("#booksDetailTitle").textContent = "Details";
     body.innerHTML = `<tr><td class="status err">${escapeHtml(err.message)}</td></tr>`;
   }
@@ -579,9 +667,14 @@ function bindBookCards() {
 }
 
 async function loadBooks() {
+  const requestId = ++booksRequestId;
   const grid = $("#booksGrid");
+  const refreshBtn = $("#refreshBooks");
+  if (grid) grid.innerHTML = '<p class="subtle">Loading books…</p>';
+  setButtonBusy(refreshBtn, true);
   try {
     const res = await fetch("/api/books");
+    if (requestId !== booksRequestId) return;
     const { books } = await res.json();
     if (!res.ok) throw new Error(books?.error || "Failed to load books");
     grid.innerHTML = [
@@ -594,6 +687,7 @@ async function loadBooks() {
       bookCardHtml("deposits-withdrawals", {
         label: "Member Contributions &amp; Withdrawals",
         amount: books.memberDeposits,
+        note: "Contributions Minus Withdrawals Only: Excludes Distributions &amp; Registration Fees",
       }),
       bookCardHtml("registration-income", {
         label: "Registration Income",
@@ -679,21 +773,75 @@ async function loadBooks() {
     ].join("");
     bindBookCards();
   } catch (err) {
+    if (requestId !== booksRequestId) return;
     grid.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+  } finally {
+    if (requestId === booksRequestId) setButtonBusy(refreshBtn, false);
   }
 }
 
 $("#booksDetailBack")?.addEventListener("click", closeBookDetail);
 
-async function loadMembers() {
-  const res = await fetch("/api/members?profiles=true");
-  const { members } = await res.json();
-  const body = $("#membersBody");
-  if (!members.length) {
-    body.innerHTML =
-      '<tr><td colspan="4">No Members. Import Spreadsheet on the Import Tab.</td></tr>';
+function updateMemberRowSelection() {
+  $("#membersBody")?.querySelectorAll(".member-row").forEach((row) => {
+    row.classList.toggle("selected", Number(row.dataset.memberId) === selectedMemberId);
+  });
+}
+
+function bindMemberRowHandlers() {
+  $("#membersBody")?.querySelectorAll(".member-row").forEach((row) => {
+    row.querySelectorAll(".member-account-cell").forEach((cell) => {
+      cell.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectMember(Number(row.dataset.memberId), cell.dataset.accountPanel);
+      });
+    });
+    row.addEventListener("click", () => {
+      selectMember(Number(row.dataset.memberId), null);
+    });
+  });
+}
+
+function selectMember(memberId, accountPanel = null, { force = false } = {}) {
+  if (
+    !force &&
+    accountPanel &&
+    selectedMemberId === memberId &&
+    loadedProfileMemberId === memberId
+  ) {
+    const root = $("#memberDetail");
+    if (root?.querySelector("#memberAccountDetail")) {
+      updateMemberRowSelection();
+      selectMemberAccountPanel(root, accountPanel);
+      root.querySelector("#memberAccountDetail")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
+  }
+  if (!force && !accountPanel && selectedMemberId === memberId && loadedProfileMemberId === memberId) {
+    updateMemberRowSelection();
     return;
   }
+  selectedMemberId = memberId;
+  pendingAccountPanel = accountPanel;
+  updateMemberRowSelection();
+  showProfile(memberId);
+}
+
+async function loadMembers() {
+  const requestId = ++membersListRequestId;
+  const body = $("#membersBody");
+  const refreshBtn = $("#refreshMembers");
+  if (body) body.innerHTML = '<tr><td colspan="4" class="subtle">Loading members…</td></tr>';
+  setButtonBusy(refreshBtn, true);
+  try {
+    const res = await fetch("/api/members?profiles=true");
+    if (requestId !== membersListRequestId) return;
+    const { members } = await res.json();
+    if (!members.length) {
+      body.innerHTML =
+        '<tr><td colspan="4">No Members. Import Spreadsheet on the Import Tab.</td></tr>';
+      return;
+    }
   body.innerHTML = members
     .map(
       (m) => `
@@ -706,27 +854,22 @@ async function loadMembers() {
     )
     .join("");
 
-  body.querySelectorAll(".member-row").forEach((row) => {
-    row.querySelectorAll(".member-account-cell").forEach((cell) => {
-      cell.addEventListener("click", (e) => {
-        e.stopPropagation();
-        selectedMemberId = Number(row.dataset.memberId);
-        pendingAccountPanel = cell.dataset.accountPanel;
-        loadMembers();
-      });
-    });
-    row.addEventListener("click", () => {
-      selectedMemberId = Number(row.dataset.memberId);
-      pendingAccountPanel = null;
-      loadMembers();
-    });
-  });
+  bindMemberRowHandlers();
 
   if (!selectedMemberId && members.length) {
     selectedMemberId = members[0].id;
   }
+  updateMemberRowSelection();
   if (selectedMemberId) {
     showProfile(selectedMemberId);
+  }
+  } catch (err) {
+    if (requestId !== membersListRequestId) return;
+    if (body) {
+      body.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    }
+  } finally {
+    if (requestId === membersListRequestId) setButtonBusy(refreshBtn, false);
   }
 }
 
@@ -1450,9 +1593,13 @@ function loanLotsSectionHtml(lots, memberId) {
 }
 
 async function showProfile(memberId) {
-  const res = await fetch(`/api/members/${memberId}/profile`);
-  const data = await res.json();
+  const requestId = ++profileRequestId;
   const el = $("#memberDetail");
+  if (el) el.innerHTML = '<p class="subtle">Loading profile…</p>';
+
+  const res = await fetch(`/api/members/${memberId}/profile`);
+  if (requestId !== profileRequestId) return;
+  const data = await res.json();
   if (!res.ok) {
     el.innerHTML = `<p class="status err">${escapeHtml(data.error)}</p>`;
     return;
@@ -1561,12 +1708,17 @@ async function showProfile(memberId) {
   el.querySelector("[data-edit-profile]")?.addEventListener("click", () => {
     openMemberProfileEditor(memberId);
   });
+  loadedProfileMemberId = memberId;
 }
 
 async function loadLoans() {
-  const res = await fetch("/api/loans");
-  const { loans } = await res.json();
+  const requestId = ++loansRequestId;
   const body = $("#loansBody");
+  if (body) body.innerHTML = '<tr><td colspan="10" class="subtle">Loading loans…</td></tr>';
+  try {
+    const res = await fetch("/api/loans");
+    if (requestId !== loansRequestId) return;
+    const { loans } = await res.json();
   if (!loans.length) {
     body.innerHTML =
       '<tr><td colspan="10">No Loans Yet. Add Active Loans When Data Is Ready.</td></tr>';
@@ -1604,6 +1756,10 @@ async function loadLoans() {
     row.addEventListener("click", () => toggleLoanDetail(row));
   });
   bindLoanStatementButtons(body);
+  } catch (err) {
+    if (requestId !== loansRequestId) return;
+    if (body) body.innerHTML = `<tr><td colspan="10" class="status err">${escapeHtml(err.message)}</td></tr>`;
+  }
 }
 
 async function toggleLoanDetail(row) {
@@ -1616,7 +1772,9 @@ async function toggleLoanDetail(row) {
     return;
   }
 
-  document.querySelectorAll(".loan-detail-row").forEach((r) => r.classList.add("hidden"));
+  cancelLoanDetailLoads();
+  const requestId = ++loanDetailRequestId;
+  hideLoanDetailRows();
 
   if (row.dataset.ledger !== "1") {
     detailRow.querySelector(".loan-detail-cell").innerHTML =
@@ -1633,7 +1791,9 @@ async function toggleLoanDetail(row) {
     const res = await fetch(
       `/api/loans/ledger/${row.dataset.memberId}/${row.dataset.loanNumber}`
     );
+    if (requestId !== loanDetailRequestId) return;
     const { loan } = await res.json();
+    if (requestId !== loanDetailRequestId) return;
     if (!res.ok) throw new Error(loan?.error || "Failed to load loan details");
     cell.innerHTML = loanLotCardHtml(loan, row.dataset.memberId).replace(
       'class="loan-lot-card loan-lot-disclosure profile-disclosure"',
@@ -1641,6 +1801,7 @@ async function toggleLoanDetail(row) {
     );
     bindLoanStatementButtons(detailRow);
   } catch (err) {
+    if (requestId !== loanDetailRequestId) return;
     cell.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
   }
 }
@@ -1763,6 +1924,7 @@ async function loadStatementFiles() {
 }
 
 async function selectStatementFile(filename) {
+  const requestId = ++statementInspectRequestId;
   selectedStatementFile = filename;
   selectedStatementSheet = null;
   $("#statementFileList").querySelectorAll("li").forEach((li) => {
@@ -1779,12 +1941,14 @@ async function selectStatementFile(filename) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ filename }),
     });
+    if (requestId !== statementInspectRequestId) return;
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     selectedStatementSheet = data.suggestedSheet;
     info.innerHTML = `<strong>${escapeHtml(filename)}</strong><br />Sheet: ${escapeHtml(selectedStatementSheet)} · ${data.memberCount || 0} Members`;
     $("#generateStatementsBtn").disabled = !selectedStatementSheet;
   } catch (err) {
+    if (requestId !== statementInspectRequestId) return;
     info.textContent = err.message;
     $("#generateStatementsBtn").disabled = true;
   }
@@ -2013,10 +2177,17 @@ document.addEventListener("click", (e) => {
 });
 
 async function loadProfileIntoUpdateForm(memberId) {
+  const requestId = ++profileFormRequestId;
   const form = $("#updateProfileForm");
   if (!form) return;
+  const status = $("#updateProfileStatus");
+  if (status) {
+    status.textContent = "Loading profile…";
+    status.className = "status";
+  }
   try {
     const res = await fetch(`/api/members/${memberId}/profile`);
+    if (requestId !== profileFormRequestId) return;
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Could not load profile");
     const p = data.profile;
@@ -2051,14 +2222,18 @@ async function loadProfileIntoUpdateForm(memberId) {
     if (pickerInput) {
       pickerInput.value = p.display_name || p.ledger_account_name || "";
     }
+    if (status) {
+      status.textContent = "";
+      status.className = "status";
+    }
   } catch (err) {
-    const status = $("#updateProfileStatus");
+    if (requestId !== profileFormRequestId) return;
     setFormStatus(status, err.message, false);
   }
 }
 
 function openMemberProfileEditor(memberId) {
-  switchTab("record");
+  switchTab("record", { skipRecordLoad: true });
   loadRecordTabData().then(() => loadProfileIntoUpdateForm(memberId));
   document.getElementById("updateProfileForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -2104,12 +2279,16 @@ async function loadCdBalanceForm() {
 }
 
 async function loadRecordTabData() {
+  const requestId = ++recordTabRequestId;
+  const summaryEl = $("#cdBalanceCurrent");
+  if (summaryEl) summaryEl.textContent = "Loading current CD balance…";
   try {
     const [membersRes, categoriesRes, loansRes] = await Promise.all([
       fetch("/api/members?profiles=true"),
       fetch("/api/expense-categories"),
       fetch("/api/loans?status=active"),
     ]);
+    if (requestId !== recordTabRequestId) return;
     const { members } = await membersRes.json();
     const { categories } = await categoriesRes.json();
     const { loans } = await loansRes.json();
@@ -2143,7 +2322,9 @@ async function loadRecordTabData() {
     });
 
     await Promise.all([loadExpenses(), loadDistributions(), loadCdBalanceForm()]);
+    if (requestId !== recordTabRequestId) return;
   } catch (err) {
+    if (requestId !== recordTabRequestId) return;
     $("#expensesBody").innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
   }
 }

@@ -68,7 +68,15 @@ h1 { margin: 0 0 4px; font-size: 28px; }
   user-select: none;
   color: #1e293b;
 }
-.tabs { display: flex; gap: 8px; margin: 24px 0 16px; }
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 24px 0 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
 .tab {
   border: 1px solid #cbd5e1;
   background: #fff;
