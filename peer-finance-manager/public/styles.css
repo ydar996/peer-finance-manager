@@ -344,6 +344,25 @@ th { background: #f8fafc; font-weight: 600; }
   outline-offset: 2px;
 }
 .book-card.accent { border-color: #0ea5e9; background: #f0f9ff; }
+.monthly-status-report-card { margin-bottom: 16px; }
+.monthly-status-report-card .toggle-row,
+.monthly-status-report-card .field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+  font-size: 13px;
+}
+.monthly-status-report-actions { margin-top: 12px; flex-wrap: wrap; }
+.btn.linkish {
+  background: none;
+  border: none;
+  color: #0369a1;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
 .books-detail.hidden,
 .books-summary.hidden { display: none; }
 .books-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }

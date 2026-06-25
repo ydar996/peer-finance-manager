@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** June 18, 2026 (navigation deploy `05a6e21`)  
+**Last updated:** June 18, 2026 (monthly status report automation + member publish)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -97,7 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
-- **2026-06-18** — Navigation responsiveness pass + Cooperative Books card subtitle; tab re-click resets sub-views; async guards and Refresh loading states; mobile tab bar wrap/scroll. **Deployed:** `05a6e21` (`git push` only).
+- **2026-06-18** — Monthly Cooperative Status Report: per-organization PDF (not Assurance-specific); admin toggles for auto-generate at month end and auto-publish to member portal; manual Generate / Publish / Download on Cooperative Books; members see published reports on My Account. Storage: `data/organizations/{slug}/reports/cooperative-status/`. Scheduler runs all orgs every 6 hours. **Production:** `git push` only.
 - **2026-06-18** — Member biodata Title Case: `peer-finance-manager/lib/text-format.js` normalizes names on create/update/import; display path formats legacy DB rows. WPForms import keeps raw `applicationName` for ledger matching. **Deployed:** `2ce0dd7` (`git push`).
 - **2026-06-21** — Typography hierarchy: section headers larger/bolder than description (`.subtle`) text app-wide.
 - **2026-06-21** — Agreed Loan Repayment Schedule: removed empty Payment column; balance reduces by interest plus principal each period.

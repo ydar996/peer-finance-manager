@@ -135,6 +135,15 @@ CREATE TABLE IF NOT EXISTS cooperative_settings (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS cooperative_status_reports (
+  period_slug TEXT PRIMARY KEY,
+  as_of_date TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  generated_at TEXT NOT NULL,
+  published_at TEXT,
+  is_published INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS cd_balance_updates (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   balance REAL NOT NULL,

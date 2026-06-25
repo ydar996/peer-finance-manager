@@ -271,6 +271,35 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
+  app.get("/api/me/cooperative-status-reports", requireAuth, (req, res) => {
+    try {
+      const user = req.user;
+      if (user.role !== ROLES.MEMBER) {
+        return res.status(403).json({ error: "Member account required" });
+      }
+      const { listCooperativeStatusReports } = require("./monthly-status-report-service");
+      res.json({ reports: listCooperativeStatusReports({ publishedOnly: true }) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/me/cooperative-status-reports/:periodSlug/file", requireAuth, (req, res) => {
+    try {
+      const user = req.user;
+      if (user.role !== ROLES.MEMBER) {
+        return res.status(403).json({ error: "Member account required" });
+      }
+      const { getReportDownloadPath } = require("./monthly-status-report-service");
+      const file = getReportDownloadPath(req.params.periodSlug, { requirePublished: true });
+      res.download(file.filePath, file.fileName);
+    } catch (err) {
+      res.status(err.message.includes("not found") || err.message.includes("published") ? 404 : 500).json({
+        error: err.message,
+      });
+    }
+  });
+
   app.get("/api/me/deposit-statement", requireAuth, async (req, res) => {
     try {
       const user = req.user;

@@ -211,6 +211,10 @@ function applyRoleUi() {
 
   const registerBtn = $("#goRegisterMemberBtn");
   if (registerBtn) registerBtn.classList.toggle("hidden", role !== "admin");
+
+  document.querySelectorAll(".admin-only-report-settings").forEach((el) => {
+    el.classList.toggle("hidden", role !== "admin");
+  });
 }
 
 async function restoreSession() {
@@ -341,6 +345,7 @@ async function loadMyAccount() {
     if (!res.ok) throw new Error(data.error);
     const profile = data.profile;
     renderMyProfileSection(profile);
+    await loadMyCooperativeReports();
     summary.innerHTML = `
       <div class="book-card accent">
         <p class="book-label">Contributions Account Balance</p>
@@ -772,6 +777,7 @@ async function loadBooks() {
       }),
     ].join("");
     bindBookCards();
+    loadMonthlyStatusReportPanel();
   } catch (err) {
     if (requestId !== booksRequestId) return;
     grid.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
@@ -1809,6 +1815,253 @@ async function toggleLoanDetail(row) {
 $("#refreshMembers").addEventListener("click", loadMembers);
 $("#goRegisterMemberBtn")?.addEventListener("click", () => switchTab("record"));
 $("#refreshBooks")?.addEventListener("click", loadBooks);
+
+async function loadMonthlyStatusReportPanel() {
+  const panel = $("#monthlyStatusReportPanel");
+  if (!panel) return;
+  const badge = $("#monthlyStatusReportBadge");
+  const periodEl = $("#monthlyStatusReportPeriod");
+  const statusEl = $("#monthlyStatusReportStatus");
+  const downloadBtn = $("#downloadMonthlyStatusReport");
+  const publishBtn = $("#publishMonthlyStatusReport");
+  const generateBtn = $("#generateMonthlyStatusReport");
+  try {
+    const [statusRes, settingsRes] = await Promise.all([
+      fetch("/api/books/monthly-status-report/status"),
+      currentUser?.role === "admin"
+        ? fetch("/api/books/monthly-status-report/settings")
+        : Promise.resolve(null),
+    ]);
+    const statusData = await statusRes.json();
+    if (!statusRes.ok) throw new Error(statusData.error || "Failed to load report status");
+
+    const { status } = statusData;
+    if (periodEl) {
+      periodEl.textContent = `${status.period.periodLabel} (as at ${status.period.labelUs})`;
+    }
+
+    if (badge) {
+      if (status.published) {
+        badge.textContent = "Published";
+        badge.className = "badge ok";
+      } else if (status.generated) {
+        badge.textContent = "Draft";
+        badge.className = "badge warn";
+      } else {
+        badge.textContent = "Not Generated";
+        badge.className = "badge";
+      }
+    }
+
+    if (downloadBtn) downloadBtn.disabled = !status.generated;
+    if (publishBtn) publishBtn.disabled = !status.generated || status.published;
+
+    if (settingsRes?.ok) {
+      const { settings } = await settingsRes.json();
+      const autoGen = $("#monthlyStatusAutoGenerate");
+      const autoPub = $("#monthlyStatusAutoPublish");
+      const website = $("#monthlyStatusOrgWebsite");
+      if (autoGen) autoGen.checked = Boolean(settings.autoGenerate);
+      if (autoPub) autoPub.checked = Boolean(settings.autoPublish);
+      if (website) website.value = settings.organizationWebsite || "";
+    }
+
+    if (statusEl && status.generated) {
+      const parts = [`Generated ${formatDate(status.generatedAt?.slice(0, 10)) || "recently"}`];
+      if (status.published) {
+        parts.push(`published ${formatDate(status.publishedAt?.slice(0, 10)) || "to members"}`);
+      } else if (currentUser?.role === "admin") {
+        parts.push("not yet published to members");
+      }
+      statusEl.textContent = parts.join(" · ");
+      statusEl.className = "status ok";
+    } else if (statusEl) {
+      statusEl.textContent =
+        currentUser?.role === "admin"
+          ? "Generate the report manually or enable automatic generation at month end."
+          : "The administrator has not generated this month's report yet.";
+      statusEl.className = "status";
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    }
+    if (downloadBtn) downloadBtn.disabled = true;
+    if (publishBtn) publishBtn.disabled = true;
+  }
+}
+
+async function downloadMonthlyStatusReportFile(button) {
+  setButtonBusy(button, true, "Downloading…");
+  try {
+    const res = await fetch("/api/books/monthly-status-report/download");
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to download report");
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const fileName = match?.[1] || "Cooperative Status Report.pdf";
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+async function generateMonthlyStatusReportNow(button) {
+  setButtonBusy(button, true, "Generating…");
+  const statusEl = $("#monthlyStatusReportStatus");
+  try {
+    const res = await fetch("/api/books/monthly-status-report/generate", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to generate report");
+    if (statusEl) {
+      statusEl.textContent = data.result?.published
+        ? "Report generated and published to members."
+        : "Report generated. Publish when ready for members to view.";
+      statusEl.className = "status ok";
+    }
+    await loadMonthlyStatusReportPanel();
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    } else {
+      alert(err.message);
+    }
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+async function publishMonthlyStatusReportNow(button) {
+  setButtonBusy(button, true, "Publishing…");
+  const statusEl = $("#monthlyStatusReportStatus");
+  try {
+    const res = await fetch("/api/books/monthly-status-report/publish", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to publish report");
+    if (statusEl) {
+      statusEl.textContent = "Report published. Members can download it from My Account.";
+      statusEl.className = "status ok";
+    }
+    await loadMonthlyStatusReportPanel();
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    } else {
+      alert(err.message);
+    }
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+async function saveMonthlyStatusReportSettings() {
+  const statusEl = $("#monthlyStatusReportStatus");
+  const saveBtn = $("#saveMonthlyStatusSettings");
+  setButtonBusy(saveBtn, true, "Saving…");
+  try {
+    const res = await fetch("/api/books/monthly-status-report/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        autoGenerate: $("#monthlyStatusAutoGenerate")?.checked || false,
+        autoPublish: $("#monthlyStatusAutoPublish")?.checked || false,
+        organizationWebsite: $("#monthlyStatusOrgWebsite")?.value?.trim() || "",
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to save settings");
+    if (statusEl) {
+      statusEl.textContent = "Report settings saved for this organization.";
+      statusEl.className = "status ok";
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    }
+  } finally {
+    setButtonBusy(saveBtn, false);
+  }
+}
+
+async function loadMyCooperativeReports() {
+  const card = $("#myCooperativeReportsCard");
+  const list = $("#myCooperativeReportsList");
+  if (!card || !list) return;
+  try {
+    const res = await fetch("/api/me/cooperative-status-reports");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const reports = data.reports || [];
+    if (!reports.length) {
+      card.classList.add("hidden");
+      return;
+    }
+    card.classList.remove("hidden");
+    list.innerHTML = reports
+      .map(
+        (report) => `
+      <li>
+        <button type="button" class="btn linkish cooperative-report-download" data-period-slug="${escapeHtml(report.periodSlug)}">
+          Cooperative Status · ${escapeHtml(report.periodSlug)} · as at ${escapeHtml(formatDate(report.asOfDate))}
+        </button>
+      </li>`
+      )
+      .join("");
+    list.querySelectorAll(".cooperative-report-download").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        try {
+          setButtonBusy(btn, true, "Downloading…");
+          const res = await fetch(
+            `/api/me/cooperative-status-reports/${encodeURIComponent(btn.dataset.periodSlug)}/file`
+          );
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || "Download failed");
+          }
+          const blob = await res.blob();
+          const disposition = res.headers.get("Content-Disposition") || "";
+          const match = disposition.match(/filename="?([^"]+)"?/i);
+          const fileName = match?.[1] || "Cooperative Status Report.pdf";
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = fileName;
+          link.click();
+          URL.revokeObjectURL(link.href);
+        } catch (err) {
+          alert(err.message);
+        } finally {
+          setButtonBusy(btn, false);
+        }
+      });
+    });
+  } catch {
+    card.classList.add("hidden");
+  }
+}
+
+$("#downloadMonthlyStatusReport")?.addEventListener("click", (e) => {
+  downloadMonthlyStatusReportFile(e.currentTarget);
+});
+$("#generateMonthlyStatusReport")?.addEventListener("click", (e) => {
+  generateMonthlyStatusReportNow(e.currentTarget);
+});
+$("#publishMonthlyStatusReport")?.addEventListener("click", (e) => {
+  publishMonthlyStatusReportNow(e.currentTarget);
+});
+$("#saveMonthlyStatusSettings")?.addEventListener("click", saveMonthlyStatusReportSettings);
 
 $("#spreadsheetForm").addEventListener("submit", async (e) => {
   e.preventDefault();

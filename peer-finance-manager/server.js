@@ -65,6 +65,7 @@ const { registerAuthRoutes } = require("./lib/auth-routes");
 const {
   attachUser,
   requireAuth,
+  requireAdmin,
   requireCooperativeView,
   requireMemberSelf,
   blockWritesUnlessAdmin,
@@ -481,6 +482,80 @@ app.get("/api/books/detail/:slug", requireCooperativeView, (req, res) => {
   }
 });
 
+app.get("/api/books/monthly-status-report/status", requireCooperativeView, (req, res) => {
+  try {
+    const {
+      getMonthlyStatusReportStatus,
+      listCooperativeStatusReports,
+    } = require("./lib/monthly-status-report-service");
+    res.json({
+      status: getMonthlyStatusReportStatus({
+        year: req.query.year ? Number(req.query.year) : undefined,
+        month: req.query.month ? Number(req.query.month) : undefined,
+      }),
+      reports: listCooperativeStatusReports(),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/books/monthly-status-report/settings", requireCooperativeView, (req, res) => {
+  try {
+    const { getMonthlyStatusReportSettings } = require("./lib/monthly-status-report-service");
+    res.json({ settings: getMonthlyStatusReportSettings() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/books/monthly-status-report/settings", requireAdmin, (req, res) => {
+  try {
+    const { updateMonthlyStatusReportSettings } = require("./lib/monthly-status-report-service");
+    const settings = updateMonthlyStatusReportSettings(req.body || {});
+    res.json({ settings });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/books/monthly-status-report/generate", requireAdmin, async (req, res) => {
+  try {
+    const { generateMonthlyStatusReport } = require("./lib/monthly-status-report-service");
+    const result = await generateMonthlyStatusReport({
+      year: req.body?.year ? Number(req.body.year) : undefined,
+      month: req.body?.month ? Number(req.body.month) : undefined,
+    });
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/books/monthly-status-report/publish", requireAdmin, (req, res) => {
+  try {
+    const { publishMonthlyStatusReport } = require("./lib/monthly-status-report-service");
+    const { defaultReportMonthEnd } = require("./lib/cooperative-status-report");
+    const periodSlug = req.body?.periodSlug || defaultReportMonthEnd().slug;
+    const status = publishMonthlyStatusReport(periodSlug);
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/books/monthly-status-report/download", requireCooperativeView, (req, res) => {
+  try {
+    const { getReportDownloadPath } = require("./lib/monthly-status-report-service");
+    const { defaultReportMonthEnd } = require("./lib/cooperative-status-report");
+    const periodSlug = req.query.periodSlug || defaultReportMonthEnd().slug;
+    const file = getReportDownloadPath(periodSlug, { requirePublished: false });
+    res.download(file.filePath, file.fileName);
+  } catch (err) {
+    res.status(err.message.includes("not found") ? 404 : 500).json({ error: err.message });
+  }
+});
+
 app.get("/api/settings/cd-balance", requireCooperativeView, (req, res) => {
   try {
     res.json({ cdBalance: getCdBalanceSnapshot() });
@@ -511,6 +586,21 @@ function startServer(port, callback) {
   trace.info("Binding HTTP server", { port: listenPort });
   const server = app.listen(listenPort, "0.0.0.0", () => {
     trace.info("HTTP server listening", { port: listenPort });
+    try {
+      const {
+        runScheduledMonthlyStatusJobsForAllOrganizations,
+      } = require("./lib/monthly-status-report-service");
+      runScheduledMonthlyStatusJobsForAllOrganizations().catch((err) => {
+        trace.info("Monthly status report scheduler error", { error: err.message });
+      });
+      setInterval(() => {
+        runScheduledMonthlyStatusJobsForAllOrganizations().catch((err) => {
+          trace.info("Monthly status report scheduler error", { error: err.message });
+        });
+      }, 6 * 60 * 60 * 1000);
+    } catch (err) {
+      trace.info("Monthly status report scheduler unavailable", { error: err.message });
+    }
     if (callback) callback(null, listenPort);
   });
   server.on("error", (err) => {
