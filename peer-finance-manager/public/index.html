@@ -168,21 +168,25 @@
             </summary>
             <div class="profile-disclosure-body monthly-status-report-body">
               <p class="subtle">Month-end cooperative status PDF for your organization. Report period: <strong id="monthlyStatusReportPeriod">—</strong></p>
-              <div class="monthly-status-report-settings admin-only-report-settings hidden">
-                <label class="toggle-row">
-                  <input type="checkbox" id="monthlyStatusAutoGenerate" />
-                  Automatically generate at month end
-                </label>
-                <label class="toggle-row">
-                  <input type="checkbox" id="monthlyStatusAutoPublish" />
-                  Automatically publish to member portal when generated
-                </label>
-                <label class="field-row">
-                  <span>Organization website (optional, shown on report cover)</span>
-                  <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
-                </label>
-                <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Report Settings</button>
-              </div>
+              <p id="monthlyStatusPerformanceOverview" class="monthly-status-performance-overview hidden"></p>
+              <details class="monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="monthlyStatusReportSettingsPanel">
+                <summary>Report Settings</summary>
+                <div class="profile-disclosure-body monthly-status-report-settings">
+                  <label class="toggle-row">
+                    <input type="checkbox" id="monthlyStatusAutoGenerate" />
+                    Automatically generate at month end
+                  </label>
+                  <label class="toggle-row">
+                    <input type="checkbox" id="monthlyStatusAutoPublish" />
+                    Automatically publish to member portal when generated
+                  </label>
+                  <label class="field-row">
+                    <span>Organization website (optional, shown on report cover)</span>
+                    <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
+                  </label>
+                  <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Report Settings</button>
+                </div>
+              </details>
               <div class="panel-head-actions monthly-status-report-actions">
                 <button type="button" class="btn primary admin-only-report-settings hidden" id="generateMonthlyStatusReport">Generate Report</button>
                 <button type="button" class="btn admin-only-report-settings hidden" id="publishMonthlyStatusReport">Publish to Members</button>
@@ -851,6 +855,7 @@
         <div class="card hidden" id="myCooperativeReportsCard">
           <h3>Cooperative Status Reports</h3>
           <p class="subtle">Published month-end summaries from your cooperative administrator.</p>
+          <p id="myPerformanceOverview" class="monthly-status-performance-overview hidden"></p>
           <ul class="file-list" id="myCooperativeReportsList"></ul>
           <details class="operational-expenses-preview-panel profile-disclosure hidden" id="myOperationalExpensesSection">
             <summary class="operational-expenses-preview-summary">

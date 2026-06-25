@@ -85,6 +85,31 @@ function investmentSectionLabel(investmentRows) {
   return joined || "Investments";
 }
 
+function buildPerformanceOverview(data, books) {
+  const { period, organizationName, incomeStatement, balanceSheet, bankBalances, unearnedIncome } =
+    data;
+  const memberCount = books.memberCount || 0;
+  const activeBorrowers = books.loanBorrowerCount || 0;
+  const netPhrase =
+    incomeStatement.netIncome >= 0
+      ? `net income of ${formatMoney(incomeStatement.netIncome)}`
+      : `a net loss of ${formatMoney(Math.abs(incomeStatement.netIncome))}`;
+
+  const sentences = [
+    `As at ${period.labelUs}, ${organizationName} serves ${memberCount} member${memberCount === 1 ? "" : "s"} with ${formatMoney(balanceSheet.membersDeposits)} in deposit accounts and ${formatMoney(balanceSheet.totalAssets)} in total assets.`,
+    `The cooperative generated ${formatMoney(incomeStatement.totalIncome)} in income and reported ${netPhrase} after operational expenses of ${formatMoney(incomeStatement.operationalExpenses)}.`,
+    `Liquid resources total ${formatMoney(bankBalances.total)} between cash at hand and the certificate of deposit. Outstanding member loans are ${formatMoney(balanceSheet.loansOutstanding)}${activeBorrowers ? ` across ${activeBorrowers} active borrower${activeBorrowers === 1 ? "" : "s"}` : ""}.`,
+  ];
+
+  if (unearnedIncome.total > 0) {
+    sentences.push(
+      `Expected future loan and CD earnings of ${formatMoney(unearnedIncome.total)} remain to be collected.`
+    );
+  }
+
+  return sentences.join(" ");
+}
+
 function getCooperativeStatusReportData(options = {}) {
   const period = resolveReportPeriod(options);
   const branding = {
@@ -155,7 +180,7 @@ function getCooperativeStatusReportData(options = {}) {
   const totalUnearnedIncome =
     (books.expectedLoanInterest || 0) + expectedCdInterest;
 
-  return {
+  const reportCore = {
     organizationName: branding.organizationName,
     website: branding.website,
     period,
@@ -201,46 +226,75 @@ function getCooperativeStatusReportData(options = {}) {
       total: totalUnearnedIncome,
     },
   };
+
+  return {
+    ...reportCore,
+    performanceOverview: buildPerformanceOverview(reportCore, books),
+  };
 }
 
-function reportTable(title, rows) {
+function reportTable(title, rows, { compact = false } = {}) {
   const body = rows
     .map(
       ([label, amount, bold]) =>
         `<tr${bold ? ' class="total-row"' : ""}><td>${escapeHtml(label)}</td><td class="money">${amount}</td></tr>`
     )
     .join("");
+  const thead = compact
+    ? ""
+    : "<thead><tr><th>Description</th><th class=\"money\">Amount</th></tr></thead>";
   return `
     <section class="report-block">
       <h2>${escapeHtml(title)}</h2>
       <table class="report-table">
-        <thead><tr><th>Description</th><th class="money">Amount</th></tr></thead>
+        ${thead}
         <tbody>${body}</tbody>
       </table>
     </section>`;
 }
 
+function sectionDivider() {
+  return '<hr class="section-divider" aria-hidden="true" />';
+}
+
 function buildCooperativeStatusReportHtml(data) {
   const { period } = data;
   const styles = `
-    @page { size: Letter; margin: 0.65in; }
-    body { font-family: "Segoe UI", Arial, sans-serif; color: #0f172a; font-size: 12px; line-height: 1.45; margin: 0; }
-    .cover { text-align: center; padding: 48px 0 32px; page-break-after: always; }
-    .cover .org { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
-    .cover .site { font-size: 13px; color: #0369a1; margin: 0 0 40px; }
-    .cover h1 { font-size: 22px; margin: 0 0 6px; }
-    .cover .as-of { font-size: 14px; color: #475569; margin: 0; }
-    .page { page-break-after: always; }
-    .page:last-child { page-break-after: auto; }
-    h2 { font-size: 16px; margin: 0 0 12px; color: #0f172a; }
-    h3 { font-size: 14px; margin: 20px 0 10px; }
-    .report-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-    .report-table th, .report-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+    @page { size: Letter; margin: 0.5in; }
+    body { font-family: "Segoe UI", Arial, sans-serif; color: #0f172a; font-size: 11px; line-height: 1.4; margin: 0; }
+    .report-header { text-align: center; border-bottom: 3px solid #0ea5e9; padding-bottom: 12px; margin-bottom: 14px; }
+    .report-header .org { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+    .report-header .site { font-size: 12px; color: #0369a1; margin: 0 0 8px; }
+    .report-header h1 { font-size: 16px; margin: 0 0 4px; font-weight: 700; }
+    .report-header .as-of { font-size: 12px; color: #475569; margin: 0; }
+    .report-header .prepared { color: #64748b; font-size: 10px; margin: 8px 0 0; }
+    .performance-overview {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 2px;
+    }
+    .performance-overview h2 {
+      font-size: 11px;
+      margin: 0 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #0369a1;
+      font-weight: 700;
+    }
+    .performance-overview p { margin: 0; font-size: 11px; line-height: 1.45; }
+    .section-divider { border: none; border-top: 2px solid #cbd5e1; margin: 12px 0; }
+    .report-grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+    h2 { font-size: 12px; margin: 0 0 6px; color: #0f172a; font-weight: 700; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; }
+    h3 { font-size: 11px; margin: 8px 0 4px; color: #334155; font-weight: 600; }
+    .report-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+    .report-table th, .report-table td { padding: 4px 8px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; font-size: 10.5px; }
     .report-table th { background: #f8fafc; font-weight: 600; }
     .report-table td.money, .report-table th.money { text-align: right; white-space: nowrap; }
     .report-table tr.total-row td { font-weight: 700; border-top: 2px solid #cbd5e1; }
-    .subtle { color: #64748b; font-size: 11px; margin-top: 24px; }
-    .report-block + .report-block { margin-top: 28px; }
+    .report-footnote { color: #64748b; font-size: 10px; margin-top: 10px; }
+    .report-block { margin: 0; }
   `;
 
   const bank = data.bankBalances;
@@ -266,34 +320,9 @@ function buildCooperativeStatusReportHtml(data) {
       ? `<tr><td>Unearned Income on CD</td><td class="money">${formatMoney(data.unearnedIncome.expectedCdInterest)}</td></tr>`
       : "";
 
-  return `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Cooperative Status ${period.labelUs}</title>
-  <style>${styles}</style>
-</head>
-<body>
-  <div class="cover">
-    <p class="org">${escapeHtml(data.organizationName)}</p>
-    ${data.website ? `<p class="site">${escapeHtml(data.website)}</p>` : ""}
-    <h1>Cooperative Monthly Status Report</h1>
-    <p class="as-of">Statement of Affairs as at ${period.labelUs}</p>
-    <p class="subtle">Prepared ${escapeHtml(data.preparedOn)} · Figures from cooperative ledger</p>
-  </div>
-
-  <div class="page">
-    ${reportTable("Bank Balances", [
-      ["Cash at Hand", formatMoney(bank.cashAtHand)],
-      [bank.cdLabel, formatMoney(bank.cdBalance)],
-      ["Total", formatMoney(bank.total), true],
-    ])}
-  </div>
-
-  <div class="page">
+  const incomeStatementBlock = `
     <section class="report-block">
-      <h2>Statement of Affairs as at ${period.labelUs}</h2>
-      <h3>Income Statement</h3>
+      <h2>Income Statement</h2>
       <table class="report-table">
         <tbody>
           <tr><td>Interest Income earned</td><td class="money">${formatMoney(income.interestIncomeEarned)}</td></tr>
@@ -303,10 +332,9 @@ function buildCooperativeStatusReportHtml(data) {
           <tr class="total-row"><td>Net Income</td><td class="money">${formatMoney(income.netIncome)}</td></tr>
         </tbody>
       </table>
-    </section>
-  </div>
+    </section>`;
 
-  <div class="page">
+  const balanceSheetBlock = `
     <section class="report-block">
       <h2>Balance Sheet</h2>
       <h3>Assets</h3>
@@ -319,7 +347,7 @@ function buildCooperativeStatusReportHtml(data) {
           <tr class="total-row"><td>Total Assets</td><td class="money">${formatMoney(sheet.totalAssets)}</td></tr>
         </tbody>
       </table>
-      <h3>Liabilities</h3>
+      <h3>Liabilities and Equity</h3>
       <table class="report-table">
         <tbody>
           <tr><td>Members' Deposits</td><td class="money">${formatMoney(sheet.membersDeposits)}</td></tr>
@@ -327,10 +355,9 @@ function buildCooperativeStatusReportHtml(data) {
           <tr class="total-row"><td>Total Liabilities and Equity</td><td class="money">${formatMoney(sheet.totalLiabilitiesEquity)}</td></tr>
         </tbody>
       </table>
-    </section>
-  </div>
+    </section>`;
 
-  <div class="page">
+  const expensesBlock = `
     <section class="report-block">
       <h2>Operational Expenses*</h2>
       <table class="report-table">
@@ -340,12 +367,11 @@ function buildCooperativeStatusReportHtml(data) {
           <tr class="total-row"><td>Total Operational Expenses</td><td class="money">${formatMoney(-data.operationalExpensesTotal, { parens: true })}</td></tr>
         </tbody>
       </table>
-    </section>
-  </div>
+    </section>`;
 
-  <div class="page">
+  const unearnedBlock = `
     <section class="report-block">
-      <h2>Expected Future Earnings on Outstanding Loans</h2>
+      <h2>Expected Future Earnings</h2>
       <table class="report-table">
         <thead><tr><th>Description</th><th class="money">Amount</th></tr></thead>
         <tbody>
@@ -354,8 +380,52 @@ function buildCooperativeStatusReportHtml(data) {
           <tr class="total-row"><td>Total Unearned Income</td><td class="money">${formatMoney(data.unearnedIncome.total)}</td></tr>
         </tbody>
       </table>
-    </section>
+    </section>`;
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Cooperative Status ${period.labelUs}</title>
+  <style>${styles}</style>
+</head>
+<body>
+  <header class="report-header">
+    <p class="org">${escapeHtml(data.organizationName)}</p>
+    ${data.website ? `<p class="site">${escapeHtml(data.website)}</p>` : ""}
+    <h1>Cooperative Monthly Status Report</h1>
+    <p class="as-of">Statement of Affairs as at ${period.labelUs}</p>
+    <p class="prepared">Prepared ${escapeHtml(data.preparedOn)} · Figures from cooperative ledger</p>
+  </header>
+
+  <section class="performance-overview">
+    <h2>Performance Overview</h2>
+    <p>${escapeHtml(data.performanceOverview)}</p>
+  </section>
+
+  ${sectionDivider()}
+
+  <div class="report-grid-two">
+    ${reportTable("Bank Balances", [
+      ["Cash at Hand", formatMoney(bank.cashAtHand)],
+      [bank.cdLabel, formatMoney(bank.cdBalance)],
+      ["Total", formatMoney(bank.total), true],
+    ])}
+    ${incomeStatementBlock}
   </div>
+
+  ${sectionDivider()}
+
+  ${balanceSheetBlock}
+
+  ${sectionDivider()}
+
+  <div class="report-grid-two">
+    ${expensesBlock}
+    ${unearnedBlock}
+  </div>
+
+  <p class="report-footnote">* Operational expenses are grouped by administrator-assigned report labels. Expand details in the member portal if needed.</p>
 </body>
 </html>`;
 }
@@ -400,6 +470,7 @@ async function generateCooperativeStatusReportPdf(options = {}) {
 module.exports = {
   getCooperativeStatusReportData,
   buildCooperativeStatusReportHtml,
+  buildPerformanceOverview,
   generateCooperativeStatusReportPdf,
   defaultReportMonthEnd,
   resolveReportPeriod,

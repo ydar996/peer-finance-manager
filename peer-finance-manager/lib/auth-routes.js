@@ -312,7 +312,12 @@ function registerAuthRoutes(app, deps = {}) {
         return res.json({ summary: null });
       }
       const { getOperationalExpensesSummary } = require("./expense-report-label-service");
-      res.json({ summary: getOperationalExpensesSummary() });
+      const { getCooperativeStatusReportData } = require("./cooperative-status-report");
+      const reportData = getCooperativeStatusReportData();
+      res.json({
+        summary: getOperationalExpensesSummary(),
+        performanceOverview: reportData.performanceOverview,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

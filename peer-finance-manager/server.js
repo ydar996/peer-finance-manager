@@ -488,11 +488,17 @@ app.get("/api/books/monthly-status-report/status", requireCooperativeView, (req,
       getMonthlyStatusReportStatus,
       listCooperativeStatusReports,
     } = require("./lib/monthly-status-report-service");
+    const { getCooperativeStatusReportData } = require("./lib/cooperative-status-report");
+    const periodOptions = {
+      year: req.query.year ? Number(req.query.year) : undefined,
+      month: req.query.month ? Number(req.query.month) : undefined,
+    };
+    const reportData = getCooperativeStatusReportData(periodOptions);
     res.json({
-      status: getMonthlyStatusReportStatus({
-        year: req.query.year ? Number(req.query.year) : undefined,
-        month: req.query.month ? Number(req.query.month) : undefined,
-      }),
+      status: {
+        ...getMonthlyStatusReportStatus(periodOptions),
+        performanceOverview: reportData.performanceOverview,
+      },
       reports: listCooperativeStatusReports(),
     });
   } catch (err) {
@@ -596,7 +602,12 @@ app.put("/api/books/expense-report-labels", requireAdmin, (req, res) => {
 app.get("/api/books/operational-expenses-summary", requireCooperativeView, (req, res) => {
   try {
     const { getOperationalExpensesSummary } = require("./lib/expense-report-label-service");
-    res.json({ summary: getOperationalExpensesSummary() });
+    const { getCooperativeStatusReportData } = require("./lib/cooperative-status-report");
+    const reportData = getCooperativeStatusReportData();
+    res.json({
+      summary: getOperationalExpensesSummary(),
+      performanceOverview: reportData.performanceOverview,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -42,6 +42,12 @@ function findOrCreateExpenseReportLabel(labelText) {
   return { id: result.lastInsertRowid, label };
 }
 
+function effectiveReportLabel(line) {
+  if (line.reportLabel) return line.reportLabel;
+  const category = normalizeLabelText(line.category);
+  return category || null;
+}
+
 function listExpenseReportLines() {
   const db = getDb();
   ensureExpenseReportLabelSchema(db);
@@ -54,15 +60,20 @@ function listExpenseReportLines() {
        ORDER BY e.expense_date ASC, e.id ASC`
     )
     .all();
-  return rows.map((row) => ({
-    id: row.id,
-    description: row.description,
-    amount: row.amount,
-    expenseDate: row.expense_date,
-    category: row.category,
-    reportLabelId: row.report_label_id,
-    reportLabel: row.report_label,
-  }));
+  return rows.map((row) => {
+    const reportLabel = row.report_label || null;
+    const category = row.category || null;
+    return {
+      id: row.id,
+      description: row.description,
+      amount: row.amount,
+      expenseDate: row.expense_date,
+      category,
+      reportLabelId: row.report_label_id,
+      reportLabel,
+      effectiveLabel: reportLabel || normalizeLabelText(category) || null,
+    };
+  });
 }
 
 function updateExpenseReportLineLabels(assignments = []) {
@@ -139,17 +150,17 @@ function getExpensesForStatusReport() {
 
 function getOperationalExpensesSummary() {
   const lines = listExpenseReportLines();
-  const allLabeled = lines.length > 0 && lines.every((line) => line.reportLabel);
+  const allLabeled = lines.length > 0 && lines.every((line) => line.effectiveLabel);
   const total = lines.reduce((sum, line) => sum + line.amount, 0);
   const groupMap = new Map();
 
   for (const line of lines) {
-    if (line.reportLabel) {
-      if (!groupMap.has(line.reportLabel)) {
-        groupMap.set(line.reportLabel, { label: line.reportLabel, lines: [] });
-      }
-      groupMap.get(line.reportLabel).lines.push(line);
+    const label = line.effectiveLabel;
+    if (!label) continue;
+    if (!groupMap.has(label)) {
+      groupMap.set(label, { label, lines: [] });
     }
+    groupMap.get(label).lines.push(line);
   }
 
   const groups = [...groupMap.values()]
@@ -166,9 +177,9 @@ function getOperationalExpensesSummary() {
     .sort((a, b) => a.label.localeCompare(b.label));
 
   for (const line of lines) {
-    if (line.reportLabel) continue;
+    if (line.effectiveLabel) continue;
     groups.push({
-      label: line.description || line.category || "Expense",
+      label: line.description || "Expense",
       amount: line.amount,
       consolidated: false,
       lines: [
@@ -192,4 +203,5 @@ module.exports = {
   updateExpenseReportLineLabels,
   getExpensesForStatusReport,
   getOperationalExpensesSummary,
+  effectiveReportLabel,
 };

@@ -364,6 +364,18 @@ th { background: #f8fafc; font-weight: 600; }
 }
 .monthly-status-report-summary .badge { flex-shrink: 0; }
 .monthly-status-report-body .subtle { margin-top: 0; }
+.monthly-status-settings-panel { margin-top: 12px; }
+.monthly-status-performance-overview {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #0f172a;
+}
+.monthly-status-performance-overview.hidden { display: none; }
 .monthly-status-report-card .toggle-row,
 .monthly-status-report-card .field-row {
   display: flex;

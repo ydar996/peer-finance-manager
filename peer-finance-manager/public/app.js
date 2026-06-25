@@ -1816,6 +1816,11 @@ $("#refreshMembers").addEventListener("click", loadMembers);
 $("#goRegisterMemberBtn")?.addEventListener("click", () => switchTab("record"));
 $("#refreshBooks")?.addEventListener("click", loadBooks);
 
+function collapseMonthlyStatusReportSettings() {
+  const panel = $("#monthlyStatusReportSettingsPanel");
+  if (panel?.tagName === "DETAILS") panel.removeAttribute("open");
+}
+
 function collapseMonthlyStatusReportPanel() {
   const panel = $("#monthlyStatusReportPanel");
   if (panel?.tagName === "DETAILS") panel.removeAttribute("open");
@@ -1871,7 +1876,7 @@ function renderOperationalExpensesSummaryHtml(summary) {
     <p class="operational-expense-total"><strong>Total Operational Expenses</strong> <span class="money">${fmt.format(summary.total)}</span></p>`;
 }
 
-async function loadOperationalExpensesPreview({ apiPath, bodyEl, totalEl, sectionEl }) {
+async function loadOperationalExpensesPreview({ apiPath, bodyEl, totalEl, sectionEl, overviewEl }) {
   if (!bodyEl) return;
   try {
     const res = await fetch(apiPath);
@@ -1885,6 +1890,15 @@ async function loadOperationalExpensesPreview({ apiPath, bodyEl, totalEl, sectio
     sectionEl?.classList.remove("hidden");
     if (totalEl) totalEl.textContent = fmt.format(summary.total);
     bodyEl.innerHTML = renderOperationalExpensesSummaryHtml(summary);
+    if (overviewEl) {
+      if (data.performanceOverview) {
+        overviewEl.textContent = data.performanceOverview;
+        overviewEl.classList.remove("hidden");
+      } else {
+        overviewEl.textContent = "";
+        overviewEl.classList.add("hidden");
+      }
+    }
   } catch (err) {
     if (sectionEl) sectionEl.classList.remove("hidden");
     bodyEl.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
@@ -2061,9 +2075,24 @@ async function loadMonthlyStatusReportPanel() {
       const autoGen = $("#monthlyStatusAutoGenerate");
       const autoPub = $("#monthlyStatusAutoPublish");
       const website = $("#monthlyStatusOrgWebsite");
+      const settingsPanel = $("#monthlyStatusReportSettingsPanel");
       if (autoGen) autoGen.checked = Boolean(settings.autoGenerate);
       if (autoPub) autoPub.checked = Boolean(settings.autoPublish);
       if (website) website.value = settings.organizationWebsite || "";
+      if (settingsPanel && settings.organizationWebsite) {
+        settingsPanel.removeAttribute("open");
+      }
+    }
+
+    const overviewEl = $("#monthlyStatusPerformanceOverview");
+    if (overviewEl) {
+      if (status.performanceOverview) {
+        overviewEl.textContent = status.performanceOverview;
+        overviewEl.classList.remove("hidden");
+      } else {
+        overviewEl.textContent = "";
+        overviewEl.classList.add("hidden");
+      }
     }
 
     if (statusEl && status.generated) {
@@ -2230,7 +2259,8 @@ async function saveMonthlyStatusReportSettings() {
       statusEl.textContent = "";
       statusEl.className = "status";
     }
-    collapseMonthlyStatusReportPanel();
+    collapseMonthlyStatusReportSettings();
+    await loadMonthlyStatusReportPanel();
   } catch (err) {
     if (statusEl) {
       statusEl.textContent = err.message;
@@ -2297,6 +2327,7 @@ async function loadMyCooperativeReports() {
       bodyEl: $("#myOperationalExpensesBody"),
       totalEl: $("#myOperationalExpensesTotal"),
       sectionEl: $("#myOperationalExpensesSection"),
+      overviewEl: $("#myPerformanceOverview"),
     });
   } catch {
     card.classList.add("hidden");
