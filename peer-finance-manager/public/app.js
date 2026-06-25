@@ -1816,6 +1816,204 @@ $("#refreshMembers").addEventListener("click", loadMembers);
 $("#goRegisterMemberBtn")?.addEventListener("click", () => switchTab("record"));
 $("#refreshBooks")?.addEventListener("click", loadBooks);
 
+function collapseMonthlyStatusReportPanel() {
+  const panel = $("#monthlyStatusReportPanel");
+  if (panel?.tagName === "DETAILS") panel.removeAttribute("open");
+}
+
+let expenseReportLabelCatalog = [];
+
+function renderOperationalExpensesSummaryHtml(summary) {
+  if (!summary?.groups?.length) {
+    return '<p class="subtle">No operational expenses recorded.</p>';
+  }
+  const groupsHtml = summary.groups
+    .map((group) => {
+      const lineRows = group.lines
+        .map(
+          (line) => `
+        <tr>
+          <td>${escapeHtml(line.expenseDate)}</td>
+          <td>${escapeHtml(line.description)}</td>
+          <td class="money">${fmt.format(line.amount)}</td>
+        </tr>`
+        )
+        .join("");
+      const table = `<div class="table-wrap compact"><table class="operational-expense-detail-table">
+        <thead><tr><th>Date</th><th>Description</th><th class="money">Amount</th></tr></thead>
+        <tbody>${lineRows}</tbody>
+      </table></div>`;
+
+      if (!group.consolidated || group.lines.length <= 1) {
+        const line = group.lines[0];
+        const label = group.consolidated
+          ? group.label
+          : line?.description || group.label;
+        return `<div class="operational-expense-row flat">
+          <div class="operational-expense-row-head">
+            <span>${escapeHtml(label)}</span>
+            <span class="money">${fmt.format(group.amount)}</span>
+          </div>
+        </div>`;
+      }
+
+      return `<details class="profile-disclosure operational-expense-group">
+        <summary class="operational-expense-group-summary">
+          <span>${escapeHtml(group.label)}</span>
+          <span class="money">${fmt.format(group.amount)}</span>
+        </summary>
+        <div class="profile-disclosure-body">${table}</div>
+      </details>`;
+    })
+    .join("");
+
+  return `${groupsHtml}
+    <p class="operational-expense-total"><strong>Total Operational Expenses</strong> <span class="money">${fmt.format(summary.total)}</span></p>`;
+}
+
+async function loadOperationalExpensesPreview({ apiPath, bodyEl, totalEl, sectionEl }) {
+  if (!bodyEl) return;
+  try {
+    const res = await fetch(apiPath);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load operational expenses");
+    const summary = data.summary;
+    if (!summary) {
+      sectionEl?.classList.add("hidden");
+      return;
+    }
+    sectionEl?.classList.remove("hidden");
+    if (totalEl) totalEl.textContent = fmt.format(summary.total);
+    bodyEl.innerHTML = renderOperationalExpensesSummaryHtml(summary);
+  } catch (err) {
+    if (sectionEl) sectionEl.classList.remove("hidden");
+    bodyEl.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function expenseReportLabelOptionsHtml(selectedId) {
+  const options = ['<option value="">Select label…</option>'];
+  for (const entry of expenseReportLabelCatalog) {
+    const selected = Number(selectedId) === Number(entry.id) ? " selected" : "";
+    options.push(`<option value="${entry.id}"${selected}>${escapeHtml(entry.label)}</option>`);
+  }
+  options.push('<option value="__other__">Other…</option>');
+  return options.join("");
+}
+
+function renderExpenseReportLabelsTable(lines) {
+  const body = $("#expenseReportLabelsBody");
+  if (!body) return;
+  if (!lines?.length) {
+    body.innerHTML = "<tr><td colspan=\"4\">No expenses recorded.</td></tr>";
+    return;
+  }
+  body.innerHTML = lines
+    .map(
+      (line) => `
+    <tr data-expense-id="${line.id}">
+      <td>${escapeHtml(line.expenseDate)}</td>
+      <td>${escapeHtml(line.description)}</td>
+      <td class="money">${fmt.format(line.amount)}</td>
+      <td>
+        <select class="expense-report-label-select" data-expense-id="${line.id}">
+          ${expenseReportLabelOptionsHtml(line.reportLabelId)}
+        </select>
+        <input type="text" class="other-label-input hidden" placeholder="New report label" />
+      </td>
+    </tr>`
+    )
+    .join("");
+
+  body.querySelectorAll(".expense-report-label-select").forEach((select) => {
+    select.addEventListener("change", () => {
+      const otherInput = select.parentElement?.querySelector(".other-label-input");
+      if (!otherInput) return;
+      if (select.value === "__other__") {
+        otherInput.classList.remove("hidden");
+        otherInput.focus();
+      } else {
+        otherInput.classList.add("hidden");
+        otherInput.value = "";
+      }
+    });
+  });
+}
+
+async function loadExpenseReportLabelsPanel() {
+  const body = $("#expenseReportLabelsBody");
+  if (!body || currentUser?.role !== "admin") return;
+  try {
+    const res = await fetch("/api/books/expense-report-labels");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load expense labels");
+    expenseReportLabelCatalog = data.labels || [];
+    renderExpenseReportLabelsTable(data.lines || []);
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function saveExpenseReportLabels() {
+  const statusEl = $("#expenseReportLabelsStatus");
+  const saveBtn = $("#saveExpenseReportLabels");
+  const rows = $("#expenseReportLabelsBody")?.querySelectorAll("tr[data-expense-id]");
+  if (!rows?.length) return;
+
+  const assignments = [];
+  for (const row of rows) {
+    const expenseId = Number(row.dataset.expenseId);
+    const select = row.querySelector(".expense-report-label-select");
+    const otherInput = row.querySelector(".other-label-input");
+    if (!select) continue;
+    if (select.value === "__other__") {
+      const label = otherInput?.value?.trim();
+      if (!label) {
+        if (statusEl) {
+          statusEl.textContent = "Enter a new label for each expense set to Other.";
+          statusEl.className = "status err";
+        }
+        return;
+      }
+      assignments.push({ expenseId, label });
+    } else if (select.value) {
+      assignments.push({ expenseId, reportLabelId: Number(select.value) });
+    } else {
+      assignments.push({ expenseId, reportLabelId: null });
+    }
+  }
+
+  setButtonBusy(saveBtn, true, "Saving…");
+  try {
+    const res = await fetch("/api/books/expense-report-labels", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assignments }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to save expense labels");
+    expenseReportLabelCatalog = data.labels || [];
+    renderExpenseReportLabelsTable(data.lines || []);
+    if (statusEl) {
+      statusEl.textContent = "Expense labels saved. Regenerate the report to refresh the PDF.";
+      statusEl.className = "status ok";
+    }
+    loadOperationalExpensesPreview({
+      apiPath: "/api/books/operational-expenses-summary",
+      bodyEl: $("#operationalExpensesPreviewBody"),
+      totalEl: $("#operationalExpensesPreviewTotal"),
+      sectionEl: $("#operationalExpensesPreview"),
+    });
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    }
+  } finally {
+    setButtonBusy(saveBtn, false);
+  }
+}
+
 async function loadMonthlyStatusReportPanel() {
   const panel = $("#monthlyStatusReportPanel");
   if (!panel) return;
@@ -1824,6 +2022,7 @@ async function loadMonthlyStatusReportPanel() {
   const statusEl = $("#monthlyStatusReportStatus");
   const downloadBtn = $("#downloadMonthlyStatusReport");
   const publishBtn = $("#publishMonthlyStatusReport");
+  const unpublishBtn = $("#unpublishMonthlyStatusReport");
   const generateBtn = $("#generateMonthlyStatusReport");
   try {
     const [statusRes, settingsRes] = await Promise.all([
@@ -1855,6 +2054,7 @@ async function loadMonthlyStatusReportPanel() {
 
     if (downloadBtn) downloadBtn.disabled = !status.generated;
     if (publishBtn) publishBtn.disabled = !status.generated || status.published;
+    if (unpublishBtn) unpublishBtn.disabled = !status.published;
 
     if (settingsRes?.ok) {
       const { settings } = await settingsRes.json();
@@ -1889,6 +2089,18 @@ async function loadMonthlyStatusReportPanel() {
     }
     if (downloadBtn) downloadBtn.disabled = true;
     if (publishBtn) publishBtn.disabled = true;
+    if (unpublishBtn) unpublishBtn.disabled = true;
+  }
+  if (currentUser?.role === "admin") {
+    loadExpenseReportLabelsPanel();
+  }
+  if (currentUser?.role === "admin" || currentUser?.role === "staff") {
+    loadOperationalExpensesPreview({
+      apiPath: "/api/books/operational-expenses-summary",
+      bodyEl: $("#operationalExpensesPreviewBody"),
+      totalEl: $("#operationalExpensesPreviewTotal"),
+      sectionEl: $("#operationalExpensesPreview"),
+    });
   }
 }
 
@@ -1966,6 +2178,38 @@ async function publishMonthlyStatusReportNow(button) {
   }
 }
 
+async function unpublishMonthlyStatusReportNow(button) {
+  if (
+    !confirm(
+      "Remove this report from the member portal? Members will not see it until you publish again."
+    )
+  ) {
+    return;
+  }
+  setButtonBusy(button, true, "Unpublishing…");
+  const statusEl = $("#monthlyStatusReportStatus");
+  try {
+    const res = await fetch("/api/books/monthly-status-report/unpublish", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to unpublish report");
+    if (statusEl) {
+      statusEl.textContent =
+        "Report unpublished. Fix any issues, generate again if needed, then publish when ready.";
+      statusEl.className = "status ok";
+    }
+    await loadMonthlyStatusReportPanel();
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    } else {
+      alert(err.message);
+    }
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
 async function saveMonthlyStatusReportSettings() {
   const statusEl = $("#monthlyStatusReportStatus");
   const saveBtn = $("#saveMonthlyStatusSettings");
@@ -1983,9 +2227,10 @@ async function saveMonthlyStatusReportSettings() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to save settings");
     if (statusEl) {
-      statusEl.textContent = "Report settings saved for this organization.";
-      statusEl.className = "status ok";
+      statusEl.textContent = "";
+      statusEl.className = "status";
     }
+    collapseMonthlyStatusReportPanel();
   } catch (err) {
     if (statusEl) {
       statusEl.textContent = err.message;
@@ -2047,6 +2292,12 @@ async function loadMyCooperativeReports() {
         }
       });
     });
+    loadOperationalExpensesPreview({
+      apiPath: "/api/me/operational-expenses-summary",
+      bodyEl: $("#myOperationalExpensesBody"),
+      totalEl: $("#myOperationalExpensesTotal"),
+      sectionEl: $("#myOperationalExpensesSection"),
+    });
   } catch {
     card.classList.add("hidden");
   }
@@ -2061,6 +2312,10 @@ $("#generateMonthlyStatusReport")?.addEventListener("click", (e) => {
 $("#publishMonthlyStatusReport")?.addEventListener("click", (e) => {
   publishMonthlyStatusReportNow(e.currentTarget);
 });
+$("#unpublishMonthlyStatusReport")?.addEventListener("click", (e) => {
+  unpublishMonthlyStatusReportNow(e.currentTarget);
+});
+$("#saveExpenseReportLabels")?.addEventListener("click", saveExpenseReportLabels);
 $("#saveMonthlyStatusSettings")?.addEventListener("click", saveMonthlyStatusReportSettings);
 
 $("#spreadsheetForm").addEventListener("submit", async (e) => {

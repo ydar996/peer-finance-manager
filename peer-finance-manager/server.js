@@ -544,6 +544,18 @@ app.post("/api/books/monthly-status-report/publish", requireAdmin, (req, res) =>
   }
 });
 
+app.post("/api/books/monthly-status-report/unpublish", requireAdmin, (req, res) => {
+  try {
+    const { unpublishMonthlyStatusReport } = require("./lib/monthly-status-report-service");
+    const { defaultReportMonthEnd } = require("./lib/cooperative-status-report");
+    const periodSlug = req.body?.periodSlug || defaultReportMonthEnd().slug;
+    const status = unpublishMonthlyStatusReport(periodSlug);
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.get("/api/books/monthly-status-report/download", requireCooperativeView, (req, res) => {
   try {
     const { getReportDownloadPath } = require("./lib/monthly-status-report-service");
@@ -553,6 +565,40 @@ app.get("/api/books/monthly-status-report/download", requireCooperativeView, (re
     res.download(file.filePath, file.fileName);
   } catch (err) {
     res.status(err.message.includes("not found") ? 404 : 500).json({ error: err.message });
+  }
+});
+
+app.get("/api/books/expense-report-labels", requireCooperativeView, (req, res) => {
+  try {
+    const {
+      listExpenseReportLabels,
+      listExpenseReportLines,
+    } = require("./lib/expense-report-label-service");
+    res.json({
+      labels: listExpenseReportLabels(),
+      lines: listExpenseReportLines(),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/books/expense-report-labels", requireAdmin, (req, res) => {
+  try {
+    const { updateExpenseReportLineLabels } = require("./lib/expense-report-label-service");
+    const result = updateExpenseReportLineLabels(req.body?.assignments || []);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/books/operational-expenses-summary", requireCooperativeView, (req, res) => {
+  try {
+    const { getOperationalExpensesSummary } = require("./lib/expense-report-label-service");
+    res.json({ summary: getOperationalExpensesSummary() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -300,6 +300,24 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
+  app.get("/api/me/operational-expenses-summary", requireAuth, (req, res) => {
+    try {
+      const user = req.user;
+      if (user.role !== ROLES.MEMBER) {
+        return res.status(403).json({ error: "Member account required" });
+      }
+      const { listCooperativeStatusReports } = require("./monthly-status-report-service");
+      const published = listCooperativeStatusReports({ publishedOnly: true });
+      if (!published.length) {
+        return res.json({ summary: null });
+      }
+      const { getOperationalExpensesSummary } = require("./expense-report-label-service");
+      res.json({ summary: getOperationalExpensesSummary() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/me/deposit-statement", requireAuth, async (req, res) => {
     try {
       const user = req.user;

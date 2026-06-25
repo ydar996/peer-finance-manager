@@ -157,38 +157,73 @@
           </div>
         </div>
         <p class="hint">On-Demand Summary of Cooperative Income, Member Contributions Liabilities, Loans, and Expenses. Click a Card for Details.</p>
-        <div class="card monthly-status-report-card" id="monthlyStatusReportPanel">
-          <div class="panel-head">
-            <h3>Monthly Status Report</h3>
-            <span class="badge" id="monthlyStatusReportBadge">Loading…</span>
-          </div>
-          <p class="subtle">Month-end cooperative status PDF for your organization. Report period: <strong id="monthlyStatusReportPeriod">—</strong></p>
-          <div class="monthly-status-report-settings admin-only-report-settings hidden">
-            <label class="toggle-row">
-              <input type="checkbox" id="monthlyStatusAutoGenerate" />
-              Automatically generate at month end
-            </label>
-            <label class="toggle-row">
-              <input type="checkbox" id="monthlyStatusAutoPublish" />
-              Automatically publish to member portal when generated
-            </label>
-            <label class="field-row">
-              <span>Organization website (optional, shown on report cover)</span>
-              <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
-            </label>
-            <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Report Settings</button>
-          </div>
-          <div class="panel-head-actions monthly-status-report-actions">
-            <button type="button" class="btn primary admin-only-report-settings hidden" id="generateMonthlyStatusReport">Generate Report</button>
-            <button type="button" class="btn admin-only-report-settings hidden" id="publishMonthlyStatusReport">Publish to Members</button>
-            <button type="button" class="btn" id="downloadMonthlyStatusReport">Download PDF</button>
-          </div>
-          <p id="monthlyStatusReportStatus" class="status"></p>
-        </div>
         <div id="booksSummary">
           <div id="booksGrid" class="books-grid">
             <p class="hint">Loading…</p>
           </div>
+          <details class="card monthly-status-report-card profile-disclosure" id="monthlyStatusReportPanel">
+            <summary class="monthly-status-report-summary">
+              <span class="monthly-status-report-summary-text">Monthly Status Report</span>
+              <span class="badge" id="monthlyStatusReportBadge">Loading…</span>
+            </summary>
+            <div class="profile-disclosure-body monthly-status-report-body">
+              <p class="subtle">Month-end cooperative status PDF for your organization. Report period: <strong id="monthlyStatusReportPeriod">—</strong></p>
+              <div class="monthly-status-report-settings admin-only-report-settings hidden">
+                <label class="toggle-row">
+                  <input type="checkbox" id="monthlyStatusAutoGenerate" />
+                  Automatically generate at month end
+                </label>
+                <label class="toggle-row">
+                  <input type="checkbox" id="monthlyStatusAutoPublish" />
+                  Automatically publish to member portal when generated
+                </label>
+                <label class="field-row">
+                  <span>Organization website (optional, shown on report cover)</span>
+                  <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
+                </label>
+                <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Report Settings</button>
+              </div>
+              <div class="panel-head-actions monthly-status-report-actions">
+                <button type="button" class="btn primary admin-only-report-settings hidden" id="generateMonthlyStatusReport">Generate Report</button>
+                <button type="button" class="btn admin-only-report-settings hidden" id="publishMonthlyStatusReport">Publish to Members</button>
+                <button type="button" class="btn admin-only-report-settings hidden" id="unpublishMonthlyStatusReport">Unpublish from Members</button>
+                <button type="button" class="btn" id="downloadMonthlyStatusReport">Download PDF</button>
+              </div>
+              <p id="monthlyStatusReportStatus" class="status"></p>
+              <details class="operational-expenses-preview-panel profile-disclosure" id="operationalExpensesPreview">
+                <summary class="operational-expenses-preview-summary">
+                  <span>Operational Expenses</span>
+                  <span class="badge" id="operationalExpensesPreviewTotal">—</span>
+                </summary>
+                <div class="profile-disclosure-body" id="operationalExpensesPreviewBody">
+                  <p class="hint">Loading…</p>
+                </div>
+              </details>
+              <details class="expense-report-labels-panel admin-only-report-settings hidden" id="expenseReportLabelsPanel">
+                <summary>Operational Expense Labels</summary>
+                <div class="profile-disclosure-body">
+                  <p class="subtle">Assign a report label to each expense line. When every line has a label, the PDF shows consolidated totals by label.</p>
+                  <div class="table-wrap expense-report-labels-table-wrap">
+                    <table class="expense-report-labels-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Bank description</th>
+                          <th class="money">Amount</th>
+                          <th>Report label</th>
+                        </tr>
+                      </thead>
+                      <tbody id="expenseReportLabelsBody">
+                        <tr><td colspan="4">Loading…</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <button type="button" class="btn primary" id="saveExpenseReportLabels">Save Expense Labels</button>
+                  <p id="expenseReportLabelsStatus" class="status"></p>
+                </div>
+              </details>
+            </div>
+          </details>
         </div>
         <div id="booksDetail" class="books-detail hidden">
           <div class="panel-head">
@@ -817,6 +852,15 @@
           <h3>Cooperative Status Reports</h3>
           <p class="subtle">Published month-end summaries from your cooperative administrator.</p>
           <ul class="file-list" id="myCooperativeReportsList"></ul>
+          <details class="operational-expenses-preview-panel profile-disclosure hidden" id="myOperationalExpensesSection">
+            <summary class="operational-expenses-preview-summary">
+              <span>Operational Expenses</span>
+              <span class="badge" id="myOperationalExpensesTotal">—</span>
+            </summary>
+            <div class="profile-disclosure-body" id="myOperationalExpensesBody">
+              <p class="hint">Loading…</p>
+            </div>
+          </details>
         </div>
         <div id="myAccountSummary" class="books-grid"></div>
         <div class="card">

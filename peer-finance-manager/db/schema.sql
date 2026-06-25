@@ -95,13 +95,21 @@ CREATE TABLE IF NOT EXISTS bank_imports (
   notes TEXT
 );
 
+CREATE TABLE IF NOT EXISTS expense_report_labels (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  label TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   description TEXT NOT NULL,
   amount REAL NOT NULL,
   expense_date TEXT NOT NULL,
   category TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  report_label_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (report_label_id) REFERENCES expense_report_labels(id)
 );
 
 CREATE TABLE IF NOT EXISTS transactions (

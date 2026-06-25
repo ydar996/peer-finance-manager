@@ -205,6 +205,23 @@ function publishMonthlyStatusReport(periodSlug) {
   });
 }
 
+function unpublishMonthlyStatusReport(periodSlug) {
+  const db = getDb();
+  ensureReportsTable(db);
+  const record = getReportRecord(periodSlug);
+  if (!record) throw new Error("Report not found");
+  if (!record.is_published) throw new Error("This report is not published");
+  db.prepare(
+    `UPDATE cooperative_status_reports
+     SET is_published = 0, published_at = NULL
+     WHERE period_slug = ?`
+  ).run(periodSlug);
+  return getMonthlyStatusReportStatus({
+    year: Number(periodSlug.slice(0, 4)),
+    month: Number(periodSlug.slice(5, 7)),
+  });
+}
+
 function getReportDownloadPath(periodSlug, { requirePublished = false } = {}) {
   const record = getReportRecord(periodSlug);
   if (!record) throw new Error("Report not found");
@@ -285,6 +302,7 @@ module.exports = {
   listCooperativeStatusReports,
   generateMonthlyStatusReport,
   publishMonthlyStatusReport,
+  unpublishMonthlyStatusReport,
   getReportDownloadPath,
   maybeAutoGenerateAndPublishMonthlyStatusReport,
   runScheduledMonthlyStatusJobsForAllOrganizations,

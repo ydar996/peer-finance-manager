@@ -5,6 +5,8 @@ const { getCoopRoot, getStatementsDir } = require("./paths");
 const { getDb } = require("../db/database");
 const { getCooperativeBooks } = require("./cooperative-books");
 const { getLoanPortfolioFromBankLedger } = require("./loan-ledger-service");
+const { buildLoanPublicIdMap, getLoanPublicId } = require("./loan-public-id");
+const { getExpensesForStatusReport } = require("./expense-report-label-service");
 const { MONTH_NAMES } = require("./constants");
 
 const moneyFmt = new Intl.NumberFormat("en-US", {
@@ -68,16 +70,19 @@ function resolveReportPeriod(options = {}) {
   return defaultReportMonthEnd();
 }
 
+const INVESTMENT_DESCRIPTION_LABELS = {
+  "Check 1172": "Investment in Caribe Lounge",
+};
+
 function investmentSectionLabel(investmentRows) {
   if (!investmentRows.length) return "Investments";
-  if (investmentRows.length === 1 && investmentRows[0].description) {
-    return `Investments (${investmentRows[0].description})`;
-  }
-  const names = investmentRows
-    .map((row) => row.description)
-    .filter(Boolean)
-    .join("; ");
-  return names ? `Investments (${names})` : "Investments";
+  const labels = investmentRows.map((row) => {
+    const desc = String(row.description || "").trim();
+    return INVESTMENT_DESCRIPTION_LABELS[desc] || desc || "Investment";
+  });
+  if (investmentRows.length === 1) return labels[0];
+  const joined = labels.filter(Boolean).join("; ");
+  return joined || "Investments";
 }
 
 function getCooperativeStatusReportData(options = {}) {
@@ -89,13 +94,7 @@ function getCooperativeStatusReportData(options = {}) {
   const books = getCooperativeBooks();
   const db = getDb();
 
-  const expenseRows = db
-    .prepare(
-      `SELECT expense_date, category, description, amount
-       FROM expenses
-       ORDER BY expense_date ASC, id ASC`
-    )
-    .all();
+  const expenseRows = getExpensesForStatusReport();
 
   const investmentRows = db
     .prepare(
@@ -134,7 +133,10 @@ function getCooperativeStatusReportData(options = {}) {
     ? `Certificate of Deposit (${apyLabel})`
     : "Certificate of Deposit";
 
-  const activeLoans = getLoanPortfolioFromBankLedger()
+  const loanPortfolio = getLoanPortfolioFromBankLedger();
+  const loanPublicIdMap = buildLoanPublicIdMap(loanPortfolio);
+
+  const activeLoans = loanPortfolio
     .filter((row) => row.status === "active")
     .map((row) => {
       const scheduled = row.scheduledTotalInterest;
@@ -142,13 +144,12 @@ function getCooperativeStatusReportData(options = {}) {
       const future =
         scheduled != null && scheduled > 0 ? Math.max(0, scheduled - earned) : 0;
       return {
-        loanNumber: row.loanNumber,
-        borrower: row.borrower,
+        publicId: getLoanPublicId(loanPublicIdMap, row.borrowerId, row.loanNumber),
         futureInterest: future,
       };
     })
     .filter((row) => row.futureInterest > 0)
-    .sort((a, b) => a.loanNumber - b.loanNumber);
+    .sort((a, b) => a.publicId.localeCompare(b.publicId));
 
   const expectedCdInterest = books.expectedCdInterest || 0;
   const totalUnearnedIncome =
@@ -189,8 +190,9 @@ function getCooperativeStatusReportData(options = {}) {
       totalLiabilitiesEquity,
     },
     expenses: expenseRows.map((row) => ({
-      label: row.description || row.category || "Expense",
+      label: row.label,
       amount: row.amount,
+      consolidated: row.consolidated,
     })),
     operationalExpensesTotal: operationalExpenses,
     unearnedIncome: {
@@ -255,7 +257,7 @@ function buildCooperativeStatusReportHtml(data) {
   const loanUnearnedHtml = data.unearnedIncome.loanRows
     .map(
       (row) =>
-        `<tr><td>Unearned Income on loan ${row.loanNumber}</td><td class="money">${formatMoney(row.futureInterest)}</td></tr>`
+        `<tr><td>Unearned Income on ${escapeHtml(row.publicId)}</td><td class="money">${formatMoney(row.futureInterest)}</td></tr>`
     )
     .join("");
 

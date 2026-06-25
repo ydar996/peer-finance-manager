@@ -344,7 +344,26 @@ th { background: #f8fafc; font-weight: 600; }
   outline-offset: 2px;
 }
 .book-card.accent { border-color: #0ea5e9; background: #f0f9ff; }
-.monthly-status-report-card { margin-bottom: 16px; }
+.monthly-status-report-card {
+  margin-top: 16px;
+  margin-bottom: 0;
+  padding: 0;
+}
+.monthly-status-report-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.monthly-status-report-summary-text {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1e293b;
+}
+.monthly-status-report-summary .badge { flex-shrink: 0; }
+.monthly-status-report-body .subtle { margin-top: 0; }
 .monthly-status-report-card .toggle-row,
 .monthly-status-report-card .field-row {
   display: flex;
@@ -354,6 +373,52 @@ th { background: #f8fafc; font-weight: 600; }
   font-size: 13px;
 }
 .monthly-status-report-actions { margin-top: 12px; flex-wrap: wrap; }
+.expense-report-labels-panel { margin-top: 16px; }
+.expense-report-labels-table-wrap { max-height: 360px; overflow: auto; margin: 12px 0; }
+.expense-report-labels-table td.money,
+.expense-report-labels-table th.money { text-align: right; white-space: nowrap; }
+.expense-report-labels-table select,
+.expense-report-labels-table input[type="text"] {
+  width: 100%;
+  min-width: 140px;
+  font: inherit;
+  padding: 6px 8px;
+}
+.expense-report-labels-table .other-label-input { margin-top: 6px; }
+.operational-expenses-preview-panel { margin-top: 16px; }
+.operational-expenses-preview-summary,
+.operational-expense-group-summary,
+.operational-expense-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.operational-expense-group { margin-top: 8px; }
+.operational-expense-row.flat {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-top: 8px;
+  padding: 12px 14px;
+}
+.operational-expense-detail-table td.money,
+.operational-expense-detail-table th.money,
+.operational-expense-row-head .money,
+.operational-expense-group-summary .money {
+  text-align: right;
+  white-space: nowrap;
+}
+.operational-expense-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 2px solid #cbd5e1;
+  font-weight: 600;
+}
 .btn.linkish {
   background: none;
   border: none;
