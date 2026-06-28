@@ -115,9 +115,9 @@ In WinSCP, on the **right** (Render) panel:
 4. Delete **`peerfinance.seed.db`** if it is there (an old backup can undo your upload on restart)
 5. Re-upload `peerfinance.db` from your PC if you are unsure
 
-## Step 5: Restart the Server on Render
+## Step 5: Restart the Server on Render (required)
 
-Uploading files is not enough. The running app must reload them.
+**WinSCP alone never updates the live website.** The running server keeps the old database open in memory until it restarts. You must do this after every data upload (bank import, new profiles, balance changes).
 
 1. Go back to the Render website (peer-finance-manager service page)
 2. Click **Manual Deploy**
@@ -132,7 +132,7 @@ You do **not** need to do anything on Netlify for data-only updates.
 
 1. Open https://peer-finance-manager.netlify.app/admin
 2. Sign in with your admin email and password
-3. Open **Cooperative Books** or **Members** and confirm numbers look right (new deposits, balances, etc.)
+3. Open **Cooperative Books** or **Members & Profiles** and confirm numbers look right (new deposits, balances, biodata on file, etc.)
 
 Optional health check:
 
@@ -148,6 +148,7 @@ Optional health check:
 | Problem | What to try |
 |---------|-------------|
 | WinSCP will not connect | Username is `srv-xxxxx` only (no `ssh` prefix). Check host name and `.ppk` key. |
+| Live site still shows old numbers or missing profiles | WinSCP file looks correct but site unchanged → you skipped **Manual Deploy** (Step 5). Also delete stale `peerfinance.db-wal`, `.shm`, or `peerfinance.seed.db` if present, re-upload `peerfinance.db`, then **Manual Deploy** again. |
 | Live site still shows old numbers | Turn on **hidden files** in WinSCP. Delete `peerfinance.db-wal` and `peerfinance.db-shm` in `/var/data/organizations/assurance/`, re-upload `peerfinance.db`, then **Manual Deploy**. Success = Member Contributions about **$38,857** (not $38,607). |
 | "Organization not found" on login | Data folder missing or incomplete on Render. Re-upload `data` and deploy. |
 | Upload looks nested wrong | On Render side you want `/var/data/registry.db`, not `/var/data/data/registry.db` |
@@ -158,4 +159,4 @@ Routine code updates: see [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).
 
 ---
 
-*Last updated: June 19, 2026*
+*Last updated: June 28, 2026*

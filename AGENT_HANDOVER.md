@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-06-28** — Olawale George WPForms row added to CSV and imported locally (`f5ec8e6`). **UPLOAD-DATA-TO-PRODUCTION.md** clarifies Manual Deploy is required after every WinSCP upload (stale DB connection). Fixed `pfm:profiles` script org context.
 - **2026-06-27** — Member report email notifications: SMTP on Render sends reminders on the **last day of each month** and when a cooperative status report is **published** (profile email or member login email). Env: `SMTP_*`, `MEMBER_PORTAL_URL`. Deduped in `member_report_email_log`. **Production:** `git push` + Render env vars.
 - **2026-06-27** — Monthly status report "as at" date: manual admin **Generate Report** uses **today's date** (not month-end); scheduled auto-generate at month end still uses the last calendar day. Dashboard preview matches. **Production:** `git push`.
 - **2026-06-26** — Production data upload reliability: after WinSCP replaces `peerfinance.db`, **Manual Deploy** is required so the running Node process reopens the file (stale in-memory SQLite connection showed old Cooperative Books totals while disk/Shell were correct). Code: auto-remove stale `.wal`/`.shm` on open; do not restore from `peerfinance.seed.db` when live DB is newer; `/api/health` includes ledger probe (`latestTransaction`, `bankImportRows`, `dbSize`). Docs: **UPLOAD-DATA-TO-PRODUCTION.md** Step 4 (sidecars + seed). **Production:** `git push`.
@@ -310,7 +311,7 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 |---|------|-------|
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
 | 2 | **Cooperative expenses** | Table exists; no UI/import. |
-| 3 | **Profiles for Olawale George & Kehinde Agboola** | No WPForms row. |
+| 3 | **Profile for Kehinde Agboola** | Olawale George added (WPForms row + local import). Kehinde still has no application row. |
 | 4 | **PC ↔ cloud data sync** | Manual WinSCP only today; re-upload after each local data change. |
 | 5 | **Wire bank import into Import tab UI** | CLI `pfm:import-bank` works; admin UI still preview-only. |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
