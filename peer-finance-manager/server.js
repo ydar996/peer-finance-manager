@@ -104,9 +104,32 @@ app.use(express.json());
 app.use(attachUser);
 
 app.get("/api/health", (req, res) => {
-  const { migrateLegacyDatabaseIfNeeded } = require("./lib/organization-service");
+  const fs = require("fs");
+  const { migrateLegacyDatabaseIfNeeded, ASSURANCE_SLUG, getOrgDataDir } = require("./lib/organization-service");
+  const { loadBetterSqlite3 } = require("./lib/native-sqlite");
   migrateLegacyDatabaseIfNeeded();
-  res.json({ ok: true, name: "Peer Finance Manager" });
+  const payload = { ok: true, name: "Peer Finance Manager" };
+  try {
+    const dbPath = path.join(getOrgDataDir(ASSURANCE_SLUG), "peerfinance.db");
+    if (fs.existsSync(dbPath)) {
+      const stat = fs.statSync(dbPath);
+      const Database = loadBetterSqlite3();
+      const db = new Database(dbPath, { readonly: true });
+      const latest = db.prepare(`SELECT MAX(transaction_date) AS d FROM transactions`).get().d;
+      const bankImport = db
+        .prepare(`SELECT COUNT(1) AS c FROM transactions WHERE source = 'bank_import'`)
+        .get().c;
+      db.close();
+      payload.ledger = {
+        dbSize: stat.size,
+        latestTransaction: latest,
+        bankImportRows: bankImport,
+      };
+    }
+  } catch (_) {
+    /* health check stays ok even if ledger probe fails */
+  }
+  res.json(payload);
 });
 
 registerAuthRoutes(app, { upload });

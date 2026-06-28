@@ -98,7 +98,24 @@ Save the site so you can reconnect next time.
 
 ---
 
-## Step 4: Restart the Server on Render
+## Step 4: Remove stale database sidecar files (important)
+
+SQLite keeps hidden helper files next to `peerfinance.db`:
+
+- `peerfinance.db-wal`
+- `peerfinance.db-shm`
+
+If you upload a new `peerfinance.db` but these old files remain, the live site can keep showing **old balances** even though WinSCP shows the correct file size and date.
+
+In WinSCP, on the **right** (Render) panel:
+
+1. Open **Options → Preferences → Panels** → turn on **Show hidden files**
+2. Go to `/var/data/organizations/assurance/`
+3. Delete `peerfinance.db-wal` and `peerfinance.db-shm` if they are there
+4. Delete **`peerfinance.seed.db`** if it is there (an old backup can undo your upload on restart)
+5. Re-upload `peerfinance.db` from your PC if you are unsure
+
+## Step 5: Restart the Server on Render
 
 Uploading files is not enough. The running app must reload them.
 
@@ -111,7 +128,7 @@ You do **not** need to do anything on Netlify for data-only updates.
 
 ---
 
-## Step 5: Check That It Worked
+## Step 6: Check That It Worked
 
 1. Open https://peer-finance-manager.netlify.app/admin
 2. Sign in with your admin email and password
@@ -131,7 +148,7 @@ Optional health check:
 | Problem | What to try |
 |---------|-------------|
 | WinSCP will not connect | Username is `srv-xxxxx` only (no `ssh` prefix). Check host name and `.ppk` key. |
-| Live site still shows old numbers | Confirm upload went to `/var/data` (not a subfolder). Run **Manual Deploy** again. |
+| Live site still shows old numbers | Turn on **hidden files** in WinSCP. Delete `peerfinance.db-wal` and `peerfinance.db-shm` in `/var/data/organizations/assurance/`, re-upload `peerfinance.db`, then **Manual Deploy**. Success = Member Contributions about **$38,857** (not $38,607). |
 | "Organization not found" on login | Data folder missing or incomplete on Render. Re-upload `data` and deploy. |
 | Upload looks nested wrong | On Render side you want `/var/data/registry.db`, not `/var/data/data/registry.db` |
 

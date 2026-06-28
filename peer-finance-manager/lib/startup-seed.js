@@ -110,6 +110,9 @@ function bootstrapOrgDatabase(orgSlug = ASSURANCE_SLUG) {
 
   const live = inspectDatabase(dbPath);
   const seed = fs.existsSync(seedPath) ? inspectDatabase(seedPath) : null;
+  const liveMtime = fs.statSync(dbPath).mtimeMs;
+  const seedMtime = fs.existsSync(seedPath) ? fs.statSync(seedPath).mtimeMs : 0;
+  const liveUploadedAfterSeed = seedMtime > 0 && liveMtime > seedMtime;
 
   const seedIsNewer =
     seed &&
@@ -117,7 +120,7 @@ function bootstrapOrgDatabase(orgSlug = ASSURANCE_SLUG) {
     seed.bankImport > 0 &&
     (live.bankImport < 0 || live.bankImport < seed.bankImport);
 
-  if (!live.integrityOk || seedIsNewer) {
+  if ((!live.integrityOk || seedIsNewer) && !liveUploadedAfterSeed) {
     if (seed && seed.integrityOk) {
       restoreDatabaseFromSeed(
         dbPath,

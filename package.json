@@ -18,6 +18,8 @@
     "reconcile:bank-ledger": "node scripts/reconcile-bank-ledger.js",
     "export:bank-audit": "node scripts/export-bank-ledger-audit.js",
     "pfm:import-bank": "node peer-finance-manager/scripts/import-bank-ledger.js",
+    "pfm:normalize-profiles": "node peer-finance-manager/scripts/normalize-profiles.js --dry-run",
+    "pfm:normalize-profiles:apply": "node peer-finance-manager/scripts/normalize-profiles.js --apply",
     "pfm:status-report": "node peer-finance-manager/scripts/generate-cooperative-status.js",
     "pfm:sync-root": "node peer-finance-manager/scripts/sync-root-database.js",
     "generate:jan-2026": "node scripts/generate-statements.js",

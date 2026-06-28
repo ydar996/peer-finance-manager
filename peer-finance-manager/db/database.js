@@ -37,6 +37,25 @@ function applyAuthMigrations(database) {
   );
 }
 
+/** Drop WAL/SHM left from a prior server run when peerfinance.db was replaced via WinSCP. */
+function removeStaleWalSidecars(dbPath) {
+  if (!fs.existsSync(dbPath)) return;
+  const dbMtime = fs.statSync(dbPath).mtimeMs;
+  for (const suffix of ["-wal", "-shm"]) {
+    const sidecar = `${dbPath}${suffix}`;
+    if (!fs.existsSync(sidecar)) continue;
+    const sideMtime = fs.statSync(sidecar).mtimeMs;
+    if (dbMtime >= sideMtime) {
+      fs.unlinkSync(sidecar);
+      trace.info("Removed stale SQLite sidecar after database upload", {
+        sidecar,
+        dbMtime,
+        sideMtime,
+      });
+    }
+  }
+}
+
 function openOrgDatabase(orgSlug) {
   const slug = String(orgSlug || "").trim().toLowerCase();
   if (!slug) throw new Error("Organization code is required");
@@ -56,6 +75,7 @@ function openOrgDatabase(orgSlug) {
     throw new Error(`Database schema not found: ${schemaPath}`);
   }
 
+  removeStaleWalSidecars(dbPath);
   trace.info("Opening organization database", { orgSlug: slug, dbPath, schemaPath });
   const Database = loadBetterSqlite3();
   const database = new Database(dbPath);
