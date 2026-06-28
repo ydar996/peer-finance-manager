@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-06-27** — Monthly status report "as at" date: manual admin **Generate Report** uses **today's date** (not month-end); scheduled auto-generate at month end still uses the last calendar day. Dashboard preview matches. **Production:** `git push`.
 - **2026-06-26** — Production data upload reliability: after WinSCP replaces `peerfinance.db`, **Manual Deploy** is required so the running Node process reopens the file (stale in-memory SQLite connection showed old Cooperative Books totals while disk/Shell were correct). Code: auto-remove stale `.wal`/`.shm` on open; do not restore from `peerfinance.seed.db` when live DB is newer; `/api/health` includes ledger probe (`latestTransaction`, `bankImportRows`, `dbSize`). Docs: **UPLOAD-DATA-TO-PRODUCTION.md** Step 4 (sidecars + seed). **Production:** `git push`.
 - **2026-06-26** — Title Case backfill script: `npm run pfm:normalize-profiles` (dry-run) / `pfm:normalize-profiles:apply`. After apply locally, WinSCP upload + Manual Deploy.
 - **2026-06-18** — Monthly Cooperative Status Report: per-organization PDF (not Assurance-specific); admin toggles for auto-generate at month end and auto-publish to member portal; manual Generate / Publish / Download on Cooperative Books; members see published reports on My Account. Storage: `data/organizations/{slug}/reports/cooperative-status/`. Scheduler runs all orgs every 6 hours. **Production:** `git push` only.

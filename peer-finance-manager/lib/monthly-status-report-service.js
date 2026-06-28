@@ -11,6 +11,8 @@ const {
 const {
   generateCooperativeStatusReportPdf,
   resolveReportPeriod,
+  parseAsOfDate,
+  defaultReportAsOfToday,
   defaultReportMonthEnd,
 } = require("./cooperative-status-report");
 
@@ -138,10 +140,11 @@ function resolveReportFilePath(record) {
 function getMonthlyStatusReportStatus(options = {}) {
   const period = resolveReportPeriod(options);
   const record = getReportRecord(period.slug);
+  const displayPeriod = record?.as_of_date ? parseAsOfDate(record.as_of_date) : period;
   const settings = getMonthlyStatusReportSettings();
   const filePath = resolveReportFilePath(record);
   return {
-    period,
+    period: displayPeriod,
     settings,
     generated: Boolean(record && filePath),
     published: Boolean(record?.is_published),
@@ -158,9 +161,7 @@ async function generateMonthlyStatusReport(options = {}) {
   const branding = getOrganizationBrandingForReport(orgSlug);
 
   const result = await generateCooperativeStatusReportPdf({
-    ...options,
-    year: period.year,
-    month: period.month,
+    asOfDate: period.dateIso,
     outputDir: outDir,
     organizationName: branding.organizationName,
     website: branding.website,
@@ -182,7 +183,7 @@ async function generateMonthlyStatusReport(options = {}) {
   return {
     ...result,
     published,
-    status: getMonthlyStatusReportStatus({ year: period.year, month: period.month }),
+    status: getMonthlyStatusReportStatus({ asOfDate: period.dateIso }),
   };
 }
 
@@ -241,7 +242,7 @@ function isMonthEndDay(date = new Date()) {
 function previousMonthPeriod(fromDate = new Date()) {
   const year = fromDate.getMonth() === 0 ? fromDate.getFullYear() - 1 : fromDate.getFullYear();
   const month = fromDate.getMonth() === 0 ? 12 : fromDate.getMonth();
-  return resolveReportPeriod({ year, month });
+  return resolveReportPeriod({ year, month, useMonthEnd: true });
 }
 
 async function maybeAutoGenerateAndPublishMonthlyStatusReport() {
@@ -262,7 +263,13 @@ async function maybeAutoGenerateAndPublishMonthlyStatusReport() {
   for (const period of periodsToTry) {
     const existing = getReportRecord(period.slug);
     if (!existing) {
-      results.push(await generateMonthlyStatusReport({ year: period.year, month: period.month }));
+      results.push(
+        await generateMonthlyStatusReport({
+          year: period.year,
+          month: period.month,
+          useMonthEnd: true,
+        })
+      );
       continue;
     }
     if (settings.autoPublish && !existing.is_published && resolveReportFilePath(existing)) {

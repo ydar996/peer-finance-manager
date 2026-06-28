@@ -35,6 +35,29 @@ function lastDayOfMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
 
+function parseAsOfDate(dateIso) {
+  const m = String(dateIso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) throw new Error("asOfDate must be YYYY-MM-DD");
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const day = Number(m[3]);
+  if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(day)) {
+    throw new Error("Invalid asOfDate");
+  }
+  if (mo < 1 || mo > 12) throw new Error("Invalid month in asOfDate");
+  const maxDay = lastDayOfMonth(y, mo);
+  if (day < 1 || day > maxDay) throw new Error("Invalid day in asOfDate");
+  return {
+    year: y,
+    month: mo,
+    day,
+    dateIso: `${y}-${String(mo).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+    labelUs: `${String(mo).padStart(2, "0")}/${String(day).padStart(2, "0")}/${y}`,
+    slug: `${y}-${String(mo).padStart(2, "0")}`,
+    periodLabel: `${MONTH_NAMES[mo - 1]} ${y}`,
+  };
+}
+
 function parseMonthEndDate(year, month) {
   const y = Number(year);
   const m = Number(month);
@@ -42,17 +65,24 @@ function parseMonthEndDate(year, month) {
     throw new Error("Invalid year or month");
   }
   const day = lastDayOfMonth(y, m);
-  return {
-    year: y,
-    month: m,
-    dateIso: `${y}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-    labelUs: `${String(m).padStart(2, "0")}/${String(day).padStart(2, "0")}/${y}`,
-    slug: `${y}-${String(m).padStart(2, "0")}`,
-    periodLabel: `${MONTH_NAMES[m - 1]} ${y}`,
-  };
+  return parseAsOfDate(
+    `${y}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+  );
 }
 
-/** Default report date: last calendar day of the current month (month-end simulation). */
+function todayDateIso(date = new Date()) {
+  const y = date.getFullYear();
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/** Default for manual admin generation and live dashboard preview. */
+function defaultReportAsOfToday(date = new Date()) {
+  return parseAsOfDate(todayDateIso(date));
+}
+
+/** Last calendar day of the current month (scheduled auto-generate at month end). */
 function defaultReportMonthEnd() {
   const now = new Date();
   return parseMonthEndDate(now.getFullYear(), now.getMonth() + 1);
@@ -60,14 +90,20 @@ function defaultReportMonthEnd() {
 
 function resolveReportPeriod(options = {}) {
   if (options.asOfDate) {
-    const m = String(options.asOfDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!m) throw new Error("asOfDate must be YYYY-MM-DD");
-    return parseMonthEndDate(Number(m[1]), Number(m[2]));
+    return parseAsOfDate(options.asOfDate);
+  }
+  if (options.asOfToday) {
+    return defaultReportAsOfToday();
   }
   if (options.year != null && options.month != null) {
+    if (options.useMonthEnd === false && options.day != null) {
+      return parseAsOfDate(
+        `${options.year}-${String(options.month).padStart(2, "0")}-${String(options.day).padStart(2, "0")}`
+      );
+    }
     return parseMonthEndDate(options.year, options.month);
   }
-  return defaultReportMonthEnd();
+  return defaultReportAsOfToday();
 }
 
 const INVESTMENT_DESCRIPTION_LABELS = {
@@ -472,6 +508,8 @@ module.exports = {
   buildCooperativeStatusReportHtml,
   buildPerformanceOverview,
   generateCooperativeStatusReportPdf,
+  parseAsOfDate,
+  defaultReportAsOfToday,
   defaultReportMonthEnd,
   resolveReportPeriod,
 };

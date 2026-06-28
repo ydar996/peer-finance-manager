@@ -512,10 +512,14 @@ app.get("/api/books/monthly-status-report/status", requireCooperativeView, (req,
       listCooperativeStatusReports,
     } = require("./lib/monthly-status-report-service");
     const { getCooperativeStatusReportData } = require("./lib/cooperative-status-report");
-    const periodOptions = {
-      year: req.query.year ? Number(req.query.year) : undefined,
-      month: req.query.month ? Number(req.query.month) : undefined,
-    };
+    const periodOptions =
+      req.query.year || req.query.month
+        ? {
+            year: req.query.year ? Number(req.query.year) : undefined,
+            month: req.query.month ? Number(req.query.month) : undefined,
+            useMonthEnd: true,
+          }
+        : { asOfToday: true };
     const reportData = getCooperativeStatusReportData(periodOptions);
     res.json({
       status: {
@@ -564,8 +568,8 @@ app.post("/api/books/monthly-status-report/generate", requireAdmin, async (req, 
 app.post("/api/books/monthly-status-report/publish", requireAdmin, (req, res) => {
   try {
     const { publishMonthlyStatusReport } = require("./lib/monthly-status-report-service");
-    const { defaultReportMonthEnd } = require("./lib/cooperative-status-report");
-    const periodSlug = req.body?.periodSlug || defaultReportMonthEnd().slug;
+    const { defaultReportAsOfToday } = require("./lib/cooperative-status-report");
+    const periodSlug = req.body?.periodSlug || defaultReportAsOfToday().slug;
     const status = publishMonthlyStatusReport(periodSlug);
     res.json({ success: true, status });
   } catch (err) {
@@ -576,8 +580,8 @@ app.post("/api/books/monthly-status-report/publish", requireAdmin, (req, res) =>
 app.post("/api/books/monthly-status-report/unpublish", requireAdmin, (req, res) => {
   try {
     const { unpublishMonthlyStatusReport } = require("./lib/monthly-status-report-service");
-    const { defaultReportMonthEnd } = require("./lib/cooperative-status-report");
-    const periodSlug = req.body?.periodSlug || defaultReportMonthEnd().slug;
+    const { defaultReportAsOfToday } = require("./lib/cooperative-status-report");
+    const periodSlug = req.body?.periodSlug || defaultReportAsOfToday().slug;
     const status = unpublishMonthlyStatusReport(periodSlug);
     res.json({ success: true, status });
   } catch (err) {
@@ -588,8 +592,8 @@ app.post("/api/books/monthly-status-report/unpublish", requireAdmin, (req, res) 
 app.get("/api/books/monthly-status-report/download", requireCooperativeView, (req, res) => {
   try {
     const { getReportDownloadPath } = require("./lib/monthly-status-report-service");
-    const { defaultReportMonthEnd } = require("./lib/cooperative-status-report");
-    const periodSlug = req.query.periodSlug || defaultReportMonthEnd().slug;
+    const { defaultReportAsOfToday } = require("./lib/cooperative-status-report");
+    const periodSlug = req.query.periodSlug || defaultReportAsOfToday().slug;
     const file = getReportDownloadPath(periodSlug, { requirePublished: false });
     res.download(file.filePath, file.fileName);
   } catch (err) {

@@ -2,6 +2,7 @@
 /**
  * Generate the monthly cooperative status PDF for the active organization.
  * Usage: node peer-finance-manager/scripts/generate-cooperative-status.js [--year YYYY] [--month MM]
+ * Without --year/--month, uses today's date as the "as at" date.
  */
 const { runWithOrg } = require("../lib/org-context");
 const { closeDb } = require("../db/database");
@@ -24,18 +25,18 @@ const cli = parseArgs(process.argv.slice(2));
 const orgSlug = cli.org || "assurance";
 
 runWithOrg(orgSlug, async () => {
-  const preview = getMonthlyStatusReportStatus({
-    year: cli.year,
-    month: cli.month,
-  });
+  const preview = getMonthlyStatusReportStatus(
+    cli.year && cli.month ? { year: cli.year, month: cli.month, useMonthEnd: true } : { asOfToday: true }
+  );
   console.log("Organization:", orgSlug);
   console.log("Report as at:", preview.period.labelUs, `(${preview.period.periodLabel})`);
   console.log("Cash at Hand:", preview.status?.period ? "see PDF" : "");
 
-  const result = await generateMonthlyStatusReport({
-    year: cli.year,
-    month: cli.month,
-  });
+  const result = await generateMonthlyStatusReport(
+    cli.year && cli.month
+      ? { year: cli.year, month: cli.month, useMonthEnd: true }
+      : { asOfToday: true }
+  );
   console.log("Saved:", result.outputPath);
   console.log("Published:", result.published ? "yes" : "no");
 })
