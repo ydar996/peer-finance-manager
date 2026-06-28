@@ -4,7 +4,6 @@ const XLSX = require("xlsx");
 const { getDb } = require("../db/database");
 const { getOrgDataDir } = require("./organization-service");
 const { getOrgSlug } = require("./org-context");
-const { importBankLedger } = require("./import-bank-ledger");
 const { getCdBalanceSnapshot } = require("./cd-balance-service");
 
 /**
@@ -82,6 +81,7 @@ function runBankImportFromUpload({ workbookPath, statementPath, cdBalance } = {}
   }
 
   const archived = archiveUploadedBankFiles({ workbookPath, statementPath });
+  const { importBankLedger } = require("./import-bank-ledger");
   const result = importBankLedger({
     xlsxPath: workbookPath || null,
     csvPath: statementPath || null,
