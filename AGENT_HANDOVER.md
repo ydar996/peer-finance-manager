@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-06-27** — Member report email notifications: SMTP on Render sends reminders on the **last day of each month** and when a cooperative status report is **published** (profile email or member login email). Env: `SMTP_*`, `MEMBER_PORTAL_URL`. Deduped in `member_report_email_log`. **Production:** `git push` + Render env vars.
 - **2026-06-27** — Monthly status report "as at" date: manual admin **Generate Report** uses **today's date** (not month-end); scheduled auto-generate at month end still uses the last calendar day. Dashboard preview matches. **Production:** `git push`.
 - **2026-06-26** — Production data upload reliability: after WinSCP replaces `peerfinance.db`, **Manual Deploy** is required so the running Node process reopens the file (stale in-memory SQLite connection showed old Cooperative Books totals while disk/Shell were correct). Code: auto-remove stale `.wal`/`.shm` on open; do not restore from `peerfinance.seed.db` when live DB is newer; `/api/health` includes ledger probe (`latestTransaction`, `bankImportRows`, `dbSize`). Docs: **UPLOAD-DATA-TO-PRODUCTION.md** Step 4 (sidecars + seed). **Production:** `git push`.
 - **2026-06-26** — Title Case backfill script: `npm run pfm:normalize-profiles` (dry-run) / `pfm:normalize-profiles:apply`. After apply locally, WinSCP upload + Manual Deploy.

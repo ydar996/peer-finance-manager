@@ -200,6 +200,10 @@ function publishMonthlyStatusReport(periodSlug) {
      SET is_published = 1, published_at = datetime('now')
      WHERE period_slug = ?`
   ).run(periodSlug);
+  const {
+    queueCooperativeReportPublishedEmails,
+  } = require("./report-notification-service");
+  queueCooperativeReportPublishedEmails(periodSlug);
   return getMonthlyStatusReportStatus({
     year: Number(periodSlug.slice(0, 4)),
     month: Number(periodSlug.slice(5, 7)),
@@ -288,7 +292,11 @@ async function runScheduledMonthlyStatusJobsForAllOrganizations() {
     await runWithOrg(org.slug, async () => {
       try {
         const outcome = await maybeAutoGenerateAndPublishMonthlyStatusReport();
-        summary.push({ orgSlug: org.slug, ...outcome });
+        const {
+          sendMonthEndReportReminderEmails,
+        } = require("./report-notification-service");
+        const monthEndEmail = await sendMonthEndReportReminderEmails();
+        summary.push({ orgSlug: org.slug, ...outcome, monthEndEmail });
       } catch (err) {
         summary.push({ orgSlug: org.slug, error: err.message });
       }

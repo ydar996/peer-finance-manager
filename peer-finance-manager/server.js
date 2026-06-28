@@ -129,6 +129,10 @@ app.get("/api/health", (req, res) => {
   } catch (_) {
     /* health check stays ok even if ledger probe fails */
   }
+  try {
+    const { isEmailConfigured } = require("./lib/report-notification-service");
+    payload.emailConfigured = isEmailConfigured();
+  } catch (_) {}
   res.json(payload);
 });
 
