@@ -43,12 +43,18 @@ function truthySetting(value) {
   return value === "1" || value === "true" || value === true;
 }
 
+function settingEnabled(key, defaultWhenUnset = true) {
+  const value = getCooperativeSetting(key);
+  if (value === null || value === undefined) return defaultWhenUnset;
+  return truthySetting(value);
+}
+
 function getMonthlyStatusReportSettings() {
   const db = getDb();
   ensureReportsTable(db);
   return {
-    autoGenerate: truthySetting(getCooperativeSetting(SETTING_AUTO_GENERATE)),
-    autoPublish: truthySetting(getCooperativeSetting(SETTING_AUTO_PUBLISH)),
+    autoGenerate: settingEnabled(SETTING_AUTO_GENERATE),
+    autoPublish: settingEnabled(SETTING_AUTO_PUBLISH),
     organizationWebsite: getCooperativeSetting(SETTING_ORG_WEBSITE) || "",
   };
 }
@@ -249,24 +255,22 @@ function previousMonthPeriod(fromDate = new Date()) {
   return resolveReportPeriod({ year, month, useMonthEnd: true });
 }
 
+function isPublishedMonthEndReport(period) {
+  const existing = getReportRecord(period.slug);
+  if (!existing?.is_published || existing.as_of_date !== period.dateIso) return false;
+  return Boolean(resolveReportFilePath(existing));
+}
+
 async function maybeAutoGenerateAndPublishMonthlyStatusReport() {
   const settings = getMonthlyStatusReportSettings();
   if (!settings.autoGenerate && !settings.autoPublish) return { skipped: true };
 
   const now = new Date();
-  const periodsToTry = [];
-
-  if (settings.autoGenerate && isMonthEndDay(now)) {
-    periodsToTry.push(defaultReportMonthEnd());
-  }
-  if (settings.autoGenerate && now.getDate() === 1) {
-    periodsToTry.push(previousMonthPeriod(now));
-  }
-
   const results = [];
-  for (const period of periodsToTry) {
-    const existing = getReportRecord(period.slug);
-    if (!existing) {
+
+  if (isMonthEndDay(now)) {
+    const period = defaultReportMonthEnd();
+    if (settings.autoGenerate && !isPublishedMonthEndReport(period)) {
       results.push(
         await generateMonthlyStatusReport({
           year: period.year,
@@ -274,11 +278,32 @@ async function maybeAutoGenerateAndPublishMonthlyStatusReport() {
           useMonthEnd: true,
         })
       );
-      continue;
+    } else if (settings.autoPublish) {
+      const existing = getReportRecord(period.slug);
+      if (existing && !existing.is_published && resolveReportFilePath(existing)) {
+        publishMonthlyStatusReport(period.slug);
+        results.push({ periodSlug: period.slug, published: true });
+      }
     }
-    if (settings.autoPublish && !existing.is_published && resolveReportFilePath(existing)) {
-      publishMonthlyStatusReport(period.slug);
-      results.push({ periodSlug: period.slug, published: true });
+    return { results };
+  }
+
+  if (settings.autoGenerate && now.getDate() === 1) {
+    const period = previousMonthPeriod(now);
+    if (!isPublishedMonthEndReport(period)) {
+      const existing = getReportRecord(period.slug);
+      if (!existing) {
+        results.push(
+          await generateMonthlyStatusReport({
+            year: period.year,
+            month: period.month,
+            useMonthEnd: true,
+          })
+        );
+      } else if (settings.autoPublish && !existing.is_published && resolveReportFilePath(existing)) {
+        publishMonthlyStatusReport(period.slug);
+        results.push({ periodSlug: period.slug, published: true });
+      }
     }
   }
 

@@ -52,7 +52,15 @@ function importBankLedger({
   const memberNames = members.map((m) => m.name);
   const nameToId = Object.fromEntries(members.map((m) => [m.name, m.id]));
 
-  const bankTxs = loadMergedBankTransactions({ xlsxPath, csvPath, memberNames });
+  if (!xlsxPath && !csvPath) {
+    throw new Error("Provide a cooperative workbook (.xlsx) and/or bank statement (.csv).");
+  }
+
+  const bankTxs = loadMergedBankTransactions({
+    xlsxPath: xlsxPath || null,
+    csvPath: csvPath || null,
+    memberNames,
+  });
   const importId = registerBankImport(
     [xlsxPath, csvPath].filter(Boolean).map((p) => p.split(/[/\\]/).pop()).join(" + ")
   );

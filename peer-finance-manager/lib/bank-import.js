@@ -1,5 +1,11 @@
+const fs = require("fs");
+const path = require("path");
 const XLSX = require("xlsx");
 const { getDb } = require("../db/database");
+const { getOrgDataDir } = require("./organization-service");
+const { getOrgSlug } = require("./org-context");
+const { importBankLedger } = require("./import-bank-ledger");
+const { getCdBalanceSnapshot } = require("./cd-balance-service");
 
 /**
  * Placeholder for Bank of America statement import.
@@ -39,8 +45,56 @@ function listBankImports() {
     .all();
 }
 
+function archiveUploadedBankFiles({ workbookPath, statementPath } = {}) {
+  const orgSlug = getOrgSlug();
+  const archiveDir = path.join(getOrgDataDir(orgSlug), "bank-imports");
+  fs.mkdirSync(archiveDir, { recursive: true });
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  const saved = {};
+
+  if (workbookPath) {
+    const ext = path.extname(workbookPath) || ".xlsx";
+    const latest = path.join(archiveDir, `latest-workbook${ext}`);
+    const stamped = path.join(archiveDir, `workbook-${stamp}${ext}`);
+    fs.copyFileSync(workbookPath, latest);
+    fs.copyFileSync(workbookPath, stamped);
+    saved.workbook = path.basename(latest);
+  }
+  if (statementPath) {
+    const latest = path.join(archiveDir, "latest-statement.csv");
+    const stamped = path.join(archiveDir, `statement-${stamp}.csv`);
+    fs.copyFileSync(statementPath, latest);
+    fs.copyFileSync(statementPath, stamped);
+    saved.statement = path.basename(latest);
+  }
+  return saved;
+}
+
+function runBankImportFromUpload({ workbookPath, statementPath, cdBalance } = {}) {
+  if (!workbookPath && !statementPath) {
+    throw new Error("Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).");
+  }
+
+  let resolvedCdBalance = cdBalance;
+  if (resolvedCdBalance == null || resolvedCdBalance === "") {
+    const snapshot = getCdBalanceSnapshot();
+    resolvedCdBalance = snapshot.balance;
+  }
+
+  const archived = archiveUploadedBankFiles({ workbookPath, statementPath });
+  const result = importBankLedger({
+    xlsxPath: workbookPath || null,
+    csvPath: statementPath || null,
+    cdBalance: resolvedCdBalance,
+    replaceSpreadsheetDeposits: true,
+  });
+
+  return { ...result, archived };
+}
+
 module.exports = {
   registerBankImport,
   parseBankStatementPreview,
   listBankImports,
+  runBankImportFromUpload,
 };

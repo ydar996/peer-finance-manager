@@ -254,8 +254,19 @@ function dedupeDepositLoanConflicts(transactions) {
 }
 
 function loadMergedBankTransactions({ xlsxPath, csvPath, memberNames }) {
-  const xlsxTxs = parseAllDepositsXlsx(xlsxPath, memberNames);
+  const xlsxTxs = xlsxPath ? parseAllDepositsXlsx(xlsxPath, memberNames) : [];
   const csvTxs = csvPath ? parseStmtCsv(csvPath, memberNames) : [];
+  if (!xlsxTxs.length && !csvTxs.length) {
+    throw new Error("No transactions found in the uploaded file(s). Check the workbook or CSV format.");
+  }
+  if (!xlsxTxs.length) {
+    return dedupeDepositLoanConflicts(
+      [...csvTxs].sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+    );
+  }
+  if (!csvTxs.length) {
+    return xlsxTxs;
+  }
   return mergeBankSources(xlsxTxs, csvTxs);
 }
 

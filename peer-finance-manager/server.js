@@ -50,6 +50,7 @@ const {
   registerBankImport,
   parseBankStatementPreview,
   listBankImports,
+  runBankImportFromUpload,
 } = require("./lib/bank-import");
 const {
   MEMBERSHIP_FEE,
@@ -482,6 +483,34 @@ app.post("/api/bank-import/preview", upload.single("file"), (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.post(
+  "/api/bank-import/run",
+  requireAdmin,
+  upload.fields([
+    { name: "workbook", maxCount: 1 },
+    { name: "statement", maxCount: 1 },
+  ]),
+  (req, res) => {
+    try {
+      const workbookPath = req.files?.workbook?.[0]?.path || null;
+      const statementPath = req.files?.statement?.[0]?.path || null;
+      if (!workbookPath && !statementPath) {
+        return res.status(400).json({
+          error: "Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).",
+        });
+      }
+      const result = runBankImportFromUpload({
+        workbookPath,
+        statementPath,
+        cdBalance: req.body?.cdBalance,
+      });
+      res.json({ success: true, result });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
 
 app.get("/api/bank-imports", requireCooperativeView, (req, res) => {
   try {

@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** June 18, 2026 (monthly status report automation + member publish)  
+**Last updated:** June 28, 2026 (admin bank ledger import on production)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -97,6 +97,8 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-06-28** — **Admin bank ledger import on live site:** Admin → Import → **Bank Ledger Import** uploads cooperative workbook (.xlsx) and optional bank statement (.csv); updates production DB immediately (no WinSCP/Manual Deploy). API: `POST /api/bank-import/run`. Month-end auto-publish toggle on Cooperative Books. **Production:** `git push`.
+- **2026-06-28** — Added **EMAIL-NOTIFICATIONS-SETUP.md** (layman steps to enable SMTP on Render for member report emails).
 - **2026-06-28** — Olawale George WPForms row added to CSV and imported locally (`f5ec8e6`). **UPLOAD-DATA-TO-PRODUCTION.md** clarifies Manual Deploy is required after every WinSCP upload (stale DB connection). Fixed `pfm:profiles` script org context.
 - **2026-06-27** — Member report email notifications: SMTP on Render sends reminders on the **last day of each month** and when a cooperative status report is **published** (profile email or member login email). Env: `SMTP_*`, `MEMBER_PORTAL_URL`. Deduped in `member_report_email_log`. **Production:** `git push` + Render env vars.
 - **2026-06-27** — Monthly status report "as at" date: manual admin **Generate Report** uses **today's date** (not month-end); scheduled auto-generate at month end still uses the last calendar day. Dashboard preview matches. **Production:** `git push`.

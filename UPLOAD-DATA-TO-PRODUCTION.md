@@ -14,11 +14,14 @@ Examples: bank import (`npm run pfm:import-bank`), new deposits, CD balance upda
 
 | What you changed | What to do |
 |------------------|------------|
-| **Data only** (imports, balances, members in `data/` folder) | Follow this guide (WinSCP + Manual Deploy) |
+| **Bank ledger** (deposits, loan repayments, expenses from workbook/CSV) | **Admin → Import → Bank Ledger Import** on the live site (no WinSCP) |
+| **Other data only** (profiles, manual entries done locally in `data/`) | Follow this guide (WinSCP + Manual Deploy) |
 | **App code only** (screens, labels, features) | `git push` only (Netlify + Render update automatically) |
-| **Both** | Do both: WinSCP upload **and** `git push` |
+| **Both** (code + local DB files) | Do both: WinSCP upload **and** `git push` |
 
-Data does **not** travel through GitHub. You must upload it by hand.
+**Bank imports update production immediately** when you use the Import tab on https://peer-finance-manager.netlify.app/admin — the server writes directly to its database. You do **not** need WinSCP or Manual Deploy for that step.
+
+Data in the `data/` folder on your PC does **not** travel through GitHub. WinSCP is only needed when you changed files locally and want the server copy to match.
 
 ---
 

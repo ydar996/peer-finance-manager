@@ -173,22 +173,23 @@
                 <summary>Report Settings</summary>
                 <div class="profile-disclosure-body monthly-status-report-settings">
                   <label class="toggle-row">
-                    <input type="checkbox" id="monthlyStatusAutoGenerate" />
-                    Automatically generate at month end
+                    <input type="checkbox" id="monthlyStatusAutoGenerate" checked />
+                    Automatically generate at month end (as at last calendar day)
                   </label>
                   <label class="toggle-row">
-                    <input type="checkbox" id="monthlyStatusAutoPublish" />
+                    <input type="checkbox" id="monthlyStatusAutoPublish" checked />
                     Automatically publish to member portal when generated
                   </label>
                   <label class="field-row">
                     <span>Organization website (optional, shown on report cover)</span>
                     <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
                   </label>
-                  <p class="hint">Members with an email on file are notified automatically on the last day of each month and whenever a report is published. Configure SMTP on the server (see project .env.example).</p>
+                  <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the cooperative report is built as at that calendar month-end date and published to members. You can still regenerate and publish manually anytime. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
                   <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Report Settings</button>
                 </div>
               </details>
               <div class="panel-head-actions monthly-status-report-actions">
+                <button type="button" class="btn admin-only-report-settings hidden month-end-auto-publish-toggle" id="toggleMonthEndAutoPublish" title="When on, the report is generated and published to members on the last day of each month.">Month-end auto-publish: …</button>
                 <button type="button" class="btn primary admin-only-report-settings hidden" id="generateMonthlyStatusReport">Generate Report</button>
                 <button type="button" class="btn admin-only-report-settings hidden" id="publishMonthlyStatusReport">Publish to Members</button>
                 <button type="button" class="btn admin-only-report-settings hidden" id="unpublishMonthlyStatusReport">Unpublish from Members</button>
@@ -748,12 +749,27 @@
         </div>
 
         <div class="card">
-          <h3>Bank Statement (Preview)</h3>
-          <form id="bankForm">
-            <input type="file" name="file" accept=".xlsx,.xls,.csv" required />
-            <button type="submit" class="btn">Preview Bank File</button>
+          <h3>Bank Ledger Import</h3>
+          <p class="hint">Upload your cooperative Excel workbook to refresh deposits, loan activity, expenses, and CD entries on the <strong>live site immediately</strong>. No WinSCP or Manual Deploy is needed for this step.</p>
+          <form id="bankImportForm" class="entry-form">
+            <label class="field-row">
+              <span>Cooperative workbook (.xlsx) — required unless you only upload a bank CSV</span>
+              <input type="file" name="workbook" accept=".xlsx,.xls" />
+            </label>
+            <label class="field-row">
+              <span>Bank statement (.csv) — optional, for recent Bank of America transactions</span>
+              <input type="file" name="statement" accept=".csv" />
+            </label>
+            <label class="field-row">
+              <span>CD balance after import (optional — uses current balance if blank)</span>
+              <input type="number" name="cdBalance" id="bankImportCdBalance" step="0.01" min="0" placeholder="e.g. 7211.82" />
+            </label>
+            <div class="panel-head-actions">
+              <button type="submit" class="btn primary">Import Bank Ledger</button>
+            </div>
           </form>
-          <pre id="bankPreview" class="preview"></pre>
+          <p id="bankImportStatus" class="status"></p>
+          <p id="bankImportSummary" class="subtle"></p>
         </div>
       </section>
 

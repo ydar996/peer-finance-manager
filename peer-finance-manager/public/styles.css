@@ -385,6 +385,16 @@ th { background: #f8fafc; font-weight: 600; }
   font-size: 13px;
 }
 .monthly-status-report-actions { margin-top: 12px; flex-wrap: wrap; }
+.month-end-auto-publish-toggle.is-on {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #047857;
+}
+.month-end-auto-publish-toggle.is-off {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
 .expense-report-labels-panel { margin-top: 16px; }
 .expense-report-labels-table-wrap { max-height: 360px; overflow: auto; margin: 12px 0; }
 .expense-report-labels-table td.money,

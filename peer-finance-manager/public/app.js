@@ -513,6 +513,7 @@ function switchTab(name, options = {}) {
     loadUsers();
   }
   if (name === "my-account" && currentUser?.role === "member" && !sameTab) loadMyAccount();
+  if (name === "import" && currentUser?.role === "admin" && !sameTab) loadBankImportPanel();
 
   activeTab = name;
 }
@@ -1826,6 +1827,30 @@ function collapseMonthlyStatusReportPanel() {
   if (panel?.tagName === "DETAILS") panel.removeAttribute("open");
 }
 
+function isMonthEndAutoPublishEnabled(settings) {
+  return Boolean(settings?.autoGenerate && settings?.autoPublish);
+}
+
+function applyMonthlyStatusReportSettingsToForm(settings) {
+  const autoGen = $("#monthlyStatusAutoGenerate");
+  const autoPub = $("#monthlyStatusAutoPublish");
+  const website = $("#monthlyStatusOrgWebsite");
+  if (autoGen) autoGen.checked = Boolean(settings.autoGenerate);
+  if (autoPub) autoPub.checked = Boolean(settings.autoPublish);
+  if (website) website.value = settings.organizationWebsite || "";
+  updateMonthEndAutoPublishButton(settings);
+}
+
+function updateMonthEndAutoPublishButton(settings) {
+  const btn = $("#toggleMonthEndAutoPublish");
+  if (!btn || !settings) return;
+  const enabled = isMonthEndAutoPublishEnabled(settings);
+  btn.textContent = enabled ? "Month-end auto-publish: ON" : "Month-end auto-publish: OFF";
+  btn.classList.toggle("is-on", enabled);
+  btn.classList.toggle("is-off", !enabled);
+  btn.setAttribute("aria-pressed", enabled ? "true" : "false");
+}
+
 let expenseReportLabelCatalog = [];
 
 function renderOperationalExpensesSummaryHtml(summary) {
@@ -2072,13 +2097,8 @@ async function loadMonthlyStatusReportPanel() {
 
     if (settingsRes?.ok) {
       const { settings } = await settingsRes.json();
-      const autoGen = $("#monthlyStatusAutoGenerate");
-      const autoPub = $("#monthlyStatusAutoPublish");
-      const website = $("#monthlyStatusOrgWebsite");
       const settingsPanel = $("#monthlyStatusReportSettingsPanel");
-      if (autoGen) autoGen.checked = Boolean(settings.autoGenerate);
-      if (autoPub) autoPub.checked = Boolean(settings.autoPublish);
-      if (website) website.value = settings.organizationWebsite || "";
+      applyMonthlyStatusReportSettingsToForm(settings);
       if (settingsPanel && settings.organizationWebsite) {
         settingsPanel.removeAttribute("open");
       }
@@ -2239,6 +2259,41 @@ async function unpublishMonthlyStatusReportNow(button) {
   }
 }
 
+async function toggleMonthEndAutoPublish(button) {
+  const statusEl = $("#monthlyStatusReportStatus");
+  const autoGen = $("#monthlyStatusAutoGenerate");
+  const autoPub = $("#monthlyStatusAutoPublish");
+  const currentlyOn = Boolean(autoGen?.checked && autoPub?.checked);
+  const nextEnabled = !currentlyOn;
+  setButtonBusy(button, true, "Saving…");
+  try {
+    const res = await fetch("/api/books/monthly-status-report/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        autoGenerate: nextEnabled,
+        autoPublish: nextEnabled,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to update month-end auto-publish");
+    applyMonthlyStatusReportSettingsToForm(data.settings);
+    if (statusEl) {
+      statusEl.textContent = nextEnabled
+        ? "Month-end auto-publish is on. The report will be generated and published on the last day of each month."
+        : "Month-end auto-publish is off. Publish reports manually when ready.";
+      statusEl.className = "status ok";
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    }
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
 async function saveMonthlyStatusReportSettings() {
   const statusEl = $("#monthlyStatusReportStatus");
   const saveBtn = $("#saveMonthlyStatusSettings");
@@ -2260,6 +2315,7 @@ async function saveMonthlyStatusReportSettings() {
       statusEl.className = "status";
     }
     collapseMonthlyStatusReportSettings();
+    applyMonthlyStatusReportSettingsToForm(data.settings);
     await loadMonthlyStatusReportPanel();
   } catch (err) {
     if (statusEl) {
@@ -2346,6 +2402,9 @@ $("#publishMonthlyStatusReport")?.addEventListener("click", (e) => {
 $("#unpublishMonthlyStatusReport")?.addEventListener("click", (e) => {
   unpublishMonthlyStatusReportNow(e.currentTarget);
 });
+$("#toggleMonthEndAutoPublish")?.addEventListener("click", (e) => {
+  toggleMonthEndAutoPublish(e.currentTarget);
+});
 $("#saveExpenseReportLabels")?.addEventListener("click", saveExpenseReportLabels);
 $("#saveMonthlyStatusSettings")?.addEventListener("click", saveMonthlyStatusReportSettings);
 
@@ -2415,12 +2474,73 @@ $("#scheduleForm").addEventListener("submit", async (e) => {
   }
 });
 
-$("#bankForm").addEventListener("submit", async (e) => {
+async function loadBankImportPanel() {
+  const cdInput = $("#bankImportCdBalance");
+  if (!cdInput) return;
+  try {
+    const res = await fetch("/api/settings/cd-balance");
+    const data = await res.json();
+    if (!res.ok) return;
+    if (data.cdBalance?.balance != null && !cdInput.value) {
+      cdInput.placeholder = Number(data.cdBalance.balance).toFixed(2);
+    }
+  } catch (_) {
+    /* optional prefill */
+  }
+}
+
+$("#bankImportForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const fd = new FormData(e.target);
-  const res = await fetch("/api/bank-import/preview", { method: "POST", body: fd });
-  const data = await res.json();
-  $("#bankPreview").textContent = JSON.stringify(data, null, 2);
+  const status = $("#bankImportStatus");
+  const summary = $("#bankImportSummary");
+  const form = e.target;
+  const fd = new FormData(form);
+  const workbook = form.workbook?.files?.[0];
+  const statement = form.statement?.files?.[0];
+  if (!workbook && !statement) {
+    status.textContent = "Choose the cooperative workbook (.xlsx) and/or bank statement (.csv).";
+    status.className = "status err";
+    return;
+  }
+  if (status) {
+    status.textContent = "Importing bank ledger…";
+    status.className = "status";
+  }
+  if (summary) summary.textContent = "";
+  const submitBtn = form.querySelector('button[type="submit"]');
+  setButtonBusy(submitBtn, true, "Importing…");
+  try {
+    const res = await fetch("/api/bank-import/run", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Bank import failed");
+    const r = data.result || {};
+    if (status) {
+      status.textContent = "Bank ledger updated on the live site.";
+      status.className = "status ok";
+    }
+    if (summary) {
+      summary.textContent = [
+        `${r.totalBankRows || 0} bank rows processed`,
+        `${r.deposits || 0} deposits`,
+        `${r.loanRepayments || 0} loan repayments`,
+        `${r.expenses || 0} expenses`,
+        r.skippedNoMember ? `${r.skippedNoMember} skipped (member not matched)` : null,
+        r.cdBalance != null ? `CD balance set to ${Number(r.cdBalance).toFixed(2)}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    form.reset();
+    loadBankImportPanel();
+    if (activeTab === "books") loadBooks();
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  } finally {
+    setButtonBusy(submitBtn, false);
+  }
 });
 
 let selectedStatementFile = null;
