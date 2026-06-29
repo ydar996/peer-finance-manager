@@ -83,11 +83,19 @@ function takeFromPool(pool, key) {
   return true;
 }
 
-function loadImportExportRows({ workbookPath, statementPath, memberNames }) {
+function loadImportExportRows({
+  workbookPath,
+  statementPath,
+  workbookOriginalName,
+  statementOriginalName,
+  memberNames,
+}) {
   const transactions = loadMergedBankTransactions({
     xlsxPath: workbookPath || null,
     csvPath: statementPath || null,
     memberNames,
+    xlsxOriginalName: workbookOriginalName || null,
+    csvOriginalName: statementOriginalName || null,
   });
   return parsedTransactionsToExportRows(transactions);
 }
@@ -110,7 +118,12 @@ function formatConflictRow(exportRow, transactionId) {
  * Returns manual ledger rows that would be dropped because they do not
  * appear in the CSV/workbook about to be imported.
  */
-function findManualLedgerMissingFromImport({ workbookPath, statementPath }) {
+function findManualLedgerMissingFromImport({
+  workbookPath,
+  statementPath,
+  workbookOriginalName,
+  statementOriginalName,
+}) {
   const db = getDb();
   const manualRaw = loadManualLedgerRows(db);
   if (!manualRaw.length) {
@@ -123,7 +136,13 @@ function findManualLedgerMissingFromImport({ workbookPath, statementPath }) {
   }
 
   const memberNames = loadMemberNames(db);
-  const importRows = loadImportExportRows({ workbookPath, statementPath, memberNames });
+  const importRows = loadImportExportRows({
+    workbookPath,
+    statementPath,
+    workbookOriginalName,
+    statementOriginalName,
+    memberNames,
+  });
   const manualRows = buildExportRows(manualRaw);
   const importPool = buildFingerprintPool(importRows);
 

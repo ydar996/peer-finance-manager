@@ -1,3 +1,4 @@
+const fs = require("fs");
 const path = require("path");
 const XLSX = require("xlsx");
 const { getCoopRoot, getAppRoot, isPackaged } = require("./paths");
@@ -179,7 +180,7 @@ function parseAllDepositsXlsx(filePath, memberNames) {
 }
 
 function isReferenceLedgerWorkbook(filePath) {
-  const wb = XLSX.readFile(filePath, { bookSheets: true });
+  const wb = XLSX.readFile(filePath);
   const sheetName =
     wb.SheetNames.find((n) => n === "Cooperative Bank Ledger") || wb.SheetNames[0];
   const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: "", header: 1 });
@@ -233,9 +234,22 @@ function parseWorkbookXlsx(filePath, memberNames) {
   return parseAllDepositsXlsx(filePath, memberNames);
 }
 
-function parseStatementFile(filePath, memberNames) {
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext === ".xlsx" || ext === ".xls") {
+function isSpreadsheetFile(filePath, originalName) {
+  const ext = path.extname(String(originalName || filePath || "")).toLowerCase();
+  if (ext === ".xlsx" || ext === ".xls") return true;
+  try {
+    const fd = fs.openSync(filePath, "r");
+    const buf = Buffer.alloc(4);
+    fs.readSync(fd, buf, 0, 4, 0);
+    fs.closeSync(fd);
+    return buf[0] === 0x50 && buf[1] === 0x4b;
+  } catch {
+    return false;
+  }
+}
+
+function parseStatementFile(filePath, memberNames, originalName) {
+  if (isSpreadsheetFile(filePath, originalName)) {
     return parseWorkbookXlsx(filePath, memberNames);
   }
   return parseStmtCsv(filePath, memberNames);
@@ -316,9 +330,15 @@ function dedupeDepositLoanConflicts(transactions) {
   return unique;
 }
 
-function loadMergedBankTransactions({ xlsxPath, csvPath, memberNames }) {
+function loadMergedBankTransactions({
+  xlsxPath,
+  csvPath,
+  memberNames,
+  xlsxOriginalName,
+  csvOriginalName,
+}) {
   const xlsxTxs = xlsxPath ? parseWorkbookXlsx(xlsxPath, memberNames) : [];
-  const csvTxs = csvPath ? parseStatementFile(csvPath, memberNames) : [];
+  const csvTxs = csvPath ? parseStatementFile(csvPath, memberNames, csvOriginalName) : [];
   if (!xlsxTxs.length && !csvTxs.length) {
     throw new Error(
       "No transactions found. Upload cooperative-bank-ledger-reference.csv (or the matching .xlsx export)."
@@ -340,6 +360,7 @@ module.exports = {
   parseReferenceLedgerXlsx,
   parseWorkbookXlsx,
   parseStatementFile,
+  isSpreadsheetFile,
   parseStmtCsv,
   mergeBankSources,
   loadMergedBankTransactions,

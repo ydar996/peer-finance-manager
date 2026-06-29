@@ -189,7 +189,12 @@ function parsedTransactionsToExportRows(transactions) {
   }));
 }
 
-function buildSortedReferenceCsvFromUpload({ workbookPath, statementPath }) {
+function buildSortedReferenceCsvFromUpload({
+  workbookPath,
+  statementPath,
+  workbookOriginalName,
+  statementOriginalName,
+}) {
   const db = getDb();
   const memberNames = db
     .prepare(`SELECT name FROM members ORDER BY name`)
@@ -200,6 +205,8 @@ function buildSortedReferenceCsvFromUpload({ workbookPath, statementPath }) {
     xlsxPath: workbookPath || null,
     csvPath: statementPath || null,
     memberNames,
+    xlsxOriginalName: workbookOriginalName || null,
+    csvOriginalName: statementOriginalName || null,
   });
   if (!transactions.length) {
     throw new Error("No transactions found in the uploaded file(s).");

@@ -51,6 +51,7 @@ const {
   parseBankStatementPreview,
   listBankImports,
   runBankImportFromUpload,
+  bankUploadFromMulter,
 } = require("./lib/bank-import");
 const {
   MEMBERSHIP_FEE,
@@ -495,18 +496,14 @@ app.post(
   restoreOrgContext,
   (req, res) => {
     try {
-      const workbookPath = req.files?.workbook?.[0]?.path || null;
-      const statementPath = req.files?.statement?.[0]?.path || null;
-      if (!workbookPath && !statementPath) {
+      const upload = bankUploadFromMulter(req.files);
+      if (!upload.workbookPath && !upload.statementPath) {
         return res.status(400).json({
           error: "Upload your master ledger file (cooperative-bank-ledger-reference.csv).",
         });
       }
       const { findManualLedgerMissingFromImport } = require("./lib/bank-import-conflicts");
-      const conflicts = findManualLedgerMissingFromImport({
-        workbookPath,
-        statementPath,
-      });
+      const conflicts = findManualLedgerMissingFromImport(upload);
       res.json({ conflicts });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -524,18 +521,14 @@ app.post(
   restoreOrgContext,
   (req, res) => {
     try {
-      const workbookPath = req.files?.workbook?.[0]?.path || null;
-      const statementPath = req.files?.statement?.[0]?.path || null;
-      if (!workbookPath && !statementPath) {
+      const upload = bankUploadFromMulter(req.files);
+      if (!upload.workbookPath && !upload.statementPath) {
         return res.status(400).json({
           error: "Upload your master ledger file (cooperative-bank-ledger-reference.csv).",
         });
       }
       const { findManualLedgerMissingFromImport } = require("./lib/bank-import-conflicts");
-      const conflicts = findManualLedgerMissingFromImport({
-        workbookPath,
-        statementPath,
-      });
+      const conflicts = findManualLedgerMissingFromImport(upload);
       const acknowledged =
         req.body?.acknowledgeManualLoss === "true" ||
         req.body?.acknowledgeManualLoss === true;
@@ -547,8 +540,7 @@ app.post(
         });
       }
       const result = runBankImportFromUpload({
-        workbookPath,
-        statementPath,
+        ...upload,
         cdBalance: req.body?.cdBalance,
       });
       res.json({ success: true, result, conflicts });
@@ -568,9 +560,8 @@ app.post(
   restoreOrgContext,
   (req, res) => {
     try {
-      const workbookPath = req.files?.workbook?.[0]?.path || null;
-      const statementPath = req.files?.statement?.[0]?.path || null;
-      if (!workbookPath && !statementPath) {
+      const upload = bankUploadFromMulter(req.files);
+      if (!upload.workbookPath && !upload.statementPath) {
         return res.status(400).json({
           error: "Upload your master ledger file (cooperative-bank-ledger-reference.csv).",
         });
@@ -580,10 +571,7 @@ app.post(
         buildMissingManualRowsCsvContent,
         MISSING_MANUAL_ROWS_CSV_BASENAME,
       } = require("./lib/cooperative-bank-ledger-csv");
-      const conflicts = findManualLedgerMissingFromImport({
-        workbookPath,
-        statementPath,
-      });
+      const conflicts = findManualLedgerMissingFromImport(upload);
       if (!conflicts.missingFromImport.length) {
         return res.status(404).json({
           error: "No missing manual transactions for the file you selected.",
@@ -620,9 +608,8 @@ app.post(
   restoreOrgContext,
   (req, res) => {
     try {
-      const workbookPath = req.files?.workbook?.[0]?.path || null;
-      const statementPath = req.files?.statement?.[0]?.path || null;
-      if (!workbookPath && !statementPath) {
+      const upload = bankUploadFromMulter(req.files);
+      if (!upload.workbookPath && !upload.statementPath) {
         return res.status(400).json({
           error: "Upload your master ledger file (cooperative-bank-ledger-reference.csv).",
         });
@@ -631,10 +618,7 @@ app.post(
         buildSortedReferenceCsvFromUpload,
         CSV_BASENAME,
       } = require("./lib/cooperative-bank-ledger-csv");
-      const { content } = buildSortedReferenceCsvFromUpload({
-        workbookPath,
-        statementPath,
-      });
+      const { content } = buildSortedReferenceCsvFromUpload(upload);
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", `attachment; filename="${CSV_BASENAME}"`);
       res.send(content);

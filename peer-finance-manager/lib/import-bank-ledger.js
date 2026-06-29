@@ -43,6 +43,8 @@ function expenseCategory(description) {
 function importBankLedger({
   xlsxPath,
   csvPath,
+  xlsxOriginalName,
+  csvOriginalName,
   cdBalance,
   replaceSpreadsheetDeposits = true,
 }) {
@@ -61,6 +63,8 @@ function importBankLedger({
     xlsxPath: xlsxPath || null,
     csvPath: csvPath || null,
     memberNames,
+    xlsxOriginalName: xlsxOriginalName || null,
+    csvOriginalName: csvOriginalName || null,
   });
   const importId = registerBankImport(
     [xlsxPath, csvPath].filter(Boolean).map((p) => p.split(/[/\\]/).pop()).join(" + ")

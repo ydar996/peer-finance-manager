@@ -69,7 +69,24 @@ function archiveUploadedBankFiles({ workbookPath, statementPath } = {}) {
   return saved;
 }
 
-function runBankImportFromUpload({ workbookPath, statementPath, cdBalance } = {}) {
+function bankUploadFromMulter(files) {
+  const workbook = files?.workbook?.[0] || null;
+  const statement = files?.statement?.[0] || null;
+  return {
+    workbookPath: workbook?.path || null,
+    statementPath: statement?.path || null,
+    workbookOriginalName: workbook?.originalname || null,
+    statementOriginalName: statement?.originalname || null,
+  };
+}
+
+function runBankImportFromUpload({
+  workbookPath,
+  statementPath,
+  workbookOriginalName,
+  statementOriginalName,
+  cdBalance,
+} = {}) {
   if (!workbookPath && !statementPath) {
     throw new Error("Upload your master ledger file (cooperative-bank-ledger-reference.csv).");
   }
@@ -85,6 +102,8 @@ function runBankImportFromUpload({ workbookPath, statementPath, cdBalance } = {}
   const result = importBankLedger({
     xlsxPath: workbookPath || null,
     csvPath: statementPath || null,
+    xlsxOriginalName: workbookOriginalName || null,
+    csvOriginalName: statementOriginalName || null,
     cdBalance: resolvedCdBalance,
     replaceSpreadsheetDeposits: true,
   });
@@ -99,5 +118,6 @@ module.exports = {
   registerBankImport,
   parseBankStatementPreview,
   listBankImports,
+  bankUploadFromMulter,
   runBankImportFromUpload,
 };
