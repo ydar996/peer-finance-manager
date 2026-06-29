@@ -2,6 +2,7 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS members (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  member_number TEXT UNIQUE,
   name TEXT NOT NULL UNIQUE,
   joined_at TEXT,
   membership_fee_paid INTEGER NOT NULL DEFAULT 0,
@@ -135,7 +136,7 @@ CREATE INDEX IF NOT EXISTS idx_transactions_member ON transactions(member_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_date);
 CREATE INDEX IF NOT EXISTS idx_loans_borrower ON loans(borrower_id);
 CREATE INDEX IF NOT EXISTS idx_loan_installments_loan ON loan_installments(loan_id);
-CREATE INDEX IF NOT EXISTS idx_member_profiles_member ON member_profiles(member_id);
+
 
 CREATE TABLE IF NOT EXISTS cooperative_settings (
   key TEXT PRIMARY KEY,

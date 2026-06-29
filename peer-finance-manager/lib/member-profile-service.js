@@ -9,7 +9,7 @@ function listMembersWithProfiles() {
   const db = getDb();
   const rows = db
     .prepare(
-      `SELECT m.id, m.name, m.joined_at, m.membership_fee_paid,
+      `SELECT m.id, m.member_number, m.name, m.joined_at, m.membership_fee_paid,
               mp.id AS profile_id,
               mp.display_name, mp.date_of_birth, mp.email, mp.phone, mp.photo_path,
               mp.preferred_payment_method, mp.zelle_bank_name,
@@ -32,6 +32,7 @@ function listMembersWithProfiles() {
         display_name: m.display_name,
       }),
       id: m.id,
+      member_number: m.member_number,
       name: formatPersonName(m.name) || m.name,
       joined_at: m.joined_at,
       membership_fee_paid: m.membership_fee_paid,
@@ -49,7 +50,7 @@ function getMemberProfile(memberId) {
   const db = getDb();
   const profile = db
     .prepare(
-      `SELECT mp.*, m.name AS ledger_account_name,
+      `SELECT mp.*, m.name AS ledger_account_name, m.member_number,
               m.joined_at, m.membership_fee_paid
        FROM members m
        LEFT JOIN member_profiles mp ON mp.member_id = m.id

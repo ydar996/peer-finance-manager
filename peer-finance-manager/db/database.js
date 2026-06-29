@@ -12,6 +12,16 @@ const {
 
 const dbByOrg = new Map();
 
+function applyMemberMigrations(database) {
+  const cols = database.prepare(`PRAGMA table_info(members)`).all().map((c) => c.name);
+  if (!cols.includes("member_number")) {
+    database.exec(`ALTER TABLE members ADD COLUMN member_number TEXT`);
+  }
+  database.exec(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_members_number ON members(member_number) WHERE member_number IS NOT NULL`
+  );
+}
+
 function applyProfileMigrations(database) {
   const cols = database
     .prepare(`PRAGMA table_info(member_profiles)`)
@@ -83,8 +93,13 @@ function openOrgDatabase(orgSlug) {
   database.pragma("foreign_keys = ON");
   database.exec(fs.readFileSync(schemaPath, "utf8"));
   applyAuthMigrations(database);
+  applyMemberMigrations(database);
   applyProfileMigrations(database);
   dbByOrg.set(slug, database);
+
+  const { backfillMemberNumbers } = require("../lib/member-number-service");
+  const { runWithOrg } = require("../lib/org-context");
+  runWithOrg(slug, () => backfillMemberNumbers(database));
 
   if (slug === ASSURANCE_SLUG) {
     const { ensureAssuranceAdminUser } = require("../lib/auth-service");

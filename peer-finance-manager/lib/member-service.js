@@ -1,6 +1,7 @@
 const { getDb } = require("../db/database");
 const { addTransaction } = require("./balance-service");
 const { MEMBERSHIP_FEE, TRANSACTION_TYPES } = require("./constants");
+const { ensureMemberNumber } = require("./member-number-service");
 const { buildFullName, zelleNameFromApplication } = require("./member-name-match");
 const {
   formatPersonName,
@@ -175,6 +176,7 @@ function createMember(payload = {}) {
       .prepare(`INSERT INTO members (name, joined_at, notes) VALUES (?, ?, ?)`)
       .run(ledgerName, joinedAt, notes);
     const memberId = insert.lastInsertRowid;
+    ensureMemberNumber(db, memberId);
 
     if (shouldCreateProfile) {
       upsertMemberProfile(db, memberId, profileFields);
@@ -191,6 +193,8 @@ function createMember(payload = {}) {
     return {
       memberId,
       ledgerName,
+      memberNumber: db.prepare(`SELECT member_number FROM members WHERE id = ?`).get(memberId)
+        ?.member_number,
       profileCreated: shouldCreateProfile,
       membershipFee: feeResult,
     };

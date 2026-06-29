@@ -1,5 +1,6 @@
 const XLSX = require("xlsx");
 const { getDb } = require("../db/database");
+const { ensureMemberNumber } = require("./member-number-service");
 const { MONTH_NAMES, TRANSACTION_TYPES, MEMBERSHIP_FEE } = require("./constants");
 const { lastDayOfMonth, monthIndexFromName } = require("./dates");
 
@@ -145,6 +146,7 @@ function importFromSpreadsheet(workbookPath, sheetName, options = {}) {
     for (const m of parsed.members) {
       insertMember.run(m.name);
       const member = getMember.get(m.name);
+      ensureMemberNumber(db, member.id);
 
       let firstDepositDate = member.joined_at;
       for (const dep of m.deposits) {

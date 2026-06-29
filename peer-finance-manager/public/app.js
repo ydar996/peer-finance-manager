@@ -15,6 +15,8 @@ let selectedMemberId = null;
 let pendingAccountPanel = null;
 let loadedProfileMemberId = null;
 let membersListRequestId = 0;
+let membersListCache = [];
+let memberSearchQuery = "";
 let profileRequestId = 0;
 let bookDetailRequestId = 0;
 let booksRequestId = 0;
@@ -838,21 +840,65 @@ async function loadMembers() {
   const requestId = ++membersListRequestId;
   const body = $("#membersBody");
   const refreshBtn = $("#refreshMembers");
-  if (body) body.innerHTML = '<tr><td colspan="4" class="subtle">Loading members…</td></tr>';
+  if (body) body.innerHTML = '<tr><td colspan="5" class="subtle">Loading members…</td></tr>';
   setButtonBusy(refreshBtn, true);
   try {
     const res = await fetch("/api/members?profiles=true");
     if (requestId !== membersListRequestId) return;
     const { members } = await res.json();
-    if (!members.length) {
-      body.innerHTML =
-        '<tr><td colspan="4">No Members. Import Spreadsheet on the Import Tab.</td></tr>';
-      return;
+    membersListCache = members || [];
+    renderMembersList();
+  } catch (err) {
+    if (requestId !== membersListRequestId) return;
+    if (body) {
+      body.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
     }
-  body.innerHTML = members
+  } finally {
+    if (requestId === membersListRequestId) setButtonBusy(refreshBtn, false);
+  }
+}
+
+function normalizeMemberSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[\s-]+/g, "");
+}
+
+function memberMatchesSearch(member, query) {
+  const needle = normalizeMemberSearchText(query);
+  if (!needle) return true;
+  const haystacks = [
+    member.member_number,
+    member.display_name,
+    member.name,
+  ].filter(Boolean);
+  return haystacks.some((value) => {
+    const normalized = normalizeMemberSearchText(value);
+    return normalized.includes(needle);
+  });
+}
+
+function renderMembersList() {
+  const body = $("#membersBody");
+  if (!body) return;
+
+  const filtered = membersListCache.filter((m) => memberMatchesSearch(m, memberSearchQuery));
+  if (!membersListCache.length) {
+    body.innerHTML =
+      '<tr><td colspan="5">No Members. Import Spreadsheet on the Import Tab.</td></tr>';
+    return;
+  }
+  if (!filtered.length) {
+    body.innerHTML =
+      '<tr><td colspan="5" class="subtle">No members match your search.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = filtered
     .map(
       (m) => `
     <tr class="member-row${selectedMemberId === m.id ? " selected" : ""}" data-member-id="${m.id}">
+      <td><span class="member-number">${escapeHtml(m.member_number || "—")}</span></td>
       <td><strong>${escapeHtml(m.display_name || m.name)}</strong><br /><span class="subtle">${escapeHtml(m.name)}</span></td>
       <td class="money member-account-cell" data-account-panel="deposit">${fmt.format(m.deposit_balance ?? m.balance)}</td>
       <td class="money member-account-cell" data-account-panel="loan">${fmt.format(m.loan_balance || 0)}</td>
@@ -863,22 +909,21 @@ async function loadMembers() {
 
   bindMemberRowHandlers();
 
-  if (!selectedMemberId && members.length) {
-    selectedMemberId = members[0].id;
+  if (selectedMemberId && !filtered.some((m) => m.id === selectedMemberId)) {
+    selectedMemberId = filtered[0]?.id || null;
+  } else if (!selectedMemberId && filtered.length) {
+    selectedMemberId = filtered[0].id;
   }
   updateMemberRowSelection();
   if (selectedMemberId) {
     showProfile(selectedMemberId);
   }
-  } catch (err) {
-    if (requestId !== membersListRequestId) return;
-    if (body) {
-      body.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
-    }
-  } finally {
-    if (requestId === membersListRequestId) setButtonBusy(refreshBtn, false);
-  }
 }
+
+$("#memberSearch")?.addEventListener("input", (e) => {
+  memberSearchQuery = e.target.value || "";
+  renderMembersList();
+});
 
 function addressBlock(profile) {
   const lines = [
@@ -1637,6 +1682,7 @@ async function showProfile(memberId) {
         </div>
         <div class="profile-summary">
           <h3>${escapeHtml(p.display_name || p.ledger_account_name)}</h3>
+          <p class="subtle">Member #: <strong>${escapeHtml(p.member_number || "—")}</strong></p>
           <p class="subtle">Account Name: <strong>${escapeHtml(p.ledger_account_name)}</strong></p>
           ${currentUser?.role === "admin" ? `<button type="button" class="btn" data-edit-profile="${memberId}">Edit Profile</button>` : ""}
           ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File : Use the Record Tab to Add or Update Profile.</p>'}

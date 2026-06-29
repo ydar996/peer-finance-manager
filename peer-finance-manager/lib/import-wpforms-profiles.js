@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { getDb } = require("../db/database");
+const { ensureMemberNumber } = require("./member-number-service");
 const {
   buildFullName,
   resolveLedgerMemberName,
@@ -182,6 +183,7 @@ function importWpformsProfiles(csvPath, options = {}) {
 
       insertMember.run(ledgerName);
       const member = getMember.get(ledgerName);
+      ensureMemberNumber(db, member.id);
       const { applicationName, ...profileFields } = fields;
       upsertProfile.run({ member_id: member.id, ...profileFields });
       matched.push({

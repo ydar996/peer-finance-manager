@@ -102,7 +102,7 @@ function listMembersWithBalances() {
   const db = getDb();
   const members = db
     .prepare(
-      `SELECT m.id, m.name, m.joined_at, m.membership_fee_paid
+      `SELECT m.id, m.member_number, m.name, m.joined_at, m.membership_fee_paid
        FROM members m
        ORDER BY m.name`
     )

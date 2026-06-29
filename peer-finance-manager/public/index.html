@@ -259,7 +259,14 @@
             <button type="button" class="btn" id="refreshMembers">Refresh</button>
           </div>
         </div>
-        <p class="hint">Select a Member to View Their Biodata, Contributions Account, and Loan Account. Use <strong>Register Member</strong> on the Record Tab to Add Members Manually : Excel Import Is Optional.</p>
+        <p class="hint">Select a Member to View Their Biodata, Contributions Account, and Loan Account. Search by name or member number (e.g. AIC-001). Use <strong>Register Member</strong> on the Record Tab to Add Members Manually : Excel Import Is Optional.</p>
+
+        <div class="members-search-row">
+          <label class="field-row members-search-label">
+            <span class="sr-only">Search members</span>
+            <input type="search" id="memberSearch" placeholder="Search by name or member number…" autocomplete="off" />
+          </label>
+        </div>
 
         <div class="members-layout">
           <div class="members-list-pane">
@@ -267,6 +274,7 @@
               <table>
                 <thead>
                   <tr>
+                    <th>Member #</th>
                     <th>Member</th>
                     <th>Contributions Account</th>
                     <th>Loan Account</th>
@@ -274,7 +282,7 @@
                   </tr>
                 </thead>
                 <tbody id="membersBody">
-                  <tr><td colspan="4">Loading…</td></tr>
+                  <tr><td colspan="5">Loading…</td></tr>
                 </tbody>
               </table>
             </div>
