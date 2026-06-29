@@ -533,6 +533,43 @@ th { background: #f8fafc; font-weight: 600; }
   overflow-y: auto;
 }
 .empty-pane { color: #94a3b8; padding: 40px 20px; text-align: center; }
+.my-account-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+}
+.my-account-panel.deposit {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+.my-account-panel.loan {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+.my-account-panel-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.my-account-panel-title {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+.my-account-panel-balance {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.my-account-panel .profile-disclosure-body h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
 .account-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;

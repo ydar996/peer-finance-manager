@@ -330,13 +330,33 @@ async function loadUsers() {
   }
 }
 
+let myAccountAccordionBound = false;
+
+function bindMyAccountAccordions() {
+  if (myAccountAccordionBound) return;
+  const panels = document.querySelectorAll(".my-account-panel");
+  if (!panels.length) return;
+  myAccountAccordionBound = true;
+  panels.forEach((panel) => {
+    panel.addEventListener("toggle", () => {
+      if (!panel.open) return;
+      panels.forEach((other) => {
+        if (other !== panel) other.open = false;
+      });
+    });
+  });
+}
+
 async function loadMyAccount() {
   const requestId = ++myAccountRequestId;
-  const summary = $("#myAccountSummary");
+  const depositBalanceSummary = $("#myDepositBalanceSummary");
+  const loanBalanceSummary = $("#myLoanBalanceSummary");
   const depositBody = $("#myDepositBody");
   const loanLots = $("#myLoanLots");
   const refreshBtn = $("#refreshMyAccount");
-  if (summary) summary.innerHTML = '<p class="subtle">Loading account…</p>';
+  bindMyAccountAccordions();
+  if (depositBalanceSummary) depositBalanceSummary.textContent = "…";
+  if (loanBalanceSummary) loanBalanceSummary.textContent = "…";
   if (depositBody) depositBody.innerHTML = '<tr><td colspan="5" class="subtle">Loading…</td></tr>';
   if (loanLots) loanLots.innerHTML = '<p class="subtle">Loading loans…</p>';
   setButtonBusy(refreshBtn, true);
@@ -348,15 +368,8 @@ async function loadMyAccount() {
     const profile = data.profile;
     renderMyProfileSection(profile);
     await loadMyCooperativeReports();
-    summary.innerHTML = `
-      <div class="book-card accent">
-        <p class="book-label">Contributions Account Balance</p>
-        <p class="book-amount money">${fmt.format(data.depositBalance || 0)}</p>
-      </div>
-      <div class="book-card">
-        <p class="book-label">Loan Outstanding</p>
-        <p class="book-amount money">${fmt.format(data.loanSummary?.outstanding || 0)}</p>
-      </div>`;
+    if (depositBalanceSummary) depositBalanceSummary.textContent = fmt.format(data.depositBalance || 0);
+    if (loanBalanceSummary) loanBalanceSummary.textContent = fmt.format(data.loanSummary?.outstanding || 0);
 
     const depositTypes = DEPOSIT_LEDGER_TYPES;
     const depositRows = withDepositRunningBalances(
@@ -454,7 +467,8 @@ async function loadMyAccount() {
     });
   } catch (err) {
     if (requestId !== myAccountRequestId) return;
-    if (summary) summary.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+    if (depositBalanceSummary) depositBalanceSummary.textContent = "—";
+    if (loanBalanceSummary) loanBalanceSummary.textContent = "—";
     if (depositBody) depositBody.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
     if (loanLots) loanLots.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
   } finally {
