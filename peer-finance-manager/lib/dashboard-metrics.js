@@ -62,40 +62,67 @@ function parseDueMonth(dueDate) {
   return { year: Number(match[1]), month: Number(match[2]) };
 }
 
-function periodTotalDue(period) {
-  const total =
-    period.totalDue != null
-      ? Number(period.totalDue)
-      : round2(Number(period.interest || 0) + Number(period.principal || 0));
-  return total > 0.005 ? total : 0;
+function typicalPeriodPayment(period) {
+  const explicit = Number(period.totalDue);
+  const parts = round2(Number(period.interest || 0) + Number(period.principal || 0));
+  if (explicit > 0.005) return explicit;
+  if (parts > 0.005) return parts;
+  return 0;
 }
 
-function outstandingDueFromSchedule(collected, schedule, year, month) {
-  if (!schedule?.length) return 0;
+function monthlyPaymentFromLot(lot) {
+  if (Number(lot.scheduledMonthlyPayment) > 0.005) {
+    return round2(lot.scheduledMonthlyPayment);
+  }
+  for (const period of lot.schedule || []) {
+    const payment = typicalPeriodPayment(period);
+    if (payment > 0.005) return payment;
+  }
+  return 0;
+}
 
-  let remaining = Number(collected) || 0;
-  let dueThisMonth = 0;
+function isMonthAfterDisbursement(disbursementDate, year, month) {
+  const due = parseDueMonth(disbursementDate);
+  if (!due) return false;
+  if (year > due.year) return true;
+  return year === due.year && month > due.month;
+}
 
-  for (const period of schedule) {
-    const totalDue = periodTotalDue(period);
-    if (!totalDue) continue;
+function expectedRepaymentForLotInMonth(lot, year, month) {
+  if (lot.outstanding <= 0.005) return 0;
 
+  const schedule = lot.schedule || [];
+  const datedInMonth = schedule.filter((period) => {
     const due = parseDueMonth(period.dueDate);
-    const dueInMonth = due && due.year === year && due.month === month;
-
-    if (remaining >= totalDue - 0.005) {
-      remaining = round2(remaining - totalDue);
-      continue;
-    }
-
-    const shortfall = round2(totalDue - Math.max(0, remaining));
-    remaining = 0;
-    if (dueInMonth) {
-      dueThisMonth += shortfall;
-    }
+    return due && due.year === year && due.month === month;
+  });
+  if (datedInMonth.length) {
+    return round2(
+      datedInMonth.reduce((sum, period) => sum + typicalPeriodPayment(period), 0)
+    );
   }
 
-  return round2(dueThisMonth);
+  if (!isMonthAfterDisbursement(lot.disbursementDate, year, month)) return 0;
+
+  const monthly = monthlyPaymentFromLot(lot);
+  if (monthly <= 0) return 0;
+  return round2(Math.min(monthly, lot.outstanding));
+}
+
+function sumRepaymentsReceivedInMonth(memberId, year, month) {
+  const { start, end } = monthBounds(year, month);
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT COALESCE(SUM(amount), 0) AS total
+       FROM transactions
+       WHERE member_id = ?
+         AND type = ?
+         AND transaction_date >= ?
+         AND transaction_date <= ?`
+    )
+    .get(memberId, TRANSACTION_TYPES.LOAN_REPAYMENT, start, end);
+  return round2(row.total || 0);
 }
 
 function sumInstallmentRepaymentsDueInMonth(year, month) {
@@ -116,28 +143,49 @@ function sumInstallmentRepaymentsDueInMonth(year, month) {
 }
 
 function sumBankLedgerRepaymentsDueInMonth(year, month) {
-  if (!hasBankLoanLedger()) return 0;
-  const lots = getAllBankLoanLots({ status: "active" });
-  return round2(
-    lots.reduce((sum, lot) => {
-      if (lot.outstanding <= 0.005) return sum;
-      return sum + outstandingDueFromSchedule(lot.collected, lot.schedule, year, month);
-    }, 0)
+  if (!hasBankLoanLedger()) return { total: 0, borrowersStillDue: 0 };
+
+  const lots = getAllBankLoanLots({ status: "active" }).filter(
+    (lot) => lot.outstanding > 0.005
   );
+  const expectedByMember = new Map();
+
+  for (const lot of lots) {
+    const expected = expectedRepaymentForLotInMonth(lot, year, month);
+    if (expected <= 0) continue;
+    expectedByMember.set(
+      lot.memberId,
+      round2((expectedByMember.get(lot.memberId) || 0) + expected)
+    );
+  }
+
+  let total = 0;
+  let borrowersStillDue = 0;
+  for (const [memberId, expectedTotal] of expectedByMember) {
+    const received = sumRepaymentsReceivedInMonth(memberId, year, month);
+    const shortfall = round2(Math.max(0, expectedTotal - received));
+    if (shortfall > 0) {
+      total += shortfall;
+      borrowersStillDue += 1;
+    }
+  }
+
+  return { total: round2(total), borrowersStillDue };
 }
 
 function getOutstandingLoanRepaymentsDueInMonth(asOf = new Date()) {
   const year = asOf.getFullYear();
   const month = asOf.getMonth() + 1;
   const fromInstallments = sumInstallmentRepaymentsDueInMonth(year, month);
-  const fromBankLedger = sumBankLedgerRepaymentsDueInMonth(year, month);
+  const bank = sumBankLedgerRepaymentsDueInMonth(year, month);
   return {
     year,
     month,
     monthLabel: asOf.toLocaleString("en-US", { month: "long", year: "numeric" }),
-    total: round2(fromInstallments + fromBankLedger),
+    total: round2(fromInstallments + bank.total),
     fromInstallments,
-    fromBankLedger,
+    fromBankLedger: bank.total,
+    borrowersStillDue: bank.borrowersStillDue,
   };
 }
 

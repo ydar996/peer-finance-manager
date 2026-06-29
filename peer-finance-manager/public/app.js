@@ -621,7 +621,10 @@ function dashboardCardsHtml(dashboard) {
     dashboardCardHtml({
       label: `Loan Repayments Due (${due.monthLabel})`,
       amount: due.total,
-      note: "Scheduled this month but not yet received",
+      note:
+        due.borrowersStillDue > 0
+          ? `${due.borrowersStillDue} borrower${due.borrowersStillDue === 1 ? "" : "s"} still owe scheduled payment${due.borrowersStillDue === 1 ? "" : "s"} this month`
+          : "All active borrowers have paid this month’s scheduled amount",
     }),
   ].join("");
 }
