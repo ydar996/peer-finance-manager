@@ -70,6 +70,7 @@ const {
   requireCooperativeView,
   requireMemberSelf,
   blockWritesUnlessAdmin,
+  restoreOrgContext,
 } = require("./lib/auth-middleware");
 const { canAccessMember, canViewCooperative, ROLES } = require("./lib/auth-service");
 
@@ -491,6 +492,7 @@ app.post(
     { name: "workbook", maxCount: 1 },
     { name: "statement", maxCount: 1 },
   ]),
+  restoreOrgContext,
   (req, res) => {
     try {
       const workbookPath = req.files?.workbook?.[0]?.path || null;
@@ -519,6 +521,7 @@ app.post(
     { name: "workbook", maxCount: 1 },
     { name: "statement", maxCount: 1 },
   ]),
+  restoreOrgContext,
   (req, res) => {
     try {
       const workbookPath = req.files?.workbook?.[0]?.path || null;
@@ -562,6 +565,7 @@ app.post(
     { name: "workbook", maxCount: 1 },
     { name: "statement", maxCount: 1 },
   ]),
+  restoreOrgContext,
   (req, res) => {
     try {
       const workbookPath = req.files?.workbook?.[0]?.path || null;
@@ -613,6 +617,7 @@ app.post(
     { name: "workbook", maxCount: 1 },
     { name: "statement", maxCount: 1 },
   ]),
+  restoreOrgContext,
   (req, res) => {
     try {
       const workbookPath = req.files?.workbook?.[0]?.path || null;
@@ -639,7 +644,7 @@ app.post(
   }
 );
 
-app.get("/api/bank-ledger/reference/download", requireAdmin, (req, res) => {
+app.get("/api/bank-ledger/reference/download", requireAdmin, restoreOrgContext, (req, res) => {
   try {
     const fs = require("fs");
     const {

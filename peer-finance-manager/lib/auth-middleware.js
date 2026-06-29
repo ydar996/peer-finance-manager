@@ -64,6 +64,17 @@ function blockWritesUnlessAdmin(req, res, next) {
   });
 }
 
+/** Multer file uploads run outside AsyncLocalStorage; re-bind org before DB access. */
+function restoreOrgContext(req, res, next) {
+  const slug = req.organization?.slug || req.user?.organizationSlug;
+  if (!slug) {
+    return res.status(400).json({
+      error: "Organization session not found. Sign out and sign in again at /admin.",
+    });
+  }
+  return runWithOrg(slug, () => next());
+}
+
 module.exports = {
   attachUser,
   requireAuth,
@@ -71,5 +82,6 @@ module.exports = {
   requireCooperativeView,
   requireMemberSelf,
   blockWritesUnlessAdmin,
+  restoreOrgContext,
   getToken,
 };
