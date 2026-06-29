@@ -477,24 +477,54 @@ function writeMemberCredentialsExport(created, skipped) {
   return exportPath;
 }
 
+function syncMemberPortalLoginEmail(db, memberId, profileEmail) {
+  const user = db
+    .prepare(
+      `SELECT id, email FROM users WHERE member_id = ? AND role = 'member' AND active = 1`
+    )
+    .get(memberId);
+  if (!user) return null;
+
+  const email = normalizeEmail(profileEmail);
+  if (!email || !email.includes("@")) return user.email;
+
+  const taken = db
+    .prepare(`SELECT id FROM users WHERE lower(email) = lower(?) AND id != ?`)
+    .get(email, user.id);
+  if (taken) {
+    throw new Error("That email is already used by another login account");
+  }
+
+  if (email !== normalizeEmail(user.email)) {
+    db.prepare(`UPDATE users SET email = ? WHERE id = ?`).run(email, user.id);
+  }
+  return email;
+}
+
 function listMemberCredentialsSummary() {
   const db = getDb();
   return db
     .prepare(
-      `SELECT u.username, u.email, u.must_change_password, m.id AS member_id, m.name AS member_name
+      `SELECT u.username, u.email AS login_email, u.must_change_password,
+              m.id AS member_id, m.name AS member_name, mp.email AS profile_email
        FROM users u
        JOIN members m ON m.id = u.member_id
+       LEFT JOIN member_profiles mp ON mp.member_id = m.id
        WHERE u.role = 'member' AND u.active = 1
        ORDER BY m.name`
     )
     .all()
-    .map((row) => ({
-      memberId: row.member_id,
-      memberName: row.member_name,
-      username: row.username,
-      email: row.email,
-      mustChangePassword: Boolean(row.must_change_password),
-    }));
+    .map((row) => {
+      const profileEmail = normalizeEmail(row.profile_email);
+      const loginEmail = row.login_email;
+      return {
+        memberId: row.member_id,
+        memberName: row.member_name,
+        username: row.username,
+        email: profileEmail && profileEmail.includes("@") ? profileEmail : loginEmail,
+        mustChangePassword: Boolean(row.must_change_password),
+      };
+    });
 }
 
 function canAccessMember(user, memberId) {
@@ -528,6 +558,7 @@ module.exports = {
   listUsers,
   createUser,
   provisionAllMemberAccounts,
+  syncMemberPortalLoginEmail,
   listMemberCredentialsSummary,
   portalAllowsUser,
   canAccessMember,

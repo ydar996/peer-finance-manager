@@ -3354,6 +3354,7 @@ $("#updateProfileForm")?.addEventListener("submit", async (e) => {
     if (!res.ok) throw new Error(data.error);
     setFormStatus(status, "Profile saved.", true);
     loadMembers();
+    loadUsers();
     if (selectedMemberId === memberId) showProfile(memberId);
   } catch (err) {
     setFormStatus(status, err.message, false);

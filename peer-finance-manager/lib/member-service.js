@@ -2,6 +2,7 @@ const { getDb } = require("../db/database");
 const { addTransaction } = require("./balance-service");
 const { MEMBERSHIP_FEE, TRANSACTION_TYPES } = require("./constants");
 const { ensureMemberNumber } = require("./member-number-service");
+const { syncMemberPortalLoginEmail } = require("./auth-service");
 const { buildFullName, zelleNameFromApplication } = require("./member-name-match");
 const {
   formatPersonName,
@@ -250,6 +251,10 @@ function updateMemberProfile(memberId, payload = {}) {
   }
 
   upsertMemberProfile(db, memberId, profileFields);
+
+  if (payload.email !== undefined) {
+    syncMemberPortalLoginEmail(db, memberId, profileFields.email);
+  }
 
   return { memberId, ledgerName: payload.name?.trim() || member.name };
 }
