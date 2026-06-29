@@ -13,6 +13,7 @@ const {
   getTotalLoanInterestIncome,
   getExpectedFutureLoanInterest,
 } = require("./loan-ledger-service");
+const { getDashboardMetrics } = require("./dashboard-metrics");
 
 const DEPOSIT_ACCOUNT_TYPES = [
   TRANSACTION_TYPES.DEPOSIT,
@@ -293,6 +294,7 @@ function getCooperativeBooks() {
       (hasBankLoanLedgerData ? bankLoanCollected : loanPortfolio.collected || 0) -
       (hasBankLoanLedgerData ? bankLoanPrincipal : loanPortfolio.principal || 0) -
       (expenses.total || 0),
+    dashboard: getDashboardMetrics(),
   };
 }
 

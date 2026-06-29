@@ -585,6 +585,47 @@ function bookCardHtml(slug, { accent, label, amount, note }) {
     </button>`;
 }
 
+function dashboardCardHtml({ accent, label, amount, note }) {
+  return `
+    <div class="book-card dashboard-card${accent ? " accent" : ""}">
+      <p class="book-label">${label}</p>
+      <p class="book-amount${typeof amount === "number" ? " money" : ""}">${typeof amount === "number" ? fmt.format(amount) : escapeHtml(amount)}</p>
+      ${note ? `<p class="book-note">${note}</p>` : ""}
+    </div>`;
+}
+
+function formatPctChangeLabel(value) {
+  if (value == null) return "new";
+  if (value === 0) return "0%";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value}%`;
+}
+
+function dashboardCardsHtml(dashboard) {
+  if (!dashboard) return "";
+  const month = dashboard.depositsThisMonth;
+  const ytd = dashboard.depositsYtd;
+  const due = dashboard.loanRepaymentsDue;
+  return [
+    dashboardCardHtml({
+      accent: true,
+      label: `Deposits This Month (${month.monthLabel})`,
+      amount: month.total,
+      note: "Member contributions recorded this calendar month",
+    }),
+    dashboardCardHtml({
+      label: `Deposits This Year (${ytd.year} YTD)`,
+      amount: ytd.total,
+      note: `vs ${ytd.lastYear.year} ${fmt.format(ytd.lastYear.total)} (${formatPctChangeLabel(ytd.lastYear.pctChange)}) · vs ${ytd.twoYearsAgo.year} ${fmt.format(ytd.twoYearsAgo.total)} (${formatPctChangeLabel(ytd.twoYearsAgo.pctChange)})`,
+    }),
+    dashboardCardHtml({
+      label: `Loan Repayments Due (${due.monthLabel})`,
+      amount: due.total,
+      note: "Scheduled this month but not yet received",
+    }),
+  ].join("");
+}
+
 function closeBookDetail() {
   bookDetailRequestId += 1;
   $("#booksDetail")?.classList.add("hidden");
@@ -686,6 +727,7 @@ async function loadBooks() {
     const { books } = await res.json();
     if (!res.ok) throw new Error(books?.error || "Failed to load books");
     grid.innerHTML = [
+      dashboardCardsHtml(books.dashboard),
       bookCardHtml("deposit-accounts", {
         accent: true,
         label: "Member Contributions Accounts (Total)",
