@@ -71,7 +71,7 @@ function archiveUploadedBankFiles({ workbookPath, statementPath } = {}) {
 
 function runBankImportFromUpload({ workbookPath, statementPath, cdBalance } = {}) {
   if (!workbookPath && !statementPath) {
-    throw new Error("Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).");
+    throw new Error("Upload your master ledger file (cooperative-bank-ledger-reference.csv).");
   }
 
   let resolvedCdBalance = cdBalance;

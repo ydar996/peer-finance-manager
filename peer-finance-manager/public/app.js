@@ -2516,7 +2516,7 @@ async function sortBankLedgerUpload(button) {
   const workbook = form.workbook?.files?.[0];
   const statement = form.statement?.files?.[0];
   if (!workbook && !statement) {
-    alert("Choose the CSV or workbook you want sorted first.");
+    alert("Choose your master ledger file first.");
     return;
   }
   setButtonBusy(button, true, "Sorting…");
@@ -2600,7 +2600,7 @@ async function downloadMissingManualRows(button) {
   const workbook = form.workbook?.files?.[0];
   const statement = form.statement?.files?.[0];
   if (!workbook && !statement) {
-    alert("Choose the CSV or workbook you plan to import first.");
+    alert("Choose your master ledger file first.");
     return;
   }
   setButtonBusy(button, true, "Preparing…");
@@ -2659,7 +2659,7 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
   const workbook = form.workbook?.files?.[0];
   const statement = form.statement?.files?.[0];
   if (!workbook && !statement) {
-    status.textContent = "Choose the cooperative workbook (.xlsx) and/or bank statement (.csv).";
+    status.textContent = "Choose your master ledger file (cooperative-bank-ledger-reference.csv).";
     status.className = "status err";
     return;
   }

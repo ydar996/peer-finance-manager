@@ -750,16 +750,20 @@
 
         <div class="card">
           <h3>Bank Ledger Import</h3>
-          <p class="hint">Maintain <strong>cooperative-bank-ledger-reference.csv</strong> as your master ledger. Upload it here to refresh the live books. Manual entries in Record (deposits, expenses, loans) <strong>automatically update</strong> the reference CSV on the server. Download the latest copy below after manual changes on production.</p>
+          <p class="hint">Upload <strong>cooperative-bank-ledger-reference.csv</strong> to refresh live books. Edit that file on your computer, then upload the whole file again when you add or fix rows. Manual entries in Record also sync to the server copy — use <strong>Download sorted reference CSV</strong> to pull the latest.</p>
           <form id="bankImportForm" class="entry-form">
             <label class="field-row">
-              <span>Cooperative workbook (.xlsx) — required unless you only upload a bank CSV</span>
-              <input type="file" name="workbook" accept=".xlsx,.xls" />
+              <span>Master ledger file (.csv or .xlsx)</span>
+              <input type="file" name="statement" accept=".csv,.xlsx,.xls" />
             </label>
-            <label class="field-row">
-              <span>Bank statement (.csv) — optional, for recent Bank of America transactions</span>
-              <input type="file" name="statement" accept=".csv" />
-            </label>
+            <details class="legacy-import">
+              <summary>Advanced: legacy All Deposits workbook merge</summary>
+              <p class="hint subtle">Only if you still combine an old <em>All Deposits</em> spreadsheet with a separate bank export. Leave empty for normal use.</p>
+              <label class="field-row">
+                <span>All Deposits workbook (.xlsx)</span>
+                <input type="file" name="workbook" accept=".xlsx,.xls" />
+              </label>
+            </details>
             <label class="field-row">
               <span>CD balance after import (optional — uses current balance if blank)</span>
               <input type="number" name="cdBalance" id="bankImportCdBalance" step="0.01" min="0" placeholder="e.g. 7211.82" />

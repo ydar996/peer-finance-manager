@@ -499,7 +499,7 @@ app.post(
       const statementPath = req.files?.statement?.[0]?.path || null;
       if (!workbookPath && !statementPath) {
         return res.status(400).json({
-          error: "Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).",
+          error: "Upload your master ledger file (cooperative-bank-ledger-reference.csv).",
         });
       }
       const { findManualLedgerMissingFromImport } = require("./lib/bank-import-conflicts");
@@ -528,7 +528,7 @@ app.post(
       const statementPath = req.files?.statement?.[0]?.path || null;
       if (!workbookPath && !statementPath) {
         return res.status(400).json({
-          error: "Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).",
+          error: "Upload your master ledger file (cooperative-bank-ledger-reference.csv).",
         });
       }
       const { findManualLedgerMissingFromImport } = require("./lib/bank-import-conflicts");
@@ -572,7 +572,7 @@ app.post(
       const statementPath = req.files?.statement?.[0]?.path || null;
       if (!workbookPath && !statementPath) {
         return res.status(400).json({
-          error: "Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).",
+          error: "Upload your master ledger file (cooperative-bank-ledger-reference.csv).",
         });
       }
       const { findManualLedgerMissingFromImport } = require("./lib/bank-import-conflicts");
@@ -624,7 +624,7 @@ app.post(
       const statementPath = req.files?.statement?.[0]?.path || null;
       if (!workbookPath && !statementPath) {
         return res.status(400).json({
-          error: "Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).",
+          error: "Upload your master ledger file (cooperative-bank-ledger-reference.csv).",
         });
       }
       const {

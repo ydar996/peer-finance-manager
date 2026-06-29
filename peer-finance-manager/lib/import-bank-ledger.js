@@ -54,7 +54,7 @@ function importBankLedger({
   const nameToId = Object.fromEntries(members.map((m) => [m.name, m.id]));
 
   if (!xlsxPath && !csvPath) {
-    throw new Error("Provide a cooperative workbook (.xlsx) and/or bank statement (.csv).");
+    throw new Error("Upload your master ledger file (cooperative-bank-ledger-reference.csv).");
   }
 
   const bankTxs = loadMergedBankTransactions({

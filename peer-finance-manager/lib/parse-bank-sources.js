@@ -178,6 +178,69 @@ function parseAllDepositsXlsx(filePath, memberNames) {
   return unique;
 }
 
+function isReferenceLedgerWorkbook(filePath) {
+  const wb = XLSX.readFile(filePath, { bookSheets: true });
+  const sheetName =
+    wb.SheetNames.find((n) => n === "Cooperative Bank Ledger") || wb.SheetNames[0];
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: "", header: 1 });
+  for (const row of rows.slice(0, 8)) {
+    const cells = (row || []).map((cell) => String(cell || "").trim());
+    if (cells.includes("Ledger Type") || cells.includes("ISO Date")) return true;
+  }
+  return false;
+}
+
+function parseReferenceLedgerXlsx(filePath, memberNames) {
+  const wb = XLSX.readFile(filePath);
+  const sheetName =
+    wb.SheetNames.find((n) => n === "Cooperative Bank Ledger") || wb.SheetNames[0];
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: "" });
+  const parsed = [];
+
+  for (const row of rows) {
+    const date =
+      String(row["ISO Date"] || "").slice(0, 10) || excelDateToIso(row.Date);
+    const description = String(row.Description || "").trim();
+    const amount = Number(row.Amount);
+    const ledgerType =
+      String(row["Ledger Type"] || "").trim() || narrativeToLedgerType(row.Narrative);
+    const narrative = normType(row.Narrative);
+    if (!date || !ledgerType || !Number.isFinite(amount)) continue;
+    if (description.toLowerCase().includes("beginning balance")) continue;
+
+    const memberRef = String(row.Member || "").trim();
+    const member = resolveMemberName(memberRef, description, memberNames);
+
+    parsed.push({
+      source: "reference_ledger",
+      date,
+      description,
+      amount,
+      transactionType: narrative || ledgerType,
+      ledgerType,
+      member,
+      depositor: member,
+      repeatKey: null,
+    });
+  }
+  return parsed;
+}
+
+function parseWorkbookXlsx(filePath, memberNames) {
+  if (isReferenceLedgerWorkbook(filePath)) {
+    return parseReferenceLedgerXlsx(filePath, memberNames);
+  }
+  return parseAllDepositsXlsx(filePath, memberNames);
+}
+
+function parseStatementFile(filePath, memberNames) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".xlsx" || ext === ".xls") {
+    return parseWorkbookXlsx(filePath, memberNames);
+  }
+  return parseStmtCsv(filePath, memberNames);
+}
+
 function parseStmtCsv(filePath, memberNames) {
   const raw = parseBankStatementCsv(filePath, memberNames);
   return raw.map((tx) => {
@@ -254,10 +317,12 @@ function dedupeDepositLoanConflicts(transactions) {
 }
 
 function loadMergedBankTransactions({ xlsxPath, csvPath, memberNames }) {
-  const xlsxTxs = xlsxPath ? parseAllDepositsXlsx(xlsxPath, memberNames) : [];
-  const csvTxs = csvPath ? parseStmtCsv(csvPath, memberNames) : [];
+  const xlsxTxs = xlsxPath ? parseWorkbookXlsx(xlsxPath, memberNames) : [];
+  const csvTxs = csvPath ? parseStatementFile(csvPath, memberNames) : [];
   if (!xlsxTxs.length && !csvTxs.length) {
-    throw new Error("No transactions found in the uploaded file(s). Check the workbook or CSV format.");
+    throw new Error(
+      "No transactions found. Upload cooperative-bank-ledger-reference.csv (or the matching .xlsx export)."
+    );
   }
   if (!xlsxTxs.length) {
     return dedupeDepositLoanConflicts(
@@ -272,6 +337,9 @@ function loadMergedBankTransactions({ xlsxPath, csvPath, memberNames }) {
 
 module.exports = {
   parseAllDepositsXlsx,
+  parseReferenceLedgerXlsx,
+  parseWorkbookXlsx,
+  parseStatementFile,
   parseStmtCsv,
   mergeBankSources,
   loadMergedBankTransactions,
