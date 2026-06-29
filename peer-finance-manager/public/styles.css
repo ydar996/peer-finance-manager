@@ -395,6 +395,21 @@ th { background: #f8fafc; font-weight: 600; }
   border-color: #cbd5e1;
   color: #475569;
 }
+.bank-import-conflicts {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 13px;
+}
+.bank-import-conflicts.hidden { display: none; }
+.bank-import-conflicts ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.bank-import-conflicts li { margin: 4px 0; }
 .expense-report-labels-panel { margin-top: 16px; }
 .expense-report-labels-table-wrap { max-height: 360px; overflow: auto; margin: 12px 0; }
 .expense-report-labels-table td.money,

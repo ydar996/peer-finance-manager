@@ -485,6 +485,34 @@ app.post("/api/bank-import/preview", upload.single("file"), (req, res) => {
 });
 
 app.post(
+  "/api/bank-import/check-conflicts",
+  requireAdmin,
+  upload.fields([
+    { name: "workbook", maxCount: 1 },
+    { name: "statement", maxCount: 1 },
+  ]),
+  (req, res) => {
+    try {
+      const workbookPath = req.files?.workbook?.[0]?.path || null;
+      const statementPath = req.files?.statement?.[0]?.path || null;
+      if (!workbookPath && !statementPath) {
+        return res.status(400).json({
+          error: "Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).",
+        });
+      }
+      const { findManualLedgerMissingFromImport } = require("./lib/bank-import-conflicts");
+      const conflicts = findManualLedgerMissingFromImport({
+        workbookPath,
+        statementPath,
+      });
+      res.json({ conflicts });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post(
   "/api/bank-import/run",
   requireAdmin,
   upload.fields([
@@ -500,12 +528,70 @@ app.post(
           error: "Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).",
         });
       }
+      const { findManualLedgerMissingFromImport } = require("./lib/bank-import-conflicts");
+      const conflicts = findManualLedgerMissingFromImport({
+        workbookPath,
+        statementPath,
+      });
+      const acknowledged =
+        req.body?.acknowledgeManualLoss === "true" ||
+        req.body?.acknowledgeManualLoss === true;
+      if (conflicts.hasConflicts && !acknowledged) {
+        return res.status(409).json({
+          error:
+            "This import would remove manual transactions that are not in the uploaded file. Download the reference CSV, include those rows, or confirm to proceed.",
+          conflicts,
+        });
+      }
       const result = runBankImportFromUpload({
         workbookPath,
         statementPath,
         cdBalance: req.body?.cdBalance,
       });
-      res.json({ success: true, result });
+      res.json({ success: true, result, conflicts });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.post(
+  "/api/bank-import/missing-rows/download",
+  requireAdmin,
+  upload.fields([
+    { name: "workbook", maxCount: 1 },
+    { name: "statement", maxCount: 1 },
+  ]),
+  (req, res) => {
+    try {
+      const workbookPath = req.files?.workbook?.[0]?.path || null;
+      const statementPath = req.files?.statement?.[0]?.path || null;
+      if (!workbookPath && !statementPath) {
+        return res.status(400).json({
+          error: "Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).",
+        });
+      }
+      const { findManualLedgerMissingFromImport } = require("./lib/bank-import-conflicts");
+      const {
+        buildMissingManualRowsCsvContent,
+        MISSING_MANUAL_ROWS_CSV_BASENAME,
+      } = require("./lib/cooperative-bank-ledger-csv");
+      const conflicts = findManualLedgerMissingFromImport({
+        workbookPath,
+        statementPath,
+      });
+      if (!conflicts.missingFromImport.length) {
+        return res.status(404).json({
+          error: "No missing manual transactions for the file you selected.",
+        });
+      }
+      const csv = buildMissingManualRowsCsvContent(conflicts.missingFromImport);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${MISSING_MANUAL_ROWS_CSV_BASENAME}"`
+      );
+      res.send(csv);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -515,6 +601,58 @@ app.post(
 app.get("/api/bank-imports", requireCooperativeView, (req, res) => {
   try {
     res.json({ imports: listBankImports() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post(
+  "/api/bank-ledger/reference/sort-upload",
+  requireAdmin,
+  upload.fields([
+    { name: "workbook", maxCount: 1 },
+    { name: "statement", maxCount: 1 },
+  ]),
+  (req, res) => {
+    try {
+      const workbookPath = req.files?.workbook?.[0]?.path || null;
+      const statementPath = req.files?.statement?.[0]?.path || null;
+      if (!workbookPath && !statementPath) {
+        return res.status(400).json({
+          error: "Upload the cooperative workbook (.xlsx) and/or bank statement (.csv).",
+        });
+      }
+      const {
+        buildSortedReferenceCsvFromUpload,
+        CSV_BASENAME,
+      } = require("./lib/cooperative-bank-ledger-csv");
+      const { content } = buildSortedReferenceCsvFromUpload({
+        workbookPath,
+        statementPath,
+      });
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${CSV_BASENAME}"`);
+      res.send(content);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.get("/api/bank-ledger/reference/download", requireAdmin, (req, res) => {
+  try {
+    const fs = require("fs");
+    const {
+      syncCooperativeBankLedgerCsvFiles,
+      getCooperativeBankLedgerCsvPath,
+      CSV_BASENAME,
+    } = require("./lib/cooperative-bank-ledger-csv");
+    syncCooperativeBankLedgerCsvFiles();
+    const filePath = getCooperativeBankLedgerCsvPath();
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "Reference CSV not found" });
+    }
+    res.download(filePath, CSV_BASENAME);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

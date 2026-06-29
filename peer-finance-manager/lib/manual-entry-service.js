@@ -2,6 +2,7 @@ const { getDb } = require("../db/database");
 const { addTransaction } = require("./balance-service");
 const { TRANSACTION_TYPES, EXPENSE_CATEGORIES } = require("./constants");
 const { createLoan, applyLoanRepayment } = require("./loan-service");
+const { queueCooperativeBankLedgerCsvSync } = require("./cooperative-bank-ledger-csv");
 
 const DEPOSIT_ENTRY_TYPES = [
   TRANSACTION_TYPES.DEPOSIT,
@@ -57,6 +58,7 @@ function recordMemberDepositEntry({
     source: "manual",
   });
 
+  queueCooperativeBankLedgerCsvSync("manual_deposit_entry");
   return { transactionId: txId, amount: signedAmount };
 }
 
@@ -94,6 +96,7 @@ function recordExpense({ description, amount, expenseDate, category }) {
     source: "manual",
   });
 
+  queueCooperativeBankLedgerCsvSync("manual_expense");
   return { expenseId: result.lastInsertRowid };
 }
 
@@ -125,6 +128,7 @@ function createManualLoan(payload) {
     source: "manual",
   });
 
+  queueCooperativeBankLedgerCsvSync("manual_loan_disbursement");
   return { loanId };
 }
 
@@ -135,13 +139,16 @@ function recordManualLoanRepayment({ loanId, amount, paymentDate, description })
   }
   if (!paymentDate) throw new Error("Payment date is required");
 
-  return applyLoanRepayment({
+  const result = applyLoanRepayment({
     loanId,
     amount: numericAmount,
     paymentDate,
     description,
     source: "manual",
   });
+
+  queueCooperativeBankLedgerCsvSync("manual_loan_repayment");
+  return result;
 }
 
 module.exports = {

@@ -89,6 +89,9 @@ function runBankImportFromUpload({ workbookPath, statementPath, cdBalance } = {}
     replaceSpreadsheetDeposits: true,
   });
 
+  const { queueCooperativeBankLedgerCsvSync } = require("./cooperative-bank-ledger-csv");
+  queueCooperativeBankLedgerCsvSync("bank_import");
+
   return { ...result, archived };
 }
 

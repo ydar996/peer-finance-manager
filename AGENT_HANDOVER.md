@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-06-29** — Bank import conflict handling with **Download missing rows CSV**; **Sort selected file & download** and **Download sorted reference CSV** (date-ordered `cooperative-bank-ledger-reference.csv` from upload or live books). Auto-sync reference CSV on manual entries. **Production:** `git push`.
 - **2026-06-28** — Fix bank import upload error (`importBankLedger is not a function`) — circular require between `bank-import.js` and `import-bank-ledger.js`; lazy-load import inside `runBankImportFromUpload`. **Production:** `git push`.
 - **2026-06-28** — **Admin bank ledger import on live site:** Admin → Import → **Bank Ledger Import** uploads cooperative workbook (.xlsx) and optional bank statement (.csv); updates production DB immediately (no WinSCP/Manual Deploy). API: `POST /api/bank-import/run`. Month-end auto-publish toggle on Cooperative Books. **Production:** `git push`.
 - **2026-06-28** — Added **EMAIL-NOTIFICATIONS-SETUP.md** (layman steps to enable SMTP on Render for member report emails).

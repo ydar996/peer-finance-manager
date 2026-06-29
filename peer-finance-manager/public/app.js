@@ -2489,11 +2489,172 @@ async function loadBankImportPanel() {
   }
 }
 
-$("#bankImportForm")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
+async function downloadBankLedgerReference(button) {
+  setButtonBusy(button, true, "Preparing…");
+  try {
+    const res = await fetch("/api/bank-ledger/reference/download");
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Download failed");
+    }
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "cooperative-bank-ledger-reference.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+async function sortBankLedgerUpload(button) {
+  const form = $("#bankImportForm");
+  if (!form) return;
+  const workbook = form.workbook?.files?.[0];
+  const statement = form.statement?.files?.[0];
+  if (!workbook && !statement) {
+    alert("Choose the CSV or workbook you want sorted first.");
+    return;
+  }
+  setButtonBusy(button, true, "Sorting…");
+  try {
+    const fd = new FormData();
+    if (workbook) fd.append("workbook", workbook);
+    if (statement) fd.append("statement", statement);
+    const res = await fetch("/api/bank-ledger/reference/sort-upload", {
+      method: "POST",
+      body: fd,
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Sort failed");
+    }
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "cooperative-bank-ledger-reference.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+    const status = $("#bankImportStatus");
+    if (status) {
+      status.textContent =
+        "Sorted file downloaded. Replace your local cooperative-bank-ledger-reference.csv with this file.";
+      status.className = "status ok";
+    }
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+$("#downloadBankLedgerReference")?.addEventListener("click", (e) => {
+  downloadBankLedgerReference(e.currentTarget);
+});
+
+$("#sortBankLedgerUpload")?.addEventListener("click", (e) => {
+  sortBankLedgerUpload(e.currentTarget);
+});
+
+function clearBankImportConflicts() {
+  const panel = $("#bankImportConflicts");
+  if (panel) {
+    panel.innerHTML = "";
+    panel.classList.add("hidden");
+  }
+}
+
+function renderBankImportConflicts(conflicts) {
+  const panel = $("#bankImportConflicts");
+  if (!panel) return;
+  const missing = conflicts?.missingFromImport || [];
+  if (!missing.length) {
+    clearBankImportConflicts();
+    return;
+  }
+  panel.classList.remove("hidden");
+  panel.innerHTML = `
+    <strong>Manual entries not in this file (${missing.length})</strong>
+    <p>These were entered in Peer Finance Manager but are missing from the CSV/workbook you selected. Importing without them will remove them from Cooperative Books.</p>
+    <ul>
+      ${missing
+        .map(
+          (row) =>
+            `<li>${escapeHtml(row.dateLabel || row.date)} · ${escapeHtml(row.narrative || row.type)} · ${escapeHtml(fmt.format(row.amount))}${row.memberName ? ` · ${escapeHtml(row.memberName)}` : ""}${row.description ? ` · ${escapeHtml(row.description)}` : ""}</li>`
+        )
+        .join("")}
+    </ul>
+    <div class="panel-head-actions">
+      <button type="button" class="btn primary" id="downloadMissingManualRows">Download missing rows CSV</button>
+    </div>
+    <p>Open the missing-rows file, copy its transaction rows into <strong>cooperative-bank-ledger-reference.csv</strong>, then either import that file or click <strong>Sort selected file &amp; download</strong> to get a date-ordered file. After import, click <strong>Download sorted reference CSV</strong> to replace your local copy from live Cooperative Books.</p>
+  `;
+}
+
+async function downloadMissingManualRows(button) {
+  const form = $("#bankImportForm");
+  if (!form) return;
+  const workbook = form.workbook?.files?.[0];
+  const statement = form.statement?.files?.[0];
+  if (!workbook && !statement) {
+    alert("Choose the CSV or workbook you plan to import first.");
+    return;
+  }
+  setButtonBusy(button, true, "Preparing…");
+  try {
+    const fd = new FormData();
+    if (workbook) fd.append("workbook", workbook);
+    if (statement) fd.append("statement", statement);
+    const res = await fetch("/api/bank-import/missing-rows/download", {
+      method: "POST",
+      body: fd,
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Download failed");
+    }
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "cooperative-bank-ledger-missing-manual-rows.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+$("#bankImportConflicts")?.addEventListener("click", (e) => {
+  if (e.target?.id === "downloadMissingManualRows") {
+    downloadMissingManualRows(e.currentTarget);
+  }
+});
+
+async function checkBankImportConflicts(form) {
+  const workbook = form.workbook?.files?.[0];
+  const statement = form.statement?.files?.[0];
+  if (!workbook && !statement) {
+    clearBankImportConflicts();
+    return null;
+  }
+  const fd = new FormData();
+  if (workbook) fd.append("workbook", workbook);
+  if (statement) fd.append("statement", statement);
+  const res = await fetch("/api/bank-import/check-conflicts", { method: "POST", body: fd });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Could not check import conflicts");
+  renderBankImportConflicts(data.conflicts);
+  return data.conflicts;
+}
+
+async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
   const status = $("#bankImportStatus");
   const summary = $("#bankImportSummary");
-  const form = e.target;
   const fd = new FormData(form);
   const workbook = form.workbook?.files?.[0];
   const statement = form.statement?.files?.[0];
@@ -2501,6 +2662,9 @@ $("#bankImportForm")?.addEventListener("submit", async (e) => {
     status.textContent = "Choose the cooperative workbook (.xlsx) and/or bank statement (.csv).";
     status.className = "status err";
     return;
+  }
+  if (acknowledgeManualLoss) {
+    fd.set("acknowledgeManualLoss", "true");
   }
   if (status) {
     status.textContent = "Importing bank ledger…";
@@ -2512,10 +2676,27 @@ $("#bankImportForm")?.addEventListener("submit", async (e) => {
   try {
     const res = await fetch("/api/bank-import/run", { method: "POST", body: fd });
     const data = await res.json();
+    if (res.status === 409 && data.conflicts?.hasConflicts) {
+      renderBankImportConflicts(data.conflicts);
+      const count = data.conflicts.missingFromImport.length;
+      const proceed = confirm(
+        `${count} manual transaction${count === 1 ? "" : "s"} in Peer Finance Manager ${count === 1 ? "is" : "are"} not in this file and will be removed.\n\nImport anyway?`
+      );
+      if (proceed) {
+        await runBankImport(form, { acknowledgeManualLoss: true });
+      } else if (status) {
+        status.textContent =
+          "Import cancelled. Download the reference CSV or add the missing manual rows first.";
+        status.className = "status err";
+      }
+      return;
+    }
     if (!res.ok) throw new Error(data.error || "Bank import failed");
+    clearBankImportConflicts();
     const r = data.result || {};
     if (status) {
-      status.textContent = "Bank ledger updated on the live site.";
+      status.textContent =
+        "Bank ledger updated. Download sorted reference CSV to replace your local file.";
       status.className = "status ok";
     }
     if (summary) {
@@ -2526,6 +2707,7 @@ $("#bankImportForm")?.addEventListener("submit", async (e) => {
         `${r.expenses || 0} expenses`,
         r.skippedNoMember ? `${r.skippedNoMember} skipped (member not matched)` : null,
         r.cdBalance != null ? `CD balance set to ${Number(r.cdBalance).toFixed(2)}` : null,
+        "Use Download sorted reference CSV for a date-ordered file matching live books.",
       ]
         .filter(Boolean)
         .join(" · ");
@@ -2541,6 +2723,26 @@ $("#bankImportForm")?.addEventListener("submit", async (e) => {
   } finally {
     setButtonBusy(submitBtn, false);
   }
+}
+
+$("#bankImportForm")?.addEventListener("change", async (e) => {
+  if (!e.target?.name || !["workbook", "statement"].includes(e.target.name)) return;
+  const form = e.target.form;
+  if (!form) return;
+  try {
+    await checkBankImportConflicts(form);
+  } catch (err) {
+    const status = $("#bankImportStatus");
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+});
+
+$("#bankImportForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await runBankImport(e.target);
 });
 
 let selectedStatementFile = null;

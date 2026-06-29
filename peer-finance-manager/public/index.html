@@ -750,7 +750,7 @@
 
         <div class="card">
           <h3>Bank Ledger Import</h3>
-          <p class="hint">Upload your cooperative Excel workbook to refresh deposits, loan activity, expenses, and CD entries on the <strong>live site immediately</strong>. No WinSCP or Manual Deploy is needed for this step.</p>
+          <p class="hint">Maintain <strong>cooperative-bank-ledger-reference.csv</strong> as your master ledger. Upload it here to refresh the live books. Manual entries in Record (deposits, expenses, loans) <strong>automatically update</strong> the reference CSV on the server. Download the latest copy below after manual changes on production.</p>
           <form id="bankImportForm" class="entry-form">
             <label class="field-row">
               <span>Cooperative workbook (.xlsx) — required unless you only upload a bank CSV</span>
@@ -766,9 +766,13 @@
             </label>
             <div class="panel-head-actions">
               <button type="submit" class="btn primary">Import Bank Ledger</button>
+              <button type="button" class="btn" id="sortBankLedgerUpload">Sort selected file &amp; download</button>
+              <button type="button" class="btn" id="downloadBankLedgerReference">Download sorted reference CSV</button>
             </div>
           </form>
+          <p class="hint subtle">After import, use <strong>Download sorted reference CSV</strong> to replace your local <code>cooperative-bank-ledger-reference.csv</code> with rows in date order. If you merged rows out of order before importing, the live-books download fixes that.</p>
           <p id="bankImportStatus" class="status"></p>
+          <div id="bankImportConflicts" class="bank-import-conflicts hidden"></div>
           <p id="bankImportSummary" class="subtle"></p>
         </div>
       </section>

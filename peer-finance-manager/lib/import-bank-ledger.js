@@ -7,6 +7,7 @@ const {
   setCooperativeSetting,
   getCooperativeSetting,
 } = require("./cooperative-settings");
+const { LEDGER_TYPES } = require("./cooperative-bank-ledger-csv");
 
 const MEMBER_LEDGER_TYPES = new Set([
   TRANSACTION_TYPES.DEPOSIT,
@@ -97,6 +98,10 @@ function importBankLedger({
     }
 
     db.prepare(`DELETE FROM transactions WHERE source = 'bank_import'`).run();
+    const manualPlaceholders = LEDGER_TYPES.map(() => "?").join(", ");
+    db.prepare(
+      `DELETE FROM transactions WHERE source = 'manual' AND type IN (${manualPlaceholders})`
+    ).run(...LEDGER_TYPES);
     db.prepare(`DELETE FROM expenses`).run();
     db.prepare(`DELETE FROM transactions WHERE type = 'expense'`).run();
 
