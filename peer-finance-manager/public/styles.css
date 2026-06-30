@@ -16,13 +16,6 @@ h1 { margin: 0 0 4px; font-size: 28px; }
   font-size: 13px;
   line-height: 1.45;
 }
-.legacy-import {
-  margin: 8px 0 12px;
-  font-size: 14px;
-  color: #64748b;
-}
-.legacy-import summary { cursor: pointer; color: #475569; }
-.legacy-import .field-row { margin-top: 10px; }
 
 /* Section headers sit above description/subtle text in size and weight */
 .section-title,

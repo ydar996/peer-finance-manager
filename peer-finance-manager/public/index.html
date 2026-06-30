@@ -758,23 +758,11 @@
 
         <div class="card">
           <h3>Bank Ledger Import</h3>
-          <p class="hint">Upload <strong>cooperative-bank-ledger-reference.csv</strong> to refresh live books. Edit that file on your computer, then upload the whole file again when you add or fix rows. Manual entries in Record also sync to the server copy — use <strong>Download sorted reference CSV</strong> to pull the latest.</p>
+          <p class="hint">Upload your master ledger file to refresh live Cooperative Books. After editing locally, upload the whole file again. Use <strong>Download sorted reference CSV</strong> to pull the latest copy from the server.</p>
           <form id="bankImportForm" class="entry-form">
             <label class="field-row">
               <span>Master ledger file (.csv or .xlsx)</span>
-              <input type="file" name="statement" accept=".csv,.xlsx,.xls" />
-            </label>
-            <details class="legacy-import">
-              <summary>Advanced: legacy All Deposits workbook merge</summary>
-              <p class="hint subtle">Only if you still combine an old <em>All Deposits</em> spreadsheet with a separate bank export. Leave empty for normal use.</p>
-              <label class="field-row">
-                <span>All Deposits workbook (.xlsx)</span>
-                <input type="file" name="workbook" accept=".xlsx,.xls" />
-              </label>
-            </details>
-            <label class="field-row">
-              <span>CD balance after import (optional — uses current balance if blank)</span>
-              <input type="number" name="cdBalance" id="bankImportCdBalance" step="0.01" min="0" placeholder="e.g. 7211.82" />
+              <input type="file" name="statement" accept=".csv,.xlsx,.xls" required />
             </label>
             <div class="panel-head-actions">
               <button type="submit" class="btn primary">Import Bank Ledger</button>
@@ -782,7 +770,7 @@
               <button type="button" class="btn" id="downloadBankLedgerReference">Download sorted reference CSV</button>
             </div>
           </form>
-          <p class="hint subtle">After import, use <strong>Download sorted reference CSV</strong> to replace your local <code>cooperative-bank-ledger-reference.csv</code> with rows in date order. If you merged rows out of order before importing, the live-books download fixes that.</p>
+          <p class="hint subtle">CD balance and other settings are kept automatically unless you change them elsewhere. After import, download the sorted reference CSV to replace your local copy in date order.</p>
           <p id="bankImportStatus" class="status"></p>
           <div id="bankImportConflicts" class="bank-import-conflicts hidden"></div>
           <p id="bankImportSummary" class="subtle"></p>
@@ -887,7 +875,7 @@
         <div id="myProfileSection" class="card my-profile-card hidden"></div>
         <details class="profile-disclosure my-cooperative-reports-panel hidden" id="myCooperativeReportsCard">
           <summary class="monthly-status-report-summary my-cooperative-reports-summary">
-            <span class="monthly-status-report-summary-text">Cooperative Status Reports</span>
+            <span class="monthly-status-report-summary-text">Cooperative Performance Reports</span>
             <span class="badge" id="myCooperativeReportsBadge">—</span>
           </summary>
           <div class="profile-disclosure-body my-cooperative-reports-body">

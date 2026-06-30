@@ -170,7 +170,7 @@ function sortedReferenceHeaderLines(note) {
     note || "Cooperative bank ledger reference — sorted by transaction date,,,",
     `Generated on ${today},,,,`,
     ",,,,",
-    "Date,Description,Amount,Running Bal.,Narrative",
+    "Date,Description,Amount,Running Bal.,Member,Narrative",
   ];
 }
 
@@ -246,7 +246,7 @@ function writeBankStatementCsv(exportRows, outPath, headerLines) {
     "Description,,Summary Amt.,,",
     `Synced from Peer Finance Manager on ${new Date().toISOString().slice(0, 10)},,,,`,
     ",,,,",
-    "Date,Description,Amount,Running Bal.,Narrative",
+    "Date,Description,Amount,Running Bal.,Member,Narrative",
   ];
 
   for (const row of exportRows) {
@@ -256,6 +256,7 @@ function writeBankStatementCsv(exportRows, outPath, headerLines) {
         csvEscape(row.description),
         formatAmount(row.amount),
         formatRunningBalance(row.runningBalance),
+        csvEscape(row.memberName || ""),
         row.narrative,
       ].join(",")
     );
@@ -295,7 +296,7 @@ function buildMissingManualRowsCsvContent(missingFromImport) {
     `Copy the rows below into cooperative-bank-ledger-reference.csv then re-import.,,,`,
     `Generated on ${today},,,,`,
     ",,,,",
-    "Date,Description,Amount,Running Bal.,Narrative",
+    "Date,Description,Amount,Running Bal.,Member,Narrative",
   ]);
 }
 

@@ -2470,7 +2470,7 @@ async function loadMyCooperativeReports() {
         (report) => `
       <li>
         <button type="button" class="btn linkish cooperative-report-download" data-period-slug="${escapeHtml(report.periodSlug)}">
-          Cooperative Status · ${escapeHtml(report.periodSlug)} · as at ${escapeHtml(formatDate(report.asOfDate))}
+          Cooperative Performance · ${escapeHtml(report.periodSlug)} · as at ${escapeHtml(formatDate(report.asOfDate))}
         </button>
       </li>`
       )
@@ -2489,7 +2489,7 @@ async function loadMyCooperativeReports() {
           const blob = await res.blob();
           const disposition = res.headers.get("Content-Disposition") || "";
           const match = disposition.match(/filename="?([^"]+)"?/i);
-          const fileName = match?.[1] || "Cooperative Status Report.pdf";
+          const fileName = match?.[1] || "Cooperative Performance Report.pdf";
           const link = document.createElement("a");
           link.href = URL.createObjectURL(blob);
           link.download = fileName;
@@ -2592,18 +2592,7 @@ $("#scheduleForm").addEventListener("submit", async (e) => {
 });
 
 async function loadBankImportPanel() {
-  const cdInput = $("#bankImportCdBalance");
-  if (!cdInput) return;
-  try {
-    const res = await fetch("/api/settings/cd-balance");
-    const data = await res.json();
-    if (!res.ok) return;
-    if (data.cdBalance?.balance != null && !cdInput.value) {
-      cdInput.placeholder = Number(data.cdBalance.balance).toFixed(2);
-    }
-  } catch (_) {
-    /* optional prefill */
-  }
+  /* Import panel is a single-file upload; CD balance is applied server-side when omitted. */
 }
 
 async function downloadBankLedgerReference(button) {
@@ -2630,17 +2619,15 @@ async function downloadBankLedgerReference(button) {
 async function sortBankLedgerUpload(button) {
   const form = $("#bankImportForm");
   if (!form) return;
-  const workbook = form.workbook?.files?.[0];
   const statement = form.statement?.files?.[0];
-  if (!workbook && !statement) {
+  if (!statement) {
     alert("Choose your master ledger file first.");
     return;
   }
   setButtonBusy(button, true, "Sorting…");
   try {
     const fd = new FormData();
-    if (workbook) fd.append("workbook", workbook);
-    if (statement) fd.append("statement", statement);
+    fd.append("statement", statement);
     const res = await fetch("/api/bank-ledger/reference/sort-upload", {
       method: "POST",
       body: fd,
@@ -2695,7 +2682,7 @@ function renderBankImportConflicts(conflicts) {
   panel.classList.remove("hidden");
   panel.innerHTML = `
     <strong>Manual entries not in this file (${missing.length})</strong>
-    <p>These were entered in Peer Finance Manager but are missing from the CSV/workbook you selected. Importing without them will remove them from Cooperative Books.</p>
+    <p>These were entered in Peer Finance Manager but are missing from the file you selected. Importing without them will remove them from Cooperative Books.</p>
     <ul>
       ${missing
         .map(
@@ -2714,17 +2701,15 @@ function renderBankImportConflicts(conflicts) {
 async function downloadMissingManualRows(button) {
   const form = $("#bankImportForm");
   if (!form) return;
-  const workbook = form.workbook?.files?.[0];
   const statement = form.statement?.files?.[0];
-  if (!workbook && !statement) {
+  if (!statement) {
     alert("Choose your master ledger file first.");
     return;
   }
   setButtonBusy(button, true, "Preparing…");
   try {
     const fd = new FormData();
-    if (workbook) fd.append("workbook", workbook);
-    if (statement) fd.append("statement", statement);
+    fd.append("statement", statement);
     const res = await fetch("/api/bank-import/missing-rows/download", {
       method: "POST",
       body: fd,
@@ -2753,15 +2738,13 @@ $("#bankImportConflicts")?.addEventListener("click", (e) => {
 });
 
 async function checkBankImportConflicts(form) {
-  const workbook = form.workbook?.files?.[0];
   const statement = form.statement?.files?.[0];
-  if (!workbook && !statement) {
+  if (!statement) {
     clearBankImportConflicts();
     return null;
   }
   const fd = new FormData();
-  if (workbook) fd.append("workbook", workbook);
-  if (statement) fd.append("statement", statement);
+  fd.append("statement", statement);
   const res = await fetch("/api/bank-import/check-conflicts", { method: "POST", body: fd });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Could not check import conflicts");
@@ -2773,10 +2756,9 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
   const status = $("#bankImportStatus");
   const summary = $("#bankImportSummary");
   const fd = new FormData(form);
-  const workbook = form.workbook?.files?.[0];
   const statement = form.statement?.files?.[0];
-  if (!workbook && !statement) {
-    status.textContent = "Choose your master ledger file (cooperative-bank-ledger-reference.csv).";
+  if (!statement) {
+    status.textContent = "Choose your master ledger file.";
     status.className = "status err";
     return;
   }
@@ -2843,7 +2825,7 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
 }
 
 $("#bankImportForm")?.addEventListener("change", async (e) => {
-  if (!e.target?.name || !["workbook", "statement"].includes(e.target.name)) return;
+  if (e.target?.name !== "statement") return;
   const form = e.target.form;
   if (!form) return;
   try {

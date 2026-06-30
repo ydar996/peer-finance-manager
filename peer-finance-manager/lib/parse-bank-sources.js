@@ -112,6 +112,25 @@ function inferNarrativeFromDescription(description, narrative) {
   return NARRATIVE.MEMBER_DEPOSIT;
 }
 
+const CHECK_LOAN_BORROWERS = {
+  1160: "Oluwabiyi Omotuyole",
+  1163: "Yomi Salami",
+  1169: "Gbanju Aruwayo-Obe",
+  1178: "Oluwabiyi Omotuyole",
+  1181: "Taiwo Embassey",
+  1187: "Yomi Salami",
+  1190: "Gbanju Aruwayo-Obe",
+};
+
+function resolveLoanDisbursementMember(description, memberNames) {
+  const checkMatch = String(description || "").match(/check\s*(\d{4})/i);
+  if (!checkMatch) return null;
+  const canonical = CHECK_LOAN_BORROWERS[Number(checkMatch[1])];
+  if (!canonical) return null;
+  if (memberNames.includes(canonical)) return canonical;
+  return resolveLedgerMemberName(canonical, memberNames) || canonical;
+}
+
 function resolveMemberName(rawName, description, memberNames) {
   const trimmed = String(rawName || "").trim();
   if (trimmed) {
@@ -210,7 +229,15 @@ function parseReferenceLedgerXlsx(filePath, memberNames) {
     if (description.toLowerCase().includes("beginning balance")) continue;
 
     const memberRef = String(row.Member || "").trim();
-    const member = resolveMemberName(memberRef, description, memberNames);
+    let member = resolveMemberName(memberRef, description, memberNames);
+    if (!member && ledgerType === "loan_disbursement") {
+      member = resolveLoanDisbursementMember(description, memberNames);
+    }
+    if (!member && ledgerType === "loan_repayment" && /BKOFAMERICA MOBILE/i.test(description)) {
+      member =
+        resolveLedgerMemberName("Oluwabiyi Omotuyole", memberNames) ||
+        "Oluwabiyi Omotuyole";
+    }
 
     parsed.push({
       source: "reference_ledger",
@@ -265,6 +292,14 @@ function parseStmtCsv(filePath, memberNames) {
     if (!member && ledgerType === "deposit") {
       member = resolveMember(tx.description, memberNames);
     }
+    if (!member && ledgerType === "loan_disbursement") {
+      member = resolveLoanDisbursementMember(tx.description, memberNames);
+    }
+    if (!member && ledgerType === "loan_repayment" && /BKOFAMERICA MOBILE/i.test(tx.description)) {
+      member =
+        resolveLedgerMemberName("Oluwabiyi Omotuyole", memberNames) ||
+        "Oluwabiyi Omotuyole";
+    }
     return {
       source: "stmt_csv",
       date: tx.date.iso,
@@ -286,8 +321,11 @@ function mergeBankSources(xlsxTxs, csvTxs) {
   function add(tx, priority) {
     const key = `${tx.date}|${tx.ledgerType}|${tx.amount}|${normalizeDescriptionKey(tx.description)}`;
     const existing = map.get(key);
-    if (!existing || priority >= existing.priority) {
-      map.set(key, { ...tx, priority });
+    if (!existing || priority > existing.priority) {
+      const member = tx.member || existing?.member;
+      map.set(key, { ...tx, member, depositor: member || tx.depositor, priority });
+    } else if (!existing.member && tx.member) {
+      map.set(key, { ...existing, member: tx.member, depositor: tx.member });
     }
   }
 
@@ -365,4 +403,7 @@ module.exports = {
   mergeBankSources,
   loadMergedBankTransactions,
   narrativeToLedgerType,
+  inferNarrativeFromDescription,
+  resolveLoanDisbursementMember,
+  CHECK_LOAN_BORROWERS,
 };
