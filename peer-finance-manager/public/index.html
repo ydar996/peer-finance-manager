@@ -885,21 +885,17 @@
         </div>
         <p class="hint panel-intro-hint">View Your Profile, Contributions and Loan Account History, and Download Statements on Demand.</p>
         <div id="myProfileSection" class="card my-profile-card hidden"></div>
-        <div class="card hidden" id="myCooperativeReportsCard">
-          <h3>Cooperative Status Reports</h3>
-          <p class="subtle">Published month-end summaries from your cooperative administrator.</p>
-          <p id="myPerformanceOverview" class="monthly-status-performance-overview hidden"></p>
-          <ul class="file-list" id="myCooperativeReportsList"></ul>
-          <details class="operational-expenses-preview-panel profile-disclosure hidden" id="myOperationalExpensesSection">
-            <summary class="operational-expenses-preview-summary">
-              <span>Operational Expenses</span>
-              <span class="badge" id="myOperationalExpensesTotal">—</span>
-            </summary>
-            <div class="profile-disclosure-body" id="myOperationalExpensesBody">
-              <p class="hint">Loading…</p>
-            </div>
-          </details>
-        </div>
+        <details class="profile-disclosure my-cooperative-reports-panel hidden" id="myCooperativeReportsCard">
+          <summary class="monthly-status-report-summary my-cooperative-reports-summary">
+            <span class="monthly-status-report-summary-text">Cooperative Status Reports</span>
+            <span class="badge" id="myCooperativeReportsBadge">—</span>
+          </summary>
+          <div class="profile-disclosure-body my-cooperative-reports-body">
+            <p class="subtle">Published month-end summaries from your cooperative administrator.</p>
+            <p id="myPerformanceOverview" class="monthly-status-performance-overview hidden"></p>
+            <ul class="file-list" id="myCooperativeReportsList"></ul>
+          </div>
+        </details>
         <div class="my-account-sections">
           <details class="my-account-panel profile-disclosure loan" id="myLoanPanel">
             <summary class="my-account-panel-summary">

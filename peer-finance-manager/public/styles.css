@@ -388,6 +388,16 @@ th { background: #f8fafc; font-weight: 600; }
   font-size: 13px;
   line-height: 1.5;
   color: #0f172a;
+  white-space: pre-line;
+}
+.my-cooperative-reports-panel {
+  margin: 16px 0;
+}
+.my-cooperative-reports-body .subtle {
+  margin-top: 0;
+}
+.my-cooperative-reports-body .file-list {
+  margin-top: 12px;
 }
 .monthly-status-performance-overview.hidden { display: none; }
 .monthly-status-report-card .toggle-row,

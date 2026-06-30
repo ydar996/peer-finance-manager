@@ -143,7 +143,7 @@ function buildPerformanceOverview(data, books) {
     );
   }
 
-  return sentences.join(" ");
+  return sentences.join("\n\n");
 }
 
 function getCooperativeStatusReportData(options = {}) {
@@ -293,6 +293,14 @@ function sectionDivider() {
   return '<hr class="section-divider" aria-hidden="true" />';
 }
 
+function performanceOverviewParagraphsHtml(text) {
+  return String(text || "")
+    .split(/\n\n+/)
+    .filter(Boolean)
+    .map((paragraph) => `<p>${escapeHtml(paragraph.trim())}</p>`)
+    .join("");
+}
+
 function buildCooperativeStatusReportHtml(data) {
   const { period } = data;
   const styles = `
@@ -319,7 +327,8 @@ function buildCooperativeStatusReportHtml(data) {
       color: #0369a1;
       font-weight: 700;
     }
-    .performance-overview p { margin: 0; font-size: 11px; line-height: 1.45; }
+    .performance-overview p { margin: 0 0 8px; font-size: 11px; line-height: 1.45; }
+    .performance-overview p:last-child { margin-bottom: 0; }
     .section-divider { border: none; border-top: 2px solid #cbd5e1; margin: 12px 0; }
     .report-grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
     h2 { font-size: 12px; margin: 0 0 6px; color: #0f172a; font-weight: 700; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; }
@@ -436,7 +445,7 @@ function buildCooperativeStatusReportHtml(data) {
 
   <section class="performance-overview">
     <h2>Performance Overview</h2>
-    <p>${escapeHtml(data.performanceOverview)}</p>
+    ${performanceOverviewParagraphsHtml(data.performanceOverview)}
   </section>
 
   ${sectionDivider()}

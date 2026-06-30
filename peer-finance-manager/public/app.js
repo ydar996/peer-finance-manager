@@ -2435,6 +2435,8 @@ async function saveMonthlyStatusReportSettings() {
 async function loadMyCooperativeReports() {
   const card = $("#myCooperativeReportsCard");
   const list = $("#myCooperativeReportsList");
+  const badge = $("#myCooperativeReportsBadge");
+  const overviewEl = $("#myPerformanceOverview");
   if (!card || !list) return;
   try {
     const res = await fetch("/api/me/cooperative-status-reports");
@@ -2446,6 +2448,23 @@ async function loadMyCooperativeReports() {
       return;
     }
     card.classList.remove("hidden");
+    if (badge) {
+      const latest = reports[0];
+      badge.textContent =
+        reports.length === 1
+          ? latest.periodSlug
+          : `${latest.periodSlug} · ${reports.length} reports`;
+      badge.className = "badge ok";
+    }
+    if (overviewEl) {
+      if (data.performanceOverview) {
+        overviewEl.textContent = data.performanceOverview;
+        overviewEl.classList.remove("hidden");
+      } else {
+        overviewEl.textContent = "";
+        overviewEl.classList.add("hidden");
+      }
+    }
     list.innerHTML = reports
       .map(
         (report) => `
@@ -2482,13 +2501,6 @@ async function loadMyCooperativeReports() {
           setButtonBusy(btn, false);
         }
       });
-    });
-    loadOperationalExpensesPreview({
-      apiPath: "/api/me/operational-expenses-summary",
-      bodyEl: $("#myOperationalExpensesBody"),
-      totalEl: $("#myOperationalExpensesTotal"),
-      sectionEl: $("#myOperationalExpensesSection"),
-      overviewEl: $("#myPerformanceOverview"),
     });
   } catch {
     card.classList.add("hidden");

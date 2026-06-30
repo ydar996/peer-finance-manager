@@ -278,7 +278,13 @@ function registerAuthRoutes(app, deps = {}) {
         return res.status(403).json({ error: "Member account required" });
       }
       const { listCooperativeStatusReports } = require("./monthly-status-report-service");
-      res.json({ reports: listCooperativeStatusReports({ publishedOnly: true }) });
+      const reports = listCooperativeStatusReports({ publishedOnly: true });
+      const { getCooperativeStatusReportData } = require("./cooperative-status-report");
+      const reportData = reports.length ? getCooperativeStatusReportData() : null;
+      res.json({
+        reports,
+        performanceOverview: reportData?.performanceOverview || null,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
