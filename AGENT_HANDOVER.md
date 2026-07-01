@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-01** — **Proxy Zelle deposit fixes:** import credits beneficiary named after `for …` in description (not Zelle payer); pre-import **Ledger warnings** on Admin → Import (proxy mis-credit + contribution vs loan type); regression script `node peer-finance-manager/scripts/test-ledger-import-audit.js`. Corrected `cooperative-bank-ledger-reference.xlsx` (Ejiro/Titilope proxy rows; Oluwabiyi Mar 23 $100.13 → deposit). Utility scripts: `fix-proxy-deposit-members.js` (xlsx Member column), `fix-proxy-deposit-balances.js` (local DB one-shot). **Production:** `git push` then **Admin → Import** upload corrected xlsx (no WinSCP for bank ledger).
 - **2026-06-29** — Bank import conflict handling with **Download missing rows CSV**; **Sort selected file & download** and **Download sorted reference CSV** (date-ordered `cooperative-bank-ledger-reference.csv` from upload or live books). Auto-sync reference CSV on manual entries. **Production:** `git push`.
 - **2026-06-28** — Fix bank import upload error (`importBankLedger is not a function`) — circular require between `bank-import.js` and `import-bank-ledger.js`; lazy-load import inside `runBankImportFromUpload`. **Production:** `git push`.
 - **2026-06-28** — **Admin bank ledger import on live site:** Admin → Import → **Bank Ledger Import** uploads cooperative workbook (.xlsx) and optional bank statement (.csv); updates production DB immediately (no WinSCP/Manual Deploy). API: `POST /api/bank-import/run`. Month-end auto-publish toggle on Cooperative Books. **Production:** `git push`.
@@ -279,10 +280,11 @@ Bank CSV + All deposits.xlsx ──► parse-bank-sources.js ──► import-ba
 | 2 | `peer-finance-manager/lib/import-spreadsheet.js` | How workbook maps to ledger |
 | 3 | `peer-finance-manager/lib/import-bank-ledger.js` | Bank CSV + xlsx → ledger transactions |
 | 4 | `peer-finance-manager/lib/parse-bank-sources.js` | Merges BoA CSV with All deposits.xlsx |
-| 5 | `lib/bank-statement-parser.js` | BoA CSV + Narrative + name aliases (statements/compare) |
-| 6 | `peer-finance-manager/lib/member-name-match.js` | Application ↔ ledger names |
-| 7 | `peer-finance-manager/lib/member-self-service.js` | Member portal profile, photo, emergency contact |
-| 8 | `peer-finance-manager/db/schema.sql` | DB shape |
+| 5 | `peer-finance-manager/lib/ledger-import-audit.js` | Pre-import proxy/type warnings on Bank Ledger Import |
+| 6 | `lib/bank-statement-parser.js` | BoA CSV + Narrative + name aliases (statements/compare) |
+| 7 | `peer-finance-manager/lib/member-name-match.js` | Application ↔ ledger names; proxy Zelle beneficiary |
+| 8 | `peer-finance-manager/lib/member-self-service.js` | Member portal profile, photo, emergency contact |
+| 9 | `peer-finance-manager/db/schema.sql` | DB shape |
 
 ### Ports
 
@@ -316,8 +318,8 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
 | 2 | **Cooperative expenses** | Table exists; no UI/import. |
 | 3 | **Profile for Kehinde Agboola** | Olawale George added (WPForms row + local import). Kehinde still has no application row. |
-| 4 | **PC ↔ cloud data sync** | Manual WinSCP only today; re-upload after each local data change. |
-| 5 | **Wire bank import into Import tab UI** | CLI `pfm:import-bank` works; admin UI still preview-only. |
+| 4 | **PC ↔ cloud data sync** | **Bank ledger:** Admin → Import on live site (no WinSCP). **Profiles/manual DB edits:** WinSCP + Manual Deploy. |
+| 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — Admin → Import → Bank Ledger Import (`POST /api/bank-import/run`). |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
 
 ### High — user said they will provide info later
@@ -343,7 +345,7 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 | # | Task | Notes |
 |---|------|-------|
 | 15 | **Unify bank parsers** | Root `bank-statement-parser.js` vs PFM `parse-bank-sources.js` overlap. |
-| 16 | **PFM bank-import tests** | No automated tests yet. |
+| 16 | **PFM bank-import tests** | `scripts/test-ledger-import-audit.js` covers proxy + contribution-type checks; expand as needed. |
 | 17 | **Rebuild PFM exe** | After schema/profile/UI changes. |
 | 18 | **Ejiro / withdrawal regression** | Always verify Ejiro balance when touching `statement-generator.js`. |
 
@@ -355,25 +357,27 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 
 2. **Bank narrative errors** — Three April-ish mislabels documented in compare script output. Never blindly sum all `Member Deposit` rows without description checks.
 
-3. **Gbanju 4/20/2026** — ₦434.34 loan repayment mislabeled `Member Deposit` in bank file.
+3. **Proxy Zelle deposits** — `from X for Y` must credit **Y**, not X (e.g. Yinka for Ejiro/Titilope). Import auto-fixes via `member-name-match.js`; Admin → Import shows **Ledger warnings** if still wrong. After `git push`, re-import corrected `cooperative-bank-ledger-reference.xlsx`.
 
-4. **Oluwabiyi 3/16 and 4/10** — ₦443.55 loan payments mislabeled `Member Deposit`.
+4. **Gbanju 4/20/2026** — ₦434.34 loan repayment mislabeled `Member Deposit` in bank file.
 
-5. **Two Oluwatosin members** — `Oluwatosin Omotuyole` vs `Oluwatosin Ogunbowale`; bank alias patterns disambiguate.
+5. **Oluwabiyi 3/16 and 4/10** — ₦443.55 loan payments mislabeled `Member Deposit`. Mar 2026 **$100.13** was also mis-tagged `loan_repayment` in master ledger (fixed to `deposit`).
 
-6. **Sonia Udom CSV row** — First name `Sonia`, last name `Abraham Udom`; mapped to ledger `Sonia Udom`.
+6. **Two Oluwatosin members** — `Oluwatosin Omotuyole` vs `Oluwatosin Ogunbowale`; bank alias patterns disambiguate.
 
-7. **Akili spelling** — Application `Tcha Binidi` → ledger `Akili Tcha Bindi`.
+7. **Sonia Udom CSV row** — First name `Sonia`, last name `Abraham Udom`; mapped to ledger `Sonia Udom`.
 
-8. **`replaceExisting: true` on spreadsheet import** — Wipes ledger. Profiles survive in `member_profiles` table but re-link only if members re-imported with same names.
+8. **Akili spelling** — Application `Tcha Binidi` → ledger `Akili Tcha Bindi`.
 
-9. **Puppeteer** — Requires Chrome or Edge on Windows. Worker runs in separate process (`scripts/run-generation-worker.js`).
+9. **`replaceExisting: true` on spreadsheet import** — Wipes ledger. Profiles survive in `member_profiles` table but re-link only if members re-imported with same names.
 
-10. **Timezone date display** — `YYYY-MM-DD` strings parsed as `new Date('2026-06-08')` show one day early in US time zones. Fixed in `formatDate()` / `formatDisplayDate()` by parsing as local calendar date. Verify after any new date formatting code.
+10. **Puppeteer** — Requires Chrome or Edge on Windows. Worker runs in separate process (`scripts/run-generation-worker.js`).
 
-11. **User rules** — Do not git commit unless asked. Use `gh` for PRs. Real shell environment.
+11. **Timezone date display** — `YYYY-MM-DD` strings parsed as `new Date('2026-06-08')` show one day early in US time zones. Fixed in `formatDate()` / `formatDisplayDate()` by parsing as local calendar date. Verify after any new date formatting code.
 
-12. **Documentation** — `.cursor/rules/continuous-documentation.mdc` is `alwaysApply: true`. Update docs in the **same turn** as every change. Read `AGENT_HANDOVER.md` first every session. The user must never need to ask for doc updates.
+12. **User rules** — Do not git commit unless asked. Use `gh` for PRs. Real shell environment.
+
+13. **Documentation** — `.cursor/rules/continuous-documentation.mdc` is `alwaysApply: true`. Update docs in the **same turn** as every change. Read `AGENT_HANDOVER.md` first every session. The user must never need to ask for doc updates.
 
 ---
 
@@ -387,10 +391,11 @@ npm run pfm:import-bank   # After updating bank CSV / All deposits.xlsx
 
 # Reconciliation
 npm run compare:bank
+node peer-finance-manager/scripts/test-ledger-import-audit.js
 
 # Statements
 npm run generate:may-2026
-# Manually spot-check: Ejiro (₦995.59), Gbanju May deposit (₦170.12), distribution after February in table
+# Manually spot-check: Ejiro ($991.00 contributions), Yinka ($2,430.98), proxy warnings clear on Import tab
 
 # Apps start
 npm start   # → http://localhost:3457 (Assurance Cooperative Manager)
@@ -410,7 +415,7 @@ npm start   # → http://localhost:3457 (Assurance Cooperative Manager)
 
 ## 8. Suggested next session plan
 
-1. Wire **Import tab** bank UI to call `import-bank-ledger` (CLI already works)
+1. After deploy: **Admin → Import** corrected `cooperative-bank-ledger-reference.xlsx`; confirm **Ledger warnings** panel is empty
 2. Import loan records + schedules when user provides data
 3. Generalize month-from-bank script for June onward
 4. Add Olawale / Kehinde profiles if applications supplied

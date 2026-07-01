@@ -1,5 +1,6 @@
 const { getDb } = require("../db/database");
 const { loadMergedBankTransactions } = require("./parse-bank-sources");
+const { auditLedgerImport } = require("./ledger-import-audit");
 const {
   LEDGER_TYPES,
   buildExportRows,
@@ -114,6 +115,24 @@ function formatConflictRow(exportRow, transactionId) {
   };
 }
 
+function findImportAudit({
+  workbookPath,
+  statementPath,
+  workbookOriginalName,
+  statementOriginalName,
+}) {
+  const db = getDb();
+  const memberNames = loadMemberNames(db);
+  const transactions = loadMergedBankTransactions({
+    xlsxPath: workbookPath || null,
+    csvPath: statementPath || null,
+    memberNames,
+    xlsxOriginalName: workbookOriginalName || null,
+    csvOriginalName: statementOriginalName || null,
+  });
+  return auditLedgerImport(transactions, memberNames);
+}
+
 /**
  * Returns manual ledger rows that would be dropped because they do not
  * appear in the CSV/workbook about to be imported.
@@ -126,12 +145,28 @@ function findManualLedgerMissingFromImport({
 }) {
   const db = getDb();
   const manualRaw = loadManualLedgerRows(db);
+  const importAudit = findImportAudit({
+    workbookPath,
+    statementPath,
+    workbookOriginalName,
+    statementOriginalName,
+  });
+
   if (!manualRaw.length) {
+    const memberNames = loadMemberNames(db);
+    const importRows = loadImportExportRows({
+      workbookPath,
+      statementPath,
+      workbookOriginalName,
+      statementOriginalName,
+      memberNames,
+    });
     return {
       manualCount: 0,
-      importCount: 0,
+      importCount: importRows.length,
       missingFromImport: [],
       hasConflicts: false,
+      importAudit,
     };
   }
 
@@ -160,9 +195,11 @@ function findManualLedgerMissingFromImport({
     importCount: importRows.length,
     missingFromImport,
     hasConflicts: missingFromImport.length > 0,
+    importAudit,
   };
 }
 
 module.exports = {
   findManualLedgerMissingFromImport,
+  findImportAudit,
 };

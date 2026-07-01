@@ -49,7 +49,7 @@
 | **Statements** | Generate batch PDF statements |
 | **Loans** | View and manage loans |
 | **Record** | Add members, record contributions, fees, expenses |
-| **Import** | Spreadsheet, bank preview, profiles; full bank import via `npm run pfm:import-bank` on PC |
+| **Import** | **Bank Ledger Import** on live site (upload `cooperative-bank-ledger-reference.xlsx`); spreadsheet, profiles; optional CLI `npm run pfm:import-bank` on PC. Import shows **Ledger warnings** for proxy Zelle mis-credits before you confirm. |
 | **Users** | Member login accounts and credentials |
 
 ---
@@ -79,7 +79,7 @@ You can still use **PeerFinanceManager.exe** on your PC (double-click in the `As
 | "Invalid username or password" | Check org code `assurance`, username, and password (case-sensitive) |
 | Blank page or login spins | Wait 30 seconds and refresh — server may be waking up |
 | PDF download fails | Wait for admin to confirm Render deploy is Live; try again in a minute |
-| Numbers look wrong online | Cloud data may be old — admin may need to re-upload database (see [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)) |
+| Numbers look wrong online | **Bank ledger:** Admin → Import — upload corrected master xlsx; read **Ledger warnings**. Other data: see [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) |
 | Birthday or date off by one day | Fixed in latest app code — admin should `git push` to deploy |
 
 ---
@@ -93,4 +93,4 @@ You can still use **PeerFinanceManager.exe** on your PC (double-click in the `As
 
 ---
 
-*Last updated: June 19, 2026. For how to change and publish the app, see [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).*
+*Last updated: July 1, 2026. For how to change and publish the app, see [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).*

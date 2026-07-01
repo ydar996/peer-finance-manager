@@ -8,7 +8,7 @@ const {
   resolveMember,
   NARRATIVE,
 } = require(path.join(parserRoot, "lib", "bank-statement-parser"));
-const { resolveLedgerMemberName, resolveDepositMemberFromDescription } = require("./member-name-match");
+const { resolveLedgerMemberName, resolveDepositMemberFromDescription, resolveProxyBeneficiaryFromDescription } = require("./member-name-match");
 
 const TYPE_MAP = {
   "Member Deposit": "deposit",
@@ -152,6 +152,9 @@ function resolveLoanDisbursementMember(description, memberNames) {
 }
 
 function resolveMemberName(rawName, description, memberNames) {
+  const proxyBeneficiary = resolveProxyBeneficiaryFromDescription(description, memberNames);
+  if (proxyBeneficiary) return proxyBeneficiary;
+
   const trimmed = String(rawName || "").trim();
   if (trimmed) {
     const resolved = resolveLedgerMemberName(trimmed, memberNames);

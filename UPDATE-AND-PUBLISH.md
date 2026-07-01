@@ -66,11 +66,16 @@ Check:
 
 ## When you change MEMBER DATA (not code)
 
-If you added deposits, members, **bank imports** (`npm run pfm:import-bank`), CD balance updates, or other edits **only on your PC**:
+| What changed | What to do |
+|--------------|------------|
+| **Bank ledger** (`cooperative-bank-ledger-reference.xlsx`) | **Admin → Import** on live site — no WinSCP |
+| **Other data** (profiles, manual PC edits in `data/`) | [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) (WinSCP + Manual Deploy) |
+
+If you added deposits, members, CD balance updates, or other edits **only on your PC** (not via bank ledger file):
 
 **Full step-by-step guide:** [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)
 
-Short version:
+Short version (non-bank data only):
 
 1. Open **WinSCP** (same connection as before)
 2. Left: `C:\Users\yinka\Documents\AssurCoop\data`
@@ -119,4 +124,4 @@ Short version:
 
 ---
 
-*Last updated: June 19, 2026. First-time setup: [DEPLOY-TODAY.md](./DEPLOY-TODAY.md). Data upload: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md).*
+*Last updated: July 1, 2026. First-time setup: [DEPLOY-TODAY.md](./DEPLOY-TODAY.md). Data upload: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md).*

@@ -21,6 +21,8 @@ Examples: bank import (`npm run pfm:import-bank`), new deposits, CD balance upda
 
 **Bank imports update production immediately** when you use the Import tab on https://peer-finance-manager.netlify.app/admin — the server writes directly to its database. You do **not** need WinSCP or Manual Deploy for that step.
 
+After a code deploy that changes import logic, **re-upload** your master ledger xlsx once so production balances match. The Import tab shows **Ledger warnings** (e.g. proxy Zelle credited to payer instead of beneficiary) — fix the file if any appear before relying on member balances.
+
 Data in the `data/` folder on your PC does **not** travel through GitHub. WinSCP is only needed when you changed files locally and want the server copy to match.
 
 ---

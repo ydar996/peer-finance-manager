@@ -8,8 +8,21 @@ const APPLICATION_TO_LEDGER = {
   "Akili Tcha Binidi": "Akili Tcha Bindi",
 };
 
+function resolveProxyBeneficiaryFromDescription(description, memberNames) {
+  const text = String(description || "");
+  const proxyMatch = text.match(/\bfor\s+([A-Za-z][A-Za-z\s.'-]{2,60}?)(?:\s*;|\s+Conf#|$)/i);
+  if (!proxyMatch) return null;
+  const beneficiary = proxyMatch[1].trim();
+  if (/^loan\s+payment$/i.test(beneficiary) || /^payment\s+\d+$/i.test(beneficiary)) {
+    return null;
+  }
+  return resolveLedgerMemberName(beneficiary, memberNames);
+}
+
 function resolveDepositMemberFromDescription(description, memberNames) {
   const text = String(description || "");
+  const proxyBeneficiary = resolveProxyBeneficiaryFromDescription(text, memberNames);
+  if (proxyBeneficiary) return proxyBeneficiary;
   if (/OLUGBENGA\s+O\s+SHO/i.test(text)) {
     return resolveLedgerMemberName("Olugbenga Shofela", memberNames);
   }
@@ -77,6 +90,7 @@ module.exports = {
   APPLICATION_TO_LEDGER,
   buildFullName,
   resolveLedgerMemberName,
+  resolveProxyBeneficiaryFromDescription,
   resolveDepositMemberFromDescription,
   zelleNameFromApplication,
   normalizeName,

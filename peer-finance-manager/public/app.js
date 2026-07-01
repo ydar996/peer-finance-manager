@@ -2817,12 +2817,27 @@ function renderBankImportConflicts(conflicts) {
   const panel = $("#bankImportConflicts");
   if (!panel) return;
   const missing = conflicts?.missingFromImport || [];
-  if (!missing.length) {
+  const warnings = conflicts?.importAudit?.warnings || [];
+  if (!missing.length && !warnings.length) {
     clearBankImportConflicts();
     return;
   }
   panel.classList.remove("hidden");
-  panel.innerHTML = `
+  const warningHtml = warnings.length
+    ? `
+    <strong>Ledger warnings (${warnings.length})</strong>
+    <p>Review these before importing. Proxy payments must credit the member named after <em>for …</em> in the Zelle text, not the payer.</p>
+    <ul>
+      ${warnings
+        .map(
+          (row) =>
+            `<li>${escapeHtml(row.date || "—")} · ${escapeHtml(fmt.format(row.amount))}${row.assignedMember ? ` · ${escapeHtml(row.assignedMember)}` : ""} · ${escapeHtml(row.message)}${row.description ? ` <span class="muted">(${escapeHtml(String(row.description).slice(0, 72))})</span>` : ""}</li>`
+        )
+        .join("")}
+    </ul>`
+    : "";
+  const missingHtml = missing.length
+    ? `
     <strong>Manual entries not in this file (${missing.length})</strong>
     <p>These were entered in Peer Finance Manager but are missing from the file you selected. Importing without them will remove them from Cooperative Books.</p>
     <ul>
@@ -2836,8 +2851,9 @@ function renderBankImportConflicts(conflicts) {
     <div class="panel-head-actions">
       <button type="button" class="btn primary" id="downloadMissingManualRows">Download missing rows CSV</button>
     </div>
-    <p>Open the missing-rows file, copy its transaction rows into <strong>cooperative-bank-ledger-reference.csv</strong>, then either import that file or click <strong>Sort selected file &amp; download</strong> to get a date-ordered file. After import, click <strong>Download sorted reference CSV</strong> to replace your local copy from live Cooperative Books.</p>
-  `;
+    <p>Open the missing-rows file, copy its transaction rows into <strong>cooperative-bank-ledger-reference.csv</strong>, then either import that file or click <strong>Sort selected file &amp; download</strong> to get a date-ordered file. After import, click <strong>Download sorted reference CSV</strong> to replace your local copy from live Cooperative Books.</p>`
+    : "";
+  panel.innerHTML = warningHtml + missingHtml;
 }
 
 async function downloadMissingManualRows(button) {
@@ -2953,6 +2969,9 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
         r.cdBalance != null ? `CD balance set to ${Number(r.cdBalance).toFixed(2)}` : null,
         r.ledgerEndingBalance != null && Math.abs(r.ledgerEndingBalance - 15471.49) > 0.01
           ? "Warning: expected BoA checking balance is 15,471.49 — verify you uploaded cooperative-bank-ledger-reference.xlsx from AssurCoop/data (453 rows)."
+          : null,
+        data.conflicts?.importAudit?.warningCount
+          ? `Warning: ${data.conflicts.importAudit.warningCount} ledger issue(s) were flagged — expand the panel above and fix the file before relying on member balances.`
           : null,
         "Use Download sorted reference to pull a date-ordered copy matching live books.",
       ]

@@ -202,7 +202,7 @@ npm run generate:feb-2026
 - **Member banking profiles** — contact, address, next of kin, Zelle name (from WPForms applications); member portal self-service (biodata view, emergency contact edit, photo upload)
 - **Periodic PDF statements** — Statements tab (see above)
 - **Loans framework** — rules, validation, schedule import (no live loans loaded yet)
-- **Bank ledger import** — `npm run pfm:import-bank` merges BoA CSV + `All deposits.xlsx` into SQLite with real transaction dates; Import tab UI still preview-only
+- **Bank ledger import** — Admin → Import on live site uploads `cooperative-bank-ledger-reference.xlsx` (with **Ledger warnings**); CLI `npm run pfm:import-bank` for local PC
 - **Cooperative Books** — dashboard with CD balance and **Expected CD Interest** card
 - **Expenses** — database table ready; UI not built
 
@@ -217,7 +217,7 @@ npm run generate:feb-2026
    - **Cooperative spreadsheet** — seeds/replaces the SQLite ledger from an Assurance Status workbook
    - **WPForms CSV** — imports membership application profiles
    - **Loan schedule** — CSV/Excel installment import for a loan ID
-   - **Bank statement** — preview in UI; full import via `npm run pfm:import-bank`
+   - **Bank statement / master ledger** — full import on live Admin → Import; preview + **Ledger warnings** in UI; CLI `npm run pfm:import-bank` on PC
 
 ### Member portal (production: `/member`)
 
