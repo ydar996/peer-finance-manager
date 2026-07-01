@@ -850,8 +850,9 @@ async function loadBooks() {
   try {
     const res = await fetch("/api/books");
     if (requestId !== booksRequestId) return;
-    const { books } = await res.json();
-    if (!res.ok) throw new Error(books?.error || "Failed to load books");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || data.books?.error || "Failed to load books");
+    const { books } = data;
     grid.innerHTML = [
       dashboardCardsHtml(books.dashboard),
       bookCardHtml("deposit-accounts", {

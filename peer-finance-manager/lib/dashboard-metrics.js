@@ -184,7 +184,7 @@ function getOutstandingLoanRepaymentsDueInMonth(asOf = new Date()) {
     monthLabel: new Date(year, month - 1, 1).toLocaleString("en-US", {
       month: "long",
       year: "numeric",
-      timeZone: COOPERATIVE_TIMEZONE,
+      timeZone: getCooperativeTimezone(),
     }),
     total: round2(fromInstallments + bank.total),
     fromInstallments,
