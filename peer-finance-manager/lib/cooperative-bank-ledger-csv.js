@@ -363,9 +363,12 @@ function queueCooperativeBankLedgerCsvSync(reason) {
   });
 }
 
-function getLedgerEndingBalance() {
+function getLedgerEndingBalance(asOfDateIso = null) {
   const db = getDb();
-  const rows = loadLedgerRowsFromDb(db);
+  let rows = loadLedgerRowsFromDb(db);
+  if (asOfDateIso) {
+    rows = rows.filter((row) => String(row.transaction_date) <= asOfDateIso);
+  }
   if (!rows.length) return null;
   const exportRows = buildExportRows(rows);
   const last = exportRows[exportRows.length - 1];

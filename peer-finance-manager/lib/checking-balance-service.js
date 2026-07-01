@@ -19,6 +19,43 @@ function ensureCheckingBalanceHistoryTable(db) {
   `);
 }
 
+function resolveCheckingBalanceForReport(asOfDateIso) {
+  const asOf = String(asOfDateIso || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf)) {
+    throw new Error("Report as-of date is required to resolve checking balance");
+  }
+
+  const balanceRaw = getCooperativeSetting("checking_balance");
+  const statementAsOf = getCooperativeSetting("checking_balance_as_of");
+  const statementBalance = balanceRaw != null ? Number(balanceRaw) : null;
+
+  if (
+    statementBalance != null &&
+    Number.isFinite(statementBalance) &&
+    statementAsOf &&
+    statementAsOf <= asOf
+  ) {
+    return {
+      balance: Math.round(statementBalance * 100) / 100,
+      asOf: statementAsOf,
+      source: "statement",
+    };
+  }
+
+  const ledger = getLedgerEndingBalance(asOf);
+  if (ledger?.balance != null) {
+    return {
+      balance: ledger.balance,
+      asOf: ledger.asOf,
+      source: "ledger",
+    };
+  }
+
+  throw new Error(
+    "No checking account balance is available for this report date. Import the bank ledger or enter a statement balance on the Record tab."
+  );
+}
+
 function getCheckingBalanceSnapshot() {
   const db = getDb();
   ensureSettingsTable(db);
@@ -89,4 +126,5 @@ function updateCheckingBalance({ balance, asOfDate, note }) {
 module.exports = {
   getCheckingBalanceSnapshot,
   updateCheckingBalance,
+  resolveCheckingBalanceForReport,
 };

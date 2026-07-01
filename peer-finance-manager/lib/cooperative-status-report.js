@@ -7,6 +7,7 @@ const { getCooperativeBooks } = require("./cooperative-books");
 const { getLoanPortfolioFromBankLedger } = require("./loan-ledger-service");
 const { buildLoanPublicIdMap, getLoanPublicId } = require("./loan-public-id");
 const { getExpensesForStatusReport } = require("./expense-report-label-service");
+const { resolveCheckingBalanceForReport } = require("./checking-balance-service");
 const { MONTH_NAMES } = require("./constants");
 const {
   todayIso: cooperativeTodayIso,
@@ -136,7 +137,7 @@ function buildPerformanceOverview(data, books) {
   const sentences = [
     `As at ${period.labelUs}, ${organizationName} serves ${memberCount} member${memberCount === 1 ? "" : "s"} with ${formatMoney(balanceSheet.membersDeposits)} in deposit accounts and ${formatMoney(balanceSheet.totalAssets)} in total assets.`,
     `The cooperative generated ${formatMoney(incomeStatement.totalIncome)} in income and reported ${netPhrase} after operational expenses of ${formatMoney(incomeStatement.operationalExpenses)}.`,
-    `Liquid resources total ${formatMoney(bankBalances.total)} between cash at hand and the certificate of deposit. Outstanding member loans are ${formatMoney(balanceSheet.loansOutstanding)}${activeBorrowers ? ` across ${activeBorrowers} active borrower${activeBorrowers === 1 ? "" : "s"}` : ""}.`,
+    `Liquid resources total ${formatMoney(bankBalances.total)} between the checking account and the certificate of deposit. Outstanding member loans are ${formatMoney(balanceSheet.loansOutstanding)}${activeBorrowers ? ` across ${activeBorrowers} active borrower${activeBorrowers === 1 ? "" : "s"}` : ""}.`,
   ];
 
   if (unearnedIncome.total > 0) {
@@ -169,12 +170,12 @@ function getCooperativeStatusReportData(options = {}) {
     .all();
 
   const membersDeposits = books.totalMemberDepositAccounts || 0;
-  const retainedEarnings = books.cooperativeNetIncome || 0;
   const loansOutstanding = books.loansOutstanding || 0;
   const cdBalance = books.cdBalance != null ? Number(books.cdBalance) : 0;
   const investments = books.investments || 0;
-  const cashAtHand =
-    membersDeposits + retainedEarnings - loansOutstanding - cdBalance - investments;
+
+  const checking = resolveCheckingBalanceForReport(period.dateIso);
+  const checkingBalance = checking.balance;
 
   const interestIncomeEarned =
     (books.loanInterestIncome || 0) + (books.cdInterestIncome || 0);
@@ -183,7 +184,8 @@ function getCooperativeStatusReportData(options = {}) {
   const operationalExpenses = books.expenses || 0;
   const netIncome = books.cooperativeNetIncome || 0;
 
-  const totalAssets = loansOutstanding + cashAtHand + cdBalance + investments;
+  const totalAssets = loansOutstanding + checkingBalance + cdBalance + investments;
+  const retainedEarnings = Math.round((totalAssets - membersDeposits) * 100) / 100;
   const totalLiabilitiesEquity = membersDeposits + retainedEarnings;
 
   const apyLabel =
@@ -228,10 +230,13 @@ function getCooperativeStatusReportData(options = {}) {
       day: "numeric",
     }),
     bankBalances: {
-      cashAtHand,
+      checkingBalance,
+      checkingAsOf: checking.asOf,
+      checkingSource: checking.source,
+      checkingLabel: "Checking Account",
       cdBalance,
       cdLabel,
-      total: cashAtHand + cdBalance,
+      total: checkingBalance + cdBalance,
     },
     incomeStatement: {
       interestIncomeEarned,
@@ -242,7 +247,8 @@ function getCooperativeStatusReportData(options = {}) {
     },
     balanceSheet: {
       loansOutstanding,
-      cashAtHand,
+      checkingBalance,
+      checkingLabel: "Checking Account",
       cdBalance,
       cdLabel,
       investments,
@@ -250,6 +256,7 @@ function getCooperativeStatusReportData(options = {}) {
       totalAssets,
       membersDeposits,
       retainedEarnings,
+      incomeStatementNetIncome: netIncome,
       totalLiabilitiesEquity,
     },
     expenses: expenseRows.map((row) => ({
@@ -388,7 +395,7 @@ function buildCooperativeStatusReportHtml(data) {
       <table class="report-table">
         <tbody>
           <tr><td>Loans to Members</td><td class="money">${formatMoney(sheet.loansOutstanding)}</td></tr>
-          <tr><td>Cash at Hand</td><td class="money">${formatMoney(sheet.cashAtHand)}</td></tr>
+          <tr><td>${escapeHtml(sheet.checkingLabel || "Checking Account")}</td><td class="money">${formatMoney(sheet.checkingBalance)}</td></tr>
           <tr><td>${escapeHtml(sheet.cdLabel)}</td><td class="money">${formatMoney(sheet.cdBalance)}</td></tr>
           <tr><td>${escapeHtml(sheet.investmentLabel)}</td><td class="money">${formatMoney(sheet.investments)}</td></tr>
           <tr class="total-row"><td>Total Assets</td><td class="money">${formatMoney(sheet.totalAssets)}</td></tr>
@@ -454,7 +461,7 @@ function buildCooperativeStatusReportHtml(data) {
 
   <div class="report-grid-two">
     ${reportTable("Bank Balances", [
-      ["Cash at Hand", formatMoney(bank.cashAtHand)],
+      [bank.checkingLabel || "Checking Account", formatMoney(bank.checkingBalance)],
       [bank.cdLabel, formatMoney(bank.cdBalance)],
       ["Total", formatMoney(bank.total), true],
     ])}
@@ -472,7 +479,7 @@ function buildCooperativeStatusReportHtml(data) {
     ${unearnedBlock}
   </div>
 
-  <p class="report-footnote">* Operational expenses are grouped by administrator-assigned report labels. Expand details in the member portal if needed.</p>
+  <p class="report-footnote">* Operational expenses are grouped by administrator-assigned report labels. Checking account balance is taken from the imported bank ledger (or the statement entered on the Record tab). Retained earnings reconcile total assets to members&apos; deposits and may differ from income-statement net income when cooperative fund activity is recorded outside that statement.</p>
 </body>
 </html>`;
 }
