@@ -2943,12 +2943,18 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
     if (summary) {
       summary.textContent = [
         `${r.totalBankRows || 0} bank rows processed`,
+        r.ledgerEndingBalance != null
+          ? `Ledger ending balance ${Number(r.ledgerEndingBalance).toFixed(2)} through ${r.ledgerEndingAsOf || "—"}`
+          : null,
         `${r.deposits || 0} deposits`,
         `${r.loanRepayments || 0} loan repayments`,
         `${r.expenses || 0} expenses`,
         r.skippedNoMember ? `${r.skippedNoMember} skipped (member not matched)` : null,
         r.cdBalance != null ? `CD balance set to ${Number(r.cdBalance).toFixed(2)}` : null,
-        "Use Download sorted reference CSV for a date-ordered file matching live books.",
+        r.ledgerEndingBalance != null && Math.abs(r.ledgerEndingBalance - 15471.49) > 0.01
+          ? "Warning: expected BoA checking balance is 15,471.49 — verify you uploaded cooperative-bank-ledger-reference.xlsx from AssurCoop/data (453 rows)."
+          : null,
+        "Use Download sorted reference to pull a date-ordered copy matching live books.",
       ]
         .filter(Boolean)
         .join(" · ");

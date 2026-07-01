@@ -1,7 +1,7 @@
 const { getDb } = require("../db/database");
 const { TRANSACTION_TYPES } = require("./constants");
 const { getAllBankLoanLots, hasBankLoanLedger } = require("./loan-ledger-service");
-const { calendarParts, getCooperativeTimezone } = require("./cooperative-time");
+const { calendarParts, formatMonthYearLabel } = require("./cooperative-time");
 
 function round2(n) {
   return Math.round(Number(n) * 100) / 100;
@@ -181,11 +181,7 @@ function getOutstandingLoanRepaymentsDueInMonth(asOf = new Date()) {
   return {
     year,
     month,
-    monthLabel: new Date(year, month - 1, 1).toLocaleString("en-US", {
-      month: "long",
-      year: "numeric",
-      timeZone: getCooperativeTimezone(),
-    }),
+    monthLabel: formatMonthYearLabel(year, month),
     total: round2(fromInstallments + bank.total),
     fromInstallments,
     fromBankLedger: bank.total,
@@ -215,11 +211,7 @@ function getDashboardMetrics(asOf = new Date()) {
     depositsThisMonth: {
       year,
       month,
-      monthLabel: new Date(year, month - 1, 1).toLocaleString("en-US", {
-        month: "long",
-        year: "numeric",
-        timeZone: getCooperativeTimezone(),
-      }),
+      monthLabel: formatMonthYearLabel(year, month),
       total: depositsThisMonth,
     },
     depositsYtd: {

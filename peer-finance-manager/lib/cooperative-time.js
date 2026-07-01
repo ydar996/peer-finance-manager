@@ -88,6 +88,15 @@ function calendarParts(date = new Date(), timeZone = getCooperativeTimezone()) {
   };
 }
 
+/** Month/year label safe on UTC servers (Render) — avoids `new Date(y, m-1, 1)` Pacific shift. */
+function formatMonthYearLabel(year, month, timeZone = getCooperativeTimezone()) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone,
+  }).format(new Date(Date.UTC(year, month - 1, 15, 12, 0, 0)));
+}
+
 function todayIso(date = new Date(), timeZone = getCooperativeTimezone()) {
   const { year, month, day } = calendarParts(date, timeZone);
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -170,6 +179,7 @@ module.exports = {
   listSupportedTimezones,
   timezoneLabel,
   calendarParts,
+  formatMonthYearLabel,
   todayIso,
   localeDateString,
   isMonthEndDay,

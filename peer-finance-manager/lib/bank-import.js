@@ -108,10 +108,18 @@ function runBankImportFromUpload({
     replaceSpreadsheetDeposits: true,
   });
 
-  const { queueCooperativeBankLedgerCsvSync } = require("./cooperative-bank-ledger-csv");
+  const { queueCooperativeBankLedgerCsvSync, getLedgerEndingBalance } = require(
+    "./cooperative-bank-ledger-csv"
+  );
   queueCooperativeBankLedgerCsvSync("bank_import");
 
-  return { ...result, archived };
+  const ledger = getLedgerEndingBalance();
+  return {
+    ...result,
+    archived,
+    ledgerEndingBalance: ledger?.balance ?? null,
+    ledgerEndingAsOf: ledger?.asOf ?? null,
+  };
 }
 
 module.exports = {

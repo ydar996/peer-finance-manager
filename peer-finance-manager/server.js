@@ -599,6 +599,21 @@ app.post(
   }
 );
 
+app.post(
+  "/api/bank-import/sync-missing",
+  requireAdmin,
+  restoreOrgContext,
+  (req, res) => {
+    try {
+      const { syncMissingBankLedgerRows } = require("./lib/import-bank-ledger");
+      const result = syncMissingBankLedgerRows();
+      res.json({ success: true, result });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 app.get("/api/bank-imports", requireCooperativeView, (req, res) => {
   try {
     res.json({ imports: listBankImports() });
@@ -893,6 +908,26 @@ function startServer(port, callback) {
           trace.info("Monthly status report scheduler error", { error: err.message });
         });
       }, 6 * 60 * 60 * 1000);
+
+      const { listOrganizations } = require("./lib/organization-service");
+      const { runWithOrg } = require("./lib/org-context");
+      const { syncMissingBankLedgerRows } = require("./lib/import-bank-ledger");
+      for (const org of listOrganizations()) {
+        runWithOrg(org.slug, () => {
+          try {
+            const result = syncMissingBankLedgerRows();
+            if (result.inserted > 0) {
+              trace.info("Synced missing bank ledger rows", {
+                orgSlug: org.slug,
+                inserted: result.inserted,
+                afterBalance: result.afterBalance,
+              });
+            }
+          } catch (err) {
+            trace.info("Ledger sync skipped", { orgSlug: org.slug, error: err.message });
+          }
+        });
+      }
     } catch (err) {
       trace.info("Monthly status report scheduler unavailable", { error: err.message });
     }

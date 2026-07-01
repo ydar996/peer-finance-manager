@@ -8,7 +8,7 @@ const {
   resolveMember,
   NARRATIVE,
 } = require(path.join(parserRoot, "lib", "bank-statement-parser"));
-const { resolveLedgerMemberName } = require("./member-name-match");
+const { resolveLedgerMemberName, resolveDepositMemberFromDescription } = require("./member-name-match");
 
 const TYPE_MAP = {
   "Member Deposit": "deposit",
@@ -97,10 +97,30 @@ function descriptionImpliesLoanRepayment(description) {
 
 function inferNarrativeFromDescription(description, narrative) {
   const d = String(description || "").toLowerCase();
+  const trimmed = String(description || "").trim();
   if (descriptionImpliesLoanRepayment(description)) {
     return NARRATIVE.LOAN_REPAYMENT;
   }
-  if (d.includes("loan disbursement") || /^check 11\d{2}$/i.test(String(description || "").trim())) {
+  if (
+    d.includes("monthly fee") ||
+    d.includes("bank fee") ||
+    d.includes("service fee") ||
+    d.includes("maintenance fee")
+  ) {
+    return "Expenses";
+  }
+  const checkMatch = trimmed.match(/^check\s*(\d{4})$/i);
+  if (checkMatch) {
+    const checkNum = Number(checkMatch[1]);
+    if (CHECK_LOAN_BORROWERS[checkNum]) {
+      return NARRATIVE.LOAN_DISBURSEMENT;
+    }
+    if (checkNum === 1172) {
+      return "Investment in Caribe Restaurant and Lounge";
+    }
+    return "Expenses";
+  }
+  if (d.includes("loan disbursement")) {
     return NARRATIVE.LOAN_DISBURSEMENT;
   }
   if (d.includes("zelle payment to") || d.includes("withdrawal")) {
@@ -238,6 +258,12 @@ function parseReferenceLedgerXlsx(filePath, memberNames) {
         resolveLedgerMemberName("Oluwabiyi Omotuyole", memberNames) ||
         "Oluwabiyi Omotuyole";
     }
+    if (!member && ledgerType === "deposit") {
+      member = resolveMember(description, memberNames);
+    }
+    if (!member && ledgerType === "deposit") {
+      member = resolveDepositMemberFromDescription(description, memberNames);
+    }
 
     parsed.push({
       source: "reference_ledger",
@@ -344,6 +370,33 @@ function mergeBankSources(xlsxTxs, csvTxs) {
   return dedupeDepositLoanConflicts(merged);
 }
 
+function isBankChargeTransaction(tx) {
+  const d = String(tx.description || "").toLowerCase();
+  return (
+    tx.ledgerType === "expense" &&
+    (d.includes("monthly fee") ||
+      d.includes("bank fee") ||
+      d.includes("service fee") ||
+      d.includes("maintenance fee"))
+  );
+}
+
+function dedupeDuplicateBankCharges(transactions) {
+  const seen = new Set();
+  const unique = [];
+  for (const tx of transactions) {
+    if (!isBankChargeTransaction(tx)) {
+      unique.push(tx);
+      continue;
+    }
+    const key = `${tx.date}|${tx.amount}|${normalizeDescriptionKey(tx.description)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(tx);
+  }
+  return unique;
+}
+
 function dedupeDepositLoanConflicts(transactions) {
   const groups = new Map();
   for (const tx of transactions) {
@@ -365,7 +418,7 @@ function dedupeDepositLoanConflicts(transactions) {
     }
     unique.push(group[0]);
   }
-  return unique;
+  return dedupeDuplicateBankCharges(unique);
 }
 
 function loadMergedBankTransactions({

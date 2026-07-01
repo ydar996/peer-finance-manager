@@ -8,6 +8,17 @@ const APPLICATION_TO_LEDGER = {
   "Akili Tcha Binidi": "Akili Tcha Bindi",
 };
 
+function resolveDepositMemberFromDescription(description, memberNames) {
+  const text = String(description || "");
+  if (/OLUGBENGA\s+O\s+SHO/i.test(text)) {
+    return resolveLedgerMemberName("Olugbenga Shofela", memberNames);
+  }
+  if (/AKILI\s+(?:[A-Z]\s+)?TCHA\s+BIN?DI/i.test(text)) {
+    return resolveLedgerMemberName("Akili Tcha Bindi", memberNames);
+  }
+  return null;
+}
+
 function normalizeName(value) {
   return String(value || "")
     .toLowerCase()
@@ -66,6 +77,7 @@ module.exports = {
   APPLICATION_TO_LEDGER,
   buildFullName,
   resolveLedgerMemberName,
+  resolveDepositMemberFromDescription,
   zelleNameFromApplication,
   normalizeName,
 };
