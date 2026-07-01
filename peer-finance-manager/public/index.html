@@ -240,6 +240,65 @@
               </details>
             </div>
           </details>
+          <details class="card cooperative-meetings-card profile-disclosure" id="cooperativeMeetingsPanel">
+            <summary class="monthly-status-report-summary">
+              <span class="monthly-status-report-summary-text">Meetings &amp; Announcements</span>
+              <span class="badge" id="cooperativeMeetingsBadge">Loading…</span>
+            </summary>
+            <div class="profile-disclosure-body cooperative-meetings-body">
+              <p class="subtle">Schedule cooperative meetings for your organization. Announced meetings appear on every member&apos;s portal and trigger email notifications when SMTP is configured.</p>
+              <details class="monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="cooperativeMeetingsSettingsPanel">
+                <summary>Meeting Reminder Settings</summary>
+                <div class="profile-disclosure-body">
+                  <label class="toggle-row">
+                    <input type="checkbox" id="meetingsAutoReminder" checked />
+                    Send automatic email reminders before each announced meeting
+                  </label>
+                  <label class="field-row">
+                    <span>Reminder lead time (hours before meeting)</span>
+                    <input type="number" id="meetingsReminderHours" min="1" max="168" value="24" />
+                  </label>
+                  <p class="hint subtle">Uses your cooperative time zone from Organization &amp; Report Settings above. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
+                  <button type="button" class="btn" id="saveMeetingSettings">Save Reminder Settings</button>
+                </div>
+              </details>
+              <form id="cooperativeMeetingForm" class="entry-form cooperative-meeting-form admin-only-report-settings hidden">
+                <input type="hidden" id="cooperativeMeetingId" value="" />
+                <label>Title
+                  <input type="text" id="cooperativeMeetingTitle" required maxlength="200" placeholder="Monthly General Meeting" />
+                </label>
+                <label>Date
+                  <input type="date" id="cooperativeMeetingDate" required />
+                </label>
+                <label>Time
+                  <input type="time" id="cooperativeMeetingTime" required />
+                </label>
+                <label>Location (optional)
+                  <input type="text" id="cooperativeMeetingLocation" placeholder="Community center or address" />
+                </label>
+                <label>Virtual link (optional)
+                  <input type="url" id="cooperativeMeetingVirtualLink" placeholder="https://zoom.us/..." />
+                </label>
+                <label>Agenda (optional)
+                  <textarea id="cooperativeMeetingAgenda" rows="4" placeholder="Welcome, financial review, Q&amp;A…"></textarea>
+                </label>
+                <label>Admin notes (optional, not shown to members)
+                  <textarea id="cooperativeMeetingAdminNotes" rows="2"></textarea>
+                </label>
+                <div class="panel-head-actions">
+                  <button type="submit" class="btn primary" id="saveCooperativeMeeting">Save Draft</button>
+                  <button type="button" class="btn hidden" id="resetCooperativeMeetingForm">New Meeting</button>
+                </div>
+              </form>
+              <div class="panel-head-actions cooperative-meetings-list-actions">
+                <button type="button" class="btn admin-only-report-settings hidden" id="refreshCooperativeMeetings">Refresh</button>
+              </div>
+              <ul class="file-list cooperative-meetings-list" id="cooperativeMeetingsList">
+                <li class="hint">Loading…</li>
+              </ul>
+              <p id="cooperativeMeetingsStatus" class="status"></p>
+            </div>
+          </details>
         </div>
         <div id="booksDetail" class="books-detail hidden">
           <div class="panel-head">
@@ -909,6 +968,16 @@
             <p class="subtle">Published month-end summaries from your cooperative administrator.</p>
             <p id="myPerformanceOverview" class="monthly-status-performance-overview hidden"></p>
             <ul class="file-list" id="myCooperativeReportsList"></ul>
+          </div>
+        </details>
+        <details class="profile-disclosure my-meetings-panel hidden" id="myMeetingsCard">
+          <summary class="monthly-status-report-summary my-meetings-summary">
+            <span class="monthly-status-report-summary-text">Cooperative Meetings</span>
+            <span class="badge" id="myMeetingsBadge">—</span>
+          </summary>
+          <div class="profile-disclosure-body my-meetings-body">
+            <p class="subtle">Upcoming meetings announced by your cooperative administrator.</p>
+            <ul class="file-list my-meetings-list" id="myMeetingsList"></ul>
           </div>
         </details>
         <div class="my-account-sections">

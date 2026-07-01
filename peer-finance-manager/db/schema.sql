@@ -153,6 +153,28 @@ CREATE TABLE IF NOT EXISTS cooperative_status_reports (
   is_published INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS cooperative_meetings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  meeting_date TEXT NOT NULL,
+  meeting_time TEXT NOT NULL,
+  location TEXT,
+  virtual_link TEXT,
+  agenda TEXT,
+  admin_notes TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  announced_at TEXT,
+  cancelled_at TEXT,
+  reminder_sent_at TEXT,
+  created_by_user_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cooperative_meetings_date ON cooperative_meetings(meeting_date, meeting_time);
+CREATE INDEX IF NOT EXISTS idx_cooperative_meetings_status ON cooperative_meetings(status);
+
 CREATE TABLE IF NOT EXISTS cd_balance_updates (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   balance REAL NOT NULL,

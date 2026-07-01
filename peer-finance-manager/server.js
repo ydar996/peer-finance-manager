@@ -786,6 +786,98 @@ app.get("/api/books/monthly-status-report/download", requireCooperativeView, (re
   }
 });
 
+app.get("/api/books/meetings", requireCooperativeView, (req, res) => {
+  try {
+    const { listMeetings, getMeetingSettings } = require("./lib/cooperative-meeting-service");
+    res.json({
+      meetings: listMeetings({ includeDrafts: true, includeCancelled: true }),
+      settings: getMeetingSettings(),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/books/meetings/settings", requireCooperativeView, (req, res) => {
+  try {
+    const { getMeetingSettings } = require("./lib/cooperative-meeting-service");
+    res.json({ settings: getMeetingSettings() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/books/meetings/settings", requireAdmin, (req, res) => {
+  try {
+    const { updateMeetingSettings } = require("./lib/cooperative-meeting-service");
+    res.json({ settings: updateMeetingSettings(req.body || {}) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/books/meetings", requireAdmin, (req, res) => {
+  try {
+    const { createMeeting } = require("./lib/cooperative-meeting-service");
+    const meeting = createMeeting(req.body || {}, req.user?.id || null);
+    res.json({ success: true, meeting });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put("/api/books/meetings/:id", requireAdmin, (req, res) => {
+  try {
+    const { updateMeeting } = require("./lib/cooperative-meeting-service");
+    const meeting = updateMeeting(Number(req.params.id), req.body || {});
+    res.json({ success: true, meeting });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/api/books/meetings/:id", requireAdmin, (req, res) => {
+  try {
+    const { deleteMeeting } = require("./lib/cooperative-meeting-service");
+    res.json(deleteMeeting(Number(req.params.id)));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/books/meetings/:id/announce", requireAdmin, (req, res) => {
+  try {
+    const { announceMeeting } = require("./lib/cooperative-meeting-service");
+    res.json({ success: true, meeting: announceMeeting(Number(req.params.id)) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/books/meetings/:id/cancel", requireAdmin, (req, res) => {
+  try {
+    const { cancelMeeting } = require("./lib/cooperative-meeting-service");
+    res.json({ success: true, meeting: cancelMeeting(Number(req.params.id)) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/books/meetings/:id/resend-announcement", requireAdmin, async (req, res) => {
+  try {
+    const { getMeetingById } = require("./lib/cooperative-meeting-service");
+    const { sendMeetingAnnouncedEmails } = require("./lib/meeting-notification-service");
+    const meeting = getMeetingById(Number(req.params.id));
+    if (!meeting || meeting.status !== "announced") {
+      return res.status(400).json({ error: "Only announced meetings can be re-notified" });
+    }
+    const emailResult = await sendMeetingAnnouncedEmails(meeting, { bypassDedupe: true });
+    res.json({ success: true, emailResult });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.get("/api/books/expense-report-labels", requireCooperativeView, (req, res) => {
   try {
     const {
@@ -906,6 +998,18 @@ function startServer(port, callback) {
       setInterval(() => {
         runScheduledMonthlyStatusJobsForAllOrganizations().catch((err) => {
           trace.info("Monthly status report scheduler error", { error: err.message });
+        });
+      }, 6 * 60 * 60 * 1000);
+
+      const {
+        runScheduledMeetingJobsForAllOrganizations,
+      } = require("./lib/cooperative-meeting-service");
+      runScheduledMeetingJobsForAllOrganizations().catch((err) => {
+        trace.info("Meeting reminder scheduler error", { error: err.message });
+      });
+      setInterval(() => {
+        runScheduledMeetingJobsForAllOrganizations().catch((err) => {
+          trace.info("Meeting reminder scheduler error", { error: err.message });
         });
       }, 6 * 60 * 60 * 1000);
 

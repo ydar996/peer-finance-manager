@@ -451,6 +451,7 @@ async function loadMyAccount() {
     const profile = data.profile;
     renderMyProfileSection(profile);
     await loadMyCooperativeReports();
+    await loadMyMeetings();
     if (depositBalanceSummary) depositBalanceSummary.textContent = fmt.format(data.depositBalance || 0);
     if (loanBalanceSummary) loanBalanceSummary.textContent = fmt.format(data.loanSummary?.outstanding || 0);
 
@@ -968,6 +969,7 @@ async function loadBooks() {
     ].join("");
     bindBookCards();
     loadMonthlyStatusReportPanel();
+    loadCooperativeMeetingsPanel();
   } catch (err) {
     if (requestId !== booksRequestId) return;
     grid.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
@@ -2650,6 +2652,322 @@ async function loadMyCooperativeReports() {
     card.classList.add("hidden");
   }
 }
+
+function meetingStatusLabel(status) {
+  if (status === "announced") return "Announced";
+  if (status === "cancelled") return "Cancelled";
+  return "Draft";
+}
+
+function meetingStatusBadgeClass(meeting) {
+  if (meeting.status === "cancelled") return "err";
+  if (meeting.status === "announced" && meeting.upcoming) return "ok";
+  if (meeting.status === "announced") return "";
+  return "";
+}
+
+function resetCooperativeMeetingForm() {
+  $("#cooperativeMeetingId").value = "";
+  $("#cooperativeMeetingTitle").value = "";
+  $("#cooperativeMeetingDate").value = "";
+  $("#cooperativeMeetingTime").value = "";
+  $("#cooperativeMeetingLocation").value = "";
+  $("#cooperativeMeetingVirtualLink").value = "";
+  $("#cooperativeMeetingAgenda").value = "";
+  $("#cooperativeMeetingAdminNotes").value = "";
+  $("#resetCooperativeMeetingForm")?.classList.add("hidden");
+}
+
+function fillCooperativeMeetingForm(meeting) {
+  $("#cooperativeMeetingId").value = meeting.id;
+  $("#cooperativeMeetingTitle").value = meeting.title || "";
+  $("#cooperativeMeetingDate").value = meeting.meetingDate || "";
+  $("#cooperativeMeetingTime").value = meeting.meetingTime || "";
+  $("#cooperativeMeetingLocation").value = meeting.location || "";
+  $("#cooperativeMeetingVirtualLink").value = meeting.virtualLink || "";
+  $("#cooperativeMeetingAgenda").value = meeting.agenda || "";
+  $("#cooperativeMeetingAdminNotes").value = meeting.adminNotes || "";
+  $("#resetCooperativeMeetingForm")?.classList.remove("hidden");
+}
+
+function readCooperativeMeetingFormPayload() {
+  return {
+    title: $("#cooperativeMeetingTitle")?.value?.trim(),
+    meetingDate: $("#cooperativeMeetingDate")?.value,
+    meetingTime: $("#cooperativeMeetingTime")?.value?.slice(0, 5),
+    location: $("#cooperativeMeetingLocation")?.value?.trim(),
+    virtualLink: $("#cooperativeMeetingVirtualLink")?.value?.trim(),
+    agenda: $("#cooperativeMeetingAgenda")?.value?.trim(),
+    adminNotes: $("#cooperativeMeetingAdminNotes")?.value?.trim(),
+  };
+}
+
+function applyMeetingSettingsToForm(settings) {
+  if ($("#meetingsAutoReminder")) {
+    $("#meetingsAutoReminder").checked = settings?.autoReminder !== false;
+  }
+  if ($("#meetingsReminderHours") && settings?.reminderHours != null) {
+    $("#meetingsReminderHours").value = settings.reminderHours;
+  }
+}
+
+async function loadCooperativeMeetingsPanel() {
+  const badge = $("#cooperativeMeetingsBadge");
+  const list = $("#cooperativeMeetingsList");
+  const statusEl = $("#cooperativeMeetingsStatus");
+  if (!list) return;
+  try {
+    const res = await fetch("/api/books/meetings");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load meetings");
+    const meetings = data.meetings || [];
+    applyMeetingSettingsToForm(data.settings);
+    if (badge) {
+      const upcoming = meetings.filter((m) => m.status === "announced" && m.upcoming).length;
+      if (!meetings.length) {
+        badge.textContent = "None scheduled";
+        badge.className = "badge";
+      } else if (upcoming) {
+        badge.textContent = `${upcoming} upcoming`;
+        badge.className = "badge ok";
+      } else {
+        badge.textContent = `${meetings.length} total`;
+        badge.className = "badge";
+      }
+    }
+    if (!meetings.length) {
+      list.innerHTML = `<li class="hint">No meetings yet. Save a draft below, then announce it to members.</li>`;
+      return;
+    }
+    list.innerHTML = meetings
+      .map((meeting) => {
+        const isAdmin = currentUser?.role === "admin";
+        const actions = [];
+        if (isAdmin && meeting.status === "draft") {
+          actions.push(
+            `<button type="button" class="btn linkish meeting-edit" data-id="${meeting.id}">Edit</button>`,
+            `<button type="button" class="btn linkish meeting-announce" data-id="${meeting.id}">Announce to Members</button>`,
+            `<button type="button" class="btn linkish meeting-delete" data-id="${meeting.id}">Delete</button>`
+          );
+        }
+        if (isAdmin && meeting.status === "announced") {
+          actions.push(
+            `<button type="button" class="btn linkish meeting-edit" data-id="${meeting.id}">Edit Details</button>`,
+            `<button type="button" class="btn linkish meeting-resend" data-id="${meeting.id}">Resend Email</button>`,
+            `<button type="button" class="btn linkish meeting-cancel" data-id="${meeting.id}">Cancel Meeting</button>`
+          );
+        }
+        const loc = meeting.location
+          ? ` · ${escapeHtml(meeting.location)}`
+          : meeting.virtualLink
+            ? " · Online"
+            : "";
+        return `<li class="cooperative-meeting-item">
+          <div class="cooperative-meeting-item-head">
+            <strong>${escapeHtml(meeting.title)}</strong>
+            <span class="badge ${meetingStatusBadgeClass(meeting)}">${escapeHtml(meetingStatusLabel(meeting.status))}</span>
+          </div>
+          <div class="subtle">${escapeHtml(meeting.meetingDateLabel)} at ${escapeHtml(meeting.meetingTimeLabel)} (${escapeHtml(meeting.timezoneLabel)})${loc}</div>
+          ${meeting.agenda ? `<div class="cooperative-meeting-agenda">${escapeHtml(meeting.agenda)}</div>` : ""}
+          ${actions.length ? `<div class="cooperative-meeting-actions">${actions.join(" · ")}</div>` : ""}
+        </li>`;
+      })
+      .join("");
+
+    list.querySelectorAll(".meeting-edit").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const meeting = meetings.find((m) => String(m.id) === btn.dataset.id);
+        if (meeting) fillCooperativeMeetingForm(meeting);
+      });
+    });
+    list.querySelectorAll(".meeting-announce").forEach((btn) => {
+      btn.addEventListener("click", () => announceCooperativeMeeting(btn));
+    });
+    list.querySelectorAll(".meeting-cancel").forEach((btn) => {
+      btn.addEventListener("click", () => cancelCooperativeMeeting(btn));
+    });
+    list.querySelectorAll(".meeting-delete").forEach((btn) => {
+      btn.addEventListener("click", () => deleteCooperativeMeeting(btn));
+    });
+    list.querySelectorAll(".meeting-resend").forEach((btn) => {
+      btn.addEventListener("click", () => resendCooperativeMeetingEmail(btn));
+    });
+    if (statusEl) {
+      statusEl.textContent = "";
+      statusEl.className = "status";
+    }
+  } catch (err) {
+    if (list) list.innerHTML = `<li class="status err">${escapeHtml(err.message)}</li>`;
+    if (badge) {
+      badge.textContent = "Error";
+      badge.className = "badge err";
+    }
+  }
+}
+
+async function saveCooperativeMeetingDraft(e) {
+  e?.preventDefault();
+  const statusEl = $("#cooperativeMeetingsStatus");
+  const submitBtn = $("#saveCooperativeMeeting");
+  const id = $("#cooperativeMeetingId")?.value;
+  const payload = readCooperativeMeetingFormPayload();
+  setButtonBusy(submitBtn, true, "Saving…");
+  try {
+    const res = await fetch(id ? `/api/books/meetings/${id}` : "/api/books/meetings", {
+      method: id ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed");
+    if (statusEl) {
+      statusEl.textContent = id ? "Meeting updated." : "Draft saved.";
+      statusEl.className = "status ok";
+    }
+    resetCooperativeMeetingForm();
+    await loadCooperativeMeetingsPanel();
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    }
+  } finally {
+    setButtonBusy(submitBtn, false);
+  }
+}
+
+async function announceCooperativeMeeting(button) {
+  if (!confirm("Announce this meeting to all members on the portal and by email (if configured)?")) return;
+  setButtonBusy(button, true, "Announcing…");
+  try {
+    const res = await fetch(`/api/books/meetings/${button.dataset.id}/announce`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Announce failed");
+    resetCooperativeMeetingForm();
+    await loadCooperativeMeetingsPanel();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+async function cancelCooperativeMeeting(button) {
+  if (!confirm("Cancel this meeting and notify members by email (if configured)?")) return;
+  setButtonBusy(button, true, "Cancelling…");
+  try {
+    const res = await fetch(`/api/books/meetings/${button.dataset.id}/cancel`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Cancel failed");
+    await loadCooperativeMeetingsPanel();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+async function deleteCooperativeMeeting(button) {
+  if (!confirm("Delete this draft meeting?")) return;
+  setButtonBusy(button, true, "Deleting…");
+  try {
+    const res = await fetch(`/api/books/meetings/${button.dataset.id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Delete failed");
+    await loadCooperativeMeetingsPanel();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+async function resendCooperativeMeetingEmail(button) {
+  setButtonBusy(button, true, "Sending…");
+  try {
+    const res = await fetch(`/api/books/meetings/${button.dataset.id}/resend-announcement`, {
+      method: "POST",
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Email failed");
+    alert(`Announcement email sent to ${data.emailResult?.recipientCount ?? 0} member(s).`);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+async function saveMeetingSettings() {
+  const statusEl = $("#cooperativeMeetingsStatus");
+  const btn = $("#saveMeetingSettings");
+  setButtonBusy(btn, true, "Saving…");
+  try {
+    const res = await fetch("/api/books/meetings/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        autoReminder: $("#meetingsAutoReminder")?.checked || false,
+        reminderHours: Number($("#meetingsReminderHours")?.value || 24),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed");
+    applyMeetingSettingsToForm(data.settings);
+    if (statusEl) {
+      statusEl.textContent = "Reminder settings saved.";
+      statusEl.className = "status ok";
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    }
+  } finally {
+    setButtonBusy(btn, false);
+  }
+}
+
+async function loadMyMeetings() {
+  const card = $("#myMeetingsCard");
+  const list = $("#myMeetingsList");
+  const badge = $("#myMeetingsBadge");
+  if (!card || !list) return;
+  try {
+    const res = await fetch("/api/me/meetings");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const meetings = (data.meetings || []).filter((m) => m.upcoming);
+    if (!meetings.length) {
+      card.classList.add("hidden");
+      return;
+    }
+    card.classList.remove("hidden");
+    if (badge) {
+      badge.textContent = meetings.length === 1 ? "1 upcoming" : `${meetings.length} upcoming`;
+      badge.className = "badge ok";
+    }
+    list.innerHTML = meetings
+      .map(
+        (meeting) => `
+      <li class="my-meeting-item">
+        <strong>${escapeHtml(meeting.title)}</strong>
+        <div class="subtle">${escapeHtml(meeting.meetingDateLabel)} at ${escapeHtml(meeting.meetingTimeLabel)} (${escapeHtml(meeting.timezoneLabel)})</div>
+        ${meeting.location ? `<div>${escapeHtml(meeting.location)}</div>` : ""}
+        ${meeting.virtualLink ? `<div><a href="${escapeHtml(meeting.virtualLink)}" target="_blank" rel="noopener noreferrer">Join online</a></div>` : ""}
+        ${meeting.agenda ? `<div class="my-meeting-agenda">${escapeHtml(meeting.agenda)}</div>` : ""}
+      </li>`
+      )
+      .join("");
+  } catch {
+    card.classList.add("hidden");
+  }
+}
+
+$("#cooperativeMeetingForm")?.addEventListener("submit", saveCooperativeMeetingDraft);
+$("#resetCooperativeMeetingForm")?.addEventListener("click", resetCooperativeMeetingForm);
+$("#refreshCooperativeMeetings")?.addEventListener("click", loadCooperativeMeetingsPanel);
+$("#saveMeetingSettings")?.addEventListener("click", saveMeetingSettings);
 
 $("#downloadMonthlyStatusReport")?.addEventListener("click", (e) => {
   downloadMonthlyStatusReportFile(e.currentTarget);

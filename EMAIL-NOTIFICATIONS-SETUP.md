@@ -3,7 +3,8 @@
 The app can email members automatically when:
 
 1. **You publish** a cooperative monthly status report, or  
-2. It is the **last day of the month** (reminder to sign in and check their reports).
+2. It is the **last day of the month** (reminder to sign in and check their reports), or  
+3. **You announce a cooperative meeting** (and again as an automatic reminder before the meeting, if enabled under Meetings & Announcements).
 
 Emails go to members who have an **email on file** (profile email or member login email).
 

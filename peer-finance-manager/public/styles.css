@@ -398,6 +398,41 @@ th { background: #f8fafc; font-weight: 600; }
 .my-cooperative-reports-body .file-list {
   margin-top: 12px;
 }
+.my-meetings-panel {
+  margin-top: 16px;
+}
+.my-meetings-body .subtle,
+.my-meeting-agenda {
+  margin-top: 6px;
+  white-space: pre-wrap;
+}
+.cooperative-meeting-form {
+  margin: 16px 0;
+  max-width: 640px;
+}
+.cooperative-meeting-form textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.cooperative-meetings-list .cooperative-meeting-item {
+  margin-bottom: 14px;
+}
+.cooperative-meeting-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.cooperative-meeting-agenda,
+.cooperative-meeting-actions {
+  margin-top: 6px;
+  white-space: pre-wrap;
+}
+.cooperative-meeting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
 .monthly-status-performance-overview.hidden { display: none; }
 .monthly-status-report-card .toggle-row,
 .monthly-status-report-card .field-row {

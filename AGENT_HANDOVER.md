@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-01** — **Cooperative meetings (multi-tenant):** Admin → Cooperative Books → **Meetings & Announcements** — schedule drafts, announce to member portal + email, cancel, automatic reminders (per-org). Member portal **Cooperative Meetings** panel. Files: `cooperative-meeting-service.js`, `meeting-notification-service.js`. **Production:** `git push`.
 - **2026-07-01** — Member portal UX: hide tab nav and redundant **My Account** heading (members land on account content directly); mobile header declutter; logout power icon. **Production:** `git push`.
 - **2026-07-01** — **Proxy Zelle deposit fixes:** import credits beneficiary named after `for …` in description (not Zelle payer); pre-import **Ledger warnings** on Admin → Import (proxy mis-credit + contribution vs loan type); regression script `node peer-finance-manager/scripts/test-ledger-import-audit.js`. Corrected `cooperative-bank-ledger-reference.xlsx` (Ejiro/Titilope proxy rows; Oluwabiyi Mar 23 $100.13 → deposit). Utility scripts: `fix-proxy-deposit-members.js` (xlsx Member column), `fix-proxy-deposit-balances.js` (local DB one-shot). **Production:** `git push` then **Admin → Import** upload corrected xlsx (no WinSCP for bank ledger).
 - **2026-06-29** — Bank import conflict handling with **Download missing rows CSV**; **Sort selected file & download** and **Download sorted reference CSV** (date-ordered `cooperative-bank-ledger-reference.csv` from upload or live books). Auto-sync reference CSV on manual entries. **Production:** `git push`.
@@ -282,10 +283,11 @@ Bank CSV + All deposits.xlsx ──► parse-bank-sources.js ──► import-ba
 | 3 | `peer-finance-manager/lib/import-bank-ledger.js` | Bank CSV + xlsx → ledger transactions |
 | 4 | `peer-finance-manager/lib/parse-bank-sources.js` | Merges BoA CSV with All deposits.xlsx |
 | 5 | `peer-finance-manager/lib/ledger-import-audit.js` | Pre-import proxy/type warnings on Bank Ledger Import |
-| 6 | `lib/bank-statement-parser.js` | BoA CSV + Narrative + name aliases (statements/compare) |
-| 7 | `peer-finance-manager/lib/member-name-match.js` | Application ↔ ledger names; proxy Zelle beneficiary |
-| 8 | `peer-finance-manager/lib/member-self-service.js` | Member portal profile, photo, emergency contact |
-| 9 | `peer-finance-manager/db/schema.sql` | DB shape |
+| 6 | `peer-finance-manager/lib/cooperative-meeting-service.js` | Per-tenant meeting schedule, announce, reminders |
+| 7 | `lib/bank-statement-parser.js` | BoA CSV + Narrative + name aliases (statements/compare) |
+| 8 | `peer-finance-manager/lib/member-name-match.js` | Application ↔ ledger names; proxy Zelle beneficiary |
+| 9 | `peer-finance-manager/lib/member-self-service.js` | Member portal profile, photo, emergency contact |
+| 10 | `peer-finance-manager/db/schema.sql` | DB shape |
 
 ### Ports
 

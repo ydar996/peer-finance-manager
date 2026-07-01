@@ -311,6 +311,19 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
+  app.get("/api/me/meetings", requireAuth, (req, res) => {
+    try {
+      const user = req.user;
+      if (user.role !== ROLES.MEMBER) {
+        return res.status(403).json({ error: "Member account required" });
+      }
+      const { listMemberMeetings } = require("./cooperative-meeting-service");
+      res.json({ meetings: listMemberMeetings() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/me/operational-expenses-summary", requireAuth, (req, res) => {
     try {
       const user = req.user;

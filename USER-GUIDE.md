@@ -25,6 +25,7 @@
 - Loan account (if you have a loan): expand **Loan Account** to see each loan; **Actual Repayments** show a running **Balance** after each payment; paid loans are collapsed by default
 - Download **monthly statement PDF**
 - **Cooperative Status Reports** — when the administrator publishes the month-end cooperative summary, it appears here for download (PDF)
+- **Cooperative Meetings** — when the administrator announces a meeting, date, time, location, and agenda appear here (and by email if configured)
 
 **On a phone:** the header hides the long cooperative subtitle and your name/role line; use the **power icon** (top right) to sign out. There is no **My Account** tab — you land directly on your profile and balances after sign-in. Transaction tables hide the **Description** column by default so dates and amounts fit better. Tap **Show Descriptions** at the top of My Account if you need the full detail. Tap **Hide Descriptions** to collapse again. Swipe sideways on a table if you need to see every column. Each transaction stays on one line.
 
@@ -44,7 +45,7 @@
 
 | Tab | What it does |
 |-----|----------------|
-| **Cooperative Books** | Income, expenses, member contributions, loans summary; CD balance and **Expected CD Interest**. **Monthly Status Report** panel: generate month-end PDF, optional auto-generate/auto-publish toggles (admin), publish to member portal, download PDF. |
+| **Cooperative Books** | Income, expenses, member contributions, loans summary; CD balance and **Expected CD Interest**. **Monthly Status Report** panel: generate month-end PDF, optional auto-generate/auto-publish toggles (admin), publish to member portal, download PDF. **Meetings & Announcements** panel (admin): schedule meetings, announce to members (portal + email), cancel, reminder settings. |
 | **Members & Accounts** | Member list, balances, full profiles; select a member to **Upload Photo** (admin) |
 | **Statements** | Generate batch PDF statements |
 | **Loans** | View and manage loans |
