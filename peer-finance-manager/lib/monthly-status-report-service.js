@@ -15,6 +15,11 @@ const {
   defaultReportAsOfToday,
   defaultReportMonthEnd,
 } = require("./cooperative-status-report");
+const {
+  isMonthEndDay,
+  isFirstDayOfMonth,
+  previousMonthYearMonth,
+} = require("./cooperative-time");
 
 const SETTING_AUTO_GENERATE = "monthly_status_auto_generate";
 const SETTING_AUTO_PUBLISH = "monthly_status_auto_publish";
@@ -244,14 +249,8 @@ function getReportDownloadPath(periodSlug, { requirePublished = false } = {}) {
   return { filePath, fileName: record.file_name, record };
 }
 
-function isMonthEndDay(date = new Date()) {
-  const tomorrow = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-  return tomorrow.getMonth() !== date.getMonth();
-}
-
 function previousMonthPeriod(fromDate = new Date()) {
-  const year = fromDate.getMonth() === 0 ? fromDate.getFullYear() - 1 : fromDate.getFullYear();
-  const month = fromDate.getMonth() === 0 ? 12 : fromDate.getMonth();
+  const { year, month } = previousMonthYearMonth(fromDate);
   return resolveReportPeriod({ year, month, useMonthEnd: true });
 }
 
@@ -269,7 +268,7 @@ async function maybeAutoGenerateAndPublishMonthlyStatusReport() {
   const results = [];
 
   if (isMonthEndDay(now)) {
-    const period = defaultReportMonthEnd();
+    const period = defaultReportMonthEnd(now);
     if (settings.autoGenerate && !isPublishedMonthEndReport(period)) {
       results.push(
         await generateMonthlyStatusReport({
@@ -288,7 +287,7 @@ async function maybeAutoGenerateAndPublishMonthlyStatusReport() {
     return { results };
   }
 
-  if (settings.autoGenerate && now.getDate() === 1) {
+  if (settings.autoGenerate && isFirstDayOfMonth(now)) {
     const period = previousMonthPeriod(now);
     if (!isPublishedMonthEndReport(period)) {
       const existing = getReportRecord(period.slug);

@@ -8,6 +8,7 @@ const {
   parseAsOfDate,
   defaultReportAsOfToday,
 } = require("./cooperative-status-report");
+const { isMonthEndDay } = require("./cooperative-time");
 
 const SETTING_ORG_WEBSITE = "organization_website";
 
@@ -189,11 +190,6 @@ async function sendCooperativeReportPublishedEmails(periodSlug) {
       `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>` +
       `<p>${escapeHtml(branding.organizationName)}</p>`,
   });
-}
-
-function isMonthEndDay(date = new Date()) {
-  const tomorrow = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-  return tomorrow.getMonth() !== date.getMonth();
 }
 
 async function sendMonthEndReportReminderEmails(date = new Date()) {

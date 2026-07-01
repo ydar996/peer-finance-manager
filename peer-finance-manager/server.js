@@ -136,6 +136,11 @@ app.get("/api/health", (req, res) => {
     const { isEmailConfigured } = require("./lib/report-notification-service");
     payload.emailConfigured = isEmailConfigured();
   } catch (_) {}
+  try {
+    const { todayIso, COOPERATIVE_TIMEZONE } = require("./lib/cooperative-time");
+    payload.cooperativeToday = todayIso();
+    payload.timezone = COOPERATIVE_TIMEZONE;
+  } catch (_) {}
   res.json(payload);
 });
 

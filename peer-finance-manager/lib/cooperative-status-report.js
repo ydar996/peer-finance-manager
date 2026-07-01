@@ -8,6 +8,11 @@ const { getLoanPortfolioFromBankLedger } = require("./loan-ledger-service");
 const { buildLoanPublicIdMap, getLoanPublicId } = require("./loan-public-id");
 const { getExpensesForStatusReport } = require("./expense-report-label-service");
 const { MONTH_NAMES } = require("./constants");
+const {
+  todayIso: cooperativeTodayIso,
+  calendarParts: cooperativeCalendarParts,
+  localeDateString: cooperativeLocaleDateString,
+} = require("./cooperative-time");
 
 const moneyFmt = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -71,10 +76,7 @@ function parseMonthEndDate(year, month) {
 }
 
 function todayDateIso(date = new Date()) {
-  const y = date.getFullYear();
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  return cooperativeTodayIso(date);
 }
 
 /** Default for manual admin generation and live dashboard preview. */
@@ -83,9 +85,9 @@ function defaultReportAsOfToday(date = new Date()) {
 }
 
 /** Last calendar day of the current month (scheduled auto-generate at month end). */
-function defaultReportMonthEnd() {
-  const now = new Date();
-  return parseMonthEndDate(now.getFullYear(), now.getMonth() + 1);
+function defaultReportMonthEnd(date = new Date()) {
+  const { year, month } = cooperativeCalendarParts(date);
+  return parseMonthEndDate(year, month);
 }
 
 function resolveReportPeriod(options = {}) {
@@ -220,7 +222,7 @@ function getCooperativeStatusReportData(options = {}) {
     organizationName: branding.organizationName,
     website: branding.website,
     period,
-    preparedOn: new Date().toLocaleDateString("en-US", {
+    preparedOn: cooperativeLocaleDateString(new Date(), {
       year: "numeric",
       month: "long",
       day: "numeric",

@@ -1,6 +1,7 @@
 const { getDb } = require("../db/database");
 const { TRANSACTION_TYPES } = require("./constants");
 const { getAllBankLoanLots, hasBankLoanLedger } = require("./loan-ledger-service");
+const { calendarParts, todayIso: cooperativeTodayIso, COOPERATIVE_TIMEZONE } = require("./cooperative-time");
 
 function round2(n) {
   return Math.round(Number(n) * 100) / 100;
@@ -174,14 +175,17 @@ function sumBankLedgerRepaymentsDueInMonth(year, month) {
 }
 
 function getOutstandingLoanRepaymentsDueInMonth(asOf = new Date()) {
-  const year = asOf.getFullYear();
-  const month = asOf.getMonth() + 1;
+  const { year, month } = calendarParts(asOf);
   const fromInstallments = sumInstallmentRepaymentsDueInMonth(year, month);
   const bank = sumBankLedgerRepaymentsDueInMonth(year, month);
   return {
     year,
     month,
-    monthLabel: asOf.toLocaleString("en-US", { month: "long", year: "numeric" }),
+    monthLabel: new Date(year, month - 1, 1).toLocaleString("en-US", {
+      month: "long",
+      year: "numeric",
+      timeZone: COOPERATIVE_TIMEZONE,
+    }),
     total: round2(fromInstallments + bank.total),
     fromInstallments,
     fromBankLedger: bank.total,
@@ -190,9 +194,7 @@ function getOutstandingLoanRepaymentsDueInMonth(asOf = new Date()) {
 }
 
 function getDashboardMetrics(asOf = new Date()) {
-  const year = asOf.getFullYear();
-  const month = asOf.getMonth() + 1;
-  const day = asOf.getDate();
+  const { year, month, day } = calendarParts(asOf);
 
   const thisMonth = monthBounds(year, month);
   const depositsThisMonth = sumDepositsBetween(thisMonth.start, thisMonth.end);
@@ -213,7 +215,11 @@ function getDashboardMetrics(asOf = new Date()) {
     depositsThisMonth: {
       year,
       month,
-      monthLabel: asOf.toLocaleString("en-US", { month: "long", year: "numeric" }),
+      monthLabel: new Date(year, month - 1, 1).toLocaleString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: COOPERATIVE_TIMEZONE,
+      }),
       total: depositsThisMonth,
     },
     depositsYtd: {

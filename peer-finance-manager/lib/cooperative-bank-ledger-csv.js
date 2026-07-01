@@ -6,6 +6,7 @@ const { getDataDir } = require("./paths");
 const { getOrgSlug } = require("./org-context");
 const { TRANSACTION_TYPES } = require("./constants");
 const { trace } = require("./trace-log");
+const { todayIso: cooperativeTodayIso } = require("./cooperative-time");
 
 const CSV_BASENAME = "cooperative-bank-ledger-reference.csv";
 const XLSX_BASENAME = "cooperative-bank-ledger-reference.xlsx";
@@ -164,7 +165,7 @@ function finalizeExportRows(exportRows) {
 }
 
 function sortedReferenceHeaderLines(note) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = cooperativeTodayIso();
   return [
     "Description,,Summary Amt.,,",
     note || "Cooperative bank ledger reference — sorted by transaction date,,,",
@@ -244,7 +245,7 @@ function buildSortedReferenceCsvFromDb() {
 function writeBankStatementCsv(exportRows, outPath, headerLines) {
   const lines = headerLines || [
     "Description,,Summary Amt.,,",
-    `Synced from Peer Finance Manager on ${new Date().toISOString().slice(0, 10)},,,,`,
+    `Synced from Peer Finance Manager on ${cooperativeTodayIso()},,,,`,
     ",,,,",
     "Date,Description,Amount,Running Bal.,Member,Narrative",
   ];
@@ -289,7 +290,7 @@ const MISSING_MANUAL_ROWS_CSV_BASENAME = "cooperative-bank-ledger-missing-manual
 
 function buildMissingManualRowsCsvContent(missingFromImport) {
   const exportRows = conflictRowsToExportRows(missingFromImport);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = cooperativeTodayIso();
   return writeBankStatementCsv(exportRows, null, [
     "Description,,Summary Amt.,,",
     "Missing manual transactions from Peer Finance Manager,,,",

@@ -8,6 +8,7 @@ const {
   getCooperativeSetting,
 } = require("./cooperative-settings");
 const { LEDGER_TYPES } = require("./cooperative-bank-ledger-csv");
+const { todayIso: cooperativeTodayIso } = require("./cooperative-time");
 
 const MEMBER_LEDGER_TYPES = new Set([
   TRANSACTION_TYPES.DEPOSIT,
@@ -190,7 +191,7 @@ function importBankLedger({
 
     if (cdBalance != null && cdBalance !== "") {
       setCooperativeSetting(db, "cd_balance", cdBalance);
-      setCooperativeSetting(db, "cd_balance_as_of", new Date().toISOString().slice(0, 10));
+      setCooperativeSetting(db, "cd_balance_as_of", cooperativeTodayIso());
     }
   });
 
