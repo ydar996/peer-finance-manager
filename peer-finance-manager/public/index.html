@@ -170,8 +170,13 @@
               <p class="subtle">Cooperative status PDF for your organization. Figures reflect the ledger as at the report date. Report period: <strong id="monthlyStatusReportPeriod">—</strong></p>
               <p id="monthlyStatusPerformanceOverview" class="monthly-status-performance-overview hidden"></p>
               <details class="monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="monthlyStatusReportSettingsPanel">
-                <summary>Report Settings</summary>
+                <summary>Organization &amp; Report Settings</summary>
                 <div class="profile-disclosure-body monthly-status-report-settings">
+                  <label class="field-row">
+                    <span>Cooperative time zone (reports, dashboard, ledger dates)</span>
+                    <select id="cooperativeTimezone"></select>
+                  </label>
+                  <p class="hint subtle">Default is Pacific (Los Angeles / San Diego). All administrators share one time zone per cooperative.</p>
                   <label class="toggle-row">
                     <input type="checkbox" id="monthlyStatusAutoGenerate" checked />
                     Automatically generate at month end (as at last calendar day)
@@ -185,7 +190,7 @@
                     <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
                   </label>
                   <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the cooperative report is built as at that calendar month-end date and published to members. You can still regenerate and publish manually anytime. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
-                  <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Report Settings</button>
+                  <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Organization Settings</button>
                 </div>
               </details>
               <div class="panel-head-actions monthly-status-report-actions">
@@ -509,6 +514,23 @@
               <button type="submit" class="btn primary">Record Fee</button>
             </form>
             <p id="membershipFeeStatus" class="status"></p>
+          </div>
+          <div class="card accent">
+            <h3>Current Bank Balance</h3>
+            <p class="subtle" id="checkingBalanceCurrent">Loading current bank balance…</p>
+            <form id="checkingBalanceForm" class="entry-form">
+              <label>Current Balance (From Bank Statement)
+                <input type="number" name="balance" step="0.01" required />
+              </label>
+              <label>As of Date
+                <input type="date" name="asOfDate" required />
+              </label>
+              <label>Note (Optional)
+                <input type="text" name="note" placeholder="e.g. June 2026 statement" />
+              </label>
+              <button type="submit" class="btn primary">Update Bank Balance</button>
+            </form>
+            <p id="checkingBalanceStatus" class="status"></p>
           </div>
           <div class="card accent">
             <h3>CD Account Balance</h3>

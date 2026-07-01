@@ -74,7 +74,8 @@ function registerAuthRoutes(app, deps = {}) {
         portal || PORTALS.MEMBER,
         organizationSlug
       );
-      res.json({ success: true, ...result });
+      const { getCooperativeTimezone } = require("./cooperative-time");
+      res.json({ success: true, ...result, cooperativeTimezone: getCooperativeTimezone() });
     } catch (err) {
       res.status(401).json({ error: err.message });
     }
@@ -86,7 +87,11 @@ function registerAuthRoutes(app, deps = {}) {
   });
 
   app.get("/api/auth/me", requireAuth, (req, res) => {
-    res.json({ user: req.user });
+    const { getCooperativeTimezone } = require("./cooperative-time");
+    res.json({
+      user: req.user,
+      cooperativeTimezone: getCooperativeTimezone(),
+    });
   });
 
   app.post("/api/auth/change-password", requireAuth, (req, res) => {

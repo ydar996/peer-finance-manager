@@ -5,6 +5,7 @@ const {
   getCdBalanceSnapshot,
   getCdTermMetrics,
 } = require("./cd-balance-service");
+const { getCheckingBalanceSnapshot } = require("./checking-balance-service");
 const { getCooperativeSetting } = require("./cooperative-settings");
 const {
   getLoanPortfolioFromBankLedger,
@@ -239,6 +240,7 @@ function getCooperativeBooks() {
   const cdBalanceAsOf = getCooperativeSetting("cd_balance_as_of");
   const cdSnapshot = getCdBalanceSnapshot();
   const cdTermMetrics = cdSnapshot.termMetrics;
+  const checkingSnapshot = getCheckingBalanceSnapshot();
 
   const memberCount = db.prepare(`SELECT COUNT(*) AS c FROM members`).get().c;
   const profileCount = db
@@ -268,6 +270,10 @@ function getCooperativeBooks() {
     ).size,
     loanCount: bankLoanBorrowers.length,
     expenses: expenses.total || 0,
+    checkingBalance: checkingSnapshot.balance,
+    checkingBalanceAsOf: checkingSnapshot.asOf,
+    ledgerCheckingBalance: checkingSnapshot.ledgerBalance,
+    ledgerCheckingAsOf: checkingSnapshot.ledgerAsOf,
     cdBalance: cdBalanceSetting != null ? Number(cdBalanceSetting) : null,
     cdBalanceAsOf: cdBalanceAsOf || null,
     cdPurchased: assets.cdPurchased,
@@ -306,6 +312,7 @@ const BOOK_DETAIL_SLUGS = {
   loans: "Loans Outstanding",
   expenses: "Cooperative Expenses",
   "cd-balance": "CD Account",
+  "checking-balance": "Checking Account",
   "expected-cd-interest": "Expected CD Interest",
   "cd-interest-income": "CD Interest Income",
   "loan-interest-income": "Loan Interest Income",
@@ -522,6 +529,41 @@ function getBookDetail(slug) {
         outstanding: Math.max(0, (row.scheduled || row.principal) - (row.collected || 0)),
         status: row.status,
       })),
+    };
+  }
+
+  if (slug === "checking-balance") {
+    const snapshot = getCheckingBalanceSnapshot();
+    const rows = [
+      ...(snapshot.ledgerBalance != null
+        ? [
+            {
+              date: snapshot.ledgerAsOf,
+              type: "Ledger Balance",
+              amount: snapshot.ledgerBalance,
+              description: "Computed from imported bank ledger",
+            },
+          ]
+        : []),
+      ...snapshot.history.map((row) => ({
+        date: row.as_of_date,
+        type: "Statement Update",
+        amount: row.balance,
+        description: row.note || "Bank statement balance",
+      })),
+    ];
+    return {
+      slug,
+      title,
+      navigateTab: "record",
+      summary: snapshot.balance != null ? Number(snapshot.balance) : snapshot.ledgerBalance,
+      columns: [
+        { key: "date", label: "Date", format: "date" },
+        { key: "type", label: "Type" },
+        { key: "amount", label: "Amount", format: "money" },
+        { key: "description", label: "Description" },
+      ],
+      rows,
     };
   }
 

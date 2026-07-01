@@ -18,6 +18,10 @@ const {
   getCdBalanceSnapshot,
   updateCdBalance,
 } = require("./lib/cd-balance-service");
+const {
+  getCheckingBalanceSnapshot,
+  updateCheckingBalance,
+} = require("./lib/checking-balance-service");
 const { importWpformsProfiles } = require("./lib/import-wpforms-profiles");
 const { importFromSpreadsheet } = require("./lib/import-spreadsheet");
 const {
@@ -137,9 +141,9 @@ app.get("/api/health", (req, res) => {
     payload.emailConfigured = isEmailConfigured();
   } catch (_) {}
   try {
-    const { todayIso, COOPERATIVE_TIMEZONE } = require("./lib/cooperative-time");
+    const { todayIso, getCooperativeTimezone } = require("./lib/cooperative-time");
     payload.cooperativeToday = todayIso();
-    payload.timezone = COOPERATIVE_TIMEZONE;
+    payload.timezone = getCooperativeTimezone();
   } catch (_) {}
   res.json(payload);
 });
@@ -720,10 +724,11 @@ app.put("/api/books/monthly-status-report/settings", requireAdmin, (req, res) =>
 app.post("/api/books/monthly-status-report/generate", requireAdmin, async (req, res) => {
   try {
     const { generateMonthlyStatusReport } = require("./lib/monthly-status-report-service");
-    const result = await generateMonthlyStatusReport({
-      year: req.body?.year ? Number(req.body.year) : undefined,
-      month: req.body?.month ? Number(req.body.month) : undefined,
-    });
+    const year = req.body?.year ? Number(req.body.year) : undefined;
+    const month = req.body?.month ? Number(req.body.month) : undefined;
+    const result = await generateMonthlyStatusReport(
+      year != null && month != null ? { year, month, useMonthEnd: true } : { asOfToday: true }
+    );
     res.json({ success: true, result });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -813,6 +818,34 @@ app.get("/api/settings/cd-balance", requireCooperativeView, (req, res) => {
   }
 });
 
+app.get("/api/settings/checking-balance", requireCooperativeView, (req, res) => {
+  try {
+    res.json({ checkingBalance: getCheckingBalanceSnapshot() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/settings/timezones", requireCooperativeView, (req, res) => {
+  try {
+    const {
+      listSupportedTimezones,
+      getCooperativeTimezone,
+      timezoneLabel,
+    } = require("./lib/cooperative-time");
+    const timezones = listSupportedTimezones().map((id) => ({
+      id,
+      label: timezoneLabel(id),
+    }));
+    res.json({
+      cooperativeTimezone: getCooperativeTimezone(),
+      timezones,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post("/api/settings/cd-balance", (req, res) => {
   try {
     const result = updateCdBalance({
@@ -821,6 +854,19 @@ app.post("/api/settings/cd-balance", (req, res) => {
       note: req.body.note,
     });
     res.json({ success: true, cdBalance: result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/settings/checking-balance", (req, res) => {
+  try {
+    const result = updateCheckingBalance({
+      balance: req.body.balance,
+      asOfDate: req.body.asOfDate,
+      note: req.body.note,
+    });
+    res.json({ success: true, checkingBalance: result });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

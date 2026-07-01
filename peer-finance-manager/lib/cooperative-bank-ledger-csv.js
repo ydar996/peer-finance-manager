@@ -321,7 +321,7 @@ function writeWorkbook(exportRows, outPath) {
 
   const summary = [
     ["Cooperative Bank Ledger — synced from Peer Finance Manager"],
-    ["Generated", new Date().toISOString()],
+    ["Generated", cooperativeTodayIso()],
     ["Organization slug", getOrgSlug()],
     ["Includes", "bank_import and manual ledger transactions"],
     ["Transaction count", exportRows.length],
@@ -363,6 +363,18 @@ function queueCooperativeBankLedgerCsvSync(reason) {
   });
 }
 
+function getLedgerEndingBalance() {
+  const db = getDb();
+  const rows = loadLedgerRowsFromDb(db);
+  if (!rows.length) return null;
+  const exportRows = buildExportRows(rows);
+  const last = exportRows[exportRows.length - 1];
+  return {
+    balance: last.runningBalance,
+    asOf: last.dateIso,
+  };
+}
+
 module.exports = {
   CSV_BASENAME,
   XLSX_BASENAME,
@@ -375,6 +387,7 @@ module.exports = {
   queueCooperativeBankLedgerCsvSync,
   loadLedgerRowsFromDb,
   buildExportRows,
+  getLedgerEndingBalance,
   writeBankStatementCsv,
   writeWorkbook,
   sortedReferenceHeaderLines,

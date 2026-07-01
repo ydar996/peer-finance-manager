@@ -9,6 +9,22 @@ const ORG_SLUG_KEY = "pfm_org_slug";
 const DEFAULT_ORG_SLUG = "assurance";
 let sessionToken = localStorage.getItem(SESSION_KEY) || "";
 let currentUser = null;
+let cooperativeTimezone = "America/Los_Angeles";
+let timezoneOptionsLoaded = false;
+
+const TIMEZONE_SELECT_PRIORITY = [
+  "America/Los_Angeles",
+  "America/Denver",
+  "America/Phoenix",
+  "America/Chicago",
+  "America/New_York",
+  "America/Anchorage",
+  "Pacific/Honolulu",
+  "UTC",
+  "Europe/London",
+  "Europe/Paris",
+  "Africa/Lagos",
+];
 
 let activeTab = null;
 let selectedMemberId = null;
@@ -26,6 +42,70 @@ let myAccountRequestId = 0;
 let recordTabRequestId = 0;
 let profileFormRequestId = 0;
 let statementInspectRequestId = 0;
+
+function applyCooperativeTimezone(timeZone) {
+  cooperativeTimezone = timeZone || "America/Los_Angeles";
+}
+
+function populateTimezoneSelect(select, timezones, selected) {
+  if (!select) return;
+  const entries = (timezones || []).map((row) =>
+    typeof row === "string" ? { id: row, label: row.replace(/_/g, " ") } : row
+  );
+  if (!entries.length) return;
+
+  if (select.dataset.populated !== "1") {
+    select.innerHTML = "";
+    const ids = new Set(entries.map((row) => row.id));
+    const appendOption = (parent, row) => {
+      const opt = document.createElement("option");
+      opt.value = row.id;
+      opt.textContent = row.label || row.id.replace(/_/g, " ");
+      parent.appendChild(opt);
+    };
+
+    for (const id of TIMEZONE_SELECT_PRIORITY) {
+      if (!ids.has(id)) continue;
+      appendOption(select, entries.find((row) => row.id === id));
+    }
+
+    const rest = entries
+      .filter((row) => !TIMEZONE_SELECT_PRIORITY.includes(row.id))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    if (rest.length) {
+      const group = document.createElement("optgroup");
+      group.label = "All time zones";
+      rest.forEach((row) => appendOption(group, row));
+      select.appendChild(group);
+    }
+    select.dataset.populated = "1";
+  }
+
+  if (selected) {
+    const hasOption = [...select.options].some((opt) => opt.value === selected);
+    if (!hasOption) {
+      const opt = document.createElement("option");
+      opt.value = selected;
+      opt.textContent = selected.replace(/_/g, " ");
+      select.insertBefore(opt, select.firstChild);
+    }
+    select.value = selected;
+  }
+}
+
+async function ensureTimezoneOptions(selected) {
+  const select = $("#cooperativeTimezone");
+  if (!select || (timezoneOptionsLoaded && select.dataset.populated === "1")) {
+    if (selected) populateTimezoneSelect(select, [], selected);
+    return;
+  }
+  const res = await fetch("/api/settings/timezones");
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load time zones");
+  populateTimezoneSelect(select, data.timezones, selected || data.cooperativeTimezone);
+  applyCooperativeTimezone(selected || data.cooperativeTimezone);
+  timezoneOptionsLoaded = true;
+}
 
 function setButtonBusy(button, busy, busyLabel = "Loading…") {
   if (!button) return;
@@ -234,6 +314,7 @@ async function restoreSession() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Session expired");
     currentUser = data.user;
+    applyCooperativeTimezone(data.cooperativeTimezone);
     if (!userMatchesPortal(currentUser, portal)) {
       sessionToken = "";
       localStorage.removeItem(SESSION_KEY);
@@ -489,21 +570,49 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
+function parseStoredInstant(value) {
+  if (value == null || value === "") return null;
+  const s = String(value).trim();
+  if (!s || /^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  if (s.includes("T")) {
+    const normalized =
+      s.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(s) ? s : `${s}Z`;
+    const d = new Date(normalized);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(`${s.replace(" ", "T")}Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatInstantDate(value) {
+  const instant = parseStoredInstant(value);
+  if (!instant) return null;
+  return instant.toLocaleDateString("en-US", {
+    timeZone: cooperativeTimezone,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function formatDate(value) {
   if (!value) return ":";
   const s = String(value).trim();
-  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) {
-    const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
-    return d.toLocaleDateString("en-US", {
+    return new Date(`${iso[1]}-${iso[2]}-${iso[3]}T12:00:00Z`).toLocaleDateString("en-US", {
+      timeZone: cooperativeTimezone,
       year: "numeric",
       month: "short",
       day: "numeric",
     });
   }
+  const instantLabel = formatInstantDate(s);
+  if (instantLabel) return instantLabel;
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString("en-US", {
+    timeZone: cooperativeTimezone,
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -808,6 +917,22 @@ async function loadBooks() {
           ? `${books.loanCount} Loans · Disbursed ${fmt.format(books.loansPrincipal)} · Repaid ${fmt.format(books.loansCollected)}`
           : `Disbursed ${fmt.format(books.loansPrincipal)} · Repaid ${fmt.format(books.loansCollected)}`,
       }),
+      books.checkingBalance != null || books.ledgerCheckingBalance != null
+        ? bookCardHtml("checking-balance", {
+            label: "Current Bank Balance",
+            amount: books.checkingBalance ?? books.ledgerCheckingBalance ?? 0,
+            note: [
+              books.checkingBalanceAsOf
+                ? `Statement as of ${books.checkingBalanceAsOf}`
+                : null,
+              books.ledgerCheckingBalance != null
+                ? `Ledger ${fmt.format(books.ledgerCheckingBalance)} through ${books.ledgerCheckingAsOf || "—"}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || "Bank of America checking",
+          })
+        : "",
       books.cdBalance != null
         ? bookCardHtml("cd-balance", {
             label: "CD Account Balance",
@@ -1940,9 +2065,14 @@ function applyMonthlyStatusReportSettingsToForm(settings) {
   const autoGen = $("#monthlyStatusAutoGenerate");
   const autoPub = $("#monthlyStatusAutoPublish");
   const website = $("#monthlyStatusOrgWebsite");
+  const timezone = $("#cooperativeTimezone");
   if (autoGen) autoGen.checked = Boolean(settings.autoGenerate);
   if (autoPub) autoPub.checked = Boolean(settings.autoPublish);
   if (website) website.value = settings.organizationWebsite || "";
+  if (settings.cooperativeTimezone) {
+    applyCooperativeTimezone(settings.cooperativeTimezone);
+    populateTimezoneSelect(timezone, [], settings.cooperativeTimezone);
+  }
   updateMonthEndAutoPublishButton(settings);
 }
 
@@ -2202,6 +2332,7 @@ async function loadMonthlyStatusReportPanel() {
 
     if (settingsRes?.ok) {
       const { settings } = await settingsRes.json();
+      await ensureTimezoneOptions(settings.cooperativeTimezone);
       const settingsPanel = $("#monthlyStatusReportSettingsPanel");
       applyMonthlyStatusReportSettingsToForm(settings);
       if (settingsPanel && settings.organizationWebsite) {
@@ -2221,9 +2352,17 @@ async function loadMonthlyStatusReportPanel() {
     }
 
     if (statusEl && status.generated) {
-      const parts = [`Generated ${formatDate(status.generatedAt?.slice(0, 10)) || "recently"}`];
+      const generatedLabel =
+        status.generatedAtLabel ||
+        formatInstantDate(status.generatedAt) ||
+        "recently";
+      const parts = [`Generated ${generatedLabel}`];
       if (status.published) {
-        parts.push(`published ${formatDate(status.publishedAt?.slice(0, 10)) || "to members"}`);
+        const publishedLabel =
+          status.publishedAtLabel ||
+          formatInstantDate(status.publishedAt) ||
+          "to members";
+        parts.push(`published ${publishedLabel}`);
       } else if (currentUser?.role === "admin") {
         parts.push("not yet published to members");
       }
@@ -2411,6 +2550,7 @@ async function saveMonthlyStatusReportSettings() {
         autoGenerate: $("#monthlyStatusAutoGenerate")?.checked || false,
         autoPublish: $("#monthlyStatusAutoPublish")?.checked || false,
         organizationWebsite: $("#monthlyStatusOrgWebsite")?.value?.trim() || "",
+        cooperativeTimezone: $("#cooperativeTimezone")?.value || cooperativeTimezone,
       }),
     });
     const data = await res.json();
@@ -2421,6 +2561,7 @@ async function saveMonthlyStatusReportSettings() {
     }
     collapseMonthlyStatusReportSettings();
     applyMonthlyStatusReportSettingsToForm(data.settings);
+    applyCooperativeTimezone(data.settings?.cooperativeTimezone);
     await loadMonthlyStatusReportPanel();
   } catch (err) {
     if (statusEl) {
@@ -3010,7 +3151,7 @@ $("#generateStatementsBtn")?.addEventListener("click", async () => {
 });
 
 function todayIso() {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+  return new Date().toLocaleDateString("en-CA", { timeZone: cooperativeTimezone });
 }
 
 let cachedMembers = [];
@@ -3198,6 +3339,55 @@ function openMemberProfileEditor(memberId) {
   document.getElementById("updateProfileForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+async function loadCheckingBalanceForm() {
+  const summaryEl = $("#checkingBalanceCurrent");
+  const form = $("#checkingBalanceForm");
+  if (!form) return;
+  try {
+    const res = await fetch("/api/settings/checking-balance");
+    const { checkingBalance } = await res.json();
+    if (!res.ok) throw new Error(checkingBalance?.error || "Failed to load bank balance");
+
+    const balanceInput = form.querySelector('[name="balance"]');
+    const asOfInput = form.querySelector('[name="asOfDate"]');
+    if (balanceInput && checkingBalance.balance != null) {
+      balanceInput.value = Number(checkingBalance.balance).toFixed(2);
+    }
+    if (asOfInput) {
+      asOfInput.value = checkingBalance.asOf || todayIso();
+    }
+
+    if (summaryEl) {
+      const parts = [];
+      if (checkingBalance.balance != null) {
+        parts.push(
+          `Statement ${fmt.format(checkingBalance.balance)} as of ${checkingBalance.asOf ? formatDate(checkingBalance.asOf) : "—"}`
+        );
+      } else {
+        parts.push("No bank statement balance on file yet.");
+      }
+      if (checkingBalance.ledgerBalance != null) {
+        parts.push(
+          `Ledger ${fmt.format(checkingBalance.ledgerBalance)} through ${checkingBalance.ledgerAsOf ? formatDate(checkingBalance.ledgerAsOf) : "—"}`
+        );
+        if (checkingBalance.balance != null) {
+          const diff = checkingBalance.balance - checkingBalance.ledgerBalance;
+          if (Math.abs(diff) >= 0.01) {
+            parts.push(`Difference ${fmt.format(diff)}`);
+          }
+        }
+      }
+      summaryEl.textContent = parts.join(" · ");
+      summaryEl.className = "subtle";
+    }
+  } catch (err) {
+    if (summaryEl) {
+      summaryEl.textContent = err.message;
+      summaryEl.className = "subtle status err";
+    }
+  }
+}
+
 async function loadCdBalanceForm() {
   const summaryEl = $("#cdBalanceCurrent");
   const form = $("#cdBalanceForm");
@@ -3281,7 +3471,7 @@ async function loadRecordTabData() {
       if (!input.value) input.value = todayIso();
     });
 
-    await Promise.all([loadExpenses(), loadDistributions(), loadCdBalanceForm()]);
+    await Promise.all([loadExpenses(), loadDistributions(), loadCheckingBalanceForm(), loadCdBalanceForm()]);
     if (requestId !== recordTabRequestId) return;
   } catch (err) {
     if (requestId !== recordTabRequestId) return;
@@ -3578,6 +3768,33 @@ $("#repaymentForm")?.addEventListener("submit", async (e) => {
   }
 });
 
+$("#checkingBalanceForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#checkingBalanceStatus");
+  status.textContent = "Saving…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const res = await fetch("/api/settings/checking-balance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const saved = data.checkingBalance;
+    setFormStatus(
+      status,
+      `Bank balance updated to ${fmt.format(saved.balance)} as of ${formatDate(saved.asOf)}.`,
+      true
+    );
+    await loadCheckingBalanceForm();
+    loadBooks();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
 $("#cdBalanceForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const status = $("#cdBalanceStatus");
@@ -3660,6 +3877,7 @@ async function handleLoginSubmit(e) {
     sessionToken = data.token;
     localStorage.setItem(SESSION_KEY, sessionToken);
     currentUser = data.user;
+    applyCooperativeTimezone(data.cooperativeTimezone);
     if (data.mustChangePassword || currentUser.mustChangePassword) {
       showChangePassword();
       if (status) status.textContent = "";

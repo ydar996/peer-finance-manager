@@ -19,6 +19,10 @@ const {
   isMonthEndDay,
   isFirstDayOfMonth,
   previousMonthYearMonth,
+  getCooperativeTimezone,
+  setCooperativeTimezone,
+  nowUtcIso,
+  formatInstantAsCooperativeDate,
 } = require("./cooperative-time");
 
 const SETTING_AUTO_GENERATE = "monthly_status_auto_generate";
@@ -61,6 +65,7 @@ function getMonthlyStatusReportSettings() {
     autoGenerate: settingEnabled(SETTING_AUTO_GENERATE),
     autoPublish: settingEnabled(SETTING_AUTO_PUBLISH),
     organizationWebsite: getCooperativeSetting(SETTING_ORG_WEBSITE) || "",
+    cooperativeTimezone: getCooperativeTimezone(),
   };
 }
 
@@ -77,6 +82,9 @@ function updateMonthlyStatusReportSettings(payload = {}) {
     const website = String(payload.organizationWebsite || "").trim();
     if (website) setCooperativeSetting(db, SETTING_ORG_WEBSITE, website);
     else db.prepare(`DELETE FROM cooperative_settings WHERE key = ?`).run(SETTING_ORG_WEBSITE);
+  }
+  if (payload.cooperativeTimezone !== undefined) {
+    setCooperativeTimezone(payload.cooperativeTimezone);
   }
   return getMonthlyStatusReportSettings();
 }
@@ -115,6 +123,8 @@ function listCooperativeStatusReports({ publishedOnly = false } = {}) {
     fileName: row.file_name,
     generatedAt: row.generated_at,
     publishedAt: row.published_at,
+    generatedAtLabel: formatInstantAsCooperativeDate(row.generated_at),
+    publishedAtLabel: formatInstantAsCooperativeDate(row.published_at),
     isPublished: Boolean(row.is_published),
   }));
 }
@@ -122,17 +132,18 @@ function listCooperativeStatusReports({ publishedOnly = false } = {}) {
 function saveReportRecord({ period, fileName, outputPath }) {
   const db = getDb();
   ensureReportsTable(db);
+  const generatedAt = nowUtcIso();
   db.prepare(
     `INSERT INTO cooperative_status_reports (
        period_slug, as_of_date, file_name, generated_at, published_at, is_published
-     ) VALUES (?, ?, ?, datetime('now'), NULL, 0)
+     ) VALUES (?, ?, ?, ?, NULL, 0)
      ON CONFLICT(period_slug) DO UPDATE SET
        as_of_date = excluded.as_of_date,
        file_name = excluded.file_name,
-       generated_at = datetime('now'),
+       generated_at = excluded.generated_at,
        published_at = NULL,
        is_published = 0`
-  ).run(period.slug, period.dateIso, fileName);
+  ).run(period.slug, period.dateIso, fileName, generatedAt);
   return getReportRecord(period.slug);
 }
 
@@ -161,6 +172,8 @@ function getMonthlyStatusReportStatus(options = {}) {
     published: Boolean(record?.is_published),
     generatedAt: record?.generated_at || null,
     publishedAt: record?.published_at || null,
+    generatedAtLabel: formatInstantAsCooperativeDate(record?.generated_at),
+    publishedAtLabel: formatInstantAsCooperativeDate(record?.published_at),
     fileName: record?.file_name || null,
   };
 }
@@ -208,9 +221,9 @@ function publishMonthlyStatusReport(periodSlug) {
   }
   db.prepare(
     `UPDATE cooperative_status_reports
-     SET is_published = 1, published_at = datetime('now')
+     SET is_published = 1, published_at = ?
      WHERE period_slug = ?`
-  ).run(periodSlug);
+  ).run(nowUtcIso(), periodSlug);
   const {
     queueCooperativeReportPublishedEmails,
   } = require("./report-notification-service");
