@@ -77,6 +77,12 @@ h1 { margin: 0 0 4px; font-size: 28px; }
   -webkit-overflow-scrolling: touch;
   padding-bottom: 4px;
 }
+.member-portal #mainTabs {
+  display: none;
+}
+.member-portal #panel-my-account > .panel-head > h2 {
+  display: none;
+}
 .tab {
   border: 1px solid #cbd5e1;
   background: #fff;
@@ -704,6 +710,10 @@ tr.loan-row:hover { background: #f8fafc; }
 }
 @media (max-width: 640px) {
   .record-grid { grid-template-columns: minmax(0, 1fr); }
+  #appOrgSubtitle,
+  .session-user {
+    display: none;
+  }
   #panel-my-account > .hint { display: none; }
   .my-profile-card .profile-header {
     flex-direction: column;
@@ -860,6 +870,16 @@ tr.loan-row:hover { background: #f8fafc; }
 }
 .session-bar { text-align: right; }
 .session-user { margin: 0 0 8px; font-size: 14px; color: #334155; }
+.logout-btn {
+  padding: 8px 10px;
+  line-height: 0;
+  color: #334155;
+}
+.logout-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
 .topbar { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
 .readonly-banner {
   background: #fef3c7;

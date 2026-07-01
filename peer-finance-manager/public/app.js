@@ -291,6 +291,8 @@ function applyRoleUi() {
   if (role === "member") switchTab("my-account");
   else if (role === "admin" || role === "staff") switchTab("books");
 
+  $("#appShell")?.classList.toggle("member-portal", role === "member");
+
   const registerBtn = $("#goRegisterMemberBtn");
   if (registerBtn) registerBtn.classList.toggle("hidden", role !== "admin");
 

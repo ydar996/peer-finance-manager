@@ -26,7 +26,7 @@
 - Download **monthly statement PDF**
 - **Cooperative Status Reports** — when the administrator publishes the month-end cooperative summary, it appears here for download (PDF)
 
-**On a phone:** transaction tables hide the **Description** column by default so dates and amounts fit better. Tap **Show Descriptions** at the top of My Account if you need the full detail. Tap **Hide Descriptions** to collapse again. Swipe sideways on a table if you need to see every column. Each transaction stays on one line.
+**On a phone:** the header hides the long cooperative subtitle and your name/role line; use the **power icon** (top right) to sign out. There is no **My Account** tab — you land directly on your profile and balances after sign-in. Transaction tables hide the **Description** column by default so dates and amounts fit better. Tap **Show Descriptions** at the top of My Account if you need the full detail. Tap **Hide Descriptions** to collapse again. Swipe sideways on a table if you need to see every column. Each transaction stays on one line.
 
 **First visit may be slow** (up to 30 seconds) if the server was idle — wait and try again.
 
