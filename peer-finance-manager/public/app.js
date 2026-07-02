@@ -38,6 +38,8 @@ let membersListCache = [];
 let memberSearchQuery = "";
 let profileRequestId = 0;
 let bookDetailRequestId = 0;
+let activeBookDetail = null;
+let activeBookDetailSlug = null;
 let booksRequestId = 0;
 let loansRequestId = 0;
 let loanDetailRequestId = 0;
@@ -1148,8 +1150,190 @@ function dashboardCardsHtml(dashboard) {
 
 function closeBookDetail() {
   bookDetailRequestId += 1;
+  activeBookDetail = null;
+  activeBookDetailSlug = null;
+  $("#booksDetailViewTabs")?.classList.add("hidden");
   $("#booksDetail")?.classList.add("hidden");
   $("#booksSummary")?.classList.remove("hidden");
+}
+
+function bindBookDetailMemberRows(slug) {
+  $("#booksDetailBody")?.querySelectorAll(".detail-member-row").forEach((row) => {
+    row.addEventListener("click", (event) => {
+      if (event.target.closest(".detail-expand-toggle")) return;
+      const memberId = Number(row.dataset.memberId);
+      const panel = slug === "loan-repayments-due" ? "loan" : "deposit";
+      navigateToMemberFromBooks(memberId, panel);
+    });
+  });
+}
+
+function bindBookDetailExpandRows() {
+  $("#booksDetailBody")?.querySelectorAll(".detail-expand-toggle").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const rowKey = button.dataset.expandTarget;
+      const panel = document.querySelector(`tr.detail-expand-panel[data-expand-for="${rowKey}"]`);
+      if (!panel) return;
+      const expanded = panel.classList.toggle("hidden");
+      button.setAttribute("aria-expanded", expanded ? "false" : "true");
+      button.textContent = expanded ? "▸" : "▾";
+    });
+  });
+}
+
+function renderBookDetailTable(view, slug) {
+  const head = $("#booksDetailHead");
+  const body = $("#booksDetailBody");
+  if (!head || !body) return;
+
+  head.innerHTML = `<tr>${view.columns.map((col) => `<th>${escapeHtml(col.label)}</th>`).join("")}</tr>`;
+
+  if (!view.rows.length) {
+    body.innerHTML = `<tr><td colspan="${view.columns.length}">${escapeHtml(view.emptyMessage || "No Records")}</td></tr>`;
+    return;
+  }
+
+  if (view.expandable) {
+    const childColspan = view.childColumns.length;
+    body.innerHTML = view.rows
+      .map((row, index) => {
+        const rowKey = String(row.memberId ?? index);
+        const toggle = `<button type="button" class="detail-expand-toggle" data-expand-target="${rowKey}" aria-expanded="false" aria-label="Show deposits for ${escapeHtml(row.member)}">▸</button>`;
+        const mainCells = view.columns
+          .map((col, colIndex) => {
+            const cls = col.format === "money" ? ' class="money"' : "";
+            const value =
+              colIndex === 0
+                ? `${toggle}<span class="detail-member-link">${formatDetailCell(row[col.key], col.format)}</span>`
+                : formatDetailCell(row[col.key], col.format);
+            return `<td${cls}>${value}</td>`;
+          })
+          .join("");
+        const childRows = (row[view.expandKey] || [])
+          .map((child) => {
+            const cells = view.childColumns
+              .map((col) => {
+                const cls = col.format === "money" ? ' class="money"' : "";
+                return `<td${cls}>${formatDetailCell(child[col.key], col.format)}</td>`;
+              })
+              .join("");
+            return `<tr>${cells}</tr>`;
+          })
+          .join("");
+        const nestedTable = childRows
+          ? `<table class="detail-nested-table"><thead><tr>${view.childColumns
+              .map((col) => `<th>${escapeHtml(col.label)}</th>`)
+              .join("")}</tr></thead><tbody>${childRows}</tbody></table>`
+          : `<p class="subtle detail-expand-empty">No deposit detail available.</p>`;
+        return `
+          <tr class="detail-member-row detail-expand-row" data-member-id="${row.memberId ?? ""}">
+            ${mainCells}
+          </tr>
+          <tr class="detail-expand-panel hidden" data-expand-for="${rowKey}">
+            <td colspan="${view.columns.length}">${nestedTable}</td>
+          </tr>`;
+      })
+      .join("");
+    bindBookDetailExpandRows();
+    bindBookDetailMemberRows(slug);
+    return;
+  }
+
+  body.innerHTML = view.rows
+    .map((row) => {
+      const memberAttr = row.memberId
+        ? ` class="detail-member-row" data-member-id="${row.memberId}"`
+        : "";
+      const cells = view.columns
+        .map((col) => {
+          const cls = col.format === "money" ? ' class="money"' : "";
+          return `<td${cls}>${formatDetailCell(row[col.key], col.format)}</td>`;
+        })
+        .join("");
+      return `<tr${memberAttr}>${cells}</tr>`;
+    })
+    .join("");
+  bindBookDetailMemberRows(slug);
+}
+
+function renderBookDetailView(viewId) {
+  if (!activeBookDetail) return;
+  const detail = activeBookDetail;
+  const slug = activeBookDetailSlug;
+  const view = detail.views.find((entry) => entry.id === viewId) || detail.views[0];
+  if (!view) return;
+
+  $("#booksDetailViewTabs")?.querySelectorAll("[data-book-view]").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.bookView === view.id);
+  });
+
+  if (view.id === "by-member" && detail.views.length > 1) {
+    const memberCount = view.rows.length;
+    const summaryLine = `Total: ${fmt.format(detail.summary)} · ${memberCount} member${memberCount === 1 ? "" : "s"} with deposits`;
+    $("#booksDetailSummary").textContent = summaryLine;
+  } else {
+    const summaryLine =
+      typeof detail.summary === "number"
+        ? `Total: ${fmt.format(detail.summary)}`
+        : `Count: ${detail.summary}`;
+    $("#booksDetailSummary").textContent = summaryLine;
+  }
+
+  renderBookDetailTable(view, slug);
+}
+
+function renderBookDetail(detail, slug) {
+  activeBookDetail = detail;
+  activeBookDetailSlug = slug;
+
+  const summaryLine =
+    typeof detail.summary === "number"
+      ? `Total: ${fmt.format(detail.summary)}`
+      : `Count: ${detail.summary}`;
+  $("#booksDetailSummary").textContent = summaryLine;
+
+  const tabLink = $("#booksDetailTabLink");
+  if (detail.navigateTab) {
+    tabLink.hidden = false;
+    const tabLabels = {
+      members: "Members & Accounts",
+      loans: "Loans",
+      record: "Record",
+    };
+    tabLink.textContent = `Open ${tabLabels[detail.navigateTab] || detail.navigateTab}`;
+    tabLink.onclick = () => {
+      switchTab(detail.navigateTab);
+    };
+  } else {
+    tabLink.hidden = true;
+  }
+
+  const viewTabs = $("#booksDetailViewTabs");
+  if (detail.views?.length) {
+    viewTabs.classList.remove("hidden");
+    viewTabs.innerHTML = detail.views
+      .map(
+        (view, index) =>
+          `<button type="button" class="books-detail-view-tab${index === 0 ? " active" : ""}" data-book-view="${view.id}">${escapeHtml(view.label)}</button>`
+      )
+      .join("");
+    viewTabs.querySelectorAll("[data-book-view]").forEach((tab) => {
+      tab.addEventListener("click", () => renderBookDetailView(tab.dataset.bookView));
+    });
+    renderBookDetailView(detail.views[0].id);
+    return;
+  }
+
+  viewTabs?.classList.add("hidden");
+  renderBookDetailTable(
+    {
+      columns: detail.columns,
+      rows: detail.rows || [],
+      emptyMessage: "No Records",
+    },
+    slug
+  );
 }
 
 async function openBookDetail(slug) {
@@ -1161,6 +1345,7 @@ async function openBookDetail(slug) {
     summaryEl?.classList.add("hidden");
     detailEl?.classList.remove("hidden");
     $("#booksDetailTitle").textContent = "Loading…";
+    $("#booksDetailViewTabs")?.classList.add("hidden");
     body.innerHTML = `<tr><td>Loading…</td></tr>`;
 
     const res = await fetch(`/api/books/detail/${encodeURIComponent(slug)}`);
@@ -1170,62 +1355,11 @@ async function openBookDetail(slug) {
 
     const detail = data.detail;
     $("#booksDetailTitle").textContent = detail.title;
-
-    const summaryLine =
-      typeof detail.summary === "number"
-        ? `Total: ${fmt.format(detail.summary)}`
-        : `Count: ${detail.summary}`;
-    $("#booksDetailSummary").textContent = summaryLine;
-
-    const tabLink = $("#booksDetailTabLink");
-    if (detail.navigateTab) {
-      tabLink.hidden = false;
-      const tabLabels = {
-        members: "Members & Accounts",
-        loans: "Loans",
-        record: "Record",
-      };
-      tabLink.textContent = `Open ${tabLabels[detail.navigateTab] || detail.navigateTab}`;
-      tabLink.onclick = () => {
-        switchTab(detail.navigateTab);
-      };
-    } else {
-      tabLink.hidden = true;
-    }
-
-    $("#booksDetailHead").innerHTML = `<tr>${detail.columns
-      .map((col) => `<th>${escapeHtml(col.label)}</th>`)
-      .join("")}</tr>`;
-
-    if (!detail.rows.length) {
-      body.innerHTML = `<tr><td colspan="${detail.columns.length}">No Records</td></tr>`;
-      return;
-    }
-
-    body.innerHTML = detail.rows
-      .map((row) => {
-        const memberAttr = row.memberId
-          ? ` class="detail-member-row" data-member-id="${row.memberId}"`
-          : "";
-        const cells = detail.columns
-          .map((col) => {
-            const cls = col.format === "money" ? ' class="money"' : "";
-            return `<td${cls}>${formatDetailCell(row[col.key], col.format)}</td>`;
-          })
-          .join("");
-        return `<tr${memberAttr}>${cells}</tr>`;
-      })
-      .join("");
-
-    body.querySelectorAll(".detail-member-row").forEach((row) => {
-      row.addEventListener("click", () => {
-        const memberId = Number(row.dataset.memberId);
-        const panel = slug === "loan-repayments-due" ? "loan" : "deposit";
-        navigateToMemberFromBooks(memberId, panel);
-      });
-    });
+    renderBookDetail(detail, slug);
   } catch (err) {
     if (requestId !== bookDetailRequestId) return;
+    activeBookDetail = null;
+    activeBookDetailSlug = null;
     $("#booksDetailTitle").textContent = "Details";
     body.innerHTML = `<tr><td class="status err">${escapeHtml(err.message)}</td></tr>`;
   }

@@ -237,14 +237,46 @@ function getDepositsThisMonthDetail(asOf = new Date()) {
   };
 }
 
+function buildMemberDepositSummaries(rows) {
+  const byMember = new Map();
+  for (const row of rows) {
+    if (!byMember.has(row.memberId)) {
+      byMember.set(row.memberId, {
+        memberId: row.memberId,
+        member: row.member,
+        depositCount: 0,
+        total: 0,
+        deposits: [],
+      });
+    }
+    const entry = byMember.get(row.memberId);
+    entry.depositCount += 1;
+    entry.total = round2(entry.total + row.amount);
+    entry.deposits.push({
+      date: row.date,
+      amount: row.amount,
+      description: row.description,
+    });
+  }
+
+  return Array.from(byMember.values())
+    .map((entry) => ({
+      ...entry,
+      deposits: entry.deposits.sort((a, b) => String(b.date).localeCompare(String(a.date))),
+    }))
+    .sort((a, b) => b.total - a.total || a.member.localeCompare(b.member));
+}
+
 function getDepositsYtdDetail(asOf = new Date()) {
   const { year, month, day } = calendarParts(asOf);
   const bounds = ytdBounds(year, month, day);
   const rows = getDepositRowsBetween(bounds.start, bounds.end);
   return {
+    year,
     title: `Deposits This Year (${year} YTD)`,
     summary: rows.reduce((sum, row) => sum + row.amount, 0),
     rows,
+    memberRows: buildMemberDepositSummaries(rows),
   };
 }
 

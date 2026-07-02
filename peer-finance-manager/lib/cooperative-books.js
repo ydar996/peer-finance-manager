@@ -358,18 +358,44 @@ function getBookDetail(slug) {
 
   if (slug === "deposits-ytd") {
     const detail = getDepositsYtdDetail();
+    const depositColumns = [
+      { key: "date", label: "Date", format: "date" },
+      { key: "member", label: "Member" },
+      { key: "amount", label: "Amount", format: "money" },
+      { key: "description", label: "Description" },
+    ];
     return {
       slug,
       title: detail.title,
       navigateTab: "record",
       summary: detail.summary,
-      columns: [
-        { key: "date", label: "Date", format: "date" },
-        { key: "member", label: "Member" },
-        { key: "amount", label: "Amount", format: "money" },
-        { key: "description", label: "Description" },
+      views: [
+        {
+          id: "transactions",
+          label: "All Deposits",
+          emptyMessage: `No member contributions recorded in ${detail.year} yet.`,
+          columns: depositColumns,
+          rows: detail.rows,
+        },
+        {
+          id: "by-member",
+          label: "By Member",
+          emptyMessage: `No member contributions recorded in ${detail.year} yet.`,
+          expandable: true,
+          expandKey: "deposits",
+          columns: [
+            { key: "member", label: "Member" },
+            { key: "depositCount", label: "Deposits" },
+            { key: "total", label: "YTD Total", format: "money" },
+          ],
+          childColumns: [
+            { key: "date", label: "Date", format: "date" },
+            { key: "amount", label: "Amount", format: "money" },
+            { key: "description", label: "Description" },
+          ],
+          rows: detail.memberRows,
+        },
       ],
-      rows: detail.rows,
     };
   }
 
