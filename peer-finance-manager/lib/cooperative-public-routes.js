@@ -14,6 +14,7 @@ const {
   saveAboutImageUpload,
   removeAboutImage,
   resolveAboutImagePath,
+  resolveAboutDocumentPath,
   resolveBylawsPath,
 } = require("./cooperative-public-pages-service");
 
@@ -65,6 +66,24 @@ function registerCooperativePublicRoutes(app, deps = {}) {
       const meta = getPublicBylawsMeta(req.params.slug);
       if (!meta) return res.status(404).json({ error: "Bylaws not available" });
       res.json(meta);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/public/organizations/:slug/about/document", (req, res) => {
+    try {
+      const slug = req.params.slug;
+      const doc = resolveAboutDocumentPath(slug);
+      if (!doc || !getPublicAbout(slug)) {
+        return res.status(404).json({ error: "About document not available" });
+      }
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${doc.filename.replace(/"/g, "")}"`
+      );
+      res.sendFile(path.resolve(doc.filePath));
     } catch (err) {
       res.status(400).json({ error: err.message });
     }

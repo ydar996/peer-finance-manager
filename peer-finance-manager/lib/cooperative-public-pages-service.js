@@ -15,10 +15,13 @@ const SETTINGS = {
   ABOUT_PUBLISHED: "public_about_published",
   BYLAWS_PUBLISHED: "public_bylaws_published",
   BYLAWS_FILENAME: "public_bylaws_filename",
+  ABOUT_FILENAME: "public_about_filename",
+  ABOUT_MODE: "public_about_mode",
 };
 
 const DEFAULT_BYLAWS_FILENAME = "bylaws.pdf";
-const ABOUT_SEED_VERSION = "2";
+const DEFAULT_ABOUT_FILENAME = "about.pdf";
+const ABOUT_SEED_VERSION = "3";
 const IMAGE_EXT = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"]);
 
 const RESTRICTED_PATH_PREFIXES = ["/member", "/admin", "/staff", "/register", "/platform"];
@@ -114,6 +117,20 @@ function resolveAboutImagePath(slug, filename) {
   return filePath;
 }
 
+function resolveAboutDocumentPath(slug) {
+  const mode =
+    runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_MODE)) || "pdf";
+  if (mode === "pdf") {
+    const filename =
+      runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_FILENAME)) ||
+      DEFAULT_ABOUT_FILENAME;
+    const safe = path.basename(filename);
+    const filePath = path.join(getOrgPublicDir(slug), safe);
+    if (fs.existsSync(filePath)) return { filePath, filename: safe, mode: "pdf" };
+  }
+  return null;
+}
+
 function resolveBylawsPath(slug) {
   const filename =
     runWithOrg(slug, () => getCooperativeSetting(SETTINGS.BYLAWS_FILENAME)) ||
@@ -125,9 +142,10 @@ function resolveBylawsPath(slug) {
 }
 
 function isAboutPublished(slug) {
-  return (
-    runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_PUBLISHED)) === "1"
-  );
+  if (runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_PUBLISHED)) !== "1") {
+    return false;
+  }
+  return !!(resolveAboutDocumentPath(slug) || runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_HTML)));
 }
 
 function isBylawsPublished(slug) {
@@ -151,6 +169,17 @@ function getPublicSummary(slug) {
 function getPublicAbout(slug) {
   const org = getOrganization(slug);
   if (!org || !isAboutPublished(slug)) return null;
+
+  const pdfDoc = resolveAboutDocumentPath(slug);
+  if (pdfDoc) {
+    return {
+      organization: { slug: org.slug, name: org.name },
+      mode: "pdf",
+      filename: pdfDoc.filename,
+      documentUrl: `/api/public/organizations/${encodeURIComponent(slug)}/about/document`,
+    };
+  }
+
   const rawHtml = runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_HTML)) || "";
   const html = sanitizePublicAboutHtml(rawHtml, slug);
   const images = listAboutImageFiles(slug).map((filename) => ({
@@ -159,6 +188,7 @@ function getPublicAbout(slug) {
   }));
   return {
     organization: { slug: org.slug, name: org.name },
+    mode: "html",
     html,
     images,
   };
@@ -294,6 +324,12 @@ function seedOrgPublicPages(orgSlug) {
         if (fs.existsSync(bylawsSeed)) {
           fs.copyFileSync(bylawsSeed, path.join(destRoot, DEFAULT_BYLAWS_FILENAME));
         }
+        const aboutPdfSeed = path.join(seedRoot, DEFAULT_ABOUT_FILENAME);
+        if (fs.existsSync(aboutPdfSeed)) {
+          fs.copyFileSync(aboutPdfSeed, path.join(destRoot, DEFAULT_ABOUT_FILENAME));
+          setCooperativeSetting(db, SETTINGS.ABOUT_FILENAME, DEFAULT_ABOUT_FILENAME);
+          setCooperativeSetting(db, SETTINGS.ABOUT_MODE, "pdf");
+        }
         changed = true;
       }
     }
@@ -328,6 +364,7 @@ function seedAssurancePublicPages() {
 module.exports = {
   SETTINGS,
   DEFAULT_BYLAWS_FILENAME,
+  DEFAULT_ABOUT_FILENAME,
   getOrgPublicDir,
   getPublicSummary,
   getPublicAbout,
@@ -339,6 +376,7 @@ module.exports = {
   saveAboutImageUpload,
   removeAboutImage,
   resolveAboutImagePath,
+  resolveAboutDocumentPath,
   resolveBylawsPath,
   seedOrgPublicPages,
   seedAssurancePublicPages,

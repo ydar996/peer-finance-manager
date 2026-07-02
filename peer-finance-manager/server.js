@@ -186,7 +186,7 @@ for (const portalPath of ["/member", "/staff", "/admin", "/register", "/platform
 }
 for (const publicPage of ["about", "bylaws"]) {
   app.get(`/c/:slug/${publicPage}`, (req, res) => {
-    res.sendFile(path.join(getPublicDir(), "index.html"));
+    res.sendFile(path.join(getPublicDir(), "cooperative-public.html"));
   });
 }
 

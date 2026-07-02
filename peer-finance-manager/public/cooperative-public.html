@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cooperative</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: #f1f5f9;
+        color: #0f172a;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        padding: 16px 20px;
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      h1 { margin: 0; font-size: 1.25rem; }
+      .org-name { margin: 4px 0 0; color: #64748b; font-size: 0.95rem; }
+      nav { display: flex; gap: 8px; flex-wrap: wrap; }
+      nav a {
+        text-decoration: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        color: #0f172a;
+        background: #fff;
+        font-size: 0.95rem;
+      }
+      nav a.active {
+        background: #0284c7;
+        border-color: #0284c7;
+        color: #fff;
+      }
+      main { flex: 1; display: flex; flex-direction: column; padding: 12px; }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+      }
+      .toolbar a {
+        text-decoration: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        background: #0284c7;
+        color: #fff;
+        font-size: 0.9rem;
+      }
+      iframe {
+        flex: 1;
+        width: 100%;
+        min-height: 75vh;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #fff;
+      }
+      .status {
+        padding: 12px;
+        color: #b91c1c;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+      }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1 id="pageTitle">Cooperative</h1>
+        <p class="org-name" id="orgName"></p>
+      </div>
+      <nav aria-label="Public cooperative pages">
+        <a id="navAbout" href="#">About Us</a>
+        <a id="navBylaws" href="#">Bylaws</a>
+      </nav>
+    </header>
+    <main>
+      <div id="status" class="status hidden"></div>
+      <div class="toolbar">
+        <a id="openPdf" href="#" target="_blank" rel="noopener">Open PDF in new tab</a>
+      </div>
+      <iframe id="docFrame" title="Cooperative document"></iframe>
+    </main>
+    <script>
+      (function () {
+        const match = window.location.pathname.replace(/\/$/, "").match(/^\/c\/([^/]+)\/(about|bylaws)$/i);
+        if (!match) {
+          showError("Page not found.");
+          return;
+        }
+        const slug = decodeURIComponent(match[1]).toLowerCase();
+        const page = match[2].toLowerCase();
+        const pageTitle = page === "bylaws" ? "Bylaws" : "About Us";
+        const aboutHref = "/c/" + encodeURIComponent(slug) + "/about";
+        const bylawsHref = "/c/" + encodeURIComponent(slug) + "/bylaws";
+        const docUrl =
+          page === "bylaws"
+            ? "/api/public/organizations/" + encodeURIComponent(slug) + "/bylaws/document"
+            : "/api/public/organizations/" + encodeURIComponent(slug) + "/about/document";
+
+        document.getElementById("pageTitle").textContent = pageTitle;
+        document.getElementById("navAbout").href = aboutHref;
+        document.getElementById("navBylaws").href = bylawsHref;
+        document.getElementById("navAbout").classList.toggle("active", page === "about");
+        document.getElementById("navBylaws").classList.toggle("active", page === "bylaws");
+        document.getElementById("openPdf").href = docUrl;
+        document.getElementById("docFrame").src = docUrl;
+
+        fetch("/api/public/organizations/" + encodeURIComponent(slug))
+          .then(function (res) {
+            return res.json().then(function (data) {
+              if (!res.ok) throw new Error(data.error || "Organization not found");
+              const name = data.organization && data.organization.name;
+              if (name) {
+                document.getElementById("orgName").textContent = name;
+                document.title = name + " \u2014 " + pageTitle;
+              } else {
+                document.title = pageTitle;
+              }
+            });
+          })
+          .catch(function (err) {
+            showError(err.message);
+          });
+
+        function showError(message) {
+          const el = document.getElementById("status");
+          el.textContent = message;
+          el.classList.remove("hidden");
+        }
+      })();
+    </script>
+  </body>
+</html>
