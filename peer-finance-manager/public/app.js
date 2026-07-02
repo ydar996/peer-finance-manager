@@ -448,7 +448,7 @@ async function loadPlatformOrganizations() {
   const statusEl = $("#platformOrgsStatus");
   const pricingEl = $("#platformPricingSummary");
   if (!body) return;
-  body.innerHTML = `<tr><td colspan="8">Loading…</td></tr>`;
+  body.innerHTML = `<tr><td colspan="9">Loading…</td></tr>`;
   if (statusEl) statusEl.textContent = "";
   try {
     const res = await fetch("/api/platform/organizations");
@@ -460,7 +460,7 @@ async function loadPlatformOrganizations() {
     }
     const orgs = data.organizations || [];
     if (!orgs.length) {
-      body.innerHTML = `<tr><td colspan="8" class="subtle">No cooperatives registered yet.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="9" class="subtle">No cooperatives registered yet.</td></tr>`;
       return;
     }
     body.innerHTML = orgs
@@ -475,7 +475,9 @@ async function loadPlatformOrganizations() {
         <td><span class="subscription-badge ${subscriptionStatusClass(status)}">${escapeHtml(subscriptionStatusLabel(status))}</span></td>
         <td>${escapeHtml(org.subscriptionPlan || "—")}</td>
         <td>${escapeHtml(formatSubscriptionDate(org.subscriptionCurrentPeriodEnd))}</td>
+        <td>${escapeHtml(formatSubscriptionDate(org.subscriptionGraceUntil))}</td>
         <td class="platform-org-actions">
+          <button type="button" class="btn btn-small" data-platform-action="extend-grace" data-slug="${escapeHtml(org.slug)}">+15 Days Grace</button>
           <button type="button" class="btn btn-small" data-platform-action="grant-legacy" data-slug="${escapeHtml(org.slug)}">Grant Legacy</button>
           <button type="button" class="btn btn-small" data-platform-action="cancel" data-slug="${escapeHtml(org.slug)}">Cancel</button>
         </td>
@@ -483,13 +485,36 @@ async function loadPlatformOrganizations() {
       })
       .join("");
   } catch (err) {
-    body.innerHTML = `<tr><td colspan="8" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="9" class="status err">${escapeHtml(err.message)}</td></tr>`;
     if (statusEl) setFormStatus(statusEl, err.message, false);
   }
 }
 
 async function platformOrgAction(action, slug) {
   const statusEl = $("#platformOrgsStatus");
+  if (action === "extend-grace") {
+    const daysStr = prompt(`Extend subscription grace for ${slug} by how many days?`, "15");
+    if (daysStr === null) return;
+    const days = Number(daysStr);
+    if (!Number.isFinite(days) || days < 1) {
+      if (statusEl) setFormStatus(statusEl, "Enter a positive number of days.", false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/platform/organizations/${encodeURIComponent(slug)}/extend-grace`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to extend grace");
+      if (statusEl) setFormStatus(statusEl, `Grace extended for ${slug}.`, true);
+      await loadPlatformOrganizations();
+    } catch (err) {
+      if (statusEl) setFormStatus(statusEl, err.message, false);
+    }
+    return;
+  }
   const notes =
     action === "cancel"
       ? prompt(`Cancel subscription for ${slug}? Optional note:`) ?? undefined
@@ -534,11 +559,22 @@ async function loadPlatformSubscriptionPanel() {
     const sub = data.subscription;
     const status = sub.subscriptionStatus || "pending";
     if (badge) {
-      badge.textContent = subscriptionStatusLabel(status);
-      badge.className = `badge ${subscriptionStatusClass(status)}`;
+      if (sub.inGracePeriod && !sub.active) {
+        badge.textContent = `Grace (${sub.graceDaysRemaining}d left)`;
+        badge.className = "badge subscription-info";
+      } else {
+        badge.textContent = subscriptionStatusLabel(status);
+        badge.className = `badge ${subscriptionStatusClass(status)}`;
+      }
     }
     if (summary) {
       updateSubscriptionPayButtons(sub.pricing);
+      let accessNote = "";
+      if (sub.inGracePeriod && !sub.active) {
+        accessNote = `<p class="subscription-grace-banner">Full access continues through <strong>${escapeHtml(formatSubscriptionDate(sub.subscriptionGraceUntil))}</strong> (${sub.graceDaysRemaining} day(s) remaining). You may pay now or before that date — restricted access begins after the grace period unless subscription is active.</p>`;
+      } else if (!sub.active) {
+        accessNote = `<p class="subscription-banner">An active subscription is required to record changes in Cooperative Books. Pay below or contact the platform administrator.</p>`;
+      }
       summary.innerHTML = `
         <p><strong>Status:</strong> ${escapeHtml(subscriptionStatusLabel(status))}</p>
         <p><strong>Plan:</strong> ${escapeHtml(sub.subscriptionPlan || "Not selected")}</p>
@@ -546,7 +582,7 @@ async function loadPlatformSubscriptionPanel() {
         <p><strong>Current period ends:</strong> ${escapeHtml(formatSubscriptionDate(sub.subscriptionCurrentPeriodEnd))}</p>
         <p><strong>Monthly:</strong> $${sub.pricing.monthlyPriceUsd.toFixed(2)} · <strong>Quarterly:</strong> $${sub.pricing.quarterlyPriceUsd.toFixed(2)} (${sub.pricing.quarterlyDiscountPercent}% off) · <strong>Annual:</strong> $${sub.pricing.annualPriceUsd.toFixed(2)} (${sub.pricing.annualDiscountPercent}% off)</p>
         ${sub.subscriptionNotes ? `<p class="subtle">${escapeHtml(sub.subscriptionNotes)}</p>` : ""}
-        ${!sub.active ? `<p class="subscription-banner">An active subscription is required to record changes in Cooperative Books. Pay below or contact the platform administrator.</p>` : ""}`;
+        ${accessNote}`;
     }
     if (portalBtn) {
       portalBtn.hidden = !sub.stripeConfigured || !sub.active || sub.paymentMethod !== "stripe";

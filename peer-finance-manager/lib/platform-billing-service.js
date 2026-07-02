@@ -28,6 +28,96 @@ function isStripeConfigured() {
   return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
 }
 
+const DEFAULT_GRACE_DAYS = Math.max(1, Number(process.env.PLATFORM_SUBSCRIPTION_GRACE_DAYS || 15));
+const DEFAULT_GRACE_SLUGS = String(process.env.PLATFORM_SUBSCRIPTION_GRACE_SLUGS || "assurance")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
+function parseGraceUntilMs(iso) {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+function isWithinSubscriptionGrace(org) {
+  if (!org?.subscriptionGraceUntil) return false;
+  const until = parseGraceUntilMs(org.subscriptionGraceUntil);
+  if (until === null) return false;
+  return until > Date.now();
+}
+
+function isSubscriptionAccessAllowed(org) {
+  if (!org) return true;
+  if (isSubscriptionActive(org.subscriptionStatus)) return true;
+  return isWithinSubscriptionGrace(org);
+}
+
+function graceUntilFromDays(days, fromDate = new Date()) {
+  const end = new Date(fromDate);
+  end.setUTCDate(end.getUTCDate() + Math.max(1, Number(days)));
+  return end.toISOString();
+}
+
+function subscriptionAccessDetails(org) {
+  const active = isSubscriptionActive(org?.subscriptionStatus);
+  const inGracePeriod = isWithinSubscriptionGrace(org);
+  const subscriptionGraceUntil = org?.subscriptionGraceUntil || null;
+  const graceMs = parseGraceUntilMs(subscriptionGraceUntil);
+  const graceDaysRemaining =
+    inGracePeriod && graceMs !== null
+      ? Math.max(0, Math.ceil((graceMs - Date.now()) / 86400000))
+      : 0;
+  return {
+    active,
+    inGracePeriod,
+    subscriptionGraceUntil,
+    accessAllowed: active || inGracePeriod,
+    enforcementPending: !active && inGracePeriod,
+    graceDaysRemaining,
+  };
+}
+
+function seedDefaultSubscriptionGrace() {
+  const { ASSURANCE_SLUG, getOrganization } = require("./organization-service");
+  const slugs = DEFAULT_GRACE_SLUGS.length ? DEFAULT_GRACE_SLUGS : [ASSURANCE_SLUG];
+  for (const slug of slugs) {
+    const org = getOrganization(slug);
+    if (!org) continue;
+    if (isSubscriptionActive(org.subscriptionStatus)) continue;
+    if (org.subscriptionGraceUntil) continue;
+    const until = graceUntilFromDays(DEFAULT_GRACE_DAYS);
+    updateOrganizationBilling(slug, {
+      subscriptionGraceUntil: until,
+      subscriptionNotes: `Subscription grace period through ${until.slice(0, 10)} (full access; payment optional until then).`,
+    });
+  }
+}
+
+function extendSubscriptionGrace(orgSlug, { days, until, notes } = {}) {
+  const org = getOrganization(orgSlug);
+  if (!org) throw new Error("Organization not found");
+  let graceUntil;
+  if (until) {
+    const parsed = new Date(until);
+    if (Number.isNaN(parsed.getTime())) throw new Error("Invalid until date");
+    graceUntil = parsed.toISOString();
+  } else if (days != null && days !== "") {
+    const addDays = Math.max(1, Number(days));
+    const baseMs = parseGraceUntilMs(org.subscriptionGraceUntil);
+    const baseDate =
+      baseMs !== null && baseMs > Date.now() ? new Date(baseMs) : new Date();
+    graceUntil = graceUntilFromDays(addDays, baseDate);
+  } else {
+    throw new Error("Provide days or until (ISO date)");
+  }
+  return updateOrganizationBilling(orgSlug, {
+    subscriptionGraceUntil: graceUntil,
+    subscriptionNotes:
+      notes || `Grace extended: full access through ${graceUntil.slice(0, 10)}.`,
+  });
+}
+
 function appBaseUrl() {
   if (process.env.APP_BASE_URL) return process.env.APP_BASE_URL.replace(/\/$/, "");
   if (process.env.MEMBER_PORTAL_URL) {
@@ -91,7 +181,7 @@ function getTenantSubscription(orgSlug) {
     subscriptionCurrentPeriodEnd: org.subscriptionCurrentPeriodEnd,
     checkPaymentReference: org.checkPaymentReference,
     subscriptionNotes: org.subscriptionNotes,
-    active: isSubscriptionActive(org.subscriptionStatus),
+    ...subscriptionAccessDetails(org),
     pricing: pricingSummary(),
     stripeConfigured: isStripeConfigured(),
     checkPayableTo: process.env.PLATFORM_CHECK_PAYABLE_TO || "Peer Finance Manager",
@@ -324,4 +414,9 @@ module.exports = {
   grantLegacySubscription,
   handleStripeWebhook,
   isSubscriptionActive,
+  isSubscriptionAccessAllowed,
+  isWithinSubscriptionGrace,
+  subscriptionAccessDetails,
+  seedDefaultSubscriptionGrace,
+  extendSubscriptionGrace,
 };

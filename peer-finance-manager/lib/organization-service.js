@@ -34,6 +34,7 @@ function ensureBillingSchema(db) {
   add(`ADD COLUMN check_payment_reference TEXT`);
   add(`ADD COLUMN subscription_notes TEXT`);
   add(`ADD COLUMN subscription_updated_at TEXT`);
+  add(`ADD COLUMN subscription_grace_until TEXT`);
 }
 
 function getRegistryDb() {
@@ -95,6 +96,7 @@ function mapOrganizationRow(row) {
     checkPaymentReference: row.check_payment_reference || null,
     subscriptionNotes: row.subscription_notes || null,
     subscriptionUpdatedAt: row.subscription_updated_at || null,
+    subscriptionGraceUntil: row.subscription_grace_until || null,
   };
 }
 
@@ -105,7 +107,8 @@ function listOrganizations() {
       `SELECT slug, name, created_at,
               subscription_status, subscription_plan, payment_method, billing_email,
               stripe_customer_id, stripe_subscription_id, subscription_current_period_end,
-              check_payment_reference, subscription_notes, subscription_updated_at
+              check_payment_reference, subscription_notes, subscription_updated_at,
+              subscription_grace_until
        FROM organizations ORDER BY name`
     )
     .all()
@@ -121,7 +124,8 @@ function getOrganization(slug) {
       `SELECT slug, name, created_at,
               subscription_status, subscription_plan, payment_method, billing_email,
               stripe_customer_id, stripe_subscription_id, subscription_current_period_end,
-              check_payment_reference, subscription_notes, subscription_updated_at
+              check_payment_reference, subscription_notes, subscription_updated_at,
+              subscription_grace_until
        FROM organizations WHERE slug = ?`
     )
     .get(normalized);
@@ -161,6 +165,7 @@ function updateOrganizationBilling(slug, fields) {
     subscriptionCurrentPeriodEnd: "subscription_current_period_end",
     checkPaymentReference: "check_payment_reference",
     subscriptionNotes: "subscription_notes",
+    subscriptionGraceUntil: "subscription_grace_until",
   };
 
   const sets = [];

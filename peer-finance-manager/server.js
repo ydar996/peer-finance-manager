@@ -1088,6 +1088,12 @@ if (require.main === module) {
     migrateLegacyOrgBillingDefaults();
     ensureCooperativeData();
     try {
+      const { seedDefaultSubscriptionGrace } = require("./lib/platform-billing-service");
+      seedDefaultSubscriptionGrace();
+    } catch (err) {
+      console.error("Subscription grace seed failed:", err.message);
+    }
+    try {
       const result = ensurePlatformAdminUser();
       console.log(`Platform admin ready (${result.email}, ${result.created ? "created" : "updated"})`);
     } catch (err) {
@@ -1102,6 +1108,12 @@ if (require.main === module) {
     killPort(port);
     migrateLegacyDatabaseIfNeeded();
     migrateLegacyOrgBillingDefaults();
+    try {
+      const { seedDefaultSubscriptionGrace } = require("./lib/platform-billing-service");
+      seedDefaultSubscriptionGrace();
+    } catch (err) {
+      console.error("Subscription grace seed failed:", err.message);
+    }
     try {
       ensurePlatformAdminUser();
     } catch (err) {

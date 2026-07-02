@@ -975,3 +975,11 @@ tr.loan-row:hover { background: #f8fafc; }
   border-radius: 8px;
   margin-top: 10px;
 }
+.subscription-grace-banner {
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  color: #1e3a8a;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+}

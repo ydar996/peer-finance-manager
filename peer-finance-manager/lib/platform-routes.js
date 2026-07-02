@@ -122,7 +122,22 @@ function registerPlatformRoutes(app) {
   );
 
   app.post(
-    "/api/platform/organizations/:slug/grant-legacy",
+    "/api/platform/organizations/:slug/extend-grace",
+    attachPlatformUser,
+    requirePlatformAuth,
+    (req, res) => {
+      try {
+        const { days, until, notes } = req.body || {};
+        const { extendSubscriptionGrace } = require("./platform-billing-service");
+        const org = extendSubscriptionGrace(req.params.slug, { days, until, notes });
+        res.json({ success: true, organization: org });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
     attachPlatformUser,
     requirePlatformAuth,
     (req, res) => {
@@ -239,11 +254,11 @@ function requireActiveSubscription(req, res, next) {
   if (billingPaths.some((p) => req.path.startsWith(p))) return next();
   try {
     const { getOrganization } = require("./organization-service");
-    const { isSubscriptionActive } = require("./platform-billing-service");
+    const { isSubscriptionAccessAllowed } = require("./platform-billing-service");
     const slug = req.user?.organizationSlug || req.organization?.slug;
     if (!slug) return next();
     const org = getOrganization(slug);
-    if (org && isSubscriptionActive(org.subscriptionStatus)) return next();
+    if (org && isSubscriptionAccessAllowed(org)) return next();
     if (req.user?.role !== "admin") {
       return res.status(402).json({
         error: "Cooperative subscription inactive. Contact your administrator.",
@@ -253,6 +268,7 @@ function requireActiveSubscription(req, res, next) {
     return res.status(402).json({
       error: "Active subscription required. Open Cooperative Books → Platform Subscription to pay.",
       subscriptionStatus: org?.subscriptionStatus || "pending",
+      subscriptionGraceUntil: org?.subscriptionGraceUntil || null,
     });
   } catch (_) {
     return next();
