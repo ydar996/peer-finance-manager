@@ -4,16 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Learn about our cooperative and review our bylaws." />
+    <meta name="theme-color" content="#0c4a6e" />
     <title>Cooperative</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/cooperative-public.css" />
   </head>
   <body class="cp-public">
+    <div class="cp-progress" id="scrollProgress" aria-hidden="true"></div>
+
     <header class="cp-topbar">
       <div class="cp-topbar-inner">
         <div class="cp-mark">
@@ -31,25 +34,46 @@
           </div>
         </div>
         <nav class="cp-segment" aria-label="Public cooperative pages">
-          <a id="navAbout" href="#">About Us</a>
-          <a id="navBylaws" href="#">Bylaws</a>
+          <a id="navAbout" href="#"><span>About Us</span></a>
+          <a id="navBylaws" href="#"><span>Bylaws</span></a>
         </nav>
       </div>
     </header>
 
     <main class="cp-main">
-      <section class="cp-hero">
-        <p class="cp-hero-eyebrow" id="heroEyebrow">Welcome</p>
-        <h1 id="pageTitle">About Us</h1>
-        <p class="cp-hero-lead" id="heroLead">Learn who we are and how membership works.</p>
+      <section class="cp-hero" id="hero">
+        <div class="cp-hero-bg" aria-hidden="true"></div>
+        <div class="cp-hero-inner">
+          <p class="cp-hero-eyebrow" id="heroEyebrow">Welcome</p>
+          <h1 id="pageTitle">About Us</h1>
+          <p class="cp-hero-lead" id="heroLead">Learn who we are and how membership works.</p>
+          <div class="cp-hero-meta" id="heroMeta">
+            <span class="cp-hero-chip" id="heroChip">Official cooperative information</span>
+          </div>
+        </div>
       </section>
 
       <div id="status" class="cp-alert hidden" role="alert"></div>
 
+      <button type="button" class="cp-toc-fab" id="tocFab" aria-expanded="false" aria-controls="tocPanel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <line x1="8" y1="6" x2="21" y2="6" />
+          <line x1="8" y1="12" x2="21" y2="12" />
+          <line x1="8" y1="18" x2="21" y2="18" />
+          <line x1="3" y1="6" x2="3.01" y2="6" />
+          <line x1="3" y1="12" x2="3.01" y2="12" />
+          <line x1="3" y1="18" x2="3.01" y2="18" />
+        </svg>
+        Sections
+      </button>
+
       <div class="cp-layout">
-        <aside class="cp-toc-panel" aria-label="On this page">
+        <aside class="cp-toc-panel" id="tocPanel" aria-label="On this page">
           <div class="cp-toc-card">
-            <p class="cp-toc-heading">On this page</p>
+            <div class="cp-toc-head">
+              <p class="cp-toc-heading">On this page</p>
+              <button type="button" class="cp-toc-close" id="tocClose" aria-label="Close section menu">×</button>
+            </div>
             <nav id="tocNav" class="cp-toc"></nav>
           </div>
         </aside>
@@ -66,8 +90,16 @@
     </main>
 
     <footer class="cp-footer">
-      <p id="footerNote">Official cooperative information for prospective and current members.</p>
+      <div class="cp-footer-inner">
+        <p id="footerNote">Official cooperative information for prospective and current members.</p>
+      </div>
     </footer>
+
+    <button type="button" class="cp-back-top hidden" id="backTop" aria-label="Back to top">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <polyline points="18 15 12 9 6 15" />
+      </svg>
+    </button>
 
     <script>
       (function () {
@@ -75,14 +107,18 @@
           about: {
             title: "About Us",
             eyebrow: "Who we are",
-            lead: "Our mission, membership guidelines, goals, and leadership — drawn from our official cooperative overview.",
+            lead: "Our mission, membership guidelines, goals, and leadership — shared openly for anyone considering joining.",
+            chip: "Membership · Goals · Leadership",
             apiPath: "about",
+            pageClass: "cp-page-about",
           },
           bylaws: {
             title: "Bylaws",
             eyebrow: "Governance",
-            lead: "The rules and structure that guide how our cooperative operates — extracted from our official bylaws document.",
+            lead: "The rules and structure that guide how our cooperative operates, organized for easy reading.",
+            chip: "Articles · Membership · Governance",
             apiPath: "bylaws",
+            pageClass: "cp-page-bylaws",
           },
         };
 
@@ -98,9 +134,11 @@
         const aboutHref = "/c/" + encodeURIComponent(slug) + "/about";
         const bylawsHref = "/c/" + encodeURIComponent(slug) + "/bylaws";
 
+        document.body.classList.add(copy.pageClass);
         document.getElementById("pageTitle").textContent = copy.title;
         document.getElementById("heroEyebrow").textContent = copy.eyebrow;
         document.getElementById("heroLead").textContent = copy.lead;
+        document.getElementById("heroChip").textContent = copy.chip;
 
         const navAbout = document.getElementById("navAbout");
         const navBylaws = document.getElementById("navBylaws");
@@ -109,6 +147,28 @@
         navAbout.classList.toggle("active", page === "about");
         navBylaws.classList.toggle("active", page === "bylaws");
         (page === "about" ? navAbout : navBylaws).setAttribute("aria-current", "page");
+
+        const tocFab = document.getElementById("tocFab");
+        const tocPanel = document.getElementById("tocPanel");
+        const tocClose = document.getElementById("tocClose");
+        const backTop = document.getElementById("backTop");
+        const scrollProgress = document.getElementById("scrollProgress");
+
+        tocFab.addEventListener("click", function () {
+          const open = tocPanel.classList.toggle("is-open");
+          tocFab.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+        tocClose.addEventListener("click", function () {
+          tocPanel.classList.remove("is-open");
+          tocFab.setAttribute("aria-expanded", "false");
+        });
+
+        backTop.addEventListener("click", function () {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
 
         fetch("/api/public/organizations/" + encodeURIComponent(slug))
           .then(function (res) {
@@ -143,7 +203,33 @@
         function renderContent(html) {
           const area = document.getElementById("contentArea");
           area.innerHTML = html;
+          enhanceContent(area);
           buildToc(area);
+          observeSections(area);
+        }
+
+        function enhanceContent(area) {
+          area.querySelectorAll(".cp-official-card").forEach(function (card) {
+            const nameEl = card.querySelector(".cp-official-name");
+            if (!nameEl || card.querySelector(".cp-official-avatar")) return;
+            const initials = nameEl.textContent
+              .split(/\s+/)
+              .slice(0, 2)
+              .map(function (w) {
+                return w[0] || "";
+              })
+              .join("")
+              .toUpperCase();
+            const avatar = document.createElement("div");
+            avatar.className = "cp-official-avatar";
+            avatar.textContent = initials;
+            card.insertBefore(avatar, nameEl);
+          });
+
+          area.querySelectorAll(".cp-section").forEach(function (section, index) {
+            section.style.setProperty("--cp-section-index", String(index + 1));
+            section.classList.add("cp-section-reveal");
+          });
         }
 
         function buildToc(area) {
@@ -154,28 +240,65 @@
             toc.innerHTML = '<p class="cp-toc-empty">Sections will appear here.</p>';
             return;
           }
-          sections.forEach(function (section) {
+          sections.forEach(function (section, index) {
             const titleEl = section.querySelector(".cp-section-title");
             const label = titleEl ? titleEl.textContent.trim() : section.id;
             const link = document.createElement("a");
             link.href = "#" + section.id;
-            link.textContent = label.replace(/^Article \d+/, function (m) {
-              return m;
-            });
+            link.dataset.target = section.id;
+            link.innerHTML =
+              '<span class="cp-toc-num">' +
+              String(index + 1).padStart(2, "0") +
+              '</span><span class="cp-toc-label">' +
+              label +
+              "</span>";
             link.addEventListener("click", function (e) {
               e.preventDefault();
               section.scrollIntoView({ behavior: "smooth", block: "start" });
               history.replaceState(null, "", "#" + section.id);
+              tocPanel.classList.remove("is-open");
+              tocFab.setAttribute("aria-expanded", "false");
             });
             toc.appendChild(link);
           });
 
           if (window.location.hash) {
             const target = area.querySelector(window.location.hash);
-            if (target) setTimeout(function () {
-              target.scrollIntoView({ behavior: "smooth", block: "start" });
-            }, 120);
+            if (target) {
+              setTimeout(function () {
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 120);
+            }
           }
+        }
+
+        function observeSections(area) {
+          const links = Array.from(document.querySelectorAll("#tocNav a[data-target]"));
+          if (!links.length || !("IntersectionObserver" in window)) return;
+
+          const observer = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                links.forEach(function (link) {
+                  link.classList.toggle("is-active", link.dataset.target === entry.target.id);
+                });
+              });
+            },
+            { rootMargin: "-20% 0px -65% 0px", threshold: 0 }
+          );
+
+          area.querySelectorAll(".cp-section[id]").forEach(function (section) {
+            observer.observe(section);
+          });
+        }
+
+        function onScroll() {
+          const scrollTop = window.scrollY || document.documentElement.scrollTop;
+          const height = document.documentElement.scrollHeight - window.innerHeight;
+          const pct = height > 0 ? Math.min(100, (scrollTop / height) * 100) : 0;
+          scrollProgress.style.width = pct + "%";
+          backTop.classList.toggle("hidden", scrollTop < 480);
         }
 
         function showError(message) {
