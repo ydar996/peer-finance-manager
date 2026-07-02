@@ -15,6 +15,9 @@ const redirects = [
   "/staff  /index.html  200",
   "/admin  /index.html  200",
   "/register  /index.html  200",
+  "/platform  /index.html  200",
+  "/c/*/about  /index.html  200",
+  "/c/*/bylaws  /index.html  200",
   "/  /member  302",
 ]
   .filter(Boolean)
