@@ -232,23 +232,21 @@
     <div id="publicShell" class="public-shell hidden">
       <header class="public-header">
         <div>
-          <p class="brand org-brand">Peer Finance Manager</p>
           <h1 id="publicPageTitle">Cooperative</h1>
           <p class="subtle" id="publicOrgName"></p>
         </div>
-        <div class="public-header-actions">
+        <nav class="public-header-actions" aria-label="Public cooperative pages">
           <a href="#" id="publicNavAbout" class="btn">About Us</a>
           <a href="#" id="publicNavBylaws" class="btn">Bylaws</a>
-          <a href="/member" id="publicMemberLogin" class="btn primary">Member Sign In</a>
-        </div>
+        </nav>
       </header>
       <main class="public-main">
         <div id="publicPageStatus" class="status hidden"></div>
         <article id="publicAboutArticle" class="public-article hidden"></article>
         <section id="publicBylawsSection" class="public-bylaws hidden">
-          <p class="hint">Review the cooperative bylaws below or download the PDF.</p>
+          <p class="public-bylaws-intro">Official cooperative bylaws document. <a href="#" id="publicBylawsAboutLink">About Us</a></p>
           <div class="panel-head-actions public-bylaws-actions">
-            <a href="#" id="publicBylawsDownload" class="btn primary" target="_blank" rel="noopener">Open PDF</a>
+            <a href="#" id="publicBylawsDownload" class="btn" target="_blank" rel="noopener">Open PDF in new tab</a>
           </div>
           <iframe id="publicBylawsFrame" class="public-bylaws-frame" title="Cooperative bylaws"></iframe>
         </section>

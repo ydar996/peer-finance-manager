@@ -18,7 +18,27 @@ const SETTINGS = {
 };
 
 const DEFAULT_BYLAWS_FILENAME = "bylaws.pdf";
+const ABOUT_SEED_VERSION = "2";
 const IMAGE_EXT = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"]);
+
+const RESTRICTED_PATH_PREFIXES = ["/member", "/admin", "/staff", "/register", "/platform"];
+
+function stripRestrictedLinks(html) {
+  if (!html) return "";
+  let result = String(html);
+  for (const prefix of RESTRICTED_PATH_PREFIXES) {
+    const re = new RegExp(
+      `<a\\s+[^>]*href=(["'])${prefix.replace("/", "\\/")}[^"']*\\1[^>]*>([\\s\\S]*?)<\\/a>`,
+      "gi"
+    );
+    result = result.replace(re, "$2");
+  }
+  return result;
+}
+
+function sanitizePublicAboutHtml(html, slug) {
+  return stripRestrictedLinks(rewriteAboutLinks(rewriteAboutImageUrls(html, slug), slug));
+}
 
 function getOrgPublicDir(slug) {
   return path.join(getOrgDataDir(slug), "public");
@@ -132,7 +152,7 @@ function getPublicAbout(slug) {
   const org = getOrganization(slug);
   if (!org || !isAboutPublished(slug)) return null;
   const rawHtml = runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_HTML)) || "";
-  const html = rewriteAboutLinks(rewriteAboutImageUrls(rawHtml, slug), slug);
+  const html = sanitizePublicAboutHtml(rawHtml, slug);
   const images = listAboutImageFiles(slug).map((filename) => ({
     filename,
     url: `/api/public/organizations/${encodeURIComponent(slug)}/about/images/${encodeURIComponent(filename)}`,
@@ -262,10 +282,18 @@ function seedOrgPublicPages(orgSlug) {
     ensureSettingsTable(db);
     let changed = false;
 
-    if (!getCooperativeSetting(SETTINGS.ABOUT_HTML)) {
-      const aboutSeed = path.join(seedRoot, "about.html");
-      if (fs.existsSync(aboutSeed)) {
-        setCooperativeSetting(db, SETTINGS.ABOUT_HTML, fs.readFileSync(aboutSeed, "utf8"));
+    const aboutSeed = path.join(seedRoot, "about.html");
+    const seedVersionKey = "public_about_seed_version";
+    if (fs.existsSync(aboutSeed)) {
+      const seedHtml = fs.readFileSync(aboutSeed, "utf8");
+      const currentVersion = getCooperativeSetting(seedVersionKey);
+      if (!getCooperativeSetting(SETTINGS.ABOUT_HTML) || currentVersion !== ABOUT_SEED_VERSION) {
+        setCooperativeSetting(db, SETTINGS.ABOUT_HTML, seedHtml);
+        setCooperativeSetting(db, seedVersionKey, ABOUT_SEED_VERSION);
+        const bylawsSeed = path.join(seedRoot, DEFAULT_BYLAWS_FILENAME);
+        if (fs.existsSync(bylawsSeed)) {
+          fs.copyFileSync(bylawsSeed, path.join(destRoot, DEFAULT_BYLAWS_FILENAME));
+        }
         changed = true;
       }
     }

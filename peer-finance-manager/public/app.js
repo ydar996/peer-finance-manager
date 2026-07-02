@@ -5049,23 +5049,26 @@ function setPublicPageStatus(message, ok = false) {
   setFormStatus(statusEl, message, ok);
 }
 
+function setPublicPageBranding(organizationName, pageLabel) {
+  const orgName = String(organizationName || "").trim();
+  const orgEl = $("#publicOrgName");
+  if (orgEl) orgName ? (orgEl.textContent = orgName) : (orgEl.textContent = "");
+  const pageTitle = $("#publicPageTitle");
+  if (pageTitle && pageLabel) pageTitle.textContent = pageLabel;
+  document.title = orgName ? `${orgName} — ${pageLabel}` : pageLabel;
+}
+
 async function loadPublicAboutPage(slug) {
   const article = $("#publicAboutArticle");
   const bylawsSection = $("#publicBylawsSection");
-  const title = $("#publicPageTitle");
-  const orgName = $("#publicOrgName");
   article?.classList.remove("hidden");
   bylawsSection?.classList.add("hidden");
-  if (title) title.textContent = "About Us";
   try {
     const res = await nativeFetch(`/api/public/organizations/${encodeURIComponent(slug)}/about`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "About page not available");
-    if (orgName) orgName.textContent = data.organization?.name || slug;
-    applyOrganizationBranding(data.organization?.name || slug);
+    setPublicPageBranding(data.organization?.name || slug, "About Us");
     if (article) article.innerHTML = data.html || "";
-    document.title = `${data.organization?.name || slug} — About Us`;
-    setPublicPageStatus("", true);
     $("#publicPageStatus")?.classList.add("hidden");
   } catch (err) {
     if (article) article.innerHTML = "";
@@ -5078,20 +5081,17 @@ async function loadPublicBylawsPage(slug) {
   const bylawsSection = $("#publicBylawsSection");
   const frame = $("#publicBylawsFrame");
   const download = $("#publicBylawsDownload");
-  const title = $("#publicPageTitle");
-  const orgName = $("#publicOrgName");
+  const aboutLink = $("#publicBylawsAboutLink");
   article?.classList.add("hidden");
   bylawsSection?.classList.remove("hidden");
-  if (title) title.textContent = "Bylaws";
   try {
     const res = await nativeFetch(`/api/public/organizations/${encodeURIComponent(slug)}/bylaws`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Bylaws not available");
-    if (orgName) orgName.textContent = data.organization?.name || slug;
-    applyOrganizationBranding(data.organization?.name || slug);
+    setPublicPageBranding(data.organization?.name || slug, "Bylaws");
     if (frame) frame.src = data.downloadUrl;
     if (download) download.href = data.downloadUrl;
-    document.title = `${data.organization?.name || slug} — Bylaws`;
+    if (aboutLink) aboutLink.href = `/c/${encodeURIComponent(slug)}/about`;
     $("#publicPageStatus")?.classList.add("hidden");
   } catch (err) {
     if (frame) frame.removeAttribute("src");
@@ -5099,20 +5099,26 @@ async function loadPublicBylawsPage(slug) {
   }
 }
 
-function wirePublicHeaderNav(slug) {
+function wirePublicHeaderNav(slug, activePage) {
   const aboutHref = `/c/${encodeURIComponent(slug)}/about`;
   const bylawsHref = `/c/${encodeURIComponent(slug)}/bylaws`;
   const aboutNav = $("#publicNavAbout");
   const bylawsNav = $("#publicNavBylaws");
-  if (aboutNav) aboutNav.href = aboutHref;
-  if (bylawsNav) bylawsNav.href = bylawsHref;
+  if (aboutNav) {
+    aboutNav.href = aboutHref;
+    aboutNav.classList.toggle("active", activePage === "about");
+  }
+  if (bylawsNav) {
+    bylawsNav.href = bylawsHref;
+    bylawsNav.classList.toggle("active", activePage === "bylaws");
+  }
 }
 
 async function bootstrapPublicApp() {
   const info = getPublicPageInfo();
   if (!info) return;
   showPublicShell();
-  wirePublicHeaderNav(info.slug);
+  wirePublicHeaderNav(info.slug, info.page);
   if (info.page === "bylaws") await loadPublicBylawsPage(info.slug);
   else await loadPublicAboutPage(info.slug);
 }

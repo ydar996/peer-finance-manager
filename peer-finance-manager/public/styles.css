@@ -1016,9 +1016,24 @@ tr.loan-row:hover { background: #f8fafc; }
   padding: 28px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
-.public-about-content h3 {
-  margin-top: 1.5rem;
+.public-about-content h1 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+.public-about-content h2 {
+  margin-top: 1.75rem;
   margin-bottom: 0.5rem;
+}
+.public-about-crosslink,
+.public-bylaws-intro {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+.public-header-actions .btn.active {
+  background: #0ea5e9;
+  color: #fff;
+  border-color: #0ea5e9;
 }
 .public-about-lead {
   font-size: 1.1rem;
