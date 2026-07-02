@@ -6,6 +6,7 @@ const { runWithOrg } = require("./org-context");
 const {
   getPublicSummary,
   getPublicAbout,
+  getPublicBylaws,
   getPublicBylawsMeta,
   getAdminPublicPages,
   saveAboutPage,
@@ -63,9 +64,9 @@ function registerCooperativePublicRoutes(app, deps = {}) {
 
   app.get("/api/public/organizations/:slug/bylaws", (req, res) => {
     try {
-      const meta = getPublicBylawsMeta(req.params.slug);
-      if (!meta) return res.status(404).json({ error: "Bylaws not available" });
-      res.json(meta);
+      const bylaws = getPublicBylaws(req.params.slug);
+      if (!bylaws) return res.status(404).json({ error: "Bylaws not available" });
+      res.json(bylaws);
     } catch (err) {
       res.status(400).json({ error: err.message });
     }

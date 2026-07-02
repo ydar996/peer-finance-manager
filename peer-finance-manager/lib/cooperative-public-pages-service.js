@@ -17,11 +17,11 @@ const SETTINGS = {
   BYLAWS_FILENAME: "public_bylaws_filename",
   ABOUT_FILENAME: "public_about_filename",
   ABOUT_MODE: "public_about_mode",
+  BYLAWS_HTML: "public_bylaws_html",
 };
 
 const DEFAULT_BYLAWS_FILENAME = "bylaws.pdf";
-const DEFAULT_ABOUT_FILENAME = "about.pdf";
-const ABOUT_SEED_VERSION = "3";
+const PUBLIC_CONTENT_SEED_VERSION = "4";
 const IMAGE_EXT = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"]);
 
 const RESTRICTED_PATH_PREFIXES = ["/member", "/admin", "/staff", "/register", "/platform"];
@@ -39,8 +39,12 @@ function stripRestrictedLinks(html) {
   return result;
 }
 
+function sanitizePublicHtml(html, slug) {
+  return stripRestrictedLinks(rewriteAboutLinks(String(html || ""), slug));
+}
+
 function sanitizePublicAboutHtml(html, slug) {
-  return stripRestrictedLinks(rewriteAboutLinks(rewriteAboutImageUrls(html, slug), slug));
+  return sanitizePublicHtml(rewriteAboutImageUrls(html, slug), slug);
 }
 
 function getOrgPublicDir(slug) {
@@ -145,12 +149,15 @@ function isAboutPublished(slug) {
   if (runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_PUBLISHED)) !== "1") {
     return false;
   }
-  return !!(resolveAboutDocumentPath(slug) || runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_HTML)));
+  return !!runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_HTML));
 }
 
 function isBylawsPublished(slug) {
-  return (
-    runWithOrg(slug, () => getCooperativeSetting(SETTINGS.BYLAWS_PUBLISHED)) === "1"
+  if (runWithOrg(slug, () => getCooperativeSetting(SETTINGS.BYLAWS_PUBLISHED)) !== "1") {
+    return false;
+  }
+  return !!(
+    runWithOrg(slug, () => getCooperativeSetting(SETTINGS.BYLAWS_HTML)) || resolveBylawsPath(slug)
   );
 }
 
@@ -158,7 +165,7 @@ function getPublicSummary(slug) {
   const org = getOrganization(slug);
   if (!org) return null;
   const aboutPublished = isAboutPublished(slug);
-  const bylawsPublished = isBylawsPublished(slug) && !!resolveBylawsPath(slug);
+  const bylawsPublished = isBylawsPublished(slug);
   return {
     organization: { slug: org.slug, name: org.name },
     aboutAvailable: aboutPublished,
@@ -170,40 +177,31 @@ function getPublicAbout(slug) {
   const org = getOrganization(slug);
   if (!org || !isAboutPublished(slug)) return null;
 
-  const pdfDoc = resolveAboutDocumentPath(slug);
-  if (pdfDoc) {
-    return {
-      organization: { slug: org.slug, name: org.name },
-      mode: "pdf",
-      filename: pdfDoc.filename,
-      documentUrl: `/api/public/organizations/${encodeURIComponent(slug)}/about/document`,
-    };
-  }
-
   const rawHtml = runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_HTML)) || "";
+  if (!rawHtml) return null;
   const html = sanitizePublicAboutHtml(rawHtml, slug);
-  const images = listAboutImageFiles(slug).map((filename) => ({
-    filename,
-    url: `/api/public/organizations/${encodeURIComponent(slug)}/about/images/${encodeURIComponent(filename)}`,
-  }));
   return {
     organization: { slug: org.slug, name: org.name },
     mode: "html",
     html,
-    images,
+  };
+}
+
+function getPublicBylaws(slug) {
+  const org = getOrganization(slug);
+  if (!org || !isBylawsPublished(slug)) return null;
+  const rawHtml = runWithOrg(slug, () => getCooperativeSetting(SETTINGS.BYLAWS_HTML)) || "";
+  if (!rawHtml) return null;
+  const html = sanitizePublicHtml(rawHtml, slug);
+  return {
+    organization: { slug: org.slug, name: org.name },
+    mode: "html",
+    html,
   };
 }
 
 function getPublicBylawsMeta(slug) {
-  const org = getOrganization(slug);
-  if (!org || !isBylawsPublished(slug)) return null;
-  const doc = resolveBylawsPath(slug);
-  if (!doc) return null;
-  return {
-    organization: { slug: org.slug, name: org.name },
-    filename: doc.filename,
-    downloadUrl: `/api/public/organizations/${encodeURIComponent(slug)}/bylaws/document`,
-  };
+  return getPublicBylaws(slug);
 }
 
 function getAdminPublicPages(slug) {
@@ -313,25 +311,26 @@ function seedOrgPublicPages(orgSlug) {
     let changed = false;
 
     const aboutSeed = path.join(seedRoot, "about.html");
-    const seedVersionKey = "public_about_seed_version";
-    if (fs.existsSync(aboutSeed)) {
-      const seedHtml = fs.readFileSync(aboutSeed, "utf8");
-      const currentVersion = getCooperativeSetting(seedVersionKey);
-      if (!getCooperativeSetting(SETTINGS.ABOUT_HTML) || currentVersion !== ABOUT_SEED_VERSION) {
-        setCooperativeSetting(db, SETTINGS.ABOUT_HTML, seedHtml);
-        setCooperativeSetting(db, seedVersionKey, ABOUT_SEED_VERSION);
-        const bylawsSeed = path.join(seedRoot, DEFAULT_BYLAWS_FILENAME);
-        if (fs.existsSync(bylawsSeed)) {
-          fs.copyFileSync(bylawsSeed, path.join(destRoot, DEFAULT_BYLAWS_FILENAME));
-        }
-        const aboutPdfSeed = path.join(seedRoot, DEFAULT_ABOUT_FILENAME);
-        if (fs.existsSync(aboutPdfSeed)) {
-          fs.copyFileSync(aboutPdfSeed, path.join(destRoot, DEFAULT_ABOUT_FILENAME));
-          setCooperativeSetting(db, SETTINGS.ABOUT_FILENAME, DEFAULT_ABOUT_FILENAME);
-          setCooperativeSetting(db, SETTINGS.ABOUT_MODE, "pdf");
-        }
+    const bylawsSeed = path.join(seedRoot, "bylaws.html");
+    const seedVersionKey = "public_content_seed_version";
+    const currentVersion = getCooperativeSetting(seedVersionKey);
+    if (currentVersion !== PUBLIC_CONTENT_SEED_VERSION) {
+      if (fs.existsSync(aboutSeed)) {
+        setCooperativeSetting(db, SETTINGS.ABOUT_HTML, fs.readFileSync(aboutSeed, "utf8"));
+        setCooperativeSetting(db, SETTINGS.ABOUT_MODE, "html");
         changed = true;
       }
+      if (fs.existsSync(bylawsSeed)) {
+        setCooperativeSetting(db, SETTINGS.BYLAWS_HTML, fs.readFileSync(bylawsSeed, "utf8"));
+        changed = true;
+      }
+      const bylawsPdfSeed = path.join(seedRoot, DEFAULT_BYLAWS_FILENAME);
+      if (fs.existsSync(bylawsPdfSeed)) {
+        fs.copyFileSync(bylawsPdfSeed, path.join(destRoot, DEFAULT_BYLAWS_FILENAME));
+        setCooperativeSetting(db, SETTINGS.BYLAWS_FILENAME, DEFAULT_BYLAWS_FILENAME);
+      }
+      setCooperativeSetting(db, seedVersionKey, PUBLIC_CONTENT_SEED_VERSION);
+      changed = true;
     }
     if (getCooperativeSetting(SETTINGS.ABOUT_PUBLISHED) !== "1") {
       if (getCooperativeSetting(SETTINGS.ABOUT_HTML)) {
@@ -346,7 +345,7 @@ function seedOrgPublicPages(orgSlug) {
       }
     }
     if (getCooperativeSetting(SETTINGS.BYLAWS_PUBLISHED) !== "1") {
-      if (resolveBylawsPath(orgSlug)) {
+      if (getCooperativeSetting(SETTINGS.BYLAWS_HTML) || resolveBylawsPath(orgSlug)) {
         setCooperativeSetting(db, SETTINGS.BYLAWS_PUBLISHED, "1");
         changed = true;
       }
@@ -364,10 +363,11 @@ function seedAssurancePublicPages() {
 module.exports = {
   SETTINGS,
   DEFAULT_BYLAWS_FILENAME,
-  DEFAULT_ABOUT_FILENAME,
+  PUBLIC_CONTENT_SEED_VERSION,
   getOrgPublicDir,
   getPublicSummary,
   getPublicAbout,
+  getPublicBylaws,
   getPublicBylawsMeta,
   getAdminPublicPages,
   saveAboutPage,

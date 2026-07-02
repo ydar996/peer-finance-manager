@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/cooperative-public.css" />
@@ -41,48 +41,28 @@
       <section class="cp-hero">
         <p class="cp-hero-eyebrow" id="heroEyebrow">Welcome</p>
         <h1 id="pageTitle">About Us</h1>
-        <p class="cp-hero-lead" id="heroLead">
-          Learn who we are, what we stand for, and how membership works.
-        </p>
+        <p class="cp-hero-lead" id="heroLead">Learn who we are and how membership works.</p>
       </section>
 
       <div id="status" class="cp-alert hidden" role="alert"></div>
 
-      <section class="cp-doc-card" aria-label="Document viewer">
-        <div class="cp-doc-toolbar">
-          <div class="cp-doc-label">
-            <div class="cp-doc-label-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-              </svg>
+      <div class="cp-layout">
+        <aside class="cp-toc-panel" aria-label="On this page">
+          <div class="cp-toc-card">
+            <p class="cp-toc-heading">On this page</p>
+            <nav id="tocNav" class="cp-toc"></nav>
+          </div>
+        </aside>
+
+        <article class="cp-content-card" id="contentCard">
+          <div id="contentArea" class="cp-content-area" aria-live="polite">
+            <div class="cp-content-loading">
+              <div class="cp-spinner" aria-hidden="true"></div>
+              <p>Loading content…</p>
             </div>
-            <div>
-              <p class="cp-doc-title" id="docTitle">Official document</p>
-              <p class="cp-doc-meta" id="docMeta">PDF · Scroll to read</p>
-            </div>
           </div>
-          <div class="cp-doc-actions">
-            <a id="openPdf" class="cp-btn cp-btn-primary" href="#" target="_blank" rel="noopener">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-              Open full PDF
-            </a>
-          </div>
-        </div>
-        <div class="cp-viewer">
-          <div id="loader" class="cp-loader" aria-live="polite">
-            <div class="cp-spinner" aria-hidden="true"></div>
-            <p>Loading document…</p>
-          </div>
-          <iframe id="docFrame" title="Cooperative document"></iframe>
-        </div>
-      </section>
+        </article>
+      </div>
     </main>
 
     <footer class="cp-footer">
@@ -95,16 +75,14 @@
           about: {
             title: "About Us",
             eyebrow: "Who we are",
-            lead: "Our mission, membership guidelines, goals, and leadership — shared openly for anyone considering joining.",
-            docTitle: "About Us document",
-            docMeta: "Official cooperative overview · PDF",
+            lead: "Our mission, membership guidelines, goals, and leadership — drawn from our official cooperative overview.",
+            apiPath: "about",
           },
           bylaws: {
             title: "Bylaws",
             eyebrow: "Governance",
-            lead: "The rules and structure that guide how our cooperative operates. Please review before applying for membership.",
-            docTitle: "Cooperative bylaws",
-            docMeta: "Official bylaws · PDF",
+            lead: "The rules and structure that guide how our cooperative operates — extracted from our official bylaws document.",
+            apiPath: "bylaws",
           },
         };
 
@@ -119,16 +97,10 @@
         const copy = PAGE_COPY[page];
         const aboutHref = "/c/" + encodeURIComponent(slug) + "/about";
         const bylawsHref = "/c/" + encodeURIComponent(slug) + "/bylaws";
-        const docUrl =
-          page === "bylaws"
-            ? "/api/public/organizations/" + encodeURIComponent(slug) + "/bylaws/document"
-            : "/api/public/organizations/" + encodeURIComponent(slug) + "/about/document";
 
         document.getElementById("pageTitle").textContent = copy.title;
         document.getElementById("heroEyebrow").textContent = copy.eyebrow;
         document.getElementById("heroLead").textContent = copy.lead;
-        document.getElementById("docTitle").textContent = copy.docTitle;
-        document.getElementById("docMeta").textContent = copy.docMeta;
 
         const navAbout = document.getElementById("navAbout");
         const navBylaws = document.getElementById("navBylaws");
@@ -136,17 +108,7 @@
         navBylaws.href = bylawsHref;
         navAbout.classList.toggle("active", page === "about");
         navBylaws.classList.toggle("active", page === "bylaws");
-        if (page === "about") navAbout.setAttribute("aria-current", "page");
-        else navBylaws.setAttribute("aria-current", "page");
-
-        document.getElementById("openPdf").href = docUrl;
-
-        const frame = document.getElementById("docFrame");
-        const loader = document.getElementById("loader");
-        frame.addEventListener("load", function () {
-          loader.classList.add("hidden");
-        });
-        frame.src = docUrl;
+        (page === "about" ? navAbout : navBylaws).setAttribute("aria-current", "page");
 
         fetch("/api/public/organizations/" + encodeURIComponent(slug))
           .then(function (res) {
@@ -163,10 +125,58 @@
               }
             });
           })
+          .catch(function () {});
+
+        fetch("/api/public/organizations/" + encodeURIComponent(slug) + "/" + copy.apiPath)
+          .then(function (res) {
+            return res.json().then(function (data) {
+              if (!res.ok) throw new Error(data.error || "Content not available");
+              if (!data.html) throw new Error("This page has no published content yet.");
+              renderContent(data.html);
+            });
+          })
           .catch(function (err) {
             showError(err.message);
-            loader.classList.add("hidden");
+            document.getElementById("contentArea").innerHTML = "";
           });
+
+        function renderContent(html) {
+          const area = document.getElementById("contentArea");
+          area.innerHTML = html;
+          buildToc(area);
+        }
+
+        function buildToc(area) {
+          const toc = document.getElementById("tocNav");
+          toc.innerHTML = "";
+          const sections = area.querySelectorAll(".cp-section[id]");
+          if (!sections.length) {
+            toc.innerHTML = '<p class="cp-toc-empty">Sections will appear here.</p>';
+            return;
+          }
+          sections.forEach(function (section) {
+            const titleEl = section.querySelector(".cp-section-title");
+            const label = titleEl ? titleEl.textContent.trim() : section.id;
+            const link = document.createElement("a");
+            link.href = "#" + section.id;
+            link.textContent = label.replace(/^Article \d+/, function (m) {
+              return m;
+            });
+            link.addEventListener("click", function (e) {
+              e.preventDefault();
+              section.scrollIntoView({ behavior: "smooth", block: "start" });
+              history.replaceState(null, "", "#" + section.id);
+            });
+            toc.appendChild(link);
+          });
+
+          if (window.location.hash) {
+            const target = area.querySelector(window.location.hash);
+            if (target) setTimeout(function () {
+              target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 120);
+          }
+        }
 
         function showError(message) {
           const el = document.getElementById("status");
