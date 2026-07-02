@@ -5,10 +5,13 @@ const fmt = new Intl.NumberFormat("en-US", {
 
 const PLACEHOLDER_PHOTO = "/placeholder-avatar.svg";
 const SESSION_KEY = "pfm_session";
+const PLATFORM_SESSION_KEY = "pfm_platform_session";
 const ORG_SLUG_KEY = "pfm_org_slug";
 const DEFAULT_ORG_SLUG = "assurance";
 let sessionToken = localStorage.getItem(SESSION_KEY) || "";
+let platformToken = localStorage.getItem(PLATFORM_SESSION_KEY) || "";
 let currentUser = null;
+let platformUser = null;
 let cooperativeTimezone = "America/Los_Angeles";
 let timezoneOptionsLoaded = false;
 
@@ -126,12 +129,16 @@ const nativeFetch = window.fetch.bind(window);
 window.fetch = function patchedFetch(url, options = {}) {
   const path = typeof url === "string" ? url : url?.url || "";
   if (
-    sessionToken &&
     path.startsWith("/api/") &&
-    !path.startsWith("/api/auth/login")
+    !path.startsWith("/api/auth/login") &&
+    !path.startsWith("/api/platform/auth/login")
   ) {
     const headers = new Headers(options.headers || {});
-    headers.set("Authorization", `Bearer ${sessionToken}`);
+    if (path.startsWith("/api/platform/") && platformToken) {
+      headers.set("Authorization", `Bearer ${platformToken}`);
+    } else if (sessionToken && !path.startsWith("/api/platform/")) {
+      headers.set("Authorization", `Bearer ${sessionToken}`);
+    }
     return nativeFetch(url, { ...options, headers });
   }
   return nativeFetch(url, options);
@@ -140,6 +147,7 @@ window.fetch = function patchedFetch(url, options = {}) {
 function getPortalFromPath() {
   const path = window.location.pathname.replace(/\/$/, "") || "/";
   if (path === "/register") return "register";
+  if (path === "/platform") return "platform";
   if (path === "/admin") return "admin";
   if (path === "/staff") return "staff";
   return "member";
@@ -219,9 +227,11 @@ function hideAllScreens() {
   $("#loginScreenMember")?.classList.add("hidden");
   $("#loginScreenStaff")?.classList.add("hidden");
   $("#loginScreenAdmin")?.classList.add("hidden");
+  $("#loginScreenPlatform")?.classList.add("hidden");
   $("#registerScreen")?.classList.add("hidden");
   $("#changePasswordScreen")?.classList.add("hidden");
   $("#appShell")?.classList.add("hidden");
+  $("#platformShell")?.classList.add("hidden");
 }
 
 function showLoginForPortal(portal = getPortalFromPath(), message = "") {
@@ -232,11 +242,13 @@ function showLoginForPortal(portal = getPortalFromPath(), message = "") {
   }
   hideAllScreens();
   const screenId =
-    portal === "admin"
-      ? "loginScreenAdmin"
-      : portal === "staff"
-        ? "loginScreenStaff"
-        : "loginScreenMember";
+    portal === "platform"
+      ? "loginScreenPlatform"
+      : portal === "admin"
+        ? "loginScreenAdmin"
+        : portal === "staff"
+          ? "loginScreenStaff"
+          : "loginScreenMember";
   $(`#${screenId}`)?.classList.remove("hidden");
   const status = document.querySelector(`[data-login-status="${portal}"]`);
   if (status && message) setFormStatus(status, message, false);
@@ -338,6 +350,294 @@ async function restoreSession() {
   }
 }
 
+function formatSaasPricingLine(pricing, stripeConfigured) {
+  if (!pricing) return "";
+  const stripeNote = stripeConfigured
+    ? "Stripe: configured"
+    : "Stripe: not configured — see STRIPE-SETUP.md";
+  return `SaaS pricing: $${pricing.monthlyPriceUsd.toFixed(2)}/month, $${pricing.quarterlyPriceUsd.toFixed(2)}/quarter (${pricing.quarterlyDiscountPercent}% off 3 months), or $${pricing.annualPriceUsd.toFixed(2)}/year (${pricing.annualDiscountPercent}% off). ${stripeNote}.`;
+}
+
+function updateSubscriptionPayButtons(pricing) {
+  if (!pricing) return;
+  const monthlyBtn = $("#payMonthlyStripe");
+  const quarterlyBtn = $("#payQuarterlyStripe");
+  const annualBtn = $("#payAnnualStripe");
+  if (monthlyBtn) {
+    monthlyBtn.textContent = `Pay Monthly ($${pricing.monthlyPriceUsd.toFixed(2)})`;
+  }
+  if (quarterlyBtn) {
+    quarterlyBtn.textContent = `Pay Quarterly ($${pricing.quarterlyPriceUsd.toFixed(2)} — ${pricing.quarterlyDiscountPercent}% off)`;
+  }
+  if (annualBtn) {
+    annualBtn.textContent = `Pay Annual ($${pricing.annualPriceUsd.toFixed(2)} — ${pricing.annualDiscountPercent}% off)`;
+  }
+}
+
+function subscriptionStatusLabel(status) {
+  const labels = {
+    pending: "Pending",
+    active: "Active",
+    past_due: "Past Due",
+    canceled: "Canceled",
+    check_pending: "Check Pending",
+  };
+  return labels[status] || status || "Unknown";
+}
+
+function subscriptionStatusClass(status) {
+  if (status === "active") return "subscription-active";
+  if (status === "past_due" || status === "pending") return "subscription-warning";
+  if (status === "check_pending") return "subscription-info";
+  return "subscription-muted";
+}
+
+function formatSubscriptionDate(iso) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      timeZone: cooperativeTimezone,
+    });
+  } catch (_) {
+    return iso.slice(0, 10);
+  }
+}
+
+function showPlatformApp() {
+  hideAllScreens();
+  $("#platformShell")?.classList.remove("hidden");
+  const sessionUser = $("#platformSessionUser");
+  if (sessionUser && platformUser) {
+    sessionUser.textContent = `${platformUser.displayName || platformUser.email} · Platform Admin`;
+  }
+}
+
+async function restorePlatformSession() {
+  if (!platformToken) {
+    showLoginForPortal("platform");
+    return false;
+  }
+  try {
+    const res = await nativeFetch("/api/platform/auth/me", {
+      headers: { Authorization: `Bearer ${platformToken}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Session expired");
+    platformUser = data.user;
+    showPlatformApp();
+    return true;
+  } catch (err) {
+    platformToken = "";
+    localStorage.removeItem(PLATFORM_SESSION_KEY);
+    showLoginForPortal("platform", err.message);
+    return false;
+  }
+}
+
+async function bootstrapPlatformApp() {
+  const ok = await restorePlatformSession();
+  if (!ok) return;
+  await loadPlatformOrganizations();
+}
+
+async function loadPlatformOrganizations() {
+  const body = $("#platformOrgsBody");
+  const statusEl = $("#platformOrgsStatus");
+  const pricingEl = $("#platformPricingSummary");
+  if (!body) return;
+  body.innerHTML = `<tr><td colspan="8">Loading…</td></tr>`;
+  if (statusEl) statusEl.textContent = "";
+  try {
+    const res = await fetch("/api/platform/organizations");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load organizations");
+    const pricing = data.pricing;
+    if (pricingEl && pricing) {
+      pricingEl.textContent = formatSaasPricingLine(pricing, data.stripeConfigured);
+    }
+    const orgs = data.organizations || [];
+    if (!orgs.length) {
+      body.innerHTML = `<tr><td colspan="8" class="subtle">No cooperatives registered yet.</td></tr>`;
+      return;
+    }
+    body.innerHTML = orgs
+      .map((org) => {
+        const status = org.subscriptionStatus || "pending";
+        return `
+      <tr>
+        <td>${escapeHtml(org.name)}</td>
+        <td><code>${escapeHtml(org.slug)}</code></td>
+        <td>${org.memberCount ?? "—"}</td>
+        <td>${escapeHtml(org.adminEmail || "—")}</td>
+        <td><span class="subscription-badge ${subscriptionStatusClass(status)}">${escapeHtml(subscriptionStatusLabel(status))}</span></td>
+        <td>${escapeHtml(org.subscriptionPlan || "—")}</td>
+        <td>${escapeHtml(formatSubscriptionDate(org.subscriptionCurrentPeriodEnd))}</td>
+        <td class="platform-org-actions">
+          <button type="button" class="btn btn-small" data-platform-action="grant-legacy" data-slug="${escapeHtml(org.slug)}">Grant Legacy</button>
+          <button type="button" class="btn btn-small" data-platform-action="cancel" data-slug="${escapeHtml(org.slug)}">Cancel</button>
+        </td>
+      </tr>`;
+      })
+      .join("");
+  } catch (err) {
+    body.innerHTML = `<tr><td colspan="8" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+async function platformOrgAction(action, slug) {
+  const statusEl = $("#platformOrgsStatus");
+  const notes =
+    action === "cancel"
+      ? prompt(`Cancel subscription for ${slug}? Optional note:`) ?? undefined
+      : action === "grant-legacy"
+        ? prompt(`Grant legacy active subscription for ${slug}? Optional note:`) ?? undefined
+        : undefined;
+  if (action === "cancel" && notes === null) return;
+  if (action === "grant-legacy" && notes === null) return;
+  const path =
+    action === "grant-legacy"
+      ? `/api/platform/organizations/${encodeURIComponent(slug)}/grant-legacy`
+      : `/api/platform/organizations/${encodeURIComponent(slug)}/cancel-subscription`;
+  try {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: notes || undefined }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Action failed");
+    if (statusEl) setFormStatus(statusEl, `Updated ${slug}.`, true);
+    await loadPlatformOrganizations();
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+async function loadPlatformSubscriptionPanel() {
+  const panel = $("#platformSubscriptionPanel");
+  const badge = $("#platformSubscriptionBadge");
+  const summary = $("#platformSubscriptionSummary");
+  const statusEl = $("#platformSubscriptionStatus");
+  const checkBox = $("#platformCheckInstructions");
+  const portalBtn = $("#openStripePortal");
+  if (!panel) return;
+  panel.classList.remove("hidden");
+  if (badge) badge.textContent = "Loading…";
+  try {
+    const res = await fetch("/api/billing/subscription");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load subscription");
+    const sub = data.subscription;
+    const status = sub.subscriptionStatus || "pending";
+    if (badge) {
+      badge.textContent = subscriptionStatusLabel(status);
+      badge.className = `badge ${subscriptionStatusClass(status)}`;
+    }
+    if (summary) {
+      updateSubscriptionPayButtons(sub.pricing);
+      summary.innerHTML = `
+        <p><strong>Status:</strong> ${escapeHtml(subscriptionStatusLabel(status))}</p>
+        <p><strong>Plan:</strong> ${escapeHtml(sub.subscriptionPlan || "Not selected")}</p>
+        <p><strong>Payment method:</strong> ${escapeHtml(sub.paymentMethod || "—")}</p>
+        <p><strong>Current period ends:</strong> ${escapeHtml(formatSubscriptionDate(sub.subscriptionCurrentPeriodEnd))}</p>
+        <p><strong>Monthly:</strong> $${sub.pricing.monthlyPriceUsd.toFixed(2)} · <strong>Quarterly:</strong> $${sub.pricing.quarterlyPriceUsd.toFixed(2)} (${sub.pricing.quarterlyDiscountPercent}% off) · <strong>Annual:</strong> $${sub.pricing.annualPriceUsd.toFixed(2)} (${sub.pricing.annualDiscountPercent}% off)</p>
+        ${sub.subscriptionNotes ? `<p class="subtle">${escapeHtml(sub.subscriptionNotes)}</p>` : ""}
+        ${!sub.active ? `<p class="subscription-banner">An active subscription is required to record changes in Cooperative Books. Pay below or contact the platform administrator.</p>` : ""}`;
+    }
+    if (portalBtn) {
+      portalBtn.hidden = !sub.stripeConfigured || !sub.active || sub.paymentMethod !== "stripe";
+    }
+    if (checkBox) {
+      if (status === "check_pending") {
+        checkBox.classList.remove("hidden");
+        checkBox.innerHTML = `
+          <p><strong>Check payment requested.</strong> Mail your check payable to <strong>${escapeHtml(sub.checkPayableTo)}</strong>.</p>
+          <p>${escapeHtml(sub.checkMailingAddress)}</p>
+          <p class="subtle">Reference: ${escapeHtml(sub.checkPaymentReference || "—")}</p>`;
+      } else {
+        checkBox.classList.add("hidden");
+        checkBox.innerHTML = "";
+      }
+    }
+    if (statusEl) statusEl.textContent = "";
+  } catch (err) {
+    if (badge) badge.textContent = "Error";
+    if (summary) summary.textContent = err.message;
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+function handleBillingReturnParams() {
+  const params = new URLSearchParams(window.location.search);
+  const billing = params.get("billing");
+  if (!billing) return;
+  const statusEl = $("#platformSubscriptionStatus");
+  if (billing === "success") {
+    if (statusEl) setFormStatus(statusEl, "Payment received. Subscription will activate shortly.", true);
+    loadPlatformSubscriptionPanel();
+  } else if (billing === "canceled") {
+    if (statusEl) setFormStatus(statusEl, "Checkout canceled.", false);
+  }
+  params.delete("billing");
+  params.delete("session_id");
+  const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+  window.history.replaceState({}, "", next);
+}
+
+async function startStripeCheckout(plan) {
+  const statusEl = $("#platformSubscriptionStatus");
+  if (statusEl) {
+    statusEl.textContent = "Opening Stripe checkout…";
+    statusEl.className = "status";
+  }
+  try {
+    const res = await fetch("/api/billing/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan, billingEmail: currentUser?.email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Checkout failed");
+    window.location.href = data.url;
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+async function openStripeBillingPortal() {
+  const statusEl = $("#platformSubscriptionStatus");
+  try {
+    const res = await fetch("/api/billing/stripe/portal", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Portal unavailable");
+    window.location.href = data.url;
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+async function requestTenantCheckPayment() {
+  const statusEl = $("#platformSubscriptionStatus");
+  const notes = prompt("Optional note for the platform administrator (e.g. check mailed today):") || "";
+  try {
+    const res = await fetch("/api/billing/check-request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes, billingEmail: currentUser?.email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Request failed");
+    if (statusEl) setFormStatus(statusEl, "Check payment requested. See mailing instructions below.", true);
+    await loadPlatformSubscriptionPanel();
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
 async function bootstrapApp() {
   if (!currentUser) {
     const ok = await restoreSession();
@@ -355,6 +655,8 @@ async function bootstrapApp() {
   if (role === "admin") {
     loadRecordTabData();
     loadUsers();
+    loadPlatformSubscriptionPanel();
+    handleBillingReturnParams();
   }
 }
 
@@ -4200,6 +4502,27 @@ async function handleLoginSubmit(e) {
     status.textContent = "Signing in…";
     status.className = "status";
   }
+  if (portal === "platform") {
+    try {
+      const formData = Object.fromEntries(new FormData(e.target).entries());
+      const res = await nativeFetch("/api/platform/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.identifier, password: formData.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Login failed");
+      platformToken = data.token;
+      localStorage.setItem(PLATFORM_SESSION_KEY, platformToken);
+      platformUser = data.user;
+      showPlatformApp();
+      await loadPlatformOrganizations();
+      if (status) setFormStatus(status, "", true);
+    } catch (err) {
+      if (status) setFormStatus(status, err.message, false);
+    }
+    return;
+  }
   try {
     const formData = Object.fromEntries(new FormData(e.target).entries());
     rememberOrgSlug(formData.organizationSlug);
@@ -4442,4 +4765,60 @@ $("#downloadMyDepositStatement")?.addEventListener("click", async () => {
   }
 });
 
-bootstrapApp();
+$("#platformLogoutBtn")?.addEventListener("click", async () => {
+  try {
+    await fetch("/api/platform/auth/logout", { method: "POST" });
+  } catch (_) {}
+  platformToken = "";
+  platformUser = null;
+  localStorage.removeItem(PLATFORM_SESSION_KEY);
+  showLoginForPortal("platform");
+});
+
+$("#refreshPlatformOrgs")?.addEventListener("click", loadPlatformOrganizations);
+
+$("#platformOrgsBody")?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-platform-action]");
+  if (!btn) return;
+  platformOrgAction(btn.dataset.platformAction, btn.dataset.slug);
+});
+
+$("#platformCheckPaymentForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const statusEl = $("#platformCheckPaymentStatus");
+  if (statusEl) {
+    statusEl.textContent = "Recording check payment…";
+    statusEl.className = "status";
+  }
+  try {
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    const slug = payload.slug;
+    const res = await fetch(`/api/platform/organizations/${encodeURIComponent(slug)}/check-payment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to record payment");
+    if (statusEl) setFormStatus(statusEl, `Check recorded for ${slug}. Subscription is active.`, true);
+    e.target.reset();
+    await loadPlatformOrganizations();
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+});
+
+$("#payMonthlyStripe")?.addEventListener("click", () => startStripeCheckout("monthly"));
+$("#payQuarterlyStripe")?.addEventListener("click", () => startStripeCheckout("quarterly"));
+$("#payAnnualStripe")?.addEventListener("click", () => startStripeCheckout("annual"));
+$("#openStripePortal")?.addEventListener("click", openStripeBillingPortal);
+$("#requestCheckPayment")?.addEventListener("click", requestTenantCheckPayment);
+$("#refreshPlatformSubscription")?.addEventListener("click", loadPlatformSubscriptionPanel);
+
+applyAppBranding();
+fillOrgSlugInputs();
+if (getPortalFromPath() === "platform") {
+  bootstrapPlatformApp();
+} else {
+  bootstrapApp();
+}

@@ -12,6 +12,30 @@ function getRegistryPath() {
   return path.join(getDataDir(), "registry.db");
 }
 
+function ensureBillingSchema(db) {
+  const columns = db.prepare(`PRAGMA table_info(organizations)`).all();
+  const names = new Set(columns.map((c) => c.name));
+  const add = (sql) => {
+    if (!names.has(sql.match(/ADD COLUMN (\w+)/i)?.[1])) {
+      try {
+        db.exec(`ALTER TABLE organizations ${sql}`);
+      } catch (_) {
+        /* column may exist from parallel init */
+      }
+    }
+  };
+  add(`ADD COLUMN subscription_status TEXT NOT NULL DEFAULT 'pending'`);
+  add(`ADD COLUMN subscription_plan TEXT`);
+  add(`ADD COLUMN payment_method TEXT`);
+  add(`ADD COLUMN billing_email TEXT`);
+  add(`ADD COLUMN stripe_customer_id TEXT`);
+  add(`ADD COLUMN stripe_subscription_id TEXT`);
+  add(`ADD COLUMN subscription_current_period_end TEXT`);
+  add(`ADD COLUMN check_payment_reference TEXT`);
+  add(`ADD COLUMN subscription_notes TEXT`);
+  add(`ADD COLUMN subscription_updated_at TEXT`);
+}
+
 function getRegistryDb() {
   if (!registryDb) {
     const registryPath = getRegistryPath();
@@ -38,6 +62,7 @@ function getRegistryDb() {
 
       CREATE INDEX IF NOT EXISTS idx_sessions_org ON sessions(organization_slug);
     `);
+    ensureBillingSchema(registryDb);
   }
   return registryDb;
 }
@@ -54,20 +79,53 @@ function getOrgDataDir(slug) {
   return path.join(getDataDir(), "organizations", normalizeSlug(slug));
 }
 
+function mapOrganizationRow(row) {
+  if (!row) return null;
+  return {
+    slug: row.slug,
+    name: row.name,
+    createdAt: row.created_at,
+    subscriptionStatus: row.subscription_status || "pending",
+    subscriptionPlan: row.subscription_plan || null,
+    paymentMethod: row.payment_method || null,
+    billingEmail: row.billing_email || null,
+    stripeCustomerId: row.stripe_customer_id || null,
+    stripeSubscriptionId: row.stripe_subscription_id || null,
+    subscriptionCurrentPeriodEnd: row.subscription_current_period_end || null,
+    checkPaymentReference: row.check_payment_reference || null,
+    subscriptionNotes: row.subscription_notes || null,
+    subscriptionUpdatedAt: row.subscription_updated_at || null,
+  };
+}
+
 function listOrganizations() {
   const db = getRegistryDb();
   return db
-    .prepare(`SELECT slug, name, created_at AS createdAt FROM organizations ORDER BY name`)
-    .all();
+    .prepare(
+      `SELECT slug, name, created_at,
+              subscription_status, subscription_plan, payment_method, billing_email,
+              stripe_customer_id, stripe_subscription_id, subscription_current_period_end,
+              check_payment_reference, subscription_notes, subscription_updated_at
+       FROM organizations ORDER BY name`
+    )
+    .all()
+    .map(mapOrganizationRow);
 }
 
 function getOrganization(slug) {
   const db = getRegistryDb();
   const normalized = normalizeSlug(slug);
   if (!normalized) return null;
-  return db
-    .prepare(`SELECT slug, name, created_at AS createdAt FROM organizations WHERE slug = ?`)
+  const row = db
+    .prepare(
+      `SELECT slug, name, created_at,
+              subscription_status, subscription_plan, payment_method, billing_email,
+              stripe_customer_id, stripe_subscription_id, subscription_current_period_end,
+              check_payment_reference, subscription_notes, subscription_updated_at
+       FROM organizations WHERE slug = ?`
+    )
     .get(normalized);
+  return mapOrganizationRow(row);
 }
 
 function organizationExists(slug) {
@@ -86,6 +144,47 @@ function registerOrganization({ name, slug }) {
   db.prepare(`INSERT INTO organizations (slug, name) VALUES (?, ?)`).run(normalized, displayName);
   fs.mkdirSync(getOrgDataDir(normalized), { recursive: true });
   return getOrganization(normalized);
+}
+
+function updateOrganizationBilling(slug, fields) {
+  const db = getRegistryDb();
+  const normalized = normalizeSlug(slug);
+  if (!getOrganization(normalized)) throw new Error("Organization not found");
+
+  const allowed = {
+    subscriptionStatus: "subscription_status",
+    subscriptionPlan: "subscription_plan",
+    paymentMethod: "payment_method",
+    billingEmail: "billing_email",
+    stripeCustomerId: "stripe_customer_id",
+    stripeSubscriptionId: "stripe_subscription_id",
+    subscriptionCurrentPeriodEnd: "subscription_current_period_end",
+    checkPaymentReference: "check_payment_reference",
+    subscriptionNotes: "subscription_notes",
+  };
+
+  const sets = [];
+  const values = [];
+  for (const [key, column] of Object.entries(allowed)) {
+    if (fields[key] !== undefined) {
+      sets.push(`${column} = ?`);
+      values.push(fields[key]);
+    }
+  }
+  if (!sets.length) return getOrganization(normalized);
+  sets.push(`subscription_updated_at = datetime('now')`);
+  values.push(normalized);
+  db.prepare(`UPDATE organizations SET ${sets.join(", ")} WHERE slug = ?`).run(...values);
+  return getOrganization(normalized);
+}
+
+function migrateLegacyOrgBillingDefaults() {
+  const db = getRegistryDb();
+  db.prepare(
+    `UPDATE organizations
+     SET subscription_status = 'pending'
+     WHERE subscription_status IS NULL OR subscription_status = ''`
+  ).run();
 }
 
 function migrateLegacyDatabaseIfNeeded() {
@@ -127,5 +226,7 @@ module.exports = {
   getOrganization,
   organizationExists,
   registerOrganization,
+  updateOrganizationBilling,
   migrateLegacyDatabaseIfNeeded,
+  migrateLegacyOrgBillingDefaults,
 };

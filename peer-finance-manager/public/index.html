@@ -76,6 +76,25 @@
       </div>
     </div>
 
+    <div id="loginScreenPlatform" class="login-screen hidden" data-portal="platform">
+      <div class="login-card">
+        <p class="brand org-brand">Peer Finance Manager</p>
+        <h1>Platform Administration</h1>
+        <p class="subtle org-subtitle">Oversee All Cooperatives and Subscriptions</p>
+        <form id="loginFormPlatform" class="entry-form login-form" data-portal="platform">
+          <label>Email
+            <input type="email" name="identifier" required autocomplete="username" />
+          </label>
+          <label>Password
+            <input type="password" name="password" required autocomplete="current-password" />
+          </label>
+          <button type="submit" class="btn primary">Sign In</button>
+        </form>
+        <p class="login-foot subtle"><a href="/admin">Cooperative Administrator Sign In</a></p>
+        <p class="login-status status" data-login-status="platform"></p>
+      </div>
+    </div>
+
     <div id="registerScreen" class="login-screen hidden">
       <div class="login-card">
         <p class="brand">Peer Finance Manager</p>
@@ -123,6 +142,80 @@
         </form>
         <p id="changePasswordStatus" class="status"></p>
       </div>
+    </div>
+
+    <div id="platformShell" class="app hidden platform-shell">
+      <header class="topbar">
+        <div>
+          <p class="brand org-brand">Peer Finance Manager</p>
+          <h1>Platform Administration</h1>
+          <p class="subtle" id="platformSubtitle">Manage tenant cooperatives and SaaS subscriptions</p>
+        </div>
+        <div class="session-bar">
+          <p id="platformSessionUser" class="session-user"></p>
+          <button type="button" class="btn btn-icon logout-btn" id="platformLogoutBtn" aria-label="Sign Out" title="Sign Out">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2v10" />
+              <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+            </svg>
+          </button>
+        </div>
+      </header>
+      <section class="panel active platform-panel">
+        <div class="panel-head">
+          <h2>Tenant Cooperatives</h2>
+          <button type="button" class="btn" id="refreshPlatformOrgs">Refresh</button>
+        </div>
+        <p class="hint" id="platformPricingSummary">Loading pricing…</p>
+        <div class="table-wrap">
+          <table class="platform-org-table">
+            <thead>
+              <tr>
+                <th>Organization</th>
+                <th>Code</th>
+                <th>Members</th>
+                <th>Admin Email</th>
+                <th>Subscription</th>
+                <th>Plan</th>
+                <th>Period End</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="platformOrgsBody">
+              <tr><td colspan="8">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <details class="card profile-disclosure" id="platformCheckPaymentPanel">
+          <summary>Record Check Payment</summary>
+          <div class="profile-disclosure-body">
+            <form id="platformCheckPaymentForm" class="entry-form">
+              <label>Organization Code
+                <input type="text" name="slug" required placeholder="e.g. assurance" />
+              </label>
+              <label>Plan
+                <select name="plan" required>
+                  <option value="monthly">Monthly ($24.99)</option>
+                  <option value="quarterly">Quarterly ($71.22 — 5% discount)</option>
+                  <option value="annual">Annual ($272.89 — 9% discount)</option>
+                </select>
+              </label>
+              <label>Check Number (optional)
+                <input type="text" name="checkNumber" placeholder="1234" />
+              </label>
+              <label>Billing Email (optional)
+                <input type="email" name="billingEmail" />
+              </label>
+              <label>Notes (optional)
+                <textarea name="notes" rows="2"></textarea>
+              </label>
+              <button type="submit" class="btn primary">Mark Subscription Active (Check)</button>
+            </form>
+            <p id="platformCheckPaymentStatus" class="status"></p>
+          </div>
+        </details>
+        <p id="platformOrgsStatus" class="status"></p>
+      </section>
     </div>
 
     <div id="appShell" class="app hidden">
@@ -297,6 +390,26 @@
                 <li class="hint">Loading…</li>
               </ul>
               <p id="cooperativeMeetingsStatus" class="status"></p>
+            </div>
+          </details>
+          <details class="card platform-subscription-card profile-disclosure admin-only-report-settings hidden" id="platformSubscriptionPanel">
+            <summary class="monthly-status-report-summary">
+              <span class="monthly-status-report-summary-text">Platform Subscription</span>
+              <span class="badge" id="platformSubscriptionBadge">Loading…</span>
+            </summary>
+            <div class="profile-disclosure-body platform-subscription-body">
+              <p class="subtle">Peer Finance Manager SaaS fee for your cooperative. Pay by credit/debit card (Stripe) or mail a check.</p>
+              <div id="platformSubscriptionSummary" class="platform-subscription-summary">Loading…</div>
+              <div class="panel-head-actions platform-subscription-actions">
+                <button type="button" class="btn primary" id="payMonthlyStripe">Pay Monthly</button>
+                <button type="button" class="btn primary" id="payQuarterlyStripe">Pay Quarterly</button>
+                <button type="button" class="btn primary" id="payAnnualStripe">Pay Annual</button>
+                <button type="button" class="btn" id="openStripePortal" hidden>Manage Card on File</button>
+                <button type="button" class="btn" id="requestCheckPayment">Request Check Payment</button>
+                <button type="button" class="btn" id="refreshPlatformSubscription">Refresh</button>
+              </div>
+              <div id="platformCheckInstructions" class="platform-check-instructions hidden"></div>
+              <p id="platformSubscriptionStatus" class="status"></p>
             </div>
           </details>
         </div>

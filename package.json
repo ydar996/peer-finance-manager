@@ -22,6 +22,7 @@
     "pfm:normalize-profiles:apply": "node peer-finance-manager/scripts/normalize-profiles.js --apply",
     "pfm:status-report": "node peer-finance-manager/scripts/generate-cooperative-status.js",
     "pfm:sync-root": "node peer-finance-manager/scripts/sync-root-database.js",
+    "pfm:platform-admin": "node peer-finance-manager/scripts/ensure-platform-admin.js",
     "generate:jan-2026": "node scripts/generate-statements.js",
     "generate:feb-2026": "node scripts/generate-feb-2026.js"
   },
@@ -31,6 +32,7 @@
     "multer": "^2.1.1",
     "nodemailer": "^9.0.1",
     "puppeteer": "^24.12.1",
+    "stripe": "^18.5.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

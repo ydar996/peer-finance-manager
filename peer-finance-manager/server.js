@@ -69,6 +69,11 @@ const { getOrgDataDir } = require("./lib/organization-service");
 const { registerStatementRoutes } = require("./lib/statement-routes");
 const { registerAuthRoutes } = require("./lib/auth-routes");
 const {
+  registerPlatformRoutes,
+  registerBillingRoutes,
+  requireActiveSubscription,
+} = require("./lib/platform-routes");
+const {
   attachUser,
   requireAuth,
   requireAdmin,
@@ -107,6 +112,21 @@ app.use((req, res, next) => {
   next();
 });
 
+app.post(
+  "/api/billing/stripe-webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    try {
+      const { handleStripeWebhook } = require("./lib/platform-billing-service");
+      const result = await handleStripeWebhook(req.body, req.headers["stripe-signature"]);
+      res.json(result);
+    } catch (err) {
+      console.error("Stripe webhook error:", err.message);
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
 app.use(express.json());
 app.use(attachUser);
 
@@ -141,6 +161,10 @@ app.get("/api/health", (req, res) => {
     payload.emailConfigured = isEmailConfigured();
   } catch (_) {}
   try {
+    const { isStripeConfigured } = require("./lib/platform-billing-service");
+    payload.stripeConfigured = isStripeConfigured();
+  } catch (_) {}
+  try {
     const { todayIso, getCooperativeTimezone } = require("./lib/cooperative-time");
     payload.cooperativeToday = todayIso();
     payload.timezone = getCooperativeTimezone();
@@ -148,10 +172,12 @@ app.get("/api/health", (req, res) => {
   res.json(payload);
 });
 
+registerPlatformRoutes(app);
 registerAuthRoutes(app, { upload });
+registerBillingRoutes(app, { requireAdmin, requireAuth, restoreOrgContext });
 
 app.get("/", (req, res) => res.redirect("/member"));
-for (const portalPath of ["/member", "/staff", "/admin", "/register"]) {
+for (const portalPath of ["/member", "/staff", "/admin", "/register", "/platform"]) {
   app.get(portalPath, (req, res) => {
     res.sendFile(path.join(getPublicDir(), "index.html"));
   });
@@ -161,12 +187,15 @@ app.use("/api", (req, res, next) => {
   if (
     req.path === "/auth/login" ||
     req.path === "/auth/register-organization" ||
-    req.path === "/organizations/lookup"
+    req.path === "/organizations/lookup" ||
+    req.path.startsWith("/platform/") ||
+    req.path === "/billing/stripe-webhook"
   ) {
     return next();
   }
   requireAuth(req, res, next);
 });
+app.use("/api", requireActiveSubscription);
 app.use("/api", blockWritesUnlessAdmin);
 
 app.use(express.static(getPublicDir()));
@@ -1052,15 +1081,32 @@ if (require.main === module) {
   initPaths();
 
   if (process.env.NODE_ENV === "production") {
-    const { migrateLegacyDatabaseIfNeeded } = require("./lib/organization-service");
+    const { migrateLegacyDatabaseIfNeeded, migrateLegacyOrgBillingDefaults } = require("./lib/organization-service");
     const { ensureCooperativeData } = require("./lib/startup-seed");
+    const { ensurePlatformAdminUser } = require("./lib/platform-auth-service");
     migrateLegacyDatabaseIfNeeded();
+    migrateLegacyOrgBillingDefaults();
     ensureCooperativeData();
+    try {
+      const result = ensurePlatformAdminUser();
+      console.log(`Platform admin ready (${result.email}, ${result.created ? "created" : "updated"})`);
+    } catch (err) {
+      console.error("Platform admin setup failed:", err.message);
+    }
   } else {
     const { ensureSingleInstance } = require("./lib/kill-existing-instances");
     const { killPort } = require("./lib/kill-port");
+    const { migrateLegacyDatabaseIfNeeded, migrateLegacyOrgBillingDefaults } = require("./lib/organization-service");
+    const { ensurePlatformAdminUser } = require("./lib/platform-auth-service");
     ensureSingleInstance(port);
     killPort(port);
+    migrateLegacyDatabaseIfNeeded();
+    migrateLegacyOrgBillingDefaults();
+    try {
+      ensurePlatformAdminUser();
+    } catch (err) {
+      console.error("Platform admin setup failed:", err.message);
+    }
   }
 
   startServer(port, (err) => {

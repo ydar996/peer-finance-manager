@@ -928,3 +928,50 @@ tr.loan-row:hover { background: #f8fafc; }
 .login-foot { margin-top: 14px; font-size: 13px; }
 .portal-links { margin: 0; padding-left: 20px; }
 .portal-links li { margin-bottom: 6px; }
+
+.platform-shell .platform-panel { padding: 0 4px 24px; }
+.platform-org-table .platform-org-actions { white-space: nowrap; }
+.platform-org-table .btn-small {
+  font-size: 12px;
+  padding: 4px 8px;
+  margin: 2px 0;
+}
+.platform-subscription-summary p { margin: 6px 0; }
+.platform-subscription-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.platform-check-instructions {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 8px;
+}
+.subscription-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.subscription-active { background: #dcfce7; color: #166534; }
+.subscription-warning { background: #fef3c7; color: #92400e; }
+.subscription-info { background: #dbeafe; color: #1e40af; }
+.subscription-muted { background: #f3f4f6; color: #4b5563; }
+.badge.subscription-active,
+.badge.subscription-warning,
+.badge.subscription-info,
+.badge.subscription-muted {
+  font-size: 12px;
+}
+.subscription-banner {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+}
