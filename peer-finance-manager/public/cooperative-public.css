@@ -497,8 +497,12 @@ body.cp-public {
 }
 
 .cp-page-body p {
-  margin: 0 0 1rem;
+  margin: 0 0 1.15rem;
   padding-left: 8px;
+}
+
+.cp-page-body p:last-child {
+  margin-bottom: 0;
 }
 
 .cp-intro-card {
@@ -941,6 +945,47 @@ body.cp-public {
 
   .cp-hero h1 {
     max-width: none;
+  }
+
+  .cp-page-body {
+    font-size: 1rem;
+    line-height: 1.9;
+  }
+
+  .cp-page-body p {
+    margin-bottom: 1.5rem;
+  }
+
+  .cp-section {
+    margin-bottom: 26px;
+    padding: 22px 18px;
+  }
+
+  .cp-section-title {
+    margin-bottom: 1.35rem;
+  }
+
+  .cp-subsection-title {
+    margin-top: 1.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .cp-check-list,
+  .cp-benefit-list {
+    margin-bottom: 1.5rem;
+  }
+
+  .cp-check-list li {
+    padding: 14px 14px 14px 42px;
+  }
+
+  .cp-benefit-list li {
+    padding: 18px;
+  }
+
+  .cp-figure {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
   }
 }
 
