@@ -3,106 +3,120 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Learn about our cooperative and review our bylaws." />
     <title>Cooperative</title>
-    <style>
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        background: #f1f5f9;
-        color: #0f172a;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-      header {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 12px;
-        align-items: center;
-        padding: 16px 20px;
-        background: #fff;
-        border-bottom: 1px solid #e2e8f0;
-      }
-      h1 { margin: 0; font-size: 1.25rem; }
-      .org-name { margin: 4px 0 0; color: #64748b; font-size: 0.95rem; }
-      nav { display: flex; gap: 8px; flex-wrap: wrap; }
-      nav a {
-        text-decoration: none;
-        padding: 8px 14px;
-        border-radius: 8px;
-        border: 1px solid #cbd5e1;
-        color: #0f172a;
-        background: #fff;
-        font-size: 0.95rem;
-      }
-      nav a.active {
-        background: #0284c7;
-        border-color: #0284c7;
-        color: #fff;
-      }
-      main { flex: 1; display: flex; flex-direction: column; padding: 12px; }
-      .toolbar {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 10px;
-        flex-wrap: wrap;
-      }
-      .toolbar a {
-        text-decoration: none;
-        padding: 8px 14px;
-        border-radius: 8px;
-        background: #0284c7;
-        color: #fff;
-        font-size: 0.9rem;
-      }
-      iframe {
-        flex: 1;
-        width: 100%;
-        min-height: 75vh;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        background: #fff;
-      }
-      .status {
-        padding: 12px;
-        color: #b91c1c;
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        border-radius: 8px;
-      }
-      .hidden { display: none; }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/cooperative-public.css" />
   </head>
-  <body>
-    <header>
-      <div>
-        <h1 id="pageTitle">Cooperative</h1>
-        <p class="org-name" id="orgName"></p>
+  <body class="cp-public">
+    <header class="cp-topbar">
+      <div class="cp-topbar-inner">
+        <div class="cp-mark">
+          <div class="cp-mark-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div>
+            <p class="cp-org-name" id="orgName">Cooperative</p>
+            <p class="cp-org-tag">Member-owned · Community finance</p>
+          </div>
+        </div>
+        <nav class="cp-segment" aria-label="Public cooperative pages">
+          <a id="navAbout" href="#">About Us</a>
+          <a id="navBylaws" href="#">Bylaws</a>
+        </nav>
       </div>
-      <nav aria-label="Public cooperative pages">
-        <a id="navAbout" href="#">About Us</a>
-        <a id="navBylaws" href="#">Bylaws</a>
-      </nav>
     </header>
-    <main>
-      <div id="status" class="status hidden"></div>
-      <div class="toolbar">
-        <a id="openPdf" href="#" target="_blank" rel="noopener">Open PDF in new tab</a>
-      </div>
-      <iframe id="docFrame" title="Cooperative document"></iframe>
+
+    <main class="cp-main">
+      <section class="cp-hero">
+        <p class="cp-hero-eyebrow" id="heroEyebrow">Welcome</p>
+        <h1 id="pageTitle">About Us</h1>
+        <p class="cp-hero-lead" id="heroLead">
+          Learn who we are, what we stand for, and how membership works.
+        </p>
+      </section>
+
+      <div id="status" class="cp-alert hidden" role="alert"></div>
+
+      <section class="cp-doc-card" aria-label="Document viewer">
+        <div class="cp-doc-toolbar">
+          <div class="cp-doc-label">
+            <div class="cp-doc-label-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            </div>
+            <div>
+              <p class="cp-doc-title" id="docTitle">Official document</p>
+              <p class="cp-doc-meta" id="docMeta">PDF · Scroll to read</p>
+            </div>
+          </div>
+          <div class="cp-doc-actions">
+            <a id="openPdf" class="cp-btn cp-btn-primary" href="#" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              Open full PDF
+            </a>
+          </div>
+        </div>
+        <div class="cp-viewer">
+          <div id="loader" class="cp-loader" aria-live="polite">
+            <div class="cp-spinner" aria-hidden="true"></div>
+            <p>Loading document…</p>
+          </div>
+          <iframe id="docFrame" title="Cooperative document"></iframe>
+        </div>
+      </section>
     </main>
+
+    <footer class="cp-footer">
+      <p id="footerNote">Official cooperative information for prospective and current members.</p>
+    </footer>
+
     <script>
       (function () {
+        const PAGE_COPY = {
+          about: {
+            title: "About Us",
+            eyebrow: "Who we are",
+            lead: "Our mission, membership guidelines, goals, and leadership — shared openly for anyone considering joining.",
+            docTitle: "About Us document",
+            docMeta: "Official cooperative overview · PDF",
+          },
+          bylaws: {
+            title: "Bylaws",
+            eyebrow: "Governance",
+            lead: "The rules and structure that guide how our cooperative operates. Please review before applying for membership.",
+            docTitle: "Cooperative bylaws",
+            docMeta: "Official bylaws · PDF",
+          },
+        };
+
         const match = window.location.pathname.replace(/\/$/, "").match(/^\/c\/([^/]+)\/(about|bylaws)$/i);
         if (!match) {
-          showError("Page not found.");
+          showError("This page could not be found.");
           return;
         }
+
         const slug = decodeURIComponent(match[1]).toLowerCase();
         const page = match[2].toLowerCase();
-        const pageTitle = page === "bylaws" ? "Bylaws" : "About Us";
+        const copy = PAGE_COPY[page];
         const aboutHref = "/c/" + encodeURIComponent(slug) + "/about";
         const bylawsHref = "/c/" + encodeURIComponent(slug) + "/bylaws";
         const docUrl =
@@ -110,13 +124,29 @@
             ? "/api/public/organizations/" + encodeURIComponent(slug) + "/bylaws/document"
             : "/api/public/organizations/" + encodeURIComponent(slug) + "/about/document";
 
-        document.getElementById("pageTitle").textContent = pageTitle;
-        document.getElementById("navAbout").href = aboutHref;
-        document.getElementById("navBylaws").href = bylawsHref;
-        document.getElementById("navAbout").classList.toggle("active", page === "about");
-        document.getElementById("navBylaws").classList.toggle("active", page === "bylaws");
+        document.getElementById("pageTitle").textContent = copy.title;
+        document.getElementById("heroEyebrow").textContent = copy.eyebrow;
+        document.getElementById("heroLead").textContent = copy.lead;
+        document.getElementById("docTitle").textContent = copy.docTitle;
+        document.getElementById("docMeta").textContent = copy.docMeta;
+
+        const navAbout = document.getElementById("navAbout");
+        const navBylaws = document.getElementById("navBylaws");
+        navAbout.href = aboutHref;
+        navBylaws.href = bylawsHref;
+        navAbout.classList.toggle("active", page === "about");
+        navBylaws.classList.toggle("active", page === "bylaws");
+        if (page === "about") navAbout.setAttribute("aria-current", "page");
+        else navBylaws.setAttribute("aria-current", "page");
+
         document.getElementById("openPdf").href = docUrl;
-        document.getElementById("docFrame").src = docUrl;
+
+        const frame = document.getElementById("docFrame");
+        const loader = document.getElementById("loader");
+        frame.addEventListener("load", function () {
+          loader.classList.add("hidden");
+        });
+        frame.src = docUrl;
 
         fetch("/api/public/organizations/" + encodeURIComponent(slug))
           .then(function (res) {
@@ -125,14 +155,17 @@
               const name = data.organization && data.organization.name;
               if (name) {
                 document.getElementById("orgName").textContent = name;
-                document.title = name + " \u2014 " + pageTitle;
+                document.title = name + " \u2014 " + copy.title;
+                document.getElementById("footerNote").textContent =
+                  "Official information published by " + name + ".";
               } else {
-                document.title = pageTitle;
+                document.title = copy.title;
               }
             });
           })
           .catch(function (err) {
             showError(err.message);
+            loader.classList.add("hidden");
           });
 
         function showError(message) {
