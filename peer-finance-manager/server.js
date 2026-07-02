@@ -68,6 +68,7 @@ const { getDataDir, getPublicDir } = require("./lib/paths");
 const { getOrgDataDir } = require("./lib/organization-service");
 const { registerStatementRoutes } = require("./lib/statement-routes");
 const { registerAuthRoutes } = require("./lib/auth-routes");
+const { registerCooperativePublicRoutes } = require("./lib/cooperative-public-routes");
 const {
   registerPlatformRoutes,
   registerBillingRoutes,
@@ -174,11 +175,17 @@ app.get("/api/health", (req, res) => {
 
 registerPlatformRoutes(app);
 registerAuthRoutes(app, { upload });
+registerCooperativePublicRoutes(app, { requireAdmin, restoreOrgContext });
 registerBillingRoutes(app, { requireAdmin, requireAuth, restoreOrgContext });
 
 app.get("/", (req, res) => res.redirect("/member"));
 for (const portalPath of ["/member", "/staff", "/admin", "/register", "/platform"]) {
   app.get(portalPath, (req, res) => {
+    res.sendFile(path.join(getPublicDir(), "index.html"));
+  });
+}
+for (const publicPage of ["about", "bylaws"]) {
+  app.get(`/c/:slug/${publicPage}`, (req, res) => {
     res.sendFile(path.join(getPublicDir(), "index.html"));
   });
 }
@@ -188,6 +195,7 @@ app.use("/api", (req, res, next) => {
     req.path === "/auth/login" ||
     req.path === "/auth/register-organization" ||
     req.path === "/organizations/lookup" ||
+    req.path.startsWith("/public/") ||
     req.path.startsWith("/platform/") ||
     req.path === "/billing/stripe-webhook"
   ) {

@@ -197,6 +197,16 @@ function ensureCooperativeData() {
 
     const { ensureAssuranceAdminUser } = require("./auth-service");
     ensureAssuranceAdminUser();
+
+    try {
+      const { seedAssurancePublicPages } = require("./cooperative-public-pages-service");
+      const seedResult = seedAssurancePublicPages();
+      if (seedResult?.seeded) {
+        trace.info("Seeded public About and Bylaws pages", seedResult);
+      }
+    } catch (err) {
+      trace.warn("Public pages seed failed", { error: err.message });
+    }
   });
 }
 

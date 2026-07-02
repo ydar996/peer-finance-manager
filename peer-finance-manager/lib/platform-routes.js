@@ -138,6 +138,7 @@ function registerPlatformRoutes(app) {
   );
 
   app.post(
+    "/api/platform/organizations/:slug/grant-legacy",
     attachPlatformUser,
     requirePlatformAuth,
     (req, res) => {

@@ -983,3 +983,89 @@ tr.loan-row:hover { background: #f8fafc; }
   border-radius: 8px;
   margin-top: 10px;
 }
+
+.public-shell {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #e0f2fe 0%, #f8fafc 40%);
+}
+.public-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 24px 24px 0;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.public-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.public-main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.public-article,
+.public-bylaws {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+.public-about-content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.public-about-lead {
+  font-size: 1.1rem;
+  color: #334155;
+}
+.public-about-figure {
+  margin: 1.5rem 0;
+}
+.public-about-figure img {
+  width: 100%;
+  border-radius: 12px;
+  display: block;
+}
+.public-about-figure figcaption {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+.public-about-cta {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+.public-bylaws-actions {
+  margin-bottom: 12px;
+}
+.public-bylaws-frame {
+  width: 100%;
+  min-height: 70vh;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.public-pages-admin textarea {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+.public-admin-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.public-org-links a.hidden,
+.member-public-links a.hidden {
+  display: none;
+}

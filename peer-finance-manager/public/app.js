@@ -144,7 +144,20 @@ window.fetch = function patchedFetch(url, options = {}) {
   return nativeFetch(url, options);
 };
 
+function getPublicPageInfo() {
+  const path = window.location.pathname.replace(/\/$/, "") || "/";
+  const match = path.match(/^\/c\/([^/]+)\/(about|bylaws)$/i);
+  if (!match) return null;
+  return { slug: decodeURIComponent(match[1]).toLowerCase(), page: match[2].toLowerCase() };
+}
+
+function isPublicPagePath() {
+  return !!getPublicPageInfo();
+}
+
 function getPortalFromPath() {
+  const publicInfo = getPublicPageInfo();
+  if (publicInfo) return publicInfo.page === "bylaws" ? "public-bylaws" : "public-about";
   const path = window.location.pathname.replace(/\/$/, "") || "/";
   if (path === "/register") return "register";
   if (path === "/platform") return "platform";
@@ -198,10 +211,41 @@ function fillOrgSlugInputs(slug = preferredOrgSlug()) {
   refreshOrganizationPreview(slug);
 }
 
+async function refreshPublicOrgLinks(slug) {
+  const normalized = String(slug || "").trim().toLowerCase();
+  const containers = document.querySelectorAll(".public-org-links, #memberPublicLinks");
+  if (!normalized) {
+    containers.forEach((el) => el.classList.add("hidden"));
+    return;
+  }
+  try {
+    const res = await nativeFetch(`/api/public/organizations/${encodeURIComponent(normalized)}`);
+    const data = await res.json();
+    if (!res.ok) {
+      containers.forEach((el) => el.classList.add("hidden"));
+      return;
+    }
+    document.querySelectorAll(".public-about-link").forEach((link) => {
+      link.href = `/c/${encodeURIComponent(normalized)}/about`;
+      link.classList.toggle("hidden", !data.aboutAvailable);
+    });
+    document.querySelectorAll(".public-bylaws-link").forEach((link) => {
+      link.href = `/c/${encodeURIComponent(normalized)}/bylaws`;
+      link.classList.toggle("hidden", !data.bylawsAvailable);
+    });
+    containers.forEach((el) => {
+      el.classList.toggle("hidden", !data.aboutAvailable && !data.bylawsAvailable);
+    });
+  } catch (_) {
+    containers.forEach((el) => el.classList.add("hidden"));
+  }
+}
+
 async function refreshOrganizationPreview(slug) {
   const normalized = String(slug || "").trim().toLowerCase();
   if (!normalized) {
     applyOrganizationBranding(null);
+    await refreshPublicOrgLinks("");
     return;
   }
   try {
@@ -212,6 +256,7 @@ async function refreshOrganizationPreview(slug) {
   } catch (_) {
     applyOrganizationBranding(null);
   }
+  await refreshPublicOrgLinks(normalized);
 }
 
 function userMatchesPortal(user, portal) {
@@ -232,6 +277,7 @@ function hideAllScreens() {
   $("#changePasswordScreen")?.classList.add("hidden");
   $("#appShell")?.classList.add("hidden");
   $("#platformShell")?.classList.add("hidden");
+  $("#publicShell")?.classList.add("hidden");
 }
 
 function showLoginForPortal(portal = getPortalFromPath(), message = "") {
@@ -265,6 +311,12 @@ function showApp() {
   hideAllScreens();
   $("#appShell")?.classList.remove("hidden");
   if (currentUser?.organizationName) applyOrganizationBranding(currentUser.organizationName);
+  if (currentUser?.organizationSlug) refreshPublicOrgLinks(currentUser.organizationSlug);
+}
+
+function showPublicShell() {
+  hideAllScreens();
+  $("#publicShell")?.classList.remove("hidden");
 }
 
 function roleLabel(role) {
@@ -692,6 +744,7 @@ async function bootstrapApp() {
     loadRecordTabData();
     loadUsers();
     loadPlatformSubscriptionPanel();
+    loadPublicPagesPanel();
     handleBillingReturnParams();
   }
 }
@@ -4851,10 +4904,247 @@ $("#openStripePortal")?.addEventListener("click", openStripeBillingPortal);
 $("#requestCheckPayment")?.addEventListener("click", requestTenantCheckPayment);
 $("#refreshPlatformSubscription")?.addEventListener("click", loadPlatformSubscriptionPanel);
 
+function renderPublicPagesAdmin(data) {
+  const linksEl = $("#publicPagesLinks");
+  const aboutHtml = $("#publicAboutHtml");
+  const aboutPublished = $("#publicAboutPublished");
+  const bylawsPublished = $("#publicBylawsPublished");
+  const bylawsStatus = $("#publicBylawsFileStatus");
+  const imagesList = $("#publicAboutImagesList");
+  if (!data) return;
+  if (linksEl) {
+    linksEl.innerHTML = `Public links: <a href="${escapeHtml(data.publicAboutUrl)}" target="_blank" rel="noopener">About</a> · <a href="${escapeHtml(data.publicBylawsUrl)}" target="_blank" rel="noopener">Bylaws</a>`;
+  }
+  if (aboutHtml && document.activeElement !== aboutHtml) aboutHtml.value = data.aboutHtml || "";
+  if (aboutPublished) aboutPublished.checked = !!data.aboutPublished;
+  if (bylawsPublished) bylawsPublished.checked = !!data.bylawsPublished;
+  if (bylawsStatus) {
+    bylawsStatus.textContent = data.bylawsOnDisk
+      ? `Bylaws PDF: ${data.bylawsFilename}`
+      : "Bylaws PDF: not uploaded yet";
+  }
+  if (imagesList) {
+    if (!data.images?.length) {
+      imagesList.innerHTML = '<li class="subtle">No images uploaded yet.</li>';
+    } else {
+      imagesList.innerHTML = data.images
+        .map(
+          (img) => `<li>
+            <img src="${escapeHtml(img.url)}" alt="" class="public-admin-thumb" />
+            <span>${escapeHtml(img.filename)}</span>
+            <button type="button" class="btn btn-small" data-delete-public-image="${escapeHtml(img.filename)}">Remove</button>
+          </li>`
+        )
+        .join("");
+    }
+  }
+}
+
+async function loadPublicPagesPanel() {
+  if (currentUser?.role !== "admin") return;
+  const statusEl = $("#publicPagesStatus");
+  try {
+    const res = await fetch("/api/books/public-pages");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load public pages");
+    renderPublicPagesAdmin(data);
+    if (statusEl) statusEl.textContent = "";
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+async function savePublicAboutPage() {
+  const statusEl = $("#publicPagesStatus");
+  try {
+    const res = await fetch("/api/books/public-pages/about", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        html: $("#publicAboutHtml")?.value || "",
+        published: $("#publicAboutPublished")?.checked,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to save About page");
+    renderPublicPagesAdmin(data);
+    if (statusEl) setFormStatus(statusEl, "About page saved.", true);
+    if (currentUser?.organizationSlug) refreshPublicOrgLinks(currentUser.organizationSlug);
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+async function savePublicBylawsSettings() {
+  const statusEl = $("#publicPagesStatus");
+  try {
+    const res = await fetch("/api/books/public-pages/bylaws", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ published: $("#publicBylawsPublished")?.checked }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to save bylaws settings");
+    renderPublicPagesAdmin(data);
+    if (statusEl) setFormStatus(statusEl, "Bylaws settings saved.", true);
+    if (currentUser?.organizationSlug) refreshPublicOrgLinks(currentUser.organizationSlug);
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+async function uploadPublicBylaws(file) {
+  const statusEl = $("#publicPagesStatus");
+  if (!file) return;
+  const form = new FormData();
+  form.append("file", file);
+  try {
+    const res = await fetch("/api/books/public-pages/bylaws", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+    renderPublicPagesAdmin(data);
+    if (statusEl) setFormStatus(statusEl, "Bylaws PDF uploaded.", true);
+    if (currentUser?.organizationSlug) refreshPublicOrgLinks(currentUser.organizationSlug);
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+async function uploadPublicAboutImage(file) {
+  const statusEl = $("#publicPagesStatus");
+  if (!file) return;
+  const form = new FormData();
+  form.append("file", file);
+  try {
+    const res = await fetch("/api/books/public-pages/about/images", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+    renderPublicPagesAdmin(data);
+    if (statusEl) setFormStatus(statusEl, "Image uploaded.", true);
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+async function deletePublicAboutImage(filename) {
+  const statusEl = $("#publicPagesStatus");
+  try {
+    const res = await fetch(
+      `/api/books/public-pages/about/images/${encodeURIComponent(filename)}`,
+      { method: "DELETE" }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Delete failed");
+    renderPublicPagesAdmin(data);
+    if (statusEl) setFormStatus(statusEl, "Image removed.", true);
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+}
+
+function setPublicPageStatus(message, ok = false) {
+  const statusEl = $("#publicPageStatus");
+  if (!statusEl) return;
+  statusEl.classList.remove("hidden");
+  setFormStatus(statusEl, message, ok);
+}
+
+async function loadPublicAboutPage(slug) {
+  const article = $("#publicAboutArticle");
+  const bylawsSection = $("#publicBylawsSection");
+  const title = $("#publicPageTitle");
+  const orgName = $("#publicOrgName");
+  article?.classList.remove("hidden");
+  bylawsSection?.classList.add("hidden");
+  if (title) title.textContent = "About Us";
+  try {
+    const res = await nativeFetch(`/api/public/organizations/${encodeURIComponent(slug)}/about`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "About page not available");
+    if (orgName) orgName.textContent = data.organization?.name || slug;
+    applyOrganizationBranding(data.organization?.name || slug);
+    if (article) article.innerHTML = data.html || "";
+    document.title = `${data.organization?.name || slug} — About Us`;
+    setPublicPageStatus("", true);
+    $("#publicPageStatus")?.classList.add("hidden");
+  } catch (err) {
+    if (article) article.innerHTML = "";
+    setPublicPageStatus(err.message, false);
+  }
+}
+
+async function loadPublicBylawsPage(slug) {
+  const article = $("#publicAboutArticle");
+  const bylawsSection = $("#publicBylawsSection");
+  const frame = $("#publicBylawsFrame");
+  const download = $("#publicBylawsDownload");
+  const title = $("#publicPageTitle");
+  const orgName = $("#publicOrgName");
+  article?.classList.add("hidden");
+  bylawsSection?.classList.remove("hidden");
+  if (title) title.textContent = "Bylaws";
+  try {
+    const res = await nativeFetch(`/api/public/organizations/${encodeURIComponent(slug)}/bylaws`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Bylaws not available");
+    if (orgName) orgName.textContent = data.organization?.name || slug;
+    applyOrganizationBranding(data.organization?.name || slug);
+    if (frame) frame.src = data.downloadUrl;
+    if (download) download.href = data.downloadUrl;
+    document.title = `${data.organization?.name || slug} — Bylaws`;
+    $("#publicPageStatus")?.classList.add("hidden");
+  } catch (err) {
+    if (frame) frame.removeAttribute("src");
+    setPublicPageStatus(err.message, false);
+  }
+}
+
+function wirePublicHeaderNav(slug) {
+  const aboutHref = `/c/${encodeURIComponent(slug)}/about`;
+  const bylawsHref = `/c/${encodeURIComponent(slug)}/bylaws`;
+  const aboutNav = $("#publicNavAbout");
+  const bylawsNav = $("#publicNavBylaws");
+  if (aboutNav) aboutNav.href = aboutHref;
+  if (bylawsNav) bylawsNav.href = bylawsHref;
+}
+
+async function bootstrapPublicApp() {
+  const info = getPublicPageInfo();
+  if (!info) return;
+  showPublicShell();
+  wirePublicHeaderNav(info.slug);
+  if (info.page === "bylaws") await loadPublicBylawsPage(info.slug);
+  else await loadPublicAboutPage(info.slug);
+}
+
+$("#savePublicAbout")?.addEventListener("click", savePublicAboutPage);
+$("#savePublicBylawsSettings")?.addEventListener("click", savePublicBylawsSettings);
+$("#publicBylawsUpload")?.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  uploadPublicBylaws(file);
+  e.target.value = "";
+});
+$("#publicAboutImageUpload")?.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  uploadPublicAboutImage(file);
+  e.target.value = "";
+});
+$("#publicAboutImagesList")?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-delete-public-image]");
+  if (!btn) return;
+  deletePublicAboutImage(btn.dataset.deletePublicImage);
+});
+
+document.querySelectorAll(".org-slug-input").forEach((input) => {
+  input.addEventListener("input", () => refreshPublicOrgLinks(input.value));
+});
+
 applyAppBranding();
 fillOrgSlugInputs();
 if (getPortalFromPath() === "platform") {
   bootstrapPlatformApp();
+} else if (isPublicPagePath()) {
+  bootstrapPublicApp();
 } else {
   bootstrapApp();
 }
