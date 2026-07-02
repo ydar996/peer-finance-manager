@@ -14,7 +14,12 @@ const {
   getTotalLoanInterestIncome,
   getExpectedFutureLoanInterest,
 } = require("./loan-ledger-service");
-const { getDashboardMetrics } = require("./dashboard-metrics");
+const {
+  getDashboardMetrics,
+  getDepositsThisMonthDetail,
+  getDepositsYtdDetail,
+  getLoanRepaymentsDueDetail,
+} = require("./dashboard-metrics");
 
 const DEPOSIT_ACCOUNT_TYPES = [
   TRANSACTION_TYPES.DEPOSIT,
@@ -305,6 +310,9 @@ function getCooperativeBooks() {
 }
 
 const BOOK_DETAIL_SLUGS = {
+  "deposits-this-month": "Deposits This Month",
+  "deposits-ytd": "Deposits This Year (YTD)",
+  "loan-repayments-due": "Loan Repayments Due",
   "deposit-accounts": "Member Contributions Accounts (Total)",
   "deposits-withdrawals": "Member Contributions & Withdrawals",
   "registration-income": "Registration Income",
@@ -330,6 +338,57 @@ function getBookDetail(slug) {
 
   const db = getDb();
   const title = BOOK_DETAIL_SLUGS[slug];
+
+  if (slug === "deposits-this-month") {
+    const detail = getDepositsThisMonthDetail();
+    return {
+      slug,
+      title: detail.title,
+      navigateTab: "record",
+      summary: detail.summary,
+      columns: [
+        { key: "date", label: "Date", format: "date" },
+        { key: "member", label: "Member" },
+        { key: "amount", label: "Amount", format: "money" },
+        { key: "description", label: "Description" },
+      ],
+      rows: detail.rows,
+    };
+  }
+
+  if (slug === "deposits-ytd") {
+    const detail = getDepositsYtdDetail();
+    return {
+      slug,
+      title: detail.title,
+      navigateTab: "record",
+      summary: detail.summary,
+      columns: [
+        { key: "date", label: "Date", format: "date" },
+        { key: "member", label: "Member" },
+        { key: "amount", label: "Amount", format: "money" },
+        { key: "description", label: "Description" },
+      ],
+      rows: detail.rows,
+    };
+  }
+
+  if (slug === "loan-repayments-due") {
+    const detail = getLoanRepaymentsDueDetail();
+    return {
+      slug,
+      title: detail.title,
+      navigateTab: "loans",
+      summary: detail.summary,
+      columns: [
+        { key: "member", label: "Borrower" },
+        { key: "expected", label: "Expected This Month", format: "money" },
+        { key: "received", label: "Received This Month", format: "money" },
+        { key: "stillDue", label: "Still Due", format: "money" },
+      ],
+      rows: detail.rows,
+    };
+  }
 
   if (slug === "deposit-accounts") {
     const rows = db

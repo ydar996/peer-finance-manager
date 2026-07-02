@@ -351,11 +351,7 @@ th { background: #f8fafc; font-weight: 600; }
 }
 .book-card.accent { border-color: #0ea5e9; background: #f0f9ff; }
 .dashboard-card {
-  cursor: default;
-}
-.dashboard-card:hover {
-  transform: none;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  text-align: left;
 }
 .monthly-status-report-card {
   margin-top: 16px;

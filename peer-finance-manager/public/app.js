@@ -1102,13 +1102,13 @@ function bookCardHtml(slug, { accent, label, amount, note }) {
     </button>`;
 }
 
-function dashboardCardHtml({ accent, label, amount, note }) {
+function dashboardCardHtml(slug, { accent, label, amount, note }) {
   return `
-    <div class="book-card dashboard-card${accent ? " accent" : ""}">
+    <button type="button" class="book-card dashboard-card${accent ? " accent" : ""}" data-book-slug="${slug}">
       <p class="book-label">${label}</p>
       <p class="book-amount${typeof amount === "number" ? " money" : ""}">${typeof amount === "number" ? fmt.format(amount) : escapeHtml(amount)}</p>
       ${note ? `<p class="book-note">${note}</p>` : ""}
-    </div>`;
+    </button>`;
 }
 
 function formatPctChangeLabel(value) {
@@ -1124,18 +1124,18 @@ function dashboardCardsHtml(dashboard) {
   const ytd = dashboard.depositsYtd;
   const due = dashboard.loanRepaymentsDue;
   return [
-    dashboardCardHtml({
+    dashboardCardHtml("deposits-this-month", {
       accent: true,
       label: `Deposits This Month (${month.monthLabel})`,
       amount: month.total,
       note: "Member contributions recorded this calendar month",
     }),
-    dashboardCardHtml({
+    dashboardCardHtml("deposits-ytd", {
       label: `Deposits This Year (${ytd.year} YTD)`,
       amount: ytd.total,
       note: `vs ${ytd.lastYear.year} ${fmt.format(ytd.lastYear.total)} (${formatPctChangeLabel(ytd.lastYear.pctChange)}) · vs ${ytd.twoYearsAgo.year} ${fmt.format(ytd.twoYearsAgo.total)} (${formatPctChangeLabel(ytd.twoYearsAgo.pctChange)})`,
     }),
-    dashboardCardHtml({
+    dashboardCardHtml("loan-repayments-due", {
       label: `Loan Repayments Due (${due.monthLabel})`,
       amount: due.total,
       note:
@@ -1219,7 +1219,9 @@ async function openBookDetail(slug) {
 
     body.querySelectorAll(".detail-member-row").forEach((row) => {
       row.addEventListener("click", () => {
-        navigateToMemberFromBooks(Number(row.dataset.memberId), "deposit");
+        const memberId = Number(row.dataset.memberId);
+        const panel = slug === "loan-repayments-due" ? "loan" : "deposit";
+        navigateToMemberFromBooks(memberId, panel);
       });
     });
   } catch (err) {
