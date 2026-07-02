@@ -212,6 +212,19 @@
           area.querySelectorAll(".cp-official-card").forEach(function (card) {
             const nameEl = card.querySelector(".cp-official-name");
             if (!nameEl || card.querySelector(".cp-official-avatar")) return;
+
+            let body = card.querySelector(".cp-official-body");
+            if (!body) {
+              body = document.createElement("div");
+              body.className = "cp-official-body";
+              card.insertBefore(body, nameEl);
+              body.appendChild(nameEl);
+              const roleEl = card.querySelector(".cp-official-role");
+              if (roleEl) body.appendChild(roleEl);
+              const phoneEl = card.querySelector(".cp-official-phone");
+              if (phoneEl) body.appendChild(phoneEl);
+            }
+
             const initials = nameEl.textContent
               .split(/\s+/)
               .slice(0, 2)
@@ -223,7 +236,7 @@
             const avatar = document.createElement("div");
             avatar.className = "cp-official-avatar";
             avatar.textContent = initials;
-            card.insertBefore(avatar, nameEl);
+            card.insertBefore(avatar, body);
           });
 
           area.querySelectorAll(".cp-section").forEach(function (section, index) {

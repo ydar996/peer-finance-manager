@@ -699,6 +699,12 @@ body.cp-public {
   color: #fff;
   background: var(--cp-bg-hero);
   box-shadow: 0 8px 18px rgba(15, 118, 110, 0.25);
+  grid-row: 1 / span 2;
+  align-self: start;
+}
+
+.cp-official-body {
+  min-width: 0;
 }
 
 .cp-official-name {
@@ -708,11 +714,21 @@ body.cp-public {
   line-height: 1.35;
 }
 
+.cp-official-role {
+  margin: 0 0 4px;
+  font-size: 0.84rem;
+  color: var(--cp-accent-deep);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
 .cp-official-phone {
   margin: 0;
   font-size: 0.86rem;
-  color: var(--cp-accent-deep);
-  font-weight: 600;
+  color: var(--cp-muted);
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
 /* —— Crosslink CTA —— */
