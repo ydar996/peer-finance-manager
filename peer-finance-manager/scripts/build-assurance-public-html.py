@@ -47,7 +47,9 @@ LIST_INTRO_SECTIONS = {
 
 
 def esc(text):
-    return htmlmod.escape(str(text).replace("&amp;", "&").strip())
+    s = htmlmod.escape(str(text).replace("&amp;", "&").strip())
+    s = s.replace("\u2014", ":").replace("\u2013", "-")
+    return s
 
 
 def slugify(text):
@@ -208,62 +210,177 @@ def build_about():
     print(f"Wrote {ABOUT_TARGET}")
 
 
+PAGE_HEADER_RE = re.compile(r"^Page\s+\d+\s+of\s+\d+\s*\|.*$", re.I)
+ARTICLE_RE = re.compile(r"^ARTICLE\s+(\d+)\.\s*(.*)$", re.I)
+SECTION_RE = re.compile(r"^(\d+\.\d+)\.\s*(.+)$")
+LETTER_ITEM_RE = re.compile(r"^([a-z])\.\s+(.+)$", re.I)
+ROMAN_ITEM_RE = re.compile(r"^([IVX]+)\.\s+(.+)$")
+
+
+def is_block_start(line):
+    s = line.strip()
+    if not s:
+        return False
+    if PAGE_HEADER_RE.match(s):
+        return True
+    if ARTICLE_RE.match(s):
+        return True
+    if SECTION_RE.match(s):
+        return True
+    if LETTER_ITEM_RE.match(s):
+        return True
+    if ROMAN_ITEM_RE.match(s):
+        return True
+    return False
+
+
+def merge_wrapped_lines(raw_lines):
+    """Join PDF line breaks so list items and paragraphs stay intact."""
+    merged = []
+    for raw in raw_lines:
+        line = re.sub(r"\s+", " ", raw.strip())
+        if not line or PAGE_HEADER_RE.match(line):
+            continue
+        if not merged:
+            merged.append(line)
+            continue
+        if is_block_start(line):
+            merged.append(line)
+        else:
+            merged[-1] = (merged[-1] + " " + line).strip()
+    return merged
+
+
+def parse_section_line(line):
+    m = SECTION_RE.match(line.strip())
+    if not m:
+        return None
+    num = m.group(1)
+    rest = m.group(2).strip()
+    # Title ends at first ". " when more substantive text follows (e.g. "2.2. Becoming a member. To become...")
+    split = re.split(r"\.\s+(?=[A-Z])", rest, maxsplit=1)
+    if len(split) == 2 and len(split[0]) < 120:
+        title = split[0].rstrip(".") + "."
+        intro = split[1].strip()
+        return num, title, intro
+    title = rest if rest.endswith(".") else rest
+    return num, title, None
+
+
+def close_lists(stack, out, through=0):
+    while len(stack) > through:
+        tag = stack.pop()
+        out.append(f"</{tag}>")
+
+
+def render_bylaws_body(lines, out):
+    """Render merged lines inside an article (or intro) into HTML."""
+    stack = []  # 'ul' or 'ol'
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        i += 1
+        if not line:
+            continue
+
+        sec = parse_section_line(line)
+        if sec:
+            close_lists(stack, out)
+            num, title, intro = sec
+            out.append(
+                f'<h3 class="cp-subsection-title" id="section-{num.replace(".", "-")}">'
+                f'<span class="cp-section-num">{esc(num)}</span> {esc(title)}</h3>'
+            )
+            if intro:
+                out.append(f'<p class="cp-section-lead">{esc(intro)}</p>')
+            continue
+
+        letter = LETTER_ITEM_RE.match(line)
+        if letter:
+            if not stack or stack[-1] != "ul":
+                close_lists(stack, out)
+                out.append('<ul class="cp-legal-list">')
+                stack.append("ul")
+            label, body = letter.group(1), letter.group(2).strip()
+            out.append(f'<li><span class="cp-list-label">{esc(label)}.</span> {esc(body)}</li>')
+            continue
+
+        roman = ROMAN_ITEM_RE.match(line)
+        if roman:
+            if not stack or stack[-1] != "ol":
+                close_lists(stack, out)
+                out.append('<ol class="cp-roman-list" type="I">')
+                stack.append("ol")
+            label, body = roman.group(1), roman.group(2).strip()
+            out.append(f"<li>{esc(body)}</li>")
+            continue
+
+        close_lists(stack, out)
+        out.append(f"<p>{esc(line)}</p>")
+
+    close_lists(stack, out)
+
+
 def build_bylaws():
-    text = clean_bylaws_text(BYLAWS_SOURCE.read_text(encoding="utf-8"))
-    chunks = re.split(r"\n(?=ARTICLE\s+\d+\.)", text)
+    raw = BYLAWS_SOURCE.read_text(encoding="utf-8")
+    raw = re.sub(r"\b(\w+)- (\w)", r"\1\2", raw)
+    all_lines = raw.splitlines()
+    merged = merge_wrapped_lines(all_lines)
+
     out = [
         '<div class="cp-page-body cp-bylaws">',
         '<p class="cp-doc-kicker">Governance document</p>',
+        '<p class="cp-doc-meta">Assurance Investment and Cooperative Inc. · Adopted December 9, 2022 · Updated December 22, 2022</p>',
         '<section class="cp-section cp-intro-card" id="introduction">',
-        "<h2 class=\"cp-section-title\">Introduction</h2>",
+        '<h2 class="cp-section-title">Introduction</h2>',
     ]
 
-    intro = chunks[0] if chunks else text
-    intro_lines = [ln.strip() for ln in intro.splitlines() if ln.strip()]
-  # skip duplicate title lines
-    for ln in intro_lines:
-        if "BYLAWS" in ln.upper() and len(ln) < 80:
+    # Introduction: lines before first ARTICLE
+    intro_lines = []
+    article_chunks = []
+    current_article = None
+    for line in merged:
+        am = ARTICLE_RE.match(line)
+        if am:
+            if current_article:
+                article_chunks.append(current_article)
+            current_article = {"num": am.group(1), "title": am.group(2).strip(), "lines": []}
             continue
-        if ln.lower() == "introduction":
-            continue
-        out.append(f"<p>{esc(ln)}</p>")
+        if current_article is None:
+            if line.upper() == "INTRODUCTION":
+                continue
+            if "BYLAWS" in line.upper() and len(line) < 90:
+                continue
+            intro_lines.append(line)
+        else:
+            current_article["lines"].append(line)
+    if current_article:
+        article_chunks.append(current_article)
+
+    # Clean introduction blob from PDF header
+    cleaned_intro = []
+    for line in intro_lines:
+        line = re.sub(
+            r"^ASSURANCE INVESTMENT AND COOPERATIVE INC\.?\s*BYLAWS\s*Introduction\s*",
+            "",
+            line,
+            flags=re.I,
+        ).strip()
+        if line:
+            cleaned_intro.append(line)
+
+    render_bylaws_body(cleaned_intro, out)
     out.append("</section>")
 
-    for chunk in chunks[1:]:
-        lines = [ln.strip() for ln in chunk.splitlines() if ln.strip()]
-        if not lines:
-            continue
-        header = lines[0]
-        m = re.match(r"ARTICLE\s+(\d+)\.\s*(.*)", header, re.I)
-        if not m:
-            continue
-        num, title = m.group(1), m.group(2).strip()
-        sid = f"article-{num}"
+    for art in article_chunks:
+        sid = f"article-{art['num']}"
         out.append(f'<section class="cp-section" id="{sid}">')
         out.append(
-            f'<h2 class="cp-section-title"><span class="cp-article-num">Article {num}</span>{esc(title)}</h2>'
+            f'<h2 class="cp-section-title">'
+            f'<span class="cp-article-num">Article {art["num"]}</span>'
+            f'{esc(art["title"])}</h2>'
         )
-
-        in_ul = False
-        for ln in lines[1:]:
-            if re.match(r"^\d+\.\d+\.", ln):
-                if in_ul:
-                    out.append("</ul>")
-                    in_ul = False
-                out.append(f'<h3 class="cp-subsection-title">{esc(ln)}</h3>')
-                continue
-            if re.match(r"^[a-z]\.\s", ln, re.I):
-                if not in_ul:
-                    out.append('<ul class="cp-legal-list">')
-                    in_ul = True
-                out.append(f"<li>{esc(ln)}</li>")
-                continue
-            if in_ul:
-                out.append("</ul>")
-                in_ul = False
-            out.append(f"<p>{esc(ln)}</p>")
-        if in_ul:
-            out.append("</ul>")
+        render_bylaws_body(art["lines"], out)
         out.append("</section>")
 
     out.append(
@@ -278,5 +395,12 @@ def build_bylaws():
 
 
 if __name__ == "__main__":
-    build_about()
-    build_bylaws()
+    import sys
+
+    if "--bylaws-only" in sys.argv or "--bylaws" in sys.argv:
+        build_bylaws()
+    elif "--about-only" in sys.argv or "--about" in sys.argv:
+        build_about()
+    else:
+        build_about()
+        build_bylaws()

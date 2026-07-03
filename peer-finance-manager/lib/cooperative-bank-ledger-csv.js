@@ -168,7 +168,7 @@ function sortedReferenceHeaderLines(note) {
   const today = cooperativeTodayIso();
   return [
     "Description,,Summary Amt.,,",
-    note || "Cooperative bank ledger reference — sorted by transaction date,,,",
+    note || "Cooperative bank ledger reference : sorted by transaction date,,,",
     `Generated on ${today},,,,`,
     ",,,,",
     "Date,Description,Amount,Running Bal.,Member,Narrative",
@@ -218,7 +218,7 @@ function buildSortedReferenceCsvFromUpload({
       exportRows,
       null,
       sortedReferenceHeaderLines(
-        "Sorted from your uploaded file — replace cooperative-bank-ledger-reference.csv with this download,,,"
+        "Sorted from your uploaded file : replace cooperative-bank-ledger-reference.csv with this download,,,"
       )
     ),
     transactionCount: exportRows.length,
@@ -320,7 +320,7 @@ function writeWorkbook(exportRows, outPath) {
   XLSX.utils.book_append_sheet(wb, ws, "Cooperative Bank Ledger");
 
   const summary = [
-    ["Cooperative Bank Ledger — synced from Peer Finance Manager"],
+    ["Cooperative Bank Ledger : synced from Peer Finance Manager"],
     ["Generated", cooperativeTodayIso()],
     ["Organization slug", getOrgSlug()],
     ["Includes", "bank_import and manual ledger transactions"],
@@ -338,7 +338,7 @@ function syncCooperativeBankLedgerCsvFiles() {
   const xlsxPath = getCooperativeBankLedgerXlsxPath();
 
   writeBankStatementCsv(exportRows, csvPath, sortedReferenceHeaderLines(
-    "Synced from Peer Finance Manager — sorted by transaction date,,,"
+    "Synced from Peer Finance Manager : sorted by transaction date,,,"
   ));
   writeWorkbook(exportRows, xlsxPath);
 

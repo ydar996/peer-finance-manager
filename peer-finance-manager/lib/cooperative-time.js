@@ -1,5 +1,5 @@
 /**
- * Cooperative business calendar — per-tenant IANA time zone (default San Diego / Pacific).
+ * Cooperative business calendar : per-tenant IANA time zone (default San Diego / Pacific).
  */
 const { getOrgSlugOrNull } = require("./org-context");
 const {
@@ -13,17 +13,17 @@ const DEFAULT_COOPERATIVE_TIMEZONE = "America/Los_Angeles";
 const ENV_FALLBACK = process.env.PFM_TIMEZONE || process.env.TZ || null;
 
 const TIMEZONE_LABELS = {
-  "America/Los_Angeles": "Pacific — Los Angeles / San Diego",
-  "America/Denver": "Mountain — Denver",
-  "America/Phoenix": "Arizona — Phoenix (no DST)",
-  "America/Chicago": "Central — Chicago",
-  "America/New_York": "Eastern — New York",
-  "America/Anchorage": "Alaska — Anchorage",
-  "Pacific/Honolulu": "Hawaii — Honolulu",
+  "America/Los_Angeles": "Pacific : Los Angeles / San Diego",
+  "America/Denver": "Mountain : Denver",
+  "America/Phoenix": "Arizona : Phoenix (no DST)",
+  "America/Chicago": "Central : Chicago",
+  "America/New_York": "Eastern : New York",
+  "America/Anchorage": "Alaska : Anchorage",
+  "Pacific/Honolulu": "Hawaii : Honolulu",
   UTC: "UTC",
-  "Europe/London": "United Kingdom — London",
-  "Europe/Paris": "Central Europe — Paris",
-  "Africa/Lagos": "West Africa — Lagos",
+  "Europe/London": "United Kingdom : London",
+  "Europe/Paris": "Central Europe : Paris",
+  "Africa/Lagos": "West Africa : Lagos",
 };
 
 function validateTimezone(timeZone) {
@@ -88,7 +88,7 @@ function calendarParts(date = new Date(), timeZone = getCooperativeTimezone()) {
   };
 }
 
-/** Month/year label safe on UTC servers (Render) — avoids `new Date(y, m-1, 1)` Pacific shift. */
+/** Month/year label safe on UTC servers (Render) : avoids `new Date(y, m-1, 1)` Pacific shift. */
 function formatMonthYearLabel(year, month, timeZone = getCooperativeTimezone()) {
   return new Intl.DateTimeFormat("en-US", {
     month: "long",

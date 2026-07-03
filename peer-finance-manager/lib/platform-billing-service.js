@@ -226,7 +226,7 @@ async function createStripeCheckoutSession(orgSlug, plan, billingEmail) {
           currency: "usd",
           unit_amount: amount,
           product_data: {
-            name: `Peer Finance Manager — ${label}`,
+            name: `Peer Finance Manager: ${label}`,
             description: `Cooperative tenant: ${org.name}`,
           },
           recurring,

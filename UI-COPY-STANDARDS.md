@@ -51,6 +51,8 @@ Use a **colon** (`:`) instead for clause breaks and separators.
 **Where this applies:**
 - `peer-finance-manager/public/index.html`
 - `peer-finance-manager/public/app.js`
+- `peer-finance-manager/public/product.html`
+- `peer-finance-manager/public/cooperative-public.html`
 - `peer-finance-manager/lib/loan-statement-generator.js`
 - `peer-finance-manager/lib/cooperative-books.js`
 - Any new UI strings or PDF labels

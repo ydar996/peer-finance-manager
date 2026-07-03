@@ -408,7 +408,7 @@ function formatSaasPricingLine(pricing, stripeConfigured) {
   if (!pricing) return "";
   const stripeNote = stripeConfigured
     ? "Stripe: configured"
-    : "Stripe: not configured — see STRIPE-SETUP.md";
+    : "Stripe: not configured : see STRIPE-SETUP.md";
   return `SaaS pricing: $${pricing.monthlyPriceUsd.toFixed(2)}/month, $${pricing.quarterlyPriceUsd.toFixed(2)}/quarter (${pricing.quarterlyDiscountPercent}% off 3 months), or $${pricing.annualPriceUsd.toFixed(2)}/year (${pricing.annualDiscountPercent}% off). ${stripeNote}.`;
 }
 
@@ -421,10 +421,10 @@ function updateSubscriptionPayButtons(pricing) {
     monthlyBtn.textContent = `Pay Monthly ($${pricing.monthlyPriceUsd.toFixed(2)})`;
   }
   if (quarterlyBtn) {
-    quarterlyBtn.textContent = `Pay Quarterly ($${pricing.quarterlyPriceUsd.toFixed(2)} — ${pricing.quarterlyDiscountPercent}% off)`;
+    quarterlyBtn.textContent = `Pay Quarterly ($${pricing.quarterlyPriceUsd.toFixed(2)} : ${pricing.quarterlyDiscountPercent}% off)`;
   }
   if (annualBtn) {
-    annualBtn.textContent = `Pay Annual ($${pricing.annualPriceUsd.toFixed(2)} — ${pricing.annualDiscountPercent}% off)`;
+    annualBtn.textContent = `Pay Annual ($${pricing.annualPriceUsd.toFixed(2)} : ${pricing.annualDiscountPercent}% off)`;
   }
 }
 
@@ -447,7 +447,7 @@ function subscriptionStatusClass(status) {
 }
 
 function formatSubscriptionDate(iso) {
-  if (!iso) return "—";
+  if (!iso) return ":";
   try {
     return new Date(iso).toLocaleDateString("en-US", {
       year: "numeric",
@@ -524,10 +524,10 @@ async function loadPlatformOrganizations() {
       <tr>
         <td>${escapeHtml(org.name)}</td>
         <td><code>${escapeHtml(org.slug)}</code></td>
-        <td>${org.memberCount ?? "—"}</td>
-        <td>${escapeHtml(org.adminEmail || "—")}</td>
+        <td>${org.memberCount ?? ":"}</td>
+        <td>${escapeHtml(org.adminEmail || ":")}</td>
         <td><span class="subscription-badge ${subscriptionStatusClass(status)}">${escapeHtml(subscriptionStatusLabel(status))}</span></td>
-        <td>${escapeHtml(org.subscriptionPlan || "—")}</td>
+        <td>${escapeHtml(org.subscriptionPlan || ":")}</td>
         <td>${escapeHtml(formatSubscriptionDate(org.subscriptionCurrentPeriodEnd))}</td>
         <td>${escapeHtml(formatSubscriptionDate(org.subscriptionGraceUntil))}</td>
         <td class="platform-org-actions">
@@ -625,14 +625,14 @@ async function loadPlatformSubscriptionPanel() {
       updateSubscriptionPayButtons(sub.pricing);
       let accessNote = "";
       if (sub.inGracePeriod && !sub.active) {
-        accessNote = `<p class="subscription-grace-banner">Full access continues through <strong>${escapeHtml(formatSubscriptionDate(sub.subscriptionGraceUntil))}</strong> (${sub.graceDaysRemaining} day(s) remaining). You may pay now or before that date — restricted access begins after the grace period unless subscription is active.</p>`;
+        accessNote = `<p class="subscription-grace-banner">Full access continues through <strong>${escapeHtml(formatSubscriptionDate(sub.subscriptionGraceUntil))}</strong> (${sub.graceDaysRemaining} day(s) remaining). You may pay now or before that date : restricted access begins after the grace period unless subscription is active.</p>`;
       } else if (!sub.active) {
         accessNote = `<p class="subscription-banner">An active subscription is required to record changes in Cooperative Books. Pay below or contact the platform administrator.</p>`;
       }
       summary.innerHTML = `
         <p><strong>Status:</strong> ${escapeHtml(subscriptionStatusLabel(status))}</p>
         <p><strong>Plan:</strong> ${escapeHtml(sub.subscriptionPlan || "Not selected")}</p>
-        <p><strong>Payment method:</strong> ${escapeHtml(sub.paymentMethod || "—")}</p>
+        <p><strong>Payment method:</strong> ${escapeHtml(sub.paymentMethod || ":")}</p>
         <p><strong>Current period ends:</strong> ${escapeHtml(formatSubscriptionDate(sub.subscriptionCurrentPeriodEnd))}</p>
         <p><strong>Monthly:</strong> $${sub.pricing.monthlyPriceUsd.toFixed(2)} · <strong>Quarterly:</strong> $${sub.pricing.quarterlyPriceUsd.toFixed(2)} (${sub.pricing.quarterlyDiscountPercent}% off) · <strong>Annual:</strong> $${sub.pricing.annualPriceUsd.toFixed(2)} (${sub.pricing.annualDiscountPercent}% off)</p>
         ${sub.subscriptionNotes ? `<p class="subtle">${escapeHtml(sub.subscriptionNotes)}</p>` : ""}
@@ -647,7 +647,7 @@ async function loadPlatformSubscriptionPanel() {
         checkBox.innerHTML = `
           <p><strong>Check payment requested.</strong> Mail your check payable to <strong>${escapeHtml(sub.checkPayableTo)}</strong>.</p>
           <p>${escapeHtml(sub.checkMailingAddress)}</p>
-          <p class="subtle">Reference: ${escapeHtml(sub.checkPaymentReference || "—")}</p>`;
+          <p class="subtle">Reference: ${escapeHtml(sub.checkPaymentReference || ":")}</p>`;
       } else {
         checkBox.classList.add("hidden");
         checkBox.innerHTML = "";
@@ -944,8 +944,8 @@ async function loadMyAccount() {
     });
   } catch (err) {
     if (requestId !== myAccountRequestId) return;
-    if (depositBalanceSummary) depositBalanceSummary.textContent = "—";
-    if (loanBalanceSummary) loanBalanceSummary.textContent = "—";
+    if (depositBalanceSummary) depositBalanceSummary.textContent = ":";
+    if (loanBalanceSummary) loanBalanceSummary.textContent = ":";
     if (depositBody) depositBody.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
     if (loanLots) loanLots.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
   } finally {
@@ -1457,7 +1457,7 @@ async function loadBooks() {
                 ? `Statement as of ${books.checkingBalanceAsOf}`
                 : null,
               books.ledgerCheckingBalance != null
-                ? `Ledger ${fmt.format(books.ledgerCheckingBalance)} through ${books.ledgerCheckingAsOf || "—"}`
+                ? `Ledger ${fmt.format(books.ledgerCheckingBalance)} through ${books.ledgerCheckingAsOf || ":"}`
                 : null,
             ]
               .filter(Boolean)
@@ -1614,7 +1614,7 @@ function renderMembersList() {
     .map(
       (m) => `
     <tr class="member-row${selectedMemberId === m.id ? " selected" : ""}" data-member-id="${m.id}">
-      <td><span class="member-number">${escapeHtml(m.member_number || "—")}</span></td>
+      <td><span class="member-number">${escapeHtml(m.member_number || ":")}</span></td>
       <td><strong>${escapeHtml(m.display_name || m.name)}</strong><br /><span class="subtle">${escapeHtml(m.name)}</span></td>
       <td class="money member-account-cell" data-account-panel="deposit">${fmt.format(m.deposit_balance ?? m.balance)}</td>
       <td class="money member-account-cell" data-account-panel="loan">${fmt.format(m.loan_balance || 0)}</td>
@@ -2398,7 +2398,7 @@ async function showProfile(memberId) {
         </div>
         <div class="profile-summary">
           <h3>${escapeHtml(p.display_name || p.ledger_account_name)}</h3>
-          <p class="subtle">Member #: <strong>${escapeHtml(p.member_number || "—")}</strong></p>
+          <p class="subtle">Member #: <strong>${escapeHtml(p.member_number || ":")}</strong></p>
           <p class="subtle">Account Name: <strong>${escapeHtml(p.ledger_account_name)}</strong></p>
           ${currentUser?.role === "admin" ? `<button type="button" class="btn" data-edit-profile="${memberId}">Edit Profile</button>` : ""}
           ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File : Use the Record Tab to Add or Update Profile.</p>'}
@@ -3678,7 +3678,7 @@ function renderBankImportConflicts(conflicts) {
       ${warnings
         .map(
           (row) =>
-            `<li>${escapeHtml(row.date || "—")} · ${escapeHtml(fmt.format(row.amount))}${row.assignedMember ? ` · ${escapeHtml(row.assignedMember)}` : ""} · ${escapeHtml(row.message)}${row.description ? ` <span class="muted">(${escapeHtml(String(row.description).slice(0, 72))})</span>` : ""}</li>`
+            `<li>${escapeHtml(row.date || ":")} · ${escapeHtml(fmt.format(row.amount))}${row.assignedMember ? ` · ${escapeHtml(row.assignedMember)}` : ""} · ${escapeHtml(row.message)}${row.description ? ` <span class="muted">(${escapeHtml(String(row.description).slice(0, 72))})</span>` : ""}</li>`
         )
         .join("")}
     </ul>`
@@ -3807,7 +3807,7 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
       summary.textContent = [
         `${r.totalBankRows || 0} bank rows processed`,
         r.ledgerEndingBalance != null
-          ? `Ledger ending balance ${Number(r.ledgerEndingBalance).toFixed(2)} through ${r.ledgerEndingAsOf || "—"}`
+          ? `Ledger ending balance ${Number(r.ledgerEndingBalance).toFixed(2)} through ${r.ledgerEndingAsOf || ":"}`
           : null,
         `${r.deposits || 0} deposits`,
         `${r.loanRepayments || 0} loan repayments`,
@@ -3815,10 +3815,10 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
         r.skippedNoMember ? `${r.skippedNoMember} skipped (member not matched)` : null,
         r.cdBalance != null ? `CD balance set to ${Number(r.cdBalance).toFixed(2)}` : null,
         r.ledgerEndingBalance != null && Math.abs(r.ledgerEndingBalance - 15471.49) > 0.01
-          ? "Warning: expected BoA checking balance is 15,471.49 — verify you uploaded cooperative-bank-ledger-reference.xlsx from AssurCoop/data (453 rows)."
+          ? "Warning: expected BoA checking balance is 15,471.49 : verify you uploaded cooperative-bank-ledger-reference.xlsx from AssurCoop/data (453 rows)."
           : null,
         data.conflicts?.importAudit?.warningCount
-          ? `Warning: ${data.conflicts.importAudit.warningCount} ledger issue(s) were flagged — expand the panel above and fix the file before relying on member balances.`
+          ? `Warning: ${data.conflicts.importAudit.warningCount} ledger issue(s) were flagged : expand the panel above and fix the file before relying on member balances.`
           : null,
         "Use Download sorted reference to pull a date-ordered copy matching live books.",
       ]
@@ -4234,14 +4234,14 @@ async function loadCheckingBalanceForm() {
       const parts = [];
       if (checkingBalance.balance != null) {
         parts.push(
-          `Statement ${fmt.format(checkingBalance.balance)} as of ${checkingBalance.asOf ? formatDate(checkingBalance.asOf) : "—"}`
+          `Statement ${fmt.format(checkingBalance.balance)} as of ${checkingBalance.asOf ? formatDate(checkingBalance.asOf) : ":"}`
         );
       } else {
         parts.push("No bank statement balance on file yet.");
       }
       if (checkingBalance.ledgerBalance != null) {
         parts.push(
-          `Ledger ${fmt.format(checkingBalance.ledgerBalance)} through ${checkingBalance.ledgerAsOf ? formatDate(checkingBalance.ledgerAsOf) : "—"}`
+          `Ledger ${fmt.format(checkingBalance.ledgerBalance)} through ${checkingBalance.ledgerAsOf ? formatDate(checkingBalance.ledgerAsOf) : ":"}`
         );
         if (checkingBalance.balance != null) {
           const diff = checkingBalance.balance - checkingBalance.ledgerBalance;
@@ -5191,7 +5191,7 @@ function setPublicPageBranding(organizationName, pageLabel) {
   if (orgEl) orgName ? (orgEl.textContent = orgName) : (orgEl.textContent = "");
   const pageTitle = $("#publicPageTitle");
   if (pageTitle && pageLabel) pageTitle.textContent = pageLabel;
-  document.title = orgName ? `${orgName} — ${pageLabel}` : pageLabel;
+  document.title = orgName ? `${orgName} : ${pageLabel}` : pageLabel;
 }
 
 async function loadPublicAboutPage(slug) {

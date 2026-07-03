@@ -129,7 +129,7 @@ async function sendReportReminderEmails({ triggerType, dedupeKey, periodSlug, su
 
   const recipients = listMemberNotificationRecipients();
   if (!recipients.length) {
-    trace.info("Report reminder email skipped — no member emails on file", { triggerType, periodSlug });
+    trace.info("Report reminder email skipped : no member emails on file", { triggerType, periodSlug });
     return { sent: false, skipped: true, reason: "no_recipients" };
   }
 
@@ -169,7 +169,7 @@ async function sendCooperativeReportPublishedEmails(periodSlug) {
   const branding = getOrganizationBrandingForReport();
   const portalUrl = getMemberPortalUrl();
   const dedupeKey = `published:${periodSlug}:${record.published_at || record.generated_at}`;
-  const subject = `${branding.organizationName} — Cooperative Status Report Published`;
+  const subject = `${branding.organizationName} : Cooperative Status Report Published`;
 
   return sendReportReminderEmails({
     triggerType: "report_published",
@@ -200,7 +200,7 @@ async function sendMonthEndReportReminderEmails(date = new Date()) {
   const dedupeKey = `month_end:${dateIso}`;
   const branding = getOrganizationBrandingForReport();
   const portalUrl = getMemberPortalUrl();
-  const subject = `${branding.organizationName} — Review Your Monthly Reports`;
+  const subject = `${branding.organizationName} : Review Your Monthly Reports`;
 
   return sendReportReminderEmails({
     triggerType: "month_end",

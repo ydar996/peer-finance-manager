@@ -87,7 +87,7 @@ async function sendMemberBroadcastEmail({ triggerType, dedupeKey, subject, textF
   }
   const recipients = listMemberNotificationRecipients();
   if (!recipients.length) {
-    trace.info("Meeting email skipped — no member emails on file", { triggerType, dedupeKey });
+    trace.info("Meeting email skipped : no member emails on file", { triggerType, dedupeKey });
     return { sent: false, skipped: true, reason: "no_recipients" };
   }
   let sentCount = 0;
@@ -116,7 +116,7 @@ async function sendMeetingAnnouncedEmails(meetingOrId, options = {}) {
   const dedupeKey = options.bypassDedupe
     ? `meeting_announced_manual:${meeting.id}:${Date.now()}`
     : `meeting_announced:${meeting.id}:${meeting.announcedAt || meeting.updatedAt}`;
-  const subject = `${branding.organizationName} — Meeting Announcement: ${meeting.title}`;
+  const subject = `${branding.organizationName} : Meeting Announcement: ${meeting.title}`;
 
   return sendMemberBroadcastEmail({
     triggerType: "meeting_announced",
@@ -143,7 +143,7 @@ async function sendMeetingCancelledEmails(meetingOrId) {
   }
   const branding = getOrganizationBranding();
   const dedupeKey = `meeting_cancelled:${meeting.id}:${meeting.cancelledAt || meeting.updatedAt}`;
-  const subject = `${branding.organizationName} — Meeting Cancelled: ${meeting.title}`;
+  const subject = `${branding.organizationName} : Meeting Cancelled: ${meeting.title}`;
 
   return sendMemberBroadcastEmail({
     triggerType: "meeting_cancelled",
@@ -152,7 +152,7 @@ async function sendMeetingCancelledEmails(meetingOrId) {
     textFor: (recipient) =>
       `Hello ${recipient.memberName},\n\n` +
       `The following cooperative meeting has been cancelled:\n\n` +
-      `${meeting.title} — ${meeting.meetingDateLabel} at ${meeting.meetingTimeLabel}\n\n` +
+      `${meeting.title} : ${meeting.meetingDateLabel} at ${meeting.meetingTimeLabel}\n\n` +
       `${branding.organizationName}`,
     htmlFor: (recipient) =>
       `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
@@ -172,7 +172,7 @@ async function sendMeetingReminderEmails(meetingOrId) {
   const branding = getOrganizationBranding();
   const portalUrl = getMemberPortalUrl();
   const dedupeKey = `meeting_reminder:${meeting.id}:${meeting.meetingDate}:${meeting.meetingTime}`;
-  const subject = `${branding.organizationName} — Meeting Reminder: ${meeting.title}`;
+  const subject = `${branding.organizationName} : Meeting Reminder: ${meeting.title}`;
 
   return sendMemberBroadcastEmail({
     triggerType: "meeting_reminder",
@@ -180,12 +180,12 @@ async function sendMeetingReminderEmails(meetingOrId) {
     subject,
     textFor: (recipient) =>
       `Hello ${recipient.memberName},\n\n` +
-      `Reminder — cooperative meeting coming up:\n\n` +
+      `Reminder : cooperative meeting coming up:\n\n` +
       meetingDetailsText(meeting, branding) +
       `\n\nMember portal: ${portalUrl}\n`,
     htmlFor: (recipient) =>
       `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
-      `<p>Reminder — cooperative meeting coming up:</p>` +
+      `<p>Reminder : cooperative meeting coming up:</p>` +
       meetingDetailsHtml(meeting, branding) +
       `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>`,
   });
