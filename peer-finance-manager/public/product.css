@@ -235,7 +235,7 @@ a {
 
 .pf-hero-visual {
   position: relative;
-  min-height: 340px;
+  min-height: 420px;
 }
 
 .pf-mock-card {
@@ -243,28 +243,47 @@ a {
   background: var(--pf-surface);
   border: 1px solid var(--pf-border);
   border-radius: 20px;
-  padding: 20px 22px;
+  padding: 18px 20px;
   box-shadow: var(--pf-shadow);
 }
 
 .pf-mock-card-a {
   top: 0;
   left: 0;
-  right: 12%;
+  width: 58%;
   background: var(--pf-hero);
   color: #fff;
+  z-index: 3;
 }
 
 .pf-mock-card-b {
-  top: 38%;
+  top: 8%;
   right: 0;
-  width: 48%;
+  width: 44%;
+  z-index: 2;
 }
 
 .pf-mock-card-c {
+  top: 38%;
+  left: 4%;
+  width: 48%;
+  z-index: 4;
+}
+
+.pf-mock-card-d {
+  top: 48%;
+  right: 2%;
+  width: 46%;
+  background: linear-gradient(135deg, #0f766e, #0c4a6e);
+  color: #fff;
+  z-index: 3;
+}
+
+.pf-mock-card-e {
   bottom: 0;
-  left: 8%;
+  left: 18%;
   width: 52%;
+  z-index: 2;
 }
 
 .pf-mock-label {
@@ -277,7 +296,7 @@ a {
 .pf-mock-value {
   margin: 6px 0 4px;
   font-family: var(--pf-display);
-  font-size: 2rem;
+  font-size: 1.75rem;
   line-height: 1;
 }
 
@@ -847,7 +866,29 @@ a {
   }
 
   .pf-hero-visual {
-    min-height: 280px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    min-height: 0;
+  }
+
+  .pf-mock-card {
+    position: relative;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: auto !important;
+    margin: 0;
+    z-index: auto;
+  }
+
+  .pf-mock-card-a {
+    grid-column: 1 / -1;
+  }
+
+  .pf-mock-value {
+    font-size: 1.45rem;
   }
 
   .pf-nav a:not(.pf-nav-cta):not(.pf-nav-ghost) {
@@ -894,16 +935,12 @@ a {
 }
 
 @media (max-width: 560px) {
-  .pf-mock-card {
-    position: relative;
-    width: 100% !important;
-    right: auto !important;
-    left: auto !important;
-    margin-bottom: 12px;
+  .pf-hero-visual {
+    grid-template-columns: 1fr;
   }
 
-  .pf-hero-visual {
-    min-height: auto;
+  .pf-mock-card-a {
+    grid-column: auto;
   }
 
   .pf-powered-by {
