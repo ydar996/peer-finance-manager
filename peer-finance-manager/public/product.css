@@ -522,9 +522,11 @@ a {
 .pf-powered-by {
   display: flex;
   justify-content: center;
-  margin-bottom: 24px;
-  padding: 18px 24px;
-  border-radius: 18px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 20px;
+  padding: 8px 12px;
+  border-radius: 12px;
   background: #0f172a;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -533,7 +535,7 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 10px;
   max-width: 100%;
   color: #fff;
   text-decoration: none;
@@ -541,9 +543,9 @@ a {
 
 .pf-powered-logo {
   display: block;
-  width: 120px;
+  width: 72px;
   height: auto;
-  border-radius: 10px;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 
@@ -551,11 +553,11 @@ a {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0 10px;
-  font-size: 0.95rem;
+  gap: 0 8px;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #fff;
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 .pf-powered-sep {
@@ -946,24 +948,24 @@ a {
   }
 
   .pf-powered-by {
-    padding: 16px 18px;
+    padding: 8px 10px;
   }
 
   .pf-powered-link {
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
     text-align: center;
   }
 
   .pf-powered-logo {
-    width: 96px;
+    width: 56px;
   }
 
   .pf-powered-text {
     justify-content: center;
-    font-size: 0.88rem;
-    line-height: 1.5;
+    font-size: 0.78rem;
+    line-height: 1.35;
   }
 
   .pf-powered-sep {

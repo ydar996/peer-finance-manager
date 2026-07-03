@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-03** — Product page Work Chop footer: compact content-sized badge (`width: fit-content`, smaller logo/padding) instead of full-width banner; mobile stacks logo above text. **Production:** `git push`.
 - **2026-07-03** — Headings and section leads use full content width **app-wide** (`product.css`, `styles.css`, `cooperative-public.css`, legacy `public/styles.css`): no artificial `max-width` on titles/hints/leads. Form/input layout widths unchanged. Hero: five dashboard mock cards; mobile/tablet grid shows all cards. **Production:** `git push`.
 - **2026-07-03** — **Cooperative capitalization enforced app-wide for all tenants:** `capitalizeCooperativeWording()` in `text-format.js`; public About/Bylaws sanitize + save; API error JSON middleware; HTML builder `esc()`; seed v12. **Production:** `git push`; Render restart re-seeds public pages.
 - **2026-07-03** — Product page polish: workflow step 4 real-time copy; centered Work Chop footer (mobile stack); trust section color cards + title case; **Title Case rule** extended (lowercase 2–3 letter words; capitalize **Cooperative**); footer tagline update. Bylaws nested Roman lists under letter items (seed v10). **Production:** `git push`.
