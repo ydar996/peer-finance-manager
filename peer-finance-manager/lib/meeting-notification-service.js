@@ -124,12 +124,12 @@ async function sendMeetingAnnouncedEmails(meetingOrId, options = {}) {
     subject,
     textFor: (recipient) =>
       `Hello ${recipient.memberName},\n\n` +
-      `A cooperative meeting has been scheduled:\n\n` +
+      `A Cooperative meeting has been scheduled:\n\n` +
       meetingDetailsText(meeting, branding) +
       `\n\nView details on the member portal: ${portalUrl}\n`,
     htmlFor: (recipient) =>
       `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
-      `<p>A cooperative meeting has been scheduled:</p>` +
+      `<p>A Cooperative meeting has been scheduled:</p>` +
       meetingDetailsHtml(meeting, branding) +
       `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>`,
   });
@@ -151,12 +151,12 @@ async function sendMeetingCancelledEmails(meetingOrId) {
     subject,
     textFor: (recipient) =>
       `Hello ${recipient.memberName},\n\n` +
-      `The following cooperative meeting has been cancelled:\n\n` +
+      `The following Cooperative meeting has been cancelled:\n\n` +
       `${meeting.title} : ${meeting.meetingDateLabel} at ${meeting.meetingTimeLabel}\n\n` +
       `${branding.organizationName}`,
     htmlFor: (recipient) =>
       `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
-      `<p>The following cooperative meeting has been cancelled:</p>` +
+      `<p>The following Cooperative meeting has been cancelled:</p>` +
       `<p><strong>${escapeHtml(meeting.title)}</strong><br>` +
       `${escapeHtml(meeting.meetingDateLabel)} at ${escapeHtml(meeting.meetingTimeLabel)}</p>` +
       `<p>${escapeHtml(branding.organizationName)}</p>`,
@@ -180,12 +180,12 @@ async function sendMeetingReminderEmails(meetingOrId) {
     subject,
     textFor: (recipient) =>
       `Hello ${recipient.memberName},\n\n` +
-      `Reminder : cooperative meeting coming up:\n\n` +
+      `Reminder : Cooperative meeting coming up:\n\n` +
       meetingDetailsText(meeting, branding) +
       `\n\nMember portal: ${portalUrl}\n`,
     htmlFor: (recipient) =>
       `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
-      `<p>Reminder : cooperative meeting coming up:</p>` +
+      `<p>Reminder : Cooperative meeting coming up:</p>` +
       meetingDetailsHtml(meeting, branding) +
       `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>`,
   });

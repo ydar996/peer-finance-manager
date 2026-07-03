@@ -514,7 +514,7 @@ async function loadPlatformOrganizations() {
     }
     const orgs = data.organizations || [];
     if (!orgs.length) {
-      body.innerHTML = `<tr><td colspan="9" class="subtle">No cooperatives registered yet.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="9" class="subtle">No Cooperatives registered yet.</td></tr>`;
       return;
     }
     body.innerHTML = orgs
@@ -1808,14 +1808,14 @@ function renderMyProfileSection(profile) {
     ${profileDisclosureHtml(
       "Membership Biodata",
       `
-      <p class="subtle profile-disclosure-note">Review your membership details. Contact the cooperative to change biodata other than emergency contact.</p>
+      <p class="subtle profile-disclosure-note">Review your membership details. Contact the Cooperative to change biodata other than emergency contact.</p>
       ${profileDemographicsGridHtml(p)}
     `
     )}
     ${profileDisclosureHtml(
       "Emergency Contact",
       `
-      <p class="subtle profile-disclosure-note">Optional. Saved to your membership record and visible to cooperative administrators.</p>
+      <p class="subtle profile-disclosure-note">Optional. Saved to your membership record and visible to Cooperative administrators.</p>
       <form id="myEmergencyContactForm" class="entry-form">
         <label>First Name
           <input type="text" name="emergencyFirstName" value="${escapeHtml(p.next_of_kin_first_name || "")}" />
@@ -4798,7 +4798,7 @@ document.querySelectorAll(".org-slug-input").forEach((input) => {
 $("#registerOrganizationForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const status = $("#registerStatus");
-  status.textContent = "Creating cooperative…";
+  status.textContent = "Creating Cooperative…";
   status.className = "status";
   try {
     const payload = Object.fromEntries(new FormData(e.target).entries());

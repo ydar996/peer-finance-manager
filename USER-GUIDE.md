@@ -12,22 +12,22 @@
 1. Open: **https://peer-finance-manager.netlify.app/member**
 2. Enter:
    - **Organization code:** `assurance`
-   - **Username:** *(sent to you by the cooperative)*
+   - **Username:** *(sent to you by the Cooperative)*
    - **Password:** *(sent to you — temporary)*
 3. Click **Sign In**
 
 **What you can see on My Account:**
 
-- **My Profile** — expand **Membership Biodata** to review your details (read-only; contact the cooperative to change other fields)
+- **My Profile** — expand **Membership Biodata** to review your details (read-only; contact the Cooperative to change other fields)
 - **Emergency Contact** — expand to view or update your emergency contact (optional)
-- **Profile Photo** — optional upload or update (members can change a photo the cooperative already added)
+- **Profile Photo** — optional upload or update (members can change a photo the Cooperative already added)
 - Contributions account balance and transaction history with running balance
 - Loan account (if you have a loan): expand **Loan Account** to see each loan; **Actual Repayments** show a running **Balance** after each payment; paid loans are collapsed by default
 - Download **monthly statement PDF**
-- **Cooperative Status Reports** — when the administrator publishes the month-end cooperative summary, it appears here for download (PDF)
+- **Cooperative Status Reports** — when the administrator publishes the month-end Cooperative summary, it appears here for download (PDF)
 - **Cooperative Meetings** — when the administrator announces a meeting, date, time, location, and agenda appear here (and by email if configured)
 
-**On a phone:** the header hides the long cooperative subtitle and your name/role line; use the **power icon** (top right) to sign out. There is no **My Account** tab — you land directly on your profile and balances after sign-in. Transaction tables hide the **Description** column by default so dates and amounts fit better. Tap **Show Descriptions** at the top of My Account if you need the full detail. Tap **Hide Descriptions** to collapse again. Swipe sideways on a table if you need to see every column. Each transaction stays on one line.
+**On a phone:** the header hides the long Cooperative subtitle and your name/role line; use the **power icon** (top right) to sign out. There is no **My Account** tab — you land directly on your profile and balances after sign-in. Transaction tables hide the **Description** column by default so dates and amounts fit better. Tap **Show Descriptions** at the top of My Account if you need the full detail. Tap **Hide Descriptions** to collapse again. Swipe sideways on a table if you need to see every column. Each transaction stays on one line.
 
 **First visit may be slow** (up to 30 seconds) if the server was idle — wait and try again.
 
@@ -59,7 +59,7 @@
 
 1. Open: **https://peer-finance-manager.netlify.app/staff**
 2. Sign in with your staff email and password.
-3. You can **view** cooperative data — you cannot make changes.
+3. You can **view** Cooperative data — you cannot make changes.
 
 ---
 

@@ -250,7 +250,7 @@ async function createStripeBillingPortalSession(orgSlug) {
   if (!stripe) throw new Error("Stripe is not configured");
   const org = getOrganization(orgSlug);
   if (!org?.stripeCustomerId) {
-    throw new Error("No Stripe customer on file for this cooperative");
+    throw new Error("No Stripe customer on file for this Cooperative");
   }
   const session = await stripe.billingPortal.sessions.create({
     customer: org.stripeCustomerId,

@@ -1,6 +1,6 @@
 # Peer Finance Manager : What It Does
 
-Peer Finance Manager is cloud software built for **member-owned cooperatives** and **peer finance groups**. Each cooperative gets its own secure space with its own members, books, and branding. Think of it as a digital back office plus a member portal : so treasurers stop wrestling with spreadsheets and members can see their own accounts anytime.
+Peer Finance Manager is cloud software built for **member-owned Cooperatives** and **peer finance groups**. Each Cooperative gets its own secure space with its own members, books, and branding. Think of it as a digital back office plus a member portal : so treasurers stop wrestling with spreadsheets and members can see their own accounts anytime.
 
 ---
 
@@ -10,8 +10,8 @@ Peer Finance Manager is cloud software built for **member-owned cooperatives** a
 |----------|-----------------|
 | **Cooperative administrators** | Run the books, import bank activity, approve loans, publish reports, manage member logins |
 | **Staff / board (read-only)** | Review finances and member accounts without changing anything |
-| **Members** | View contributions, loans, statements, meeting notices, and cooperative performance reports |
-| **Platform operator** | Host many cooperatives, manage subscriptions and billing |
+| **Members** | View contributions, loans, statements, meeting notices, and Cooperative performance reports |
+| **Platform operator** | Host many Cooperatives, manage subscriptions and billing |
 
 ---
 
@@ -20,9 +20,9 @@ Peer Finance Manager is cloud software built for **member-owned cooperatives** a
 Everyone signs in through a **web browser** with an **organization code** (for example `assurance`).
 
 - **Member Portal** : members see only their own profile and accounts
-- **Staff Portal** : read-only view of cooperative books, members, loans, and statements
+- **Staff Portal** : read-only view of Cooperative books, members, loans, and statements
 - **Administrator Portal** : full management access
-- **Register** : a new cooperative can sign up and create its first administrator account
+- **Register** : a new Cooperative can sign up and create its first administrator account
 - **Platform Administration** : for the SaaS operator managing all tenants
 
 Members with temporary passwords are asked to **set a new password** on first login.
@@ -31,7 +31,7 @@ Members with temporary passwords are asked to **set a new password** on first lo
 
 ## Cooperative Books (Financial Dashboard)
 
-The dashboard is the administrator’s and staff’s home screen. It shows a live picture of the cooperative’s finances with **clickable cards** that open detailed breakdowns.
+The dashboard is the administrator’s and staff’s home screen. It shows a live picture of the Cooperative’s finances with **clickable cards** that open detailed breakdowns.
 
 ### Activity at a glance
 - Deposits this month
@@ -44,10 +44,10 @@ The dashboard is the administrator’s and staff’s home screen. It shows a liv
 - Registration income (one-time membership fees)
 - CD interest income
 - Loan interest income
-- Total cooperative income
+- Total Cooperative income
 - Cooperative expenses
 - Distributions paid to members
-- Net cooperative income
+- Net Cooperative income
 - Expected future loan interest
 - Loans outstanding (principal and count)
 - Current bank checking balance
@@ -79,7 +79,7 @@ Members see a simplified, mobile-friendly view of:
 - Contributions balance and transaction history
 - Downloadable monthly contribution statements (PDF)
 - Active loans with repayment history and schedules
-- Published **cooperative performance reports**
+- Published **Cooperative performance reports**
 - Announced **meetings**
 - Links to public **About Us** and **Bylaws** pages when published
 
@@ -132,7 +132,7 @@ Recent expenses and distributions appear on the same screen for quick reference.
 
 ## Bank Ledger and Reconciliation
 
-The app is designed to work with a **master cooperative bank ledger** (Excel) aligned to your real bank statement. Imports update live books; the dashboard **bank balance** card reflects checking activity. Pre-import checks help catch balance mismatches and misclassified rows.
+The app is designed to work with a **master Cooperative bank ledger** (Excel) aligned to your real bank statement. Imports update live books; the dashboard **bank balance** card reflects checking activity. Pre-import checks help catch balance mismatches and misclassified rows.
 
 ---
 
@@ -146,7 +146,7 @@ The app is designed to work with a **master cooperative bank ledger** (Excel) al
 
 ## Monthly Performance Reports
 
-- Auto-generated **PDF cooperative performance report** at month-end
+- Auto-generated **PDF Cooperative performance report** at month-end
 - Can auto-publish to the member portal
 - Administrators can generate, publish, unpublish, or download manually
 - Organization **time zone** setting drives report dates
@@ -162,7 +162,7 @@ Administrators can schedule meetings (title, date, time, location, virtual link,
 
 ## Public Pages (No Login Required)
 
-Each cooperative can publish:
+Each Cooperative can publish:
 
 - **About Us** : mission, membership, leadership, photos
 - **Bylaws** : readable HTML version plus optional PDF
@@ -193,7 +193,7 @@ Cooperatives pay a platform subscription (card via **Stripe**, or check by arran
 
 ## Security and Data Isolation
 
-- Each cooperative’s data is **isolated** : separate database context per organization
+- Each Cooperative’s data is **isolated** : separate database context per organization
 - Role-based access: members see only themselves; staff read-only; admins write
 - Subscription gate protects write operations when billing is inactive
 
@@ -208,12 +208,12 @@ Cooperatives pay a platform subscription (card via **Stripe**, or check by arran
 
 ## Desktop Option
 
-A separate **Windows desktop** build exists for local administrator use (documented separately). It does not automatically sync to the cloud : the web app is the shared system of record for hosted cooperatives.
+A separate **Windows desktop** build exists for local administrator use (documented separately). It does not automatically sync to the cloud : the web app is the shared system of record for hosted Cooperatives.
 
 ---
 
 ## Quick Summary
 
-Peer Finance Manager helps cooperatives **track member money**, **manage loans**, **import bank activity**, **publish statements and reports**, **announce meetings**, and give **members a transparent view** of their own accounts : without everyone sharing one spreadsheet.
+Peer Finance Manager helps Cooperatives **track member money**, **manage loans**, **import bank activity**, **publish statements and reports**, **announce meetings**, and give **members a transparent view** of their own accounts : without everyone sharing one spreadsheet.
 
-**Typical workflow:** register the cooperative → add members → import or record transactions → use the dashboard daily → publish monthly reports → members log in to see their balances and download statements.
+**Typical workflow:** register the Cooperative → add members → import or record transactions → use the dashboard daily → publish monthly reports → members log in to see their balances and download statements.

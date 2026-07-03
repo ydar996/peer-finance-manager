@@ -178,13 +178,13 @@ async function sendCooperativeReportPublishedEmails(periodSlug) {
     subject,
     textFor: (recipient) =>
       `Hello ${recipient.memberName},\n\n` +
-      `The cooperative monthly status report for ${period.periodLabel} (as at ${period.labelUs}) is now available on the member portal. ` +
+      `The Cooperative monthly status report for ${period.periodLabel} (as at ${period.labelUs}) is now available on the member portal. ` +
       `You can also review your personal account statements there.\n\n` +
       `Sign in: ${portalUrl}\n\n` +
       `${branding.organizationName}`,
     htmlFor: (recipient) =>
       `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
-      `<p>The cooperative monthly status report for <strong>${escapeHtml(period.periodLabel)}</strong> ` +
+      `<p>The Cooperative monthly status report for <strong>${escapeHtml(period.periodLabel)}</strong> ` +
       `(as at ${escapeHtml(period.labelUs)}) is now available on the member portal. ` +
       `You can also review your personal account statements there.</p>` +
       `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>` +
@@ -209,13 +209,13 @@ async function sendMonthEndReportReminderEmails(date = new Date()) {
     subject,
     textFor: (recipient) =>
       `Hello ${recipient.memberName},\n\n` +
-      `Today is the last day of ${period.periodLabel}. Please sign in to the member portal to review your personal account statements and the cooperative monthly status report.\n\n` +
+      `Today is the last day of ${period.periodLabel}. Please sign in to the member portal to review your personal account statements and the Cooperative monthly status report.\n\n` +
       `Sign in: ${portalUrl}\n\n` +
       `${branding.organizationName}`,
     htmlFor: (recipient) =>
       `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
       `<p>Today is the last day of <strong>${escapeHtml(period.periodLabel)}</strong>. ` +
-      `Please sign in to the member portal to review your personal account statements and the cooperative monthly status report.</p>` +
+      `Please sign in to the member portal to review your personal account statements and the Cooperative monthly status report.</p>` +
       `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>` +
       `<p>${escapeHtml(branding.organizationName)}</p>`,
   });

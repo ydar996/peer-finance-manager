@@ -159,7 +159,7 @@
         <div>
           <p class="brand org-brand">Peer Finance Manager</p>
           <h1>Platform Administration</h1>
-          <p class="subtle" id="platformSubtitle">Manage tenant cooperatives and SaaS subscriptions</p>
+          <p class="subtle" id="platformSubtitle">Manage tenant Cooperatives and SaaS subscriptions</p>
         </div>
         <div class="session-bar">
           <p id="platformSessionUser" class="session-user"></p>
@@ -235,7 +235,7 @@
           <h1 id="publicPageTitle">Cooperative</h1>
           <p class="subtle" id="publicOrgName"></p>
         </div>
-        <nav class="public-header-actions" aria-label="Public cooperative pages">
+        <nav class="public-header-actions" aria-label="Public Cooperative pages">
           <a href="#" id="publicNavAbout" class="btn">About Us</a>
           <a href="#" id="publicNavBylaws" class="btn">Bylaws</a>
         </nav>
@@ -244,11 +244,11 @@
         <div id="publicPageStatus" class="status hidden"></div>
         <article id="publicAboutArticle" class="public-article hidden"></article>
         <section id="publicBylawsSection" class="public-bylaws hidden">
-          <p class="public-bylaws-intro">Official cooperative bylaws document. <a href="#" id="publicBylawsAboutLink">About Us</a></p>
+          <p class="public-bylaws-intro">Official Cooperative bylaws document. <a href="#" id="publicBylawsAboutLink">About Us</a></p>
           <div class="panel-head-actions public-bylaws-actions">
             <a href="#" id="publicBylawsDownload" class="btn" target="_blank" rel="noopener">Open PDF in new tab</a>
           </div>
-          <iframe id="publicBylawsFrame" class="public-bylaws-frame" title="Cooperative bylaws"></iframe>
+          <iframe id="publicBylawsFrame" class="public-bylaws-frame" title="Cooperative Bylaws"></iframe>
         </section>
       </main>
     </div>
@@ -347,7 +347,7 @@
                     <span>Cooperative time zone (reports, dashboard, ledger dates)</span>
                     <select id="cooperativeTimezone"></select>
                   </label>
-                  <p class="hint subtle">Default is Pacific (Los Angeles / San Diego). All administrators share one time zone per cooperative.</p>
+                  <p class="hint subtle">Default is Pacific (Los Angeles / San Diego). All administrators share one time zone per Cooperative.</p>
                   <label class="toggle-row">
                     <input type="checkbox" id="monthlyStatusAutoGenerate" checked />
                     Automatically generate at month end (as at last calendar day)
@@ -360,7 +360,7 @@
                     <span>Organization website (optional, shown on report cover)</span>
                     <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
                   </label>
-                  <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the cooperative report is built as at that calendar month-end date and published to members. You can still regenerate and publish manually anytime. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
+                  <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the Cooperative report is built as at that calendar month-end date and published to members. You can still regenerate and publish manually anytime. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
                   <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Organization Settings</button>
                 </div>
               </details>
@@ -412,7 +412,7 @@
               <span class="badge" id="cooperativeMeetingsBadge">Loading…</span>
             </summary>
             <div class="profile-disclosure-body cooperative-meetings-body">
-              <p class="subtle">Schedule cooperative meetings for your organization. Announced meetings appear on every member&apos;s portal and trigger email notifications when SMTP is configured.</p>
+              <p class="subtle">Schedule Cooperative meetings for your organization. Announced meetings appear on every member&apos;s portal and trigger email notifications when SMTP is configured.</p>
               <details class="monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="cooperativeMeetingsSettingsPanel">
                 <summary>Meeting Reminder Settings</summary>
                 <div class="profile-disclosure-body">
@@ -424,7 +424,7 @@
                     <span>Reminder lead time (hours before meeting)</span>
                     <input type="number" id="meetingsReminderHours" min="1" max="168" value="24" />
                   </label>
-                  <p class="hint subtle">Uses your cooperative time zone from Organization &amp; Report Settings above. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
+                  <p class="hint subtle">Uses your Cooperative time zone from Organization &amp; Report Settings above. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
                   <button type="button" class="btn" id="saveMeetingSettings">Save Reminder Settings</button>
                 </div>
               </details>
@@ -471,7 +471,7 @@
               <span class="badge" id="platformSubscriptionBadge">Loading…</span>
             </summary>
             <div class="profile-disclosure-body platform-subscription-body">
-              <p class="subtle">Peer Finance Manager SaaS fee for your cooperative. Pay by credit/debit card (Stripe) or mail a check.</p>
+              <p class="subtle">Peer Finance Manager SaaS fee for your Cooperative. Pay by credit/debit card (Stripe) or mail a check.</p>
               <div id="platformSubscriptionSummary" class="platform-subscription-summary">Loading…</div>
               <div class="panel-head-actions platform-subscription-actions">
                 <button type="button" class="btn primary" id="payMonthlyStripe">Pay Monthly</button>
@@ -1157,7 +1157,7 @@
             <span class="badge" id="myCooperativeReportsBadge">:</span>
           </summary>
           <div class="profile-disclosure-body my-cooperative-reports-body">
-            <p class="subtle">Published month-end summaries from your cooperative administrator.</p>
+            <p class="subtle">Published month-end summaries from your Cooperative administrator.</p>
             <p id="myPerformanceOverview" class="monthly-status-performance-overview hidden"></p>
             <ul class="file-list" id="myCooperativeReportsList"></ul>
           </div>
@@ -1168,7 +1168,7 @@
             <span class="badge" id="myMeetingsBadge">:</span>
           </summary>
           <div class="profile-disclosure-body my-meetings-body">
-            <p class="subtle">Upcoming meetings announced by your cooperative administrator.</p>
+            <p class="subtle">Upcoming meetings announced by your Cooperative administrator.</p>
             <ul class="file-list my-meetings-list" id="myMeetingsList"></ul>
           </div>
         </details>

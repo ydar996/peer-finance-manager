@@ -136,7 +136,7 @@ function buildPerformanceOverview(data, books) {
 
   const sentences = [
     `As at ${period.labelUs}, ${organizationName} serves ${memberCount} member${memberCount === 1 ? "" : "s"} with ${formatMoney(balanceSheet.membersDeposits)} in deposit accounts and ${formatMoney(balanceSheet.totalAssets)} in total assets.`,
-    `The cooperative generated ${formatMoney(incomeStatement.totalIncome)} in income and reported ${netPhrase} after operational expenses of ${formatMoney(incomeStatement.operationalExpenses)}.`,
+    `The Cooperative generated ${formatMoney(incomeStatement.totalIncome)} in income and reported ${netPhrase} after operational expenses of ${formatMoney(incomeStatement.operationalExpenses)}.`,
     `Liquid resources total ${formatMoney(bankBalances.total)} between the checking account and the certificate of deposit. Outstanding member loans are ${formatMoney(balanceSheet.loansOutstanding)}${activeBorrowers ? ` across ${activeBorrowers} active borrower${activeBorrowers === 1 ? "" : "s"}` : ""}.`,
   ];
 
@@ -449,7 +449,7 @@ function buildCooperativeStatusReportHtml(data) {
     ${data.website ? `<p class="site">${escapeHtml(data.website)}</p>` : ""}
     <h1>Cooperative Monthly Status Report</h1>
     <p class="as-of">Statement of Affairs as at ${period.labelUs}</p>
-    <p class="prepared">Prepared ${escapeHtml(data.preparedOn)} · Figures from cooperative ledger</p>
+    <p class="prepared">Prepared ${escapeHtml(data.preparedOn)} · Figures from Cooperative ledger</p>
   </header>
 
   <section class="performance-overview">
@@ -479,7 +479,7 @@ function buildCooperativeStatusReportHtml(data) {
     ${unearnedBlock}
   </div>
 
-  <p class="report-footnote">* Operational expenses are grouped by administrator-assigned report labels. Checking account balance is taken from the imported bank ledger (or the statement entered on the Record tab). Retained earnings reconcile total assets to members&apos; deposits and may differ from income-statement net income when cooperative fund activity is recorded outside that statement.</p>
+  <p class="report-footnote">* Operational expenses are grouped by administrator-assigned report labels. Checking account balance is taken from the imported bank ledger (or the statement entered on the Record tab). Retained earnings reconcile total assets to members&apos; deposits and may differ from income-statement net income when Cooperative fund activity is recorded outside that statement.</p>
 </body>
 </html>`;
 }
