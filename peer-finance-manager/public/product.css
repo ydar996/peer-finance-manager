@@ -644,6 +644,41 @@ a {
   line-height: 1.55;
 }
 
+.pf-pricing-enterprise {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding: 28px 32px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(12, 74, 110, 0.06), rgba(15, 118, 110, 0.08));
+  border: 1px solid rgba(15, 118, 110, 0.18);
+}
+
+.pf-pricing-enterprise .pf-eyebrow {
+  margin-bottom: 6px;
+}
+
+.pf-pricing-enterprise h3 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.pf-pricing-enterprise p {
+  margin: 0;
+  max-width: 560px;
+  font-size: 0.92rem;
+  color: var(--pf-ink-soft);
+  line-height: 1.55;
+}
+
+.pf-pricing-enterprise .pf-btn {
+  flex-shrink: 0;
+}
+
 .pf-trust-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
