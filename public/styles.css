@@ -8,6 +8,7 @@ body {
 .app { max-width: 1280px; margin: 0 auto; padding: 24px; }
 .brand { font-size: 12px; color: #64748b; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.06em; }
 h1 { margin: 0 0 4px; font-size: 28px; }
+h1, h2, h3, h4, .hint, .subtle { max-width: none; }
 .subtle { color: #64748b; margin: 0; }
 .tabs { display: flex; gap: 8px; margin: 24px 0 16px; }
 .tab {

@@ -168,7 +168,7 @@ a {
   margin: 0 0 24px;
   font-size: 1.08rem;
   color: var(--pf-ink-soft);
-  max-width: 52ch;
+  max-width: none;
 }
 
 .pf-hero-actions {
@@ -662,7 +662,7 @@ a {
 
 .pf-pricing-footnote {
   margin: 24px auto 0;
-  max-width: 640px;
+  max-width: none;
   text-align: center;
   font-size: 0.9rem;
   color: var(--pf-muted);
@@ -694,7 +694,7 @@ a {
 
 .pf-pricing-enterprise p {
   margin: 0;
-  max-width: 560px;
+  max-width: none;
   font-size: 0.92rem;
   color: var(--pf-ink-soft);
   line-height: 1.55;

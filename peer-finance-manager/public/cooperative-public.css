@@ -235,12 +235,12 @@ body.cp-public {
   font-weight: 400;
   line-height: 1.02;
   letter-spacing: -0.02em;
-  max-width: 14ch;
+  max-width: none;
 }
 
 .cp-hero-lead {
   margin: 0;
-  max-width: 56ch;
+  max-width: none;
   font-size: clamp(1rem, 2vw, 1.12rem);
   line-height: 1.65;
   color: rgba(255, 255, 255, 0.88);
@@ -469,6 +469,7 @@ body.cp-public {
   line-height: 1.15;
   letter-spacing: -0.02em;
   color: var(--cp-ink);
+  max-width: none;
 }
 
 .cp-article-num {
@@ -654,6 +655,7 @@ body.cp-public {
   border-radius: 0 12px 12px 0;
   color: var(--cp-ink-soft);
   font-size: 0.98rem;
+  max-width: none;
 }
 
 .cp-doc-meta {
@@ -814,7 +816,7 @@ body.cp-public {
 .cp-crosslink-card p {
   margin: 0;
   font-size: 1.05rem;
-  max-width: 36ch;
+  max-width: none;
   line-height: 1.5;
 }
 

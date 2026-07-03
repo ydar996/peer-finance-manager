@@ -26,6 +26,10 @@ Examples:
 
 **Cooperative** is always capitalized when referring to the member-owned organization (`Cooperative`, `Cooperatives`, `Your Cooperative`). Applies app-wide for all tenants via `capitalizeCooperativeWording()` in `lib/text-format.js` (public pages, API errors, HTML builder). Do not change lowercase in filenames (`cooperative-bank-ledger-reference.csv`).
 
+## Full-Width Headings and Leads
+
+Do **not** put artificial `max-width` on headings, section titles, hints, or lead paragraphs. They use the full content column and wrap only when the viewport is actually too narrow. Form fields and login cards may still use layout `max-width`.
+
 ## Slash Compounds (No Spaces)
 
 When joining terms with a slash, **do not** put spaces around `/`.

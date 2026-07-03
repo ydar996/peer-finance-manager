@@ -30,6 +30,25 @@ h1 { margin: 0 0 4px; font-size: 28px; }
   color: #1e293b;
 }
 
+/* Headings and section leads use full content width (no premature wraps) */
+h1,
+h2,
+h3,
+h4,
+.section-title,
+.panel-head h2,
+.panel-head h3,
+.panel-head h4,
+.card h3,
+.hint,
+.subtle,
+.public-about-lead,
+.public-bylaws-intro,
+.profile-disclosure-note,
+.account-card-hint {
+  max-width: none;
+}
+
 .section-title {
   margin: 20px 0 8px;
   font-size: 16px;

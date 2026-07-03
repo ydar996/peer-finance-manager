@@ -27,6 +27,10 @@ Use **Title Case** for headers, paragraph hints, form labels, buttons, badges, a
 
 This applies on **every user-facing surface** (all tenants): static UI, API error messages, emails, PDF reports, and public About/Bylaws HTML. Runtime enforcement uses `capitalizeCooperativeWording()` in `lib/text-format.js` (public page sanitize/save, API `error` JSON). Filenames such as `cooperative-bank-ledger-reference.csv` stay lowercase.
 
+## Full-Width Headings and Leads
+
+Do **not** put artificial `max-width` on headings, section titles, hints, or lead paragraphs. They use the full content column and wrap only when the viewport is actually too narrow. Form fields and login cards may still use layout `max-width`.
+
 ---
 
 ## Slash Compounds (No Spaces)
