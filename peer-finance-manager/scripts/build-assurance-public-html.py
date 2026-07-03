@@ -213,7 +213,7 @@ def build_about():
 PAGE_HEADER_RE = re.compile(r"^Page\s+\d+\s+of\s+\d+\s*\|.*$", re.I)
 ARTICLE_RE = re.compile(r"^ARTICLE\s+(\d+)\.\s*(.*)$", re.I)
 SECTION_RE = re.compile(r"^(\d+\.\d+)\.\s*(.+)$")
-LETTER_ITEM_RE = re.compile(r"^([a-z])\.\s+(.+)$", re.I)
+LETTER_ITEM_RE = re.compile(r"^([a-z])\.\s+(.+)$")
 ROMAN_ITEM_RE = re.compile(r"^([IVX]+)\.\s+(.+)$")
 
 
@@ -227,9 +227,9 @@ def is_block_start(line):
         return True
     if SECTION_RE.match(s):
         return True
-    if LETTER_ITEM_RE.match(s):
-        return True
     if ROMAN_ITEM_RE.match(s):
+        return True
+    if LETTER_ITEM_RE.match(s):
         return True
     return False
 
@@ -267,15 +267,32 @@ def parse_section_line(line):
     return num, title, None
 
 
-def close_lists(stack, out, through=0):
-    while len(stack) > through:
-        tag = stack.pop()
-        out.append(f"</{tag}>")
+def close_bylaws_lists(out, state):
+    """Close open roman sub-list, letter item, and letter list."""
+    if state["roman_open"]:
+        out.append("</ol>")
+        state["roman_open"] = False
+    if state["open_li"]:
+        out.append("</li>")
+        state["open_li"] = False
+    state["expect_roman"] = False
+    if state["ul_open"]:
+        out.append("</ul>")
+        state["ul_open"] = False
 
 
 def render_bylaws_body(lines, out):
     """Render merged lines inside an article (or intro) into HTML."""
-    stack = []  # 'ul' or 'ol'
+    state = {
+        "ul_open": False,
+        "open_li": False,
+        "roman_open": False,
+        "expect_roman": False,
+    }
+
+    def close_lists():
+        close_bylaws_lists(out, state)
+
     i = 0
     while i < len(lines):
         line = lines[i].strip()
@@ -285,7 +302,7 @@ def render_bylaws_body(lines, out):
 
         sec = parse_section_line(line)
         if sec:
-            close_lists(stack, out)
+            close_lists()
             num, title, intro = sec
             out.append(
                 f'<h3 class="cp-subsection-title" id="section-{num.replace(".", "-")}">'
@@ -295,30 +312,61 @@ def render_bylaws_body(lines, out):
                 out.append(f'<p class="cp-section-lead">{esc(intro)}</p>')
             continue
 
-        letter = LETTER_ITEM_RE.match(line)
-        if letter:
-            if not stack or stack[-1] != "ul":
-                close_lists(stack, out)
-                out.append('<ul class="cp-legal-list">')
-                stack.append("ul")
-            label, body = letter.group(1), letter.group(2).strip()
-            out.append(f'<li><span class="cp-list-label">{esc(label)}.</span> {esc(body)}</li>')
-            continue
-
         roman = ROMAN_ITEM_RE.match(line)
         if roman:
-            if not stack or stack[-1] != "ol":
-                close_lists(stack, out)
-                out.append('<ol class="cp-roman-list" type="I">')
-                stack.append("ol")
-            label, body = roman.group(1), roman.group(2).strip()
-            out.append(f"<li>{esc(body)}</li>")
+            body = roman.group(2).strip()
+            if state["expect_roman"] or state["roman_open"]:
+                if not state["roman_open"]:
+                    out.append('<ol class="cp-roman-list" type="I">')
+                    state["roman_open"] = True
+                    state["expect_roman"] = False
+                out.append(f"<li>{esc(body)}</li>")
+            else:
+                close_lists()
+                out.append('<ol class="cp-roman-list cp-roman-list-standalone" type="I">')
+                out.append(f"<li>{esc(body)}</li>")
+                state["roman_open"] = True
             continue
 
-        close_lists(stack, out)
+        letter = LETTER_ITEM_RE.match(line)
+        if letter:
+            label = letter.group(1).lower()
+            body = letter.group(2).strip()
+
+            if state["roman_open"]:
+                out.append("</ol>")
+                state["roman_open"] = False
+                if state["open_li"]:
+                    out.append("</li>")
+                    state["open_li"] = False
+            elif state["open_li"]:
+                out.append("</li>")
+                state["open_li"] = False
+            state["expect_roman"] = False
+
+            if not state["ul_open"]:
+                out.append('<ul class="cp-legal-list">')
+                state["ul_open"] = True
+
+            if body.rstrip().endswith(":"):
+                out.append(
+                    f'<li><span class="cp-list-label">{esc(label)}.</span> {esc(body)}'
+                )
+                state["open_li"] = True
+                state["expect_roman"] = True
+            else:
+                out.append(
+                    f'<li><span class="cp-list-label">{esc(label)}.</span> {esc(body)}</li>'
+                )
+            continue
+
+        if state["roman_open"]:
+            out.append("</ol>")
+            state["roman_open"] = False
+        close_lists()
         out.append(f"<p>{esc(line)}</p>")
 
-    close_lists(stack, out)
+    close_lists()
 
 
 def build_bylaws():

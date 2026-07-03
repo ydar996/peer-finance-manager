@@ -21,7 +21,7 @@ const SETTINGS = {
 };
 
 const DEFAULT_BYLAWS_FILENAME = "bylaws.pdf";
-const PUBLIC_CONTENT_SEED_VERSION = "9";
+const PUBLIC_CONTENT_SEED_VERSION = "10";
 const IMAGE_EXT = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"]);
 
 const RESTRICTED_PATH_PREFIXES = ["/member", "/admin", "/staff", "/register", "/platform"];

@@ -615,15 +615,29 @@ body.cp-public {
 }
 
 .cp-roman-list {
-  margin: 0.75rem 0 0.25rem 0;
-  padding-left: 1.35rem;
+  margin: 0.75rem 0 0;
+  padding: 10px 14px 10px 2rem;
   list-style-type: upper-roman;
+  border-top: 1px solid var(--cp-border);
+  background: rgba(20, 184, 166, 0.05);
+}
+
+.cp-roman-list-standalone {
+  margin: 0 0 1rem 8px;
+  border: 1px solid var(--cp-border);
+  border-radius: 14px;
+  background: #fafbfc;
+}
+
+.cp-legal-list li:has(> .cp-roman-list) {
+  padding-bottom: 0;
 }
 
 .cp-roman-list li {
   padding: 0.35rem 0;
   border: 0;
   line-height: 1.55;
+  background: transparent;
 }
 
 .cp-section-num {
