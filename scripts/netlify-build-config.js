@@ -16,6 +16,7 @@ const redirects = [
   "/admin  /index.html  200",
   "/register  /index.html  200",
   "/platform  /index.html  200",
+  "/product  /product.html  200",
   "/c/*/about  /cooperative-public.html  200",
   "/c/*/bylaws  /cooperative-public.html  200",
   "/  /member  302",
