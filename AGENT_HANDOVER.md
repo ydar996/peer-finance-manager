@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** June 28, 2026 (admin bank ledger import on production)  
+**Last updated:** July 3, 2026 (product page copy polish, title case rules)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-03** — Product page polish: workflow step 4 real-time copy; centered Work Chop footer (mobile stack); trust section color cards + title case; **Title Case rule** extended (lowercase 2–3 letter words; capitalize **Cooperative**); footer tagline update. Bylaws nested Roman lists under letter items (seed v10). **Production:** `git push`.
 - **2026-07-02** — Product page (`/product`), `PEER-FINANCE-MANAGER.md`, bylaws HTML rebuild (structured lists/sections from PDF source), public content seed v9. **Em/en dash purge** in user-facing UI (`product.html`, `app.js`, `index.html`, emails, timezone labels, ledger CSV headers): colons per `UI-COPY-STANDARDS.md`. **Production:** `git push`. Admin → Cooperative Books → **Meetings & Announcements** — schedule drafts, announce to member portal + email, cancel, automatic reminders (per-org). Member portal **Cooperative Meetings** panel. Files: `cooperative-meeting-service.js`, `meeting-notification-service.js`. **Production:** `git push`.
 - **2026-07-01** — Member portal UX: hide tab nav and redundant **My Account** heading (members land on account content directly); mobile header declutter; logout power icon. **Production:** `git push`.
 - **2026-07-01** — **Proxy Zelle deposit fixes:** import credits beneficiary named after `for …` in description (not Zelle payer); pre-import **Ledger warnings** on Admin → Import (proxy mis-credit + contribution vs loan type); regression script `node peer-finance-manager/scripts/test-ledger-import-audit.js`. Corrected `cooperative-bank-ledger-reference.xlsx` (Ejiro/Titilope proxy rows; Oluwabiyi Mar 23 $100.13 → deposit). Utility scripts: `fix-proxy-deposit-members.js` (xlsx Member column), `fix-proxy-deposit-balances.js` (local DB one-shot). **Production:** `git push` then **Admin → Import** upload corrected xlsx (no WinSCP for bank ledger).
@@ -430,7 +431,7 @@ npm start   # → http://localhost:3457 (Assurance Cooperative Manager)
 
 Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited user-facing text.
 
-1. **Title Case** — Headers, paragraph hints, labels, buttons, badges, and section titles use Title Case (e.g. `Cooperative Books`, `Import Profiles`, `On File`).
+1. **Title Case** — Headers, paragraph hints, labels, buttons, badges, and section titles use Title Case (e.g. `Cooperative Books`, `Import Profiles`, `On File`). **Do not capitalize** 2–3 letter words (`in`, `and`, `for`, `to`, `is`, etc.) unless first or last in the heading. Always capitalize **Cooperative** when referring to the member-owned organization.
 
 2. **Slash compounds — no spaces** — When joining terms with `/`, do not space around the slash:
    - `Contributions Account/Loan Account` (not `Contributions Account / Loan Account`)

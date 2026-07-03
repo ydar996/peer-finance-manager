@@ -14,11 +14,17 @@ Apply to all user-facing text: headers, paragraphs, hints, labels, buttons, badg
 
 Use **Title Case** for headers, paragraph hints, form labels, buttons, badges, and section titles.
 
+**Small words (2–3 letters)** stay lowercase unless first or last in the heading: `a`, `an`, `the`, `and`, `but`, `or`, `for`, `nor`, `on`, `at`, `to`, `by`, `in`, `of`, `is`, `as`, `if`, `up`.
+
 Examples:
 - `Cooperative Books` (not `Cooperative books`)
+- `Each Cooperative is Isolated and Secure` (not `Each Cooperative Is Isolated And Secure`)
+- `Simple Plans for Every Cooperative` (not `Simple Plans For Every Cooperative`)
 - `Contributions Account` (not `Contributions account`)
 - `Import Profiles` (not `Import profiles`)
 - `On File` (not `On file`)
+
+**Cooperative** is always capitalized when referring to the member-owned organization (`Cooperative`, `Cooperatives`, `Your Cooperative`).
 
 ## Slash Compounds (No Spaces)
 

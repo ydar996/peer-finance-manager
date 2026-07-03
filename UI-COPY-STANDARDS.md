@@ -12,12 +12,18 @@ Agents and developers should follow this document and `.cursor/rules/ui-copy-sta
 
 Use **Title Case** for headers, paragraph hints, form labels, buttons, badges, and section titles.
 
+**Small words (2–3 letters)** stay lowercase unless they are the first or last word of the heading: e.g. `a`, `an`, `the`, `and`, `but`, `or`, `for`, `nor`, `on`, `at`, `to`, `by`, `in`, `of`, `is`, `as`, `if`, `up`.
+
 | Wrong | Right |
 |-------|-------|
 | Cooperative books | Cooperative Books |
+| Each Cooperative Is Isolated And Secure | Each Cooperative is Isolated and Secure |
+| Simple Plans For Every Cooperative | Simple Plans for Every Cooperative |
 | Deposit account | Contributions Account |
 | Import profiles | Import Profiles |
 | On file | On File |
+
+**Cooperative** (the member-owned organization) is always capitalized when referring to the entity: `Cooperative`, `Cooperatives`, `Your Cooperative`, not `cooperative` / `cooperatives`.
 
 ---
 
@@ -78,4 +84,4 @@ Use **Contribution** (not Deposit) for money received from members. Use **Contri
 
 ---
 
-*Last updated: June 19, 2026*
+*Last updated: July 3, 2026*
