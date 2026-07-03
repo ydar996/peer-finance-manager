@@ -388,48 +388,168 @@ a {
   margin-top: 8px;
 }
 
-.pf-steps {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 16px;
-  counter-reset: step;
+.pf-section-workflow {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(20, 184, 166, 0.1), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(244, 247, 251, 0.9));
+  border-block: 1px solid var(--pf-border);
 }
 
-.pf-steps li {
-  counter-increment: step;
+.pf-section-head-center {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.pf-workflow {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 16px;
-  align-items: start;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  position: relative;
+  margin-top: 12px;
+}
+
+.pf-workflow::before {
+  content: "";
+  position: absolute;
+  top: 34px;
+  left: 12%;
+  right: 12%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--pf-accent), #38bdf8, var(--pf-accent-deep));
+  border-radius: 999px;
+  z-index: 0;
+}
+
+.pf-workflow-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 10px 8px;
+  z-index: 1;
+}
+
+.pf-workflow-node {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
   background: var(--pf-surface);
-  border: 1px solid var(--pf-border);
-  border-radius: 18px;
-  padding: 20px 22px;
-}
-
-.pf-steps li::before {
-  content: counter(step);
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  background: rgba(20, 184, 166, 0.12);
-  color: var(--pf-accent-deep);
-  font-weight: 800;
+  border: 3px solid var(--pf-accent);
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.18);
   display: grid;
   place-items: center;
+  margin-bottom: 18px;
 }
 
-.pf-steps strong {
-  display: block;
-  margin-bottom: 4px;
+.pf-workflow-node-finish {
+  background: var(--pf-hero);
+  border-color: transparent;
+  color: #fff;
+}
+
+.pf-workflow-node-finish .pf-workflow-num {
+  color: #fff;
+}
+
+.pf-workflow-num {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--pf-accent-deep);
+  line-height: 1;
+}
+
+.pf-workflow-body {
+  background: var(--pf-surface);
+  border: 1px solid var(--pf-border);
+  border-radius: 20px;
+  padding: 20px 18px 22px;
+  box-shadow: var(--pf-shadow-sm);
+  min-height: 168px;
+  width: 100%;
+}
+
+.pf-workflow-phase {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pf-accent-deep);
+}
+
+.pf-workflow-body h3 {
+  margin: 0 0 10px;
   font-size: 1.02rem;
+  line-height: 1.35;
+  color: var(--pf-ink);
 }
 
-.pf-steps span {
+.pf-workflow-body p {
+  margin: 0;
+  font-size: 0.9rem;
   color: var(--pf-muted);
-  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.pf-workflow-arrow {
+  display: none;
+}
+
+.pf-powered-by {
+  margin-bottom: 24px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pf-powered-link {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.pf-powered-link:hover .pf-powered-name {
+  color: var(--pf-accent);
+}
+
+.pf-powered-logo {
+  display: block;
+  width: 120px;
+  height: auto;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.pf-powered-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pf-powered-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.pf-powered-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  transition: color 0.15s ease;
+}
+
+.pf-powered-url {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .pf-trust-grid {
@@ -558,6 +678,44 @@ a {
 
   .pf-nav a:not(.pf-nav-cta):not(.pf-nav-ghost) {
     display: none;
+  }
+
+  .pf-workflow {
+    grid-template-columns: 1fr;
+    gap: 0;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .pf-workflow::before {
+    top: 0;
+    bottom: 0;
+    left: 33px;
+    right: auto;
+    width: 3px;
+    height: auto;
+    background: linear-gradient(180deg, var(--pf-accent), #38bdf8, var(--pf-accent-deep));
+  }
+
+  .pf-workflow-step {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    gap: 16px;
+    padding: 0 0 28px 0;
+  }
+
+  .pf-workflow-node {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .pf-workflow-body {
+    min-height: 0;
+    flex: 1;
   }
 }
 
