@@ -2168,7 +2168,7 @@ document.querySelectorAll(".org-slug-input").forEach((input) => {
 $("#registerOrganizationForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const status = $("#registerStatus");
-  status.textContent = "Creating cooperative…";
+  status.textContent = "Creating Cooperative…";
   status.className = "status";
   try {
     const payload = Object.fromEntries(new FormData(e.target).entries());
