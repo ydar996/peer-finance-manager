@@ -49,6 +49,8 @@ LIST_INTRO_SECTIONS = {
 def esc(text):
     s = htmlmod.escape(str(text).replace("&amp;", "&").strip())
     s = s.replace("\u2014", ":").replace("\u2013", "-")
+    s = re.sub(r"\bcooperatives\b(?![-])", "Cooperatives", s)
+    s = re.sub(r"\bcooperative\b(?![-])", "Cooperative", s)
     return s
 
 

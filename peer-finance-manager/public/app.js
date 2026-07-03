@@ -15,6 +15,13 @@ let platformUser = null;
 let cooperativeTimezone = "America/Los_Angeles";
 let timezoneOptionsLoaded = false;
 
+function coopCopy(text) {
+  if (text == null || text === "") return text;
+  return String(text)
+    .replace(/\bcooperatives\b(?![-])/g, "Cooperatives")
+    .replace(/\bcooperative\b(?![-])/g, "Cooperative");
+}
+
 const TIMEZONE_SELECT_PRIORITY = [
   "America/Los_Angeles",
   "America/Denver",
@@ -4406,7 +4413,7 @@ async function loadDistributions() {
 
 function setFormStatus(el, message, ok) {
   if (!el) return;
-  el.textContent = message;
+  el.textContent = coopCopy(message);
   el.className = ok ? "status ok" : "status err";
 }
 

@@ -96,6 +96,7 @@ const upload = multer({
 });
 
 const app = express();
+const { capitalizeCooperativeWording } = require("./lib/text-format");
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -129,6 +130,16 @@ app.post(
 );
 
 app.use(express.json());
+app.use((req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = (payload) => {
+    if (payload && typeof payload === "object" && typeof payload.error === "string") {
+      payload = { ...payload, error: capitalizeCooperativeWording(payload.error) };
+    }
+    return originalJson(payload);
+  };
+  next();
+});
 app.use(attachUser);
 
 app.get("/api/health", (req, res) => {

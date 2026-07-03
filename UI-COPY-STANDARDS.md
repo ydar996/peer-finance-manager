@@ -25,6 +25,8 @@ Use **Title Case** for headers, paragraph hints, form labels, buttons, badges, a
 
 **Cooperative** (the member-owned organization) is always capitalized when referring to the entity: `Cooperative`, `Cooperatives`, `Your Cooperative`, not `cooperative` / `cooperatives`.
 
+This applies on **every user-facing surface** (all tenants): static UI, API error messages, emails, PDF reports, and public About/Bylaws HTML. Runtime enforcement uses `capitalizeCooperativeWording()` in `lib/text-format.js` (public page sanitize/save, API `error` JSON). Filenames such as `cooperative-bank-ledger-reference.csv` stay lowercase.
+
 ---
 
 ## Slash Compounds (No Spaces)

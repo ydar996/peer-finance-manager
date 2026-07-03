@@ -53,6 +53,13 @@ function capitalizeToken(token, { isFirst = false, isLast = false } = {}) {
   return capitalizeSegment(token);
 }
 
+function capitalizeCooperativeWording(value) {
+  if (value == null || value === "") return value;
+  return String(value)
+    .replace(/\bcooperatives\b(?![-])/g, "Cooperatives")
+    .replace(/\bcooperative\b(?![-])/g, "Cooperative");
+}
+
 function formatPersonName(value) {
   if (value == null || value === "") return null;
   const trimmed = String(value).trim().replace(/\s+/g, " ");
@@ -156,6 +163,7 @@ function formatMemberProfileForDisplay(profile) {
 }
 
 module.exports = {
+  capitalizeCooperativeWording,
   formatPersonName,
   formatNamePart,
   formatEmail,

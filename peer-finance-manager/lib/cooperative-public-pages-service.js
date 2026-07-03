@@ -9,6 +9,7 @@ const {
   setCooperativeSetting,
 } = require("./cooperative-settings");
 const { getDb } = require("../db/database");
+const { capitalizeCooperativeWording } = require("./text-format");
 
 const SETTINGS = {
   ABOUT_HTML: "public_about_html",
@@ -21,7 +22,7 @@ const SETTINGS = {
 };
 
 const DEFAULT_BYLAWS_FILENAME = "bylaws.pdf";
-const PUBLIC_CONTENT_SEED_VERSION = "11";
+const PUBLIC_CONTENT_SEED_VERSION = "12";
 const IMAGE_EXT = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"]);
 
 const RESTRICTED_PATH_PREFIXES = ["/member", "/admin", "/staff", "/register", "/platform"];
@@ -40,7 +41,9 @@ function stripRestrictedLinks(html) {
 }
 
 function sanitizePublicHtml(html, slug) {
-  return stripRestrictedLinks(rewriteAboutLinks(String(html || ""), slug));
+  return capitalizeCooperativeWording(
+    stripRestrictedLinks(rewriteAboutLinks(String(html || ""), slug))
+  );
 }
 
 function sanitizePublicAboutHtml(html, slug) {
@@ -236,7 +239,7 @@ function saveAboutPage(slug, { html, published }) {
     const db = getDb();
     ensureSettingsTable(db);
     if (html !== undefined) {
-      setCooperativeSetting(db, SETTINGS.ABOUT_HTML, String(html));
+      setCooperativeSetting(db, SETTINGS.ABOUT_HTML, capitalizeCooperativeWording(String(html)));
     }
     if (published !== undefined) {
       setCooperativeSetting(db, SETTINGS.ABOUT_PUBLISHED, published ? "1" : "0");

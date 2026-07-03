@@ -24,7 +24,7 @@ Examples:
 - `Import Profiles` (not `Import profiles`)
 - `On File` (not `On file`)
 
-**Cooperative** is always capitalized when referring to the member-owned organization (`Cooperative`, `Cooperatives`, `Your Cooperative`).
+**Cooperative** is always capitalized when referring to the member-owned organization (`Cooperative`, `Cooperatives`, `Your Cooperative`). Applies app-wide for all tenants via `capitalizeCooperativeWording()` in `lib/text-format.js` (public pages, API errors, HTML builder). Do not change lowercase in filenames (`cooperative-bank-ledger-reference.csv`).
 
 ## Slash Compounds (No Spaces)
 
