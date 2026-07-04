@@ -212,10 +212,18 @@ function updateOrganizationAdminEmail(slug, email, { onlyIfEmpty = false } = {})
 function backfillOrganizationAdminEmails() {
   const db = getRegistryDb();
   ensureBillingSchema(db);
+
+  // Canonical FlexxForms admin for Assurance (must not lose to older admin rows in org DB).
+  db.prepare(`UPDATE organizations SET admin_email = ? WHERE slug = ?`).run(
+    "assuranceflex@eworkchop.com",
+    ASSURANCE_SLUG
+  );
+
   const { runWithOrg } = require("./org-context");
   const { getDb } = require("../db/database");
 
   for (const org of listOrganizations()) {
+    if (org.slug === ASSURANCE_SLUG) continue;
     if (org.adminEmail) continue;
     let email = null;
     try {
@@ -238,10 +246,6 @@ function backfillOrganizationAdminEmails() {
       ).run(email, org.slug);
     }
   }
-
-  db.prepare(
-    `UPDATE organizations SET admin_email = ? WHERE slug = ? AND (admin_email IS NULL OR admin_email = '')`
-  ).run("assuranceflex@eworkchop.com", ASSURANCE_SLUG);
 }
 
 function migrateLegacyOrgBillingDefaults() {

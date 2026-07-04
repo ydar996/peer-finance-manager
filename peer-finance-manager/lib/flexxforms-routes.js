@@ -31,7 +31,10 @@ function registerFlexxFormsRoutes(app) {
   app.get("/api/flexxforms/settings", requireAuth, requireAdmin, (req, res) => {
     try {
       const slug = requestOrgSlug(req);
-      const settings = getFlexxFormsAdminView(slug, { consumeTempPassword: true });
+      const settings = getFlexxFormsAdminView(slug, {
+        consumeTempPassword: true,
+        sessionUser: req.user,
+      });
       res.json({ settings, provisioningConfigured: isProvisioningConfigured() });
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -52,7 +55,11 @@ function registerFlexxFormsRoutes(app) {
     try {
       const slug = requestOrgSlug(req);
       const settings = await retryProvision(slug, req.user);
-      res.json({ ok: true, success: true, settings });
+      res.json({
+        ok: true,
+        success: true,
+        settings: getFlexxFormsAdminView(slug, { sessionUser: req.user }),
+      });
     } catch (err) {
       console.error("FlexxForms retry provision failed:", err.message);
       res.status(400).json({ error: err.message });

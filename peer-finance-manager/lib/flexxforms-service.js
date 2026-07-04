@@ -33,12 +33,12 @@ function isProvisioningConfigured() {
 }
 
 function resolveFlexxFormsAdminEmail(organization, sessionUser) {
+  if (sessionUser?.role === "admin" && sessionUser?.email?.includes("@")) {
+    return String(sessionUser.email).trim().toLowerCase();
+  }
   const fromOrg = organization?.admin_email || organization?.adminEmail || "";
   if (fromOrg && String(fromOrg).includes("@")) {
     return String(fromOrg).trim().toLowerCase();
-  }
-  if (sessionUser?.role === "admin" && sessionUser?.email?.includes("@")) {
-    return String(sessionUser.email).trim().toLowerCase();
   }
   return null;
 }
@@ -194,7 +194,7 @@ function findOrganizationByFlexxFormsTenantId(tenantId) {
 }
 
 /** Safe for admin UI: never includes apiKey or webhookSecret. */
-function getFlexxFormsAdminView(slug, { consumeTempPassword = false } = {}) {
+function getFlexxFormsAdminView(slug, { consumeTempPassword = false, sessionUser = null } = {}) {
   const org = getOrganization(slug);
   if (!org) return null;
   const ff = getOrganizationFlexxForms(slug) || {};
@@ -202,11 +202,12 @@ function getFlexxFormsAdminView(slug, { consumeTempPassword = false } = {}) {
   if (consumeTempPassword && tempPassword) {
     updateOrganizationFlexxForms(slug, { tempPassword: null });
   }
+  const resolvedAdminEmail = resolveFlexxFormsAdminEmail(org, sessionUser);
   return {
     organizationSlug: org.slug,
     organizationName: org.name,
     provisioned: Boolean(ff.tenantId && ff.apiKey),
-    adminEmail: ff.adminEmail || org.adminEmail || null,
+    adminEmail: resolvedAdminEmail || ff.adminEmail || org.adminEmail || null,
     tempPassword,
     provisionError: ff.provisionError || null,
     provisionedAt: ff.provisionedAt || null,
@@ -375,9 +376,7 @@ async function retryProvision(slug, sessionUser) {
   if (!email) {
     throw new Error("No FlexxForms admin email on file. Re-register or contact support.");
   }
-  if (!org.adminEmail) {
-    updateOrganizationAdminEmail(org.slug, email);
-  }
+  updateOrganizationAdminEmail(org.slug, email);
   try {
     return await provisionFlexxFormsForOrganization(org, email);
   } catch (err) {
