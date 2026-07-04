@@ -9,12 +9,14 @@ const {
   normalizeSlug,
   listOrganizations,
   updateOrganizationAdminEmail,
+  ASSURANCE_SLUG,
 } = require("./organization-service");
 const { getDb } = require("../db/database");
 const { runWithOrg } = require("./org-context");
 
 const FLEXXFORMS_LOGIN_URL = "https://flexxforms.netlify.app/login";
 const FLEXXFORMS_EMBED_BASE = "https://flexxforms.netlify.app/embed";
+const ASSURANCE_FLEXXFORMS_ADMIN_EMAIL = "assuranceflex@eworkchop.com";
 
 function getApiBase() {
   return String(process.env.FLEXXFORMS_API_BASE || "https://flexxforms.netlify.app/api").replace(
@@ -33,12 +35,16 @@ function isProvisioningConfigured() {
 }
 
 function resolveFlexxFormsAdminEmail(organization, sessionUser) {
-  if (sessionUser?.role === "admin" && sessionUser?.email?.includes("@")) {
-    return String(sessionUser.email).trim().toLowerCase();
+  const slug = normalizeSlug(organization?.slug || organization?.organizationSlug);
+  if (slug === ASSURANCE_SLUG) {
+    return ASSURANCE_FLEXXFORMS_ADMIN_EMAIL;
   }
   const fromOrg = organization?.admin_email || organization?.adminEmail || "";
   if (fromOrg && String(fromOrg).includes("@")) {
     return String(fromOrg).trim().toLowerCase();
+  }
+  if (sessionUser?.role === "admin" && sessionUser?.email?.includes("@")) {
+    return String(sessionUser.email).trim().toLowerCase();
   }
   return null;
 }

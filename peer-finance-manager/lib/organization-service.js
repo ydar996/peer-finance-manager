@@ -214,10 +214,11 @@ function backfillOrganizationAdminEmails() {
   ensureBillingSchema(db);
 
   // Canonical FlexxForms admin for Assurance (must not lose to older admin rows in org DB).
-  db.prepare(`UPDATE organizations SET admin_email = ? WHERE slug = ?`).run(
-    "assuranceflex@eworkchop.com",
-    ASSURANCE_SLUG
-  );
+  db.prepare(
+    `UPDATE organizations
+     SET admin_email = ?, flexxforms_admin_email = ?
+     WHERE slug = ?`
+  ).run("assuranceflex@eworkchop.com", "assuranceflex@eworkchop.com", ASSURANCE_SLUG);
 
   const { runWithOrg } = require("./org-context");
   const { getDb } = require("../db/database");
