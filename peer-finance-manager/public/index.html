@@ -31,8 +31,26 @@
           <span aria-hidden="true"> · </span>
           <a href="#" class="public-bylaws-link">Bylaws</a>
         </p>
+        <p class="login-foot subtle"><a href="#" id="openMembershipApplyLink">Apply for Membership</a></p>
         <p class="login-foot subtle"><a href="/register">Register a New Cooperative</a></p>
         <p class="login-status status" data-login-status="member"></p>
+      </div>
+    </div>
+
+    <div id="membershipApplyScreen" class="login-screen hidden">
+      <div class="login-card flexxforms-apply-card">
+        <p class="brand org-brand">Peer Finance Manager</p>
+        <h1>Membership Application</h1>
+        <p class="subtle" id="membershipApplyHint">Enter your Cooperative organization code to open the application form.</p>
+        <label>Organization Code
+          <input type="text" id="membershipApplyOrgSlug" class="org-slug-input" placeholder="e.g. assurance" />
+        </label>
+        <div class="panel-head-actions" style="margin: 12px 0;">
+          <button type="button" class="btn primary" id="loadMembershipApplyBtn">Open Application</button>
+          <button type="button" class="btn" id="closeMembershipApplyBtn">Back to Sign In</button>
+        </div>
+        <p id="membershipApplyStatus" class="status"></p>
+        <iframe id="membershipApplyFrame" class="flexxforms-embed-frame hidden" title="Membership application form"></iframe>
       </div>
     </div>
 
@@ -465,6 +483,42 @@
               <p id="cooperativeMeetingsStatus" class="status"></p>
             </div>
           </details>
+          <details class="card flexxforms-forms-card profile-disclosure admin-only-report-settings hidden" id="flexxformsFormsPanel">
+            <summary class="monthly-status-report-summary">
+              <span class="monthly-status-report-summary-text">Manage Forms &amp; Documents</span>
+              <span class="badge" id="flexxformsFormsBadge">:</span>
+            </summary>
+            <div class="profile-disclosure-body">
+              <p class="subtle">Your Cooperative owns its application forms and agreements. Open FlexxForms to build and publish them. Members will fill and sign them inside Peer Finance Manager.</p>
+              <p class="hint" id="flexxformsAdminEmailLine">FlexxForms admin email: :</p>
+              <p class="hint hidden" id="flexxformsTempPasswordLine"></p>
+              <p class="status err hidden" id="flexxformsProvisionError"></p>
+              <div class="panel-head-actions" style="margin-bottom: 12px;">
+                <a class="btn primary" id="openFlexxFormsBtn" href="https://flexxforms.netlify.app/login" target="_blank" rel="noopener noreferrer">Open FlexxForms</a>
+                <button type="button" class="btn" id="retryFlexxFormsProvision">Retry FlexxForms Setup</button>
+                <button type="button" class="btn" id="refreshFlexxFormsForms">Load Forms from FlexxForms</button>
+              </div>
+              <form id="flexxformsSettingsForm" class="entry-form cooperative-meeting-form">
+                <label>Membership Form Id
+                  <input type="text" id="ffMembershipFormId" placeholder="UUID from FlexxForms" />
+                </label>
+                <label>Loan Form Id
+                  <input type="text" id="ffLoanFormId" placeholder="UUID from FlexxForms" />
+                </label>
+                <label>Guarantor Master Document Id
+                  <input type="text" id="ffGuarantorMasterDocId" placeholder="UUID from FlexxForms" />
+                </label>
+                <label>Borrower Master Document Id
+                  <input type="text" id="ffBorrowerMasterDocId" placeholder="UUID from FlexxForms" />
+                </label>
+                <div id="flexxformsFormsPicker" class="hint"></div>
+                <button type="submit" class="btn primary">Save Form &amp; Document Ids</button>
+              </form>
+              <p class="subtle" style="margin-top: 12px;">Recent FlexxForms submissions</p>
+              <ul class="file-list" id="flexxformsApplicationsList"><li class="hint">None yet</li></ul>
+              <p id="flexxformsFormsStatus" class="status"></p>
+            </div>
+          </details>
           <details class="card platform-subscription-card profile-disclosure admin-only-report-settings hidden" id="platformSubscriptionPanel">
             <summary class="monthly-status-report-summary">
               <span class="monthly-status-report-summary-text">Platform Subscription</span>
@@ -604,12 +658,23 @@
                 <th>Status</th>
                 <th>Repayments</th>
                 <th>Statement</th>
+                <th>Agreements</th>
               </tr>
             </thead>
             <tbody id="loansBody">
-              <tr><td colspan="10">No Loans Yet</td></tr>
+              <tr><td colspan="11">No Loans Yet</td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="card hidden" id="loanAgreementsPanel">
+          <h3>Loan Agreements</h3>
+          <p class="subtle" id="loanAgreementsMeta"></p>
+          <div class="panel-head-actions" style="margin-bottom: 10px;">
+            <button type="button" class="btn primary admin-only-report-settings hidden" id="createGuarantorAgreementBtn">Create Guarantor Agreement</button>
+            <button type="button" class="btn primary admin-only-report-settings hidden" id="createBorrowerAgreementBtn">Create Borrower Agreement</button>
+          </div>
+          <p id="loanAgreementsStatus" class="status"></p>
+          <div id="loanAgreementsEmbeds"></div>
         </div>
       </section>
 
@@ -1170,6 +1235,15 @@
           <div class="profile-disclosure-body my-meetings-body">
             <p class="subtle">Upcoming meetings announced by your Cooperative administrator.</p>
             <ul class="file-list my-meetings-list" id="myMeetingsList"></ul>
+          </div>
+        </details>
+        <details class="profile-disclosure hidden" id="myLoanApplyCard">
+          <summary class="monthly-status-report-summary">
+            <span class="monthly-status-report-summary-text">Apply for a Loan</span>
+          </summary>
+          <div class="profile-disclosure-body">
+            <p class="subtle" id="myLoanApplyHint">Loading…</p>
+            <iframe id="myLoanApplyFrame" class="flexxforms-embed-frame hidden" title="Loan application form"></iframe>
           </div>
         </details>
         <div class="my-account-sections">

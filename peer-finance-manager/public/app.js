@@ -284,6 +284,7 @@ function hideAllScreens() {
   $("#loginScreenPlatform")?.classList.add("hidden");
   $("#registerScreen")?.classList.add("hidden");
   $("#changePasswordScreen")?.classList.add("hidden");
+  $("#membershipApplyScreen")?.classList.add("hidden");
   $("#appShell")?.classList.add("hidden");
   $("#platformShell")?.classList.add("hidden");
   $("#publicShell")?.classList.add("hidden");
@@ -852,6 +853,7 @@ async function loadMyAccount() {
     renderMyProfileSection(profile);
     await loadMyCooperativeReports();
     await loadMyMeetings();
+    await loadMyLoanApplyEmbed();
     if (depositBalanceSummary) depositBalanceSummary.textContent = fmt.format(data.depositBalance || 0);
     if (loanBalanceSummary) loanBalanceSummary.textContent = fmt.format(data.loanSummary?.outstanding || 0);
 
@@ -1504,6 +1506,7 @@ async function loadBooks() {
     bindBookCards();
     loadMonthlyStatusReportPanel();
     loadCooperativeMeetingsPanel();
+    loadFlexxFormsSettings();
   } catch (err) {
     if (requestId !== booksRequestId) return;
     grid.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
@@ -2490,14 +2493,14 @@ async function showProfile(memberId) {
 async function loadLoans() {
   const requestId = ++loansRequestId;
   const body = $("#loansBody");
-  if (body) body.innerHTML = '<tr><td colspan="10" class="subtle">Loading loans…</td></tr>';
+  if (body) body.innerHTML = '<tr><td colspan="11" class="subtle">Loading loans…</td></tr>';
   try {
     const res = await fetch("/api/loans");
     if (requestId !== loansRequestId) return;
     const { loans } = await res.json();
   if (!loans.length) {
     body.innerHTML =
-      '<tr><td colspan="10">No Loans Yet. Add Active Loans When Data Is Ready.</td></tr>';
+      '<tr><td colspan="11">No Loans Yet. Add Active Loans When Data Is Ready.</td></tr>';
     return;
   }
   body.innerHTML = loans
@@ -2505,6 +2508,10 @@ async function loadLoans() {
       const isLedger = l.source === "bank_ledger";
       const loanLabel = isLedger ? `Loan ${l.loan_number}` : `#${l.id}`;
       const rowId = escapeHtml(String(l.id));
+      const agreementsBtn =
+        !isLedger && currentUser?.role === "admin"
+          ? `<button type="button" class="btn small loan-agreements-btn" data-loan-id="${rowId}" data-borrower="${escapeHtml(l.borrower_name || "")}">Agreements</button>`
+          : ":";
       return `
     <tr class="loan-row" data-loan-key="${rowId}" data-member-id="${l.borrower_id || ""}" data-loan-number="${l.loan_number || ""}" data-ledger="${isLedger ? "1" : "0"}">
       <td>${loanLabel}</td>
@@ -2521,20 +2528,30 @@ async function loadLoans() {
           ? `<button type="button" class="btn small loan-statement-btn" data-member-id="${l.borrower_id}" data-loan-number="${l.loan_number}">Statement</button>`
           : ":"
       }</td>
+      <td>${agreementsBtn}</td>
     </tr>
     <tr class="loan-detail-row hidden" data-detail-for="${rowId}">
-      <td colspan="10" class="loan-detail-cell">Click the loan row to load disbursement and repayment details.</td>
+      <td colspan="11" class="loan-detail-cell">Click the loan row to load disbursement and repayment details.</td>
     </tr>`;
     })
     .join("");
 
   body.querySelectorAll(".loan-row").forEach((row) => {
-    row.addEventListener("click", () => toggleLoanDetail(row));
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".loan-agreements-btn") || e.target.closest(".loan-statement-btn")) return;
+      toggleLoanDetail(row);
+    });
   });
   bindLoanStatementButtons(body);
+  body.querySelectorAll(".loan-agreements-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openLoanAgreementsPanel(btn.dataset.loanId, btn.dataset.borrower);
+    });
+  });
   } catch (err) {
     if (requestId !== loansRequestId) return;
-    if (body) body.innerHTML = `<tr><td colspan="10" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    if (body) body.innerHTML = `<tr><td colspan="11" class="status err">${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
@@ -4817,11 +4834,13 @@ $("#registerOrganizationForm")?.addEventListener("submit", async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     rememberOrgSlug(data.organization.slug);
-    setFormStatus(
-      status,
-      `Created ${data.organization.name}. Sign in at /admin with organization code "${data.organization.slug}".`,
-      true
-    );
+    let msg = `Created ${data.organization.name}. Sign in at /admin with organization code "${data.organization.slug}".`;
+    if (data.flexxforms?.provisioned) {
+      msg += " FlexxForms workspace is ready under Manage Forms & Documents.";
+    } else if (data.flexxforms?.provisionError || data.flexxforms?.message) {
+      msg += ` ${data.flexxforms.message || "FlexxForms setup failed: use Retry FlexxForms Setup in Manage Forms & Documents."}`;
+    }
+    setFormStatus(status, msg, true);
     e.target.reset();
   } catch (err) {
     setFormStatus(status, err.message, false);
@@ -5286,6 +5305,319 @@ $("#publicAboutImagesList")?.addEventListener("click", (e) => {
 
 document.querySelectorAll(".org-slug-input").forEach((input) => {
   input.addEventListener("input", () => refreshPublicOrgLinks(input.value));
+});
+
+let activeLoanAgreementsId = null;
+
+async function loadFlexxFormsSettings() {
+  const panel = $("#flexxformsFormsPanel");
+  if (!panel || currentUser?.role !== "admin") return;
+  const badge = $("#flexxformsFormsBadge");
+  const status = $("#flexxformsFormsStatus");
+  try {
+    const res = await fetch("/api/flexxforms/settings");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load FlexxForms settings");
+    const s = data.settings || {};
+    if (badge) {
+      badge.textContent = s.provisioned ? "Ready" : "Setup needed";
+      badge.className = s.provisioned ? "badge ok" : "badge";
+    }
+    const emailLine = $("#flexxformsAdminEmailLine");
+    if (emailLine) {
+      emailLine.textContent = s.adminEmail
+        ? `FlexxForms admin email: ${s.adminEmail}`
+        : "FlexxForms admin email: not set yet";
+    }
+    const tempLine = $("#flexxformsTempPasswordLine");
+    if (tempLine) {
+      if (s.tempPassword) {
+        tempLine.textContent = `Temporary FlexxForms password (shown once): ${s.tempPassword}`;
+        tempLine.classList.remove("hidden");
+      } else {
+        tempLine.classList.add("hidden");
+        tempLine.textContent = s.provisioned
+          ? "Use the password from your FlexxForms registration email, or reset it in FlexxForms."
+          : "";
+        if (s.provisioned) tempLine.classList.remove("hidden");
+      }
+    }
+    const errEl = $("#flexxformsProvisionError");
+    if (errEl) {
+      if (s.provisionError) {
+        errEl.textContent = `FlexxForms setup failed: ${s.provisionError}. Use Retry FlexxForms Setup.`;
+        errEl.classList.remove("hidden");
+      } else {
+        errEl.classList.add("hidden");
+        errEl.textContent = "";
+      }
+    }
+    $("#ffMembershipFormId").value = s.membershipFormId || "";
+    $("#ffLoanFormId").value = s.loanFormId || "";
+    $("#ffGuarantorMasterDocId").value = s.guarantorMasterDocId || "";
+    $("#ffBorrowerMasterDocId").value = s.borrowerMasterDocId || "";
+    await loadFlexxFormsApplications();
+  } catch (err) {
+    if (badge) badge.textContent = "Error";
+    if (status) setFormStatus(status, err.message, false);
+  }
+}
+
+async function loadFlexxFormsApplications() {
+  const list = $("#flexxformsApplicationsList");
+  if (!list) return;
+  try {
+    const res = await fetch("/api/flexxforms/applications");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load applications");
+    const apps = data.applications || [];
+    if (!apps.length) {
+      list.innerHTML = '<li class="hint">None yet</li>';
+      return;
+    }
+    list.innerHTML = apps
+      .map(
+        (a) =>
+          `<li><strong>${escapeHtml(a.kind)}</strong> · ${escapeHtml(a.status)} · ${escapeHtml(a.createdAt || "")}${
+            a.submissionId ? ` · ${escapeHtml(a.submissionId)}` : ""
+          }</li>`
+      )
+      .join("");
+  } catch {
+    list.innerHTML = '<li class="hint">Unable to load submissions</li>';
+  }
+}
+
+$("#flexxformsSettingsForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#flexxformsFormsStatus");
+  try {
+    const res = await fetch("/api/flexxforms/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        membershipFormId: $("#ffMembershipFormId")?.value,
+        loanFormId: $("#ffLoanFormId")?.value,
+        guarantorMasterDocId: $("#ffGuarantorMasterDocId")?.value,
+        borrowerMasterDocId: $("#ffBorrowerMasterDocId")?.value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed");
+    setFormStatus(status, "Form and document ids saved.", true);
+    await loadFlexxFormsSettings();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#retryFlexxFormsProvision")?.addEventListener("click", async () => {
+  const status = $("#flexxformsFormsStatus");
+  setFormStatus(status, "Retrying FlexxForms setup…", true);
+  try {
+    const res = await fetch("/api/flexxforms/retry-provision", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Retry failed");
+    setFormStatus(status, "FlexxForms workspace is ready.", true);
+    await loadFlexxFormsSettings();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+    await loadFlexxFormsSettings();
+  }
+});
+
+$("#refreshFlexxFormsForms")?.addEventListener("click", async () => {
+  const picker = $("#flexxformsFormsPicker");
+  const status = $("#flexxformsFormsStatus");
+  if (picker) picker.textContent = "Loading forms…";
+  try {
+    const res = await fetch("/api/flexxforms/forms");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to list forms");
+    const forms = Array.isArray(data.forms) ? data.forms : [];
+    if (!forms.length) {
+      if (picker) picker.textContent = "No forms returned from FlexxForms yet.";
+      return;
+    }
+    if (picker) {
+      picker.innerHTML = forms
+        .map((f) => {
+          const id = f.id || f.formId || f.form_id || "";
+          const name = f.name || f.title || id;
+          return `<button type="button" class="btn small ff-pick-form" data-id="${escapeHtml(id)}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`;
+        })
+        .join(" ");
+      picker.querySelectorAll(".ff-pick-form").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.id;
+          const target = prompt(
+            `Assign form "${btn.dataset.name}" to which field?\n1 = Membership\n2 = Loan`,
+            "1"
+          );
+          if (target === "2") $("#ffLoanFormId").value = id;
+          else $("#ffMembershipFormId").value = id;
+        });
+      });
+    }
+    setFormStatus(status, `Loaded ${forms.length} form(s). Click a form to assign it.`, true);
+  } catch (err) {
+    if (picker) picker.textContent = "";
+    setFormStatus(status, err.message, false);
+  }
+});
+
+async function loadMyLoanApplyEmbed() {
+  const card = $("#myLoanApplyCard");
+  const hint = $("#myLoanApplyHint");
+  const frame = $("#myLoanApplyFrame");
+  if (!card || currentUser?.role !== "member") return;
+  try {
+    const res = await fetch("/api/flexxforms/config");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load forms");
+    const url = data.config?.loanEmbedUrl;
+    card.classList.remove("hidden");
+    if (!url) {
+      if (hint) {
+        hint.textContent =
+          "Ask your administrator to publish a loan form in Manage Forms & Documents.";
+      }
+      frame?.classList.add("hidden");
+      return;
+    }
+    if (hint) hint.textContent = "Complete the loan application below. Powered by FlexxForms.";
+    if (frame) {
+      frame.src = url;
+      frame.classList.remove("hidden");
+    }
+  } catch {
+    card.classList.add("hidden");
+  }
+}
+
+async function openLoanAgreementsPanel(loanId, borrowerName) {
+  activeLoanAgreementsId = loanId;
+  const panel = $("#loanAgreementsPanel");
+  const meta = $("#loanAgreementsMeta");
+  const embeds = $("#loanAgreementsEmbeds");
+  const status = $("#loanAgreementsStatus");
+  if (!panel) return;
+  panel.classList.remove("hidden");
+  if (meta) meta.textContent = `Loan #${loanId}${borrowerName ? ` · ${borrowerName}` : ""}`;
+  if (embeds) embeds.innerHTML = "";
+  if (status) status.textContent = "";
+  try {
+    const res = await fetch(`/api/loans/${encodeURIComponent(loanId)}/flexxforms-documents`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load agreements");
+    renderLoanAgreementEmbeds(data.documents);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+}
+
+function renderLoanAgreementEmbeds(docs) {
+  const embeds = $("#loanAgreementsEmbeds");
+  if (!embeds) return;
+  if (!docs) {
+    embeds.innerHTML = "";
+    return;
+  }
+  const blocks = [];
+  if (docs.guarantorEmbedUrl || docs.guarantorSignUrl) {
+    const url = docs.guarantorEmbedUrl || docs.guarantorSignUrl;
+    blocks.push(
+      `<div><p class="subtle">Guarantor agreement (${escapeHtml(docs.guarantorDocStatus || "pending")})</p>
+       <iframe class="loan-agreement-frame" title="Guarantor agreement" src="${escapeHtml(url)}"></iframe></div>`
+    );
+  }
+  if (docs.borrowerEmbedUrl || docs.borrowerSignUrl) {
+    const url = docs.borrowerEmbedUrl || docs.borrowerSignUrl;
+    blocks.push(
+      `<div><p class="subtle">Borrower agreement (${escapeHtml(docs.borrowerDocStatus || "pending")})</p>
+       <iframe class="loan-agreement-frame" title="Borrower agreement" src="${escapeHtml(url)}"></iframe></div>`
+    );
+  }
+  embeds.innerHTML = blocks.join("") || '<p class="subtle">No agreements created yet.</p>';
+}
+
+async function createLoanAgreement(purpose) {
+  const status = $("#loanAgreementsStatus");
+  if (!activeLoanAgreementsId) {
+    setFormStatus(status, "Select a loan first.", false);
+    return;
+  }
+  try {
+    const res = await fetch(
+      `/api/loans/${encodeURIComponent(activeLoanAgreementsId)}/flexxforms-documents`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purpose }),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to create agreement");
+    setFormStatus(status, `${purpose} agreement created.`, true);
+    renderLoanAgreementEmbeds(data.documents);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+}
+
+$("#createGuarantorAgreementBtn")?.addEventListener("click", () => createLoanAgreement("guarantor"));
+$("#createBorrowerAgreementBtn")?.addEventListener("click", () => createLoanAgreement("borrower"));
+
+$("#openMembershipApplyLink")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  hideAllScreens();
+  $("#membershipApplyScreen")?.classList.remove("hidden");
+  const slugInput = $("#membershipApplyOrgSlug");
+  if (slugInput && !slugInput.value) {
+    slugInput.value = localStorage.getItem(ORG_SLUG_KEY) || DEFAULT_ORG_SLUG || "";
+  }
+});
+
+$("#closeMembershipApplyBtn")?.addEventListener("click", () => {
+  showLoginForPortal("member");
+});
+
+$("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
+  const status = $("#membershipApplyStatus");
+  const hint = $("#membershipApplyHint");
+  const frame = $("#membershipApplyFrame");
+  const slug = ($("#membershipApplyOrgSlug")?.value || "").trim();
+  if (!slug) {
+    setFormStatus(status, "Organization code is required.", false);
+    return;
+  }
+  try {
+    const res = await nativeFetch(
+      `/api/public/organizations/${encodeURIComponent(slug)}/flexxforms`
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Unable to load application form");
+    if (!data.membershipEmbedUrl) {
+      if (hint) {
+        hint.textContent =
+          "Ask your administrator to publish a membership form in Manage Forms & Documents.";
+      }
+      frame?.classList.add("hidden");
+      setFormStatus(status, "Membership form is not published yet.", false);
+      return;
+    }
+    rememberOrgSlug(slug);
+    if (hint) {
+      hint.textContent = `${data.organizationName || "Cooperative"} membership application. Powered by FlexxForms.`;
+    }
+    if (frame) {
+      frame.src = data.membershipEmbedUrl;
+      frame.classList.remove("hidden");
+    }
+    setFormStatus(status, "", true);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
 });
 
 applyAppBranding();

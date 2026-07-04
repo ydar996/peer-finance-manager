@@ -66,10 +66,31 @@ CREATE TABLE IF NOT EXISTS loans (
   guarantor2_id INTEGER,
   schedule_imported INTEGER NOT NULL DEFAULT 0,
   notes TEXT,
+  guarantor_document_id TEXT,
+  guarantor_sign_url TEXT,
+  guarantor_embed_url TEXT,
+  guarantor_doc_status TEXT,
+  borrower_document_id TEXT,
+  borrower_sign_url TEXT,
+  borrower_embed_url TEXT,
+  borrower_doc_status TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (borrower_id) REFERENCES members(id),
   FOREIGN KEY (guarantor1_id) REFERENCES members(id),
   FOREIGN KEY (guarantor2_id) REFERENCES members(id)
+);
+
+CREATE TABLE IF NOT EXISTS flexxforms_applications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL,
+  flexxforms_submission_id TEXT,
+  form_id TEXT,
+  payload_json TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  member_id INTEGER,
+  loan_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS loan_installments (

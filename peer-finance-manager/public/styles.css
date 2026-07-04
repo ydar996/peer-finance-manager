@@ -30,6 +30,25 @@ h1 { margin: 0 0 4px; font-size: 28px; }
   color: #1e293b;
 }
 
+.flexxforms-embed-frame {
+  width: 100%;
+  min-height: 720px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+.flexxforms-apply-card {
+  max-width: 960px;
+}
+.loan-agreement-frame {
+  width: 100%;
+  min-height: 560px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-top: 10px;
+  background: #fff;
+}
+
 /* Headings and section leads use full content width (no premature wraps) */
 h1,
 h2,

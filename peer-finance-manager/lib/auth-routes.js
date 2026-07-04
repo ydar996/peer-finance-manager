@@ -48,7 +48,7 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
-  app.post("/api/auth/register-organization", (req, res) => {
+  app.post("/api/auth/register-organization", async (req, res) => {
     try {
       const { name, slug, adminEmail, adminPassword, adminDisplayName } = req.body || {};
       const result = registerOrganizationWithAdmin({
@@ -58,7 +58,44 @@ function registerAuthRoutes(app, deps = {}) {
         adminPassword,
         adminDisplayName,
       });
-      res.json({ success: true, ...result });
+
+      let flexxforms = { provisioned: false };
+      try {
+        const {
+          provisionOrganization,
+          updateOrganizationFlexxForms,
+          isProvisioningConfigured,
+        } = require("./flexxforms-service");
+        if (isProvisioningConfigured()) {
+          flexxforms = await provisionOrganization(result.organization.slug, {
+            email: adminEmail,
+            fullName: adminDisplayName,
+            organizationName: result.organization.name,
+          });
+        } else {
+          flexxforms = {
+            provisioned: false,
+            provisionError: "FlexxForms provisioning is not configured on the server",
+          };
+        }
+      } catch (ffErr) {
+        console.error("FlexxForms provision failed:", ffErr.message);
+        try {
+          const { updateOrganizationFlexxForms } = require("./flexxforms-service");
+          updateOrganizationFlexxForms(result.organization.slug, {
+            provisionError: ffErr.message,
+            adminEmail: String(adminEmail || "").trim().toLowerCase() || null,
+          });
+        } catch (_) {}
+        flexxforms = {
+          provisioned: false,
+          provisionError: ffErr.message,
+          message:
+            "Cooperative created, but FlexxForms setup failed. Sign in as administrator and use Retry FlexxForms Setup under Manage Forms & Documents.",
+        };
+      }
+
+      res.json({ success: true, ...result, flexxforms });
     } catch (err) {
       res.status(400).json({ error: err.message });
     }

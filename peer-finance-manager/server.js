@@ -129,6 +129,21 @@ app.post(
   }
 );
 
+app.post(
+  "/api/flexxforms/webhook",
+  express.raw({ type: "application/json" }),
+  (req, res) => {
+    try {
+      const { handleWebhook } = require("./lib/flexxforms-service");
+      const result = handleWebhook(req.body, req.headers);
+      res.json({ success: true, ...result });
+    } catch (err) {
+      console.error("FlexxForms webhook error:", err.message);
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
 app.use(express.json());
 app.use((req, res, next) => {
   const originalJson = res.json.bind(res);
@@ -177,6 +192,10 @@ app.get("/api/health", (req, res) => {
     payload.stripeConfigured = isStripeConfigured();
   } catch (_) {}
   try {
+    const { isProvisioningConfigured } = require("./lib/flexxforms-service");
+    payload.flexxformsProvisioningConfigured = isProvisioningConfigured();
+  } catch (_) {}
+  try {
     const { todayIso, getCooperativeTimezone } = require("./lib/cooperative-time");
     payload.cooperativeToday = todayIso();
     payload.timezone = getCooperativeTimezone();
@@ -188,6 +207,8 @@ registerPlatformRoutes(app);
 registerAuthRoutes(app, { upload });
 registerCooperativePublicRoutes(app, { requireAdmin, restoreOrgContext });
 registerBillingRoutes(app, { requireAdmin, requireAuth, restoreOrgContext });
+const { registerFlexxFormsRoutes } = require("./lib/flexxforms-routes");
+registerFlexxFormsRoutes(app);
 
 app.get("/", (req, res) => res.redirect("/member"));
 app.get("/product", (req, res) => {
@@ -211,7 +232,8 @@ app.use("/api", (req, res, next) => {
     req.path === "/organizations/lookup" ||
     req.path.startsWith("/public/") ||
     req.path.startsWith("/platform/") ||
-    req.path === "/billing/stripe-webhook"
+    req.path === "/billing/stripe-webhook" ||
+    req.path === "/flexxforms/webhook"
   ) {
     return next();
   }

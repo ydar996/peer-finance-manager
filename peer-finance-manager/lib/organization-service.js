@@ -64,6 +64,12 @@ function getRegistryDb() {
       CREATE INDEX IF NOT EXISTS idx_sessions_org ON sessions(organization_slug);
     `);
     ensureBillingSchema(registryDb);
+    try {
+      const { ensureFlexxFormsSchema } = require("./flexxforms-service");
+      ensureFlexxFormsSchema(registryDb);
+    } catch (_) {
+      /* flexxforms module optional during early boot */
+    }
   }
   return registryDb;
 }

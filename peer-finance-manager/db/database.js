@@ -95,6 +95,10 @@ function openOrgDatabase(orgSlug) {
   applyAuthMigrations(database);
   applyMemberMigrations(database);
   applyProfileMigrations(database);
+  try {
+    const { ensureLoanDocumentSchema } = require("../lib/flexxforms-service");
+    ensureLoanDocumentSchema(database);
+  } catch (_) {}
   dbByOrg.set(slug, database);
 
   const { backfillMemberNumbers } = require("../lib/member-number-service");
