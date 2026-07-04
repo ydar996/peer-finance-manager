@@ -8,6 +8,7 @@ const {
   getOrganization,
   normalizeSlug,
   listOrganizations,
+  updateOrganizationAdminEmail,
 } = require("./organization-service");
 const { getDb } = require("../db/database");
 const { runWithOrg } = require("./org-context");
@@ -27,7 +28,19 @@ function getProvisioningSecret() {
 }
 
 function isProvisioningConfigured() {
-  return Boolean(getProvisioningSecret());
+  const secret = getProvisioningSecret();
+  return Boolean(secret && secret.length >= 32);
+}
+
+function resolveFlexxFormsAdminEmail(organization, sessionUser) {
+  const fromOrg = organization?.admin_email || organization?.adminEmail || "";
+  if (fromOrg && String(fromOrg).includes("@")) {
+    return String(fromOrg).trim().toLowerCase();
+  }
+  if (sessionUser?.role === "admin" && sessionUser?.email?.includes("@")) {
+    return String(sessionUser.email).trim().toLowerCase();
+  }
+  return null;
 }
 
 function ensureFlexxFormsSchema(db) {
@@ -193,7 +206,7 @@ function getFlexxFormsAdminView(slug, { consumeTempPassword = false } = {}) {
     organizationSlug: org.slug,
     organizationName: org.name,
     provisioned: Boolean(ff.tenantId && ff.apiKey),
-    adminEmail: ff.adminEmail || null,
+    adminEmail: ff.adminEmail || org.adminEmail || null,
     tempPassword,
     provisionError: ff.provisionError || null,
     provisionedAt: ff.provisionedAt || null,
@@ -259,70 +272,114 @@ async function flexxformsFetch(path, { method = "GET", apiKey, body, provisionin
   return data;
 }
 
-function applyEnsureResponse(slug, data) {
+function applyEnsureResponse(slug, data, adminEmailOverride) {
+  const current = getOrganizationFlexxForms(slug) || {};
   const ready = data?.readyToUse || data?.ready_to_use || {};
+  const resolvedAdminEmail =
+    adminEmailOverride ||
+    data.email ||
+    data.adminEmail ||
+    data.admin_email ||
+    null;
   const fields = {
     tenantId: data.tenantId || data.tenant_id || null,
     apiKey: data.apiKey || data.api_key || null,
     webhookSecret: data.webhookSecret || data.webhook_secret || null,
-    adminEmail: data.email || data.adminEmail || null,
-    membershipFormId:
-      ready.membershipFormId || ready.membership_form_id || data.membershipFormId || null,
-    loanFormId: ready.loanFormId || ready.loan_form_id || data.loanFormId || null,
-    guarantorMasterDocId:
-      ready.guarantorMasterDocId ||
-      ready.guarantor_master_doc_id ||
-      data.guarantorMasterDocId ||
-      null,
-    borrowerMasterDocId:
-      ready.borrowerMasterDocId ||
-      ready.borrower_master_doc_id ||
-      data.borrowerMasterDocId ||
-      null,
+    adminEmail: resolvedAdminEmail
+      ? String(resolvedAdminEmail).trim().toLowerCase()
+      : current.adminEmail || null,
     provisionError: null,
     provisionedAt: new Date().toISOString(),
   };
+
+  const readyMembership =
+    ready.membershipFormId || ready.membership_form_id || data.membershipFormId || null;
+  const readyLoan = ready.loanFormId || ready.loan_form_id || data.loanFormId || null;
+  const readyGuarantor =
+    ready.guarantorMasterDocId ||
+    ready.guarantor_master_doc_id ||
+    data.guarantorMasterDocId ||
+    null;
+  const readyBorrower =
+    ready.borrowerMasterDocId ||
+    ready.borrower_master_doc_id ||
+    data.borrowerMasterDocId ||
+    null;
+
+  if (readyMembership && !current.membershipFormId) fields.membershipFormId = readyMembership;
+  if (readyLoan && !current.loanFormId) fields.loanFormId = readyLoan;
+  if (readyGuarantor && !current.guarantorMasterDocId) {
+    fields.guarantorMasterDocId = readyGuarantor;
+  }
+  if (readyBorrower && !current.borrowerMasterDocId) {
+    fields.borrowerMasterDocId = readyBorrower;
+  }
+
   const tempPassword = data.temporaryPassword || data.temporary_password || null;
   if (tempPassword) fields.tempPassword = tempPassword;
+
+  if (fields.adminEmail) {
+    updateOrganizationAdminEmail(slug, fields.adminEmail, { onlyIfEmpty: true });
+  }
+
   return updateOrganizationFlexxForms(slug, fields);
 }
 
-async function provisionOrganization(slug, { email, fullName, organizationName } = {}) {
-  const org = getOrganization(slug);
-  if (!org) throw new Error("Organization not found");
-  const adminEmail = String(email || "").trim().toLowerCase();
-  if (!adminEmail) throw new Error("Administrator email is required for FlexxForms setup");
+async function provisionFlexxFormsForOrganization(org, adminEmail, { fullName, organizationName } = {}) {
+  const secret = getProvisioningSecret();
+  if (!secret || secret.length < 32) {
+    throw new Error("FlexxForms provisioning not configured");
+  }
+  const email = String(adminEmail || "")
+    .trim()
+    .toLowerCase();
+  if (!email || !email.includes("@")) {
+    throw new Error("Administrator email is required for FlexxForms setup");
+  }
 
   const data = await flexxformsFetch("/platform/workspaces/ensure", {
     method: "POST",
     provisioning: true,
     body: {
-      email: adminEmail,
+      email,
       organizationName: organizationName || org.name,
       fullName: fullName || undefined,
       hostApp: "peer-finance-manager",
-      externalId: org.slug,
+      externalId: String(org.id || org.slug),
       plan: "pro",
     },
   });
 
-  applyEnsureResponse(org.slug, data);
+  applyEnsureResponse(org.slug, data, email);
   return getFlexxFormsAdminView(org.slug, { consumeTempPassword: false });
 }
 
-async function retryProvision(slug) {
+async function provisionOrganization(slug, { email, fullName, organizationName, sessionUser } = {}) {
   const org = getOrganization(slug);
   if (!org) throw new Error("Organization not found");
-  const ff = getOrganizationFlexxForms(slug) || {};
-  const email = ff.adminEmail;
+  const adminEmail =
+    resolveFlexxFormsAdminEmail(org, sessionUser) ||
+    (email ? String(email).trim().toLowerCase() : null);
+  if (!adminEmail) {
+    throw new Error("Administrator email is required for FlexxForms setup");
+  }
+
+  updateOrganizationAdminEmail(org.slug, adminEmail);
+  return provisionFlexxFormsForOrganization(org, adminEmail, { fullName, organizationName });
+}
+
+async function retryProvision(slug, sessionUser) {
+  const org = getOrganization(slug);
+  if (!org) throw new Error("Organization not found");
+  const email = resolveFlexxFormsAdminEmail(org, sessionUser);
   if (!email) {
     throw new Error("No FlexxForms admin email on file. Re-register or contact support.");
   }
+  if (!org.adminEmail) {
+    updateOrganizationAdminEmail(org.slug, email);
+  }
   try {
-    return await provisionOrganization(slug, {
-      email,
-      organizationName: org.name,
-    });
+    return await provisionFlexxFormsForOrganization(org, email);
   } catch (err) {
     updateOrganizationFlexxForms(slug, { provisionError: err.message });
     throw err;
@@ -616,6 +673,8 @@ module.exports = {
   updateOrganizationFlexxForms,
   getFlexxFormsAdminView,
   getFlexxFormsPublicConfig,
+  resolveFlexxFormsAdminEmail,
+  provisionFlexxFormsForOrganization,
   provisionOrganization,
   retryProvision,
   listIntegrationForms,

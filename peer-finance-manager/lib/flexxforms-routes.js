@@ -51,8 +51,8 @@ function registerFlexxFormsRoutes(app) {
   app.post("/api/flexxforms/retry-provision", requireAuth, requireAdmin, async (req, res) => {
     try {
       const slug = requestOrgSlug(req);
-      const settings = await retryProvision(slug);
-      res.json({ success: true, settings });
+      const settings = await retryProvision(slug, req.user);
+      res.json({ ok: true, success: true, settings });
     } catch (err) {
       console.error("FlexxForms retry provision failed:", err.message);
       res.status(400).json({ error: err.message });

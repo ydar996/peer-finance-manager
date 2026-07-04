@@ -8,6 +8,7 @@ const {
   getOrganization,
   organizationExists,
   registerOrganization,
+  updateOrganizationAdminEmail,
   normalizeSlug,
   ASSURANCE_SLUG,
   ASSURANCE_NAME,
@@ -235,6 +236,7 @@ function registerOrganizationWithAdmin({
   }
 
   const organization = registerOrganization({ name, slug });
+  updateOrganizationAdminEmail(organization.slug, normalizedEmail);
   return runWithOrg(organization.slug, () => {
     const db = getDb();
     const result = db

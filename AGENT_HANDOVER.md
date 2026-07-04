@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 3, 2026 (FlexxForms Plan B integration)  
+**Last updated:** July 4, 2026 (FlexxForms retry-provision email fix)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-04** — **FlexxForms retry-provision fix (cooperative admin):** legacy orgs had NULL `organizations.admin_email`, so Retry FlexxForms Setup failed before calling FlexxForms ensure. Added `admin_email` on registry `organizations`, `resolveFlexxFormsAdminEmail()` (org row then logged-in admin session), startup backfill from first org admin user (+ Assurance `assuranceflex@eworkchop.com`), register-organization persists admin email before provision, `applyEnsureResponse` fills form/doc ids from `readyToUse` only when empty (preserves saved membership form id). Files: `lib/flexxforms-service.js`, `lib/flexxforms-routes.js`, `lib/organization-service.js`, `lib/auth-service.js`, `lib/auth-routes.js`. **Production:** `git push` only.
 - **2026-07-03** — **FlexxForms Plan B:** each Cooperative gets its own FlexxForms workspace on register (`POST /platform/workspaces/ensure`). Credentials on registry `organizations` (secrets server-only). Admin **Manage Forms & Documents** (open FlexxForms, save form/doc ids, retry provision, list forms). Member loan apply embed; public membership apply from member login. Loan guarantor/borrower agreements via integrations API + in-app iframe. Webhook `POST /api/flexxforms/webhook` (raw body + HMAC). Env: `FLEXXFORMS_API_BASE`, `FLEXXFORMS_PROVISIONING_SECRET` on **Render** (API). Files: `lib/flexxforms-service.js`, `lib/flexxforms-routes.js`. **Production:** `git push` + set Render env vars if not already.
 - **2026-07-03** — Product page Work Chop footer: compact content-sized badge (`width: fit-content`, smaller logo/padding) instead of full-width banner; mobile stacks logo above text. **Production:** `git push`.
 - **2026-07-03** — Headings and section leads use full content width **app-wide** (`product.css`, `styles.css`, `cooperative-public.css`, legacy `public/styles.css`): no artificial `max-width` on titles/hints/leads. Form/input layout widths unchanged. Hero: five dashboard mock cards; mobile/tablet grid shows all cards. **Production:** `git push`.

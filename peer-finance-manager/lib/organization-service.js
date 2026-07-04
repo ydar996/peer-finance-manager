@@ -35,6 +35,7 @@ function ensureBillingSchema(db) {
   add(`ADD COLUMN subscription_notes TEXT`);
   add(`ADD COLUMN subscription_updated_at TEXT`);
   add(`ADD COLUMN subscription_grace_until TEXT`);
+  add(`ADD COLUMN admin_email TEXT`);
 }
 
 function getRegistryDb() {
@@ -103,6 +104,7 @@ function mapOrganizationRow(row) {
     subscriptionNotes: row.subscription_notes || null,
     subscriptionUpdatedAt: row.subscription_updated_at || null,
     subscriptionGraceUntil: row.subscription_grace_until || null,
+    adminEmail: row.admin_email || null,
   };
 }
 
@@ -110,7 +112,7 @@ function listOrganizations() {
   const db = getRegistryDb();
   return db
     .prepare(
-      `SELECT slug, name, created_at,
+      `SELECT slug, name, created_at, admin_email,
               subscription_status, subscription_plan, payment_method, billing_email,
               stripe_customer_id, stripe_subscription_id, subscription_current_period_end,
               check_payment_reference, subscription_notes, subscription_updated_at,
@@ -127,7 +129,7 @@ function getOrganization(slug) {
   if (!normalized) return null;
   const row = db
     .prepare(
-      `SELECT slug, name, created_at,
+      `SELECT slug, name, created_at, admin_email,
               subscription_status, subscription_plan, payment_method, billing_email,
               stripe_customer_id, stripe_subscription_id, subscription_current_period_end,
               check_payment_reference, subscription_notes, subscription_updated_at,
@@ -189,6 +191,59 @@ function updateOrganizationBilling(slug, fields) {
   return getOrganization(normalized);
 }
 
+function updateOrganizationAdminEmail(slug, email, { onlyIfEmpty = false } = {}) {
+  const db = getRegistryDb();
+  const normalized = normalizeSlug(slug);
+  if (!getOrganization(normalized)) throw new Error("Organization not found");
+  const value = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!value || !value.includes("@")) throw new Error("Valid administrator email is required");
+  if (onlyIfEmpty) {
+    db.prepare(
+      `UPDATE organizations SET admin_email = ? WHERE slug = ? AND (admin_email IS NULL OR admin_email = '')`
+    ).run(value, normalized);
+  } else {
+    db.prepare(`UPDATE organizations SET admin_email = ? WHERE slug = ?`).run(value, normalized);
+  }
+  return getOrganization(normalized);
+}
+
+function backfillOrganizationAdminEmails() {
+  const db = getRegistryDb();
+  ensureBillingSchema(db);
+  const { runWithOrg } = require("./org-context");
+  const { getDb } = require("../db/database");
+
+  for (const org of listOrganizations()) {
+    if (org.adminEmail) continue;
+    let email = null;
+    try {
+      email = runWithOrg(org.slug, () => {
+        const row = getDb()
+          .prepare(
+            `SELECT LOWER(email) AS email FROM users
+             WHERE role = 'admin' AND active = 1
+             ORDER BY created_at ASC LIMIT 1`
+          )
+          .get();
+        return row?.email || null;
+      });
+    } catch (_) {
+      email = null;
+    }
+    if (email) {
+      db.prepare(
+        `UPDATE organizations SET admin_email = ? WHERE slug = ? AND (admin_email IS NULL OR admin_email = '')`
+      ).run(email, org.slug);
+    }
+  }
+
+  db.prepare(
+    `UPDATE organizations SET admin_email = ? WHERE slug = ? AND (admin_email IS NULL OR admin_email = '')`
+  ).run("assuranceflex@eworkchop.com", ASSURANCE_SLUG);
+}
+
 function migrateLegacyOrgBillingDefaults() {
   const db = getRegistryDb();
   db.prepare(
@@ -196,6 +251,7 @@ function migrateLegacyOrgBillingDefaults() {
      SET subscription_status = 'pending'
      WHERE subscription_status IS NULL OR subscription_status = ''`
   ).run();
+  backfillOrganizationAdminEmails();
 }
 
 function migrateLegacyDatabaseIfNeeded() {
@@ -237,7 +293,9 @@ module.exports = {
   getOrganization,
   organizationExists,
   registerOrganization,
+  updateOrganizationAdminEmail,
   updateOrganizationBilling,
   migrateLegacyDatabaseIfNeeded,
   migrateLegacyOrgBillingDefaults,
+  backfillOrganizationAdminEmails,
 };

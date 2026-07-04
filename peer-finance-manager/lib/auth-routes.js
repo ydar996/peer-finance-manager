@@ -71,6 +71,7 @@ function registerAuthRoutes(app, deps = {}) {
             email: adminEmail,
             fullName: adminDisplayName,
             organizationName: result.organization.name,
+            sessionUser: { role: "admin", email: adminEmail },
           });
         } else {
           flexxforms = {
