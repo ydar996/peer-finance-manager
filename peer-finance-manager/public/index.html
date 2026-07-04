@@ -498,6 +498,14 @@
                 <button type="button" class="btn" id="retryFlexxFormsProvision">Retry FlexxForms Setup</button>
                 <button type="button" class="btn" id="refreshFlexxFormsForms">Load Forms from FlexxForms</button>
               </div>
+              <section id="flexxformsCatalogSection" class="flexxforms-catalog hidden" aria-live="polite">
+                <div class="flexxforms-catalog-head">
+                  <h4>Published in FlexxForms</h4>
+                  <p class="hint">Each item below is live in your FlexxForms workspace. Use Assign to link it to a field in Peer Finance Manager, then click Save Form &amp; Document Ids.</p>
+                </div>
+                <div id="flexxformsFormsPicker" class="flexxforms-catalog-list"></div>
+              </section>
+              <p class="subtle flexxforms-manual-ids-head">Form &amp; Document Ids</p>
               <form id="flexxformsSettingsForm" class="entry-form cooperative-meeting-form">
                 <label>Membership Form Id
                   <input type="text" id="ffMembershipFormId" placeholder="UUID from FlexxForms" />
@@ -511,7 +519,6 @@
                 <label>Borrower Master Document Id
                   <input type="text" id="ffBorrowerMasterDocId" placeholder="UUID from FlexxForms" />
                 </label>
-                <div id="flexxformsFormsPicker" class="hint"></div>
                 <button type="submit" class="btn primary">Save Form &amp; Document Ids</button>
               </form>
               <p class="subtle" style="margin-top: 12px;">Recent FlexxForms submissions</p>

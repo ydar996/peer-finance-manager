@@ -393,7 +393,11 @@ async function retryProvision(slug, sessionUser) {
 
 async function listIntegrationForms(slug) {
   const ff = getOrganizationFlexxForms(slug);
-  if (!ff?.apiKey) throw new Error("FlexxForms is not set up for this Cooperative yet");
+  if (!ff?.apiKey) {
+    throw new Error(
+      "FlexxForms workspace is not connected yet. Click Retry FlexxForms Setup and wait for the Ready badge before loading forms."
+    );
+  }
   const data = await flexxformsFetch("/integrations/forms", { apiKey: ff.apiKey });
   return data?.forms || data?.items || data || [];
 }

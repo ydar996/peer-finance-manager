@@ -5309,6 +5309,87 @@ document.querySelectorAll(".org-slug-input").forEach((input) => {
 
 let activeLoanAgreementsId = null;
 
+let flexxFormsProvisioned = false;
+
+const FLEXXFORMS_ASSIGN_TARGETS = [
+  { inputId: "ffMembershipFormId", label: "Membership Application" },
+  { inputId: "ffLoanFormId", label: "Loan Application" },
+  { inputId: "ffGuarantorMasterDocId", label: "Guarantor Master Document" },
+  { inputId: "ffBorrowerMasterDocId", label: "Borrower Master Document" },
+];
+
+function getFlexxFormsFieldValues() {
+  return Object.fromEntries(
+    FLEXXFORMS_ASSIGN_TARGETS.map(({ inputId }) => [inputId, String($("#" + inputId)?.value || "").trim()])
+  );
+}
+
+function refreshFlexxFormsAssignButtons() {
+  const values = getFlexxFormsFieldValues();
+  document.querySelectorAll(".flexxforms-assign-btn").forEach((btn) => {
+    const inputId = btn.dataset.inputId;
+    const formId = btn.dataset.formId;
+    const linked = Boolean(formId && values[inputId] === formId);
+    btn.classList.toggle("is-linked", linked);
+    btn.textContent = linked ? `${btn.dataset.label} · Linked` : btn.dataset.label;
+  });
+}
+
+function assignFlexxFormToField(inputId, formId, label, statusEl) {
+  const input = $("#" + inputId);
+  if (!input) return;
+  input.value = formId;
+  input.classList.add("is-assigned");
+  window.setTimeout(() => input.classList.remove("is-assigned"), 1600);
+  refreshFlexxFormsAssignButtons();
+  if (statusEl) {
+    setFormStatus(statusEl, `Assigned to ${label}. Click Save Form & Document Ids when you are done.`, true);
+  }
+}
+
+function renderFlexxFormsCatalog(forms, statusEl) {
+  const section = $("#flexxformsCatalogSection");
+  const picker = $("#flexxformsFormsPicker");
+  if (!section || !picker) return;
+
+  if (!forms.length) {
+    section.classList.remove("hidden");
+    picker.innerHTML = '<p class="flexxforms-catalog-empty hint">No forms returned from FlexxForms yet. Publish a form in FlexxForms, then load again.</p>';
+    return;
+  }
+
+  section.classList.remove("hidden");
+  picker.innerHTML = forms
+    .map((f) => {
+      const id = f.id || f.formId || f.form_id || "";
+      const name = f.name || f.title || "Untitled Form";
+      const typeLabel = f.type || f.kind || f.category || "Form";
+      const assignButtons = FLEXXFORMS_ASSIGN_TARGETS.map(
+        ({ inputId, label }) =>
+          `<button type="button" class="btn small flexxforms-assign-btn" data-input-id="${escapeHtml(inputId)}" data-form-id="${escapeHtml(id)}" data-label="${escapeHtml(label)}">${escapeHtml(label)}</button>`
+      ).join("");
+      return `<article class="flexxforms-catalog-item">
+        <div class="flexxforms-catalog-item-main">
+          <strong class="flexxforms-catalog-item-title">${escapeHtml(name)}</strong>
+          <span class="badge">${escapeHtml(typeLabel)}</span>
+          <code class="flexxforms-catalog-item-id">${escapeHtml(id)}</code>
+        </div>
+        <div class="flexxforms-catalog-item-actions">
+          <span class="hint">Assign to</span>
+          ${assignButtons}
+        </div>
+      </article>`;
+    })
+    .join("");
+
+  picker.querySelectorAll(".flexxforms-assign-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      assignFlexxFormToField(btn.dataset.inputId, btn.dataset.formId, btn.dataset.label, statusEl);
+    });
+  });
+  refreshFlexxFormsAssignButtons();
+}
+
 async function loadFlexxFormsSettings() {
   const panel = $("#flexxformsFormsPanel");
   if (!panel || currentUser?.role !== "admin") return;
@@ -5319,6 +5400,14 @@ async function loadFlexxFormsSettings() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to load FlexxForms settings");
     const s = data.settings || {};
+    flexxFormsProvisioned = Boolean(s.provisioned);
+    const loadFormsBtn = $("#refreshFlexxFormsForms");
+    if (loadFormsBtn) {
+      loadFormsBtn.disabled = !flexxFormsProvisioned;
+      loadFormsBtn.title = flexxFormsProvisioned
+        ? ""
+        : "Run Retry FlexxForms Setup first and wait for the Ready badge.";
+    }
     if (badge) {
       badge.textContent = s.provisioned ? "Ready" : "Setup needed";
       badge.className = s.provisioned ? "badge ok" : "badge";
@@ -5356,6 +5445,7 @@ async function loadFlexxFormsSettings() {
     $("#ffLoanFormId").value = s.loanFormId || "";
     $("#ffGuarantorMasterDocId").value = s.guarantorMasterDocId || "";
     $("#ffBorrowerMasterDocId").value = s.borrowerMasterDocId || "";
+    refreshFlexxFormsAssignButtons();
     await loadFlexxFormsApplications();
   } catch (err) {
     if (badge) badge.textContent = "Error";
@@ -5427,41 +5517,39 @@ $("#retryFlexxFormsProvision")?.addEventListener("click", async () => {
 });
 
 $("#refreshFlexxFormsForms")?.addEventListener("click", async () => {
+  const section = $("#flexxformsCatalogSection");
   const picker = $("#flexxformsFormsPicker");
   const status = $("#flexxformsFormsStatus");
-  if (picker) picker.textContent = "Loading forms…";
+  if (!flexxFormsProvisioned) {
+    setFormStatus(
+      status,
+      "FlexxForms workspace is not connected yet. Click Retry FlexxForms Setup first.",
+      false
+    );
+    return;
+  }
+  section?.classList.remove("hidden");
+  if (picker) {
+    picker.innerHTML = '<p class="flexxforms-catalog-loading hint">Loading forms from FlexxForms…</p>';
+  }
   try {
     const res = await fetch("/api/flexxforms/forms");
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to list forms");
     const forms = Array.isArray(data.forms) ? data.forms : [];
-    if (!forms.length) {
-      if (picker) picker.textContent = "No forms returned from FlexxForms yet.";
-      return;
+    renderFlexxFormsCatalog(forms, status);
+    if (forms.length) {
+      setFormStatus(
+        status,
+        `Loaded ${forms.length} item(s). Use Assign on each card, then Save Form & Document Ids.`,
+        true
+      );
+    } else {
+      setFormStatus(status, "No forms returned from FlexxForms yet.", false);
     }
-    if (picker) {
-      picker.innerHTML = forms
-        .map((f) => {
-          const id = f.id || f.formId || f.form_id || "";
-          const name = f.name || f.title || id;
-          return `<button type="button" class="btn small ff-pick-form" data-id="${escapeHtml(id)}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`;
-        })
-        .join(" ");
-      picker.querySelectorAll(".ff-pick-form").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.dataset.id;
-          const target = prompt(
-            `Assign form "${btn.dataset.name}" to which field?\n1 = Membership\n2 = Loan`,
-            "1"
-          );
-          if (target === "2") $("#ffLoanFormId").value = id;
-          else $("#ffMembershipFormId").value = id;
-        });
-      });
-    }
-    setFormStatus(status, `Loaded ${forms.length} form(s). Click a form to assign it.`, true);
   } catch (err) {
-    if (picker) picker.textContent = "";
+    section?.classList.add("hidden");
+    if (picker) picker.innerHTML = "";
     setFormStatus(status, err.message, false);
   }
 });

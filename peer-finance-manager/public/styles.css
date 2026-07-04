@@ -40,6 +40,100 @@ h1 { margin: 0 0 4px; font-size: 28px; }
 .flexxforms-apply-card {
   max-width: 960px;
 }
+
+.flexxforms-catalog {
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  border: 1px solid #c7d2fe;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
+}
+
+.flexxforms-catalog-head h4 {
+  margin: 0 0 6px;
+  color: #312e81;
+}
+
+.flexxforms-catalog-head .hint {
+  margin: 0;
+}
+
+.flexxforms-catalog-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.flexxforms-catalog-item {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.flexxforms-catalog-item-title {
+  display: block;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.flexxforms-catalog-item-id {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.82rem;
+  word-break: break-all;
+}
+
+.flexxforms-catalog-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.flexxforms-catalog-item-actions .hint {
+  margin: 0;
+  font-weight: 600;
+  color: #334155;
+}
+
+.flexxforms-assign-btn.is-linked {
+  border-color: #059669;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.flexxforms-id-input.is-assigned {
+  border-color: #059669;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+}
+
+.flexxforms-manual-ids-head {
+  margin: 0 0 10px;
+}
+
+.flexxforms-catalog-loading,
+.flexxforms-catalog-empty {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+@media (min-width: 720px) {
+  .flexxforms-catalog-item {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    align-items: center;
+  }
+}
+
 .loan-agreement-frame {
   width: 100%;
   min-height: 560px;
