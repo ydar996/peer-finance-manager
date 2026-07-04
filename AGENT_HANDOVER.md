@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-04** — FlexxForms **document templates API:** `GET /integrations/documents/templates` merged into admin catalog load; forms vs master document assign targets; loan signing uses `signingUrl` / `signingSessions` (not `/embed/{id}` fallback). Webhook handles `document.updated` when status completed. FlexxForms fixed Assurance webhook URL to Render. **Production:** `git push`.
 - **2026-07-04** — FlexxForms admin **Published in FlexxForms** catalog: card layout with UUID, four Assign targets (membership, loan, guarantor, borrower), linked state; removed browser `prompt()`. **Production:** `git push`.
 - **2026-07-04** — FlexxForms **Load Forms** error copy: clarifies workspace must be connected (Retry → Ready badge) before listing forms; button disabled until provisioned. **Production:** `git push`.
 - **2026-07-04** — **FlexxForms Assurance admin email (again):** logged-in session (`yinka@…`) was overriding canonical Assurance FlexxForms email in UI and retry. Assurance slug now always resolves to `assuranceflex@eworkchop.com`; startup backfill also syncs `flexxforms_admin_email`. **Production:** `git push`.

@@ -402,6 +402,28 @@ async function listIntegrationForms(slug) {
   return data?.forms || data?.items || data || [];
 }
 
+async function listIntegrationDocumentTemplates(slug) {
+  const ff = getOrganizationFlexxForms(slug);
+  if (!ff?.apiKey) {
+    throw new Error(
+      "FlexxForms workspace is not connected yet. Click Retry FlexxForms Setup and wait for the Ready badge before loading forms."
+    );
+  }
+  const data = await flexxformsFetch("/integrations/documents/templates", { apiKey: ff.apiKey });
+  return data?.templates || data?.items || [];
+}
+
+function parseFlexxFormsDocumentResponse(data) {
+  const documentId = data?.documentId || data?.id || data?.document_id || null;
+  const signingUrl = data?.signingUrl || data?.signing_url || data?.signUrl || data?.sign_url || null;
+  const sessions = data?.signingSessions || data?.signing_sessions || [];
+  const sessionUrl =
+    sessions.map((s) => s?.signingUrl || s?.signing_url).find(Boolean) || null;
+  const signUrl = signingUrl || sessionUrl;
+  const embedUrl = data?.embedUrl || data?.embed_url || signUrl || null;
+  return { documentId, signUrl, embedUrl };
+}
+
 function saveFormDocumentIds(slug, ids = {}) {
   const fields = {};
   for (const key of [
@@ -482,13 +504,12 @@ async function createLoanAgreementDocument(slug, loanId, purpose) {
     },
   });
 
-  const documentId = data.id || data.documentId || data.document_id;
-  const signUrl = data.signUrl || data.sign_url || data.signingUrl || null;
-  const embedUrl =
-    data.embedUrl ||
-    data.embed_url ||
-    (documentId ? `${FLEXXFORMS_EMBED_BASE}/${documentId}` : null) ||
-    signUrl;
+  const { documentId, signUrl, embedUrl } = parseFlexxFormsDocumentResponse(data);
+  if (!documentId) throw new Error("FlexxForms did not return a document id");
+  if (!embedUrl && !signUrl) {
+    throw new Error("FlexxForms did not return a signing URL for this document");
+  }
+  const iframeUrl = embedUrl || signUrl;
 
   const db = getDb();
   ensureLoanDocumentSchema(db);
@@ -496,12 +517,12 @@ async function createLoanAgreementDocument(slug, loanId, purpose) {
     db.prepare(
       `UPDATE loans SET guarantor_document_id = ?, guarantor_sign_url = ?,
        guarantor_embed_url = ?, guarantor_doc_status = ? WHERE id = ?`
-    ).run(documentId, signUrl, embedUrl, "pending", Number(loanId));
+    ).run(documentId, signUrl, iframeUrl, "pending", Number(loanId));
   } else {
     db.prepare(
       `UPDATE loans SET borrower_document_id = ?, borrower_sign_url = ?,
        borrower_embed_url = ?, borrower_doc_status = ? WHERE id = ?`
-    ).run(documentId, signUrl, embedUrl, "pending", Number(loanId));
+    ).run(documentId, signUrl, iframeUrl, "pending", Number(loanId));
   }
   return getLoanDocuments(loanId);
 }
@@ -640,7 +661,10 @@ function handleWebhook(rawBody, headers) {
   }
   if (
     normalized.includes("document") &&
-    (normalized.includes("complete") || normalized.includes("signed"))
+    (normalized.includes("complete") ||
+      normalized.includes("signed") ||
+      (normalized.includes("updated") &&
+        (payload?.data?.status === "completed" || payload?.status === "completed")))
   ) {
     return { organizationSlug: org.slug, ...handleDocumentCompleted(org.slug, payload) };
   }
@@ -687,6 +711,7 @@ module.exports = {
   provisionOrganization,
   retryProvision,
   listIntegrationForms,
+  listIntegrationDocumentTemplates,
   saveFormDocumentIds,
   getLoanDocuments,
   createLoanAgreementDocument,

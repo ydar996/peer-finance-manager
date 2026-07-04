@@ -5311,11 +5311,19 @@ let activeLoanAgreementsId = null;
 
 let flexxFormsProvisioned = false;
 
-const FLEXXFORMS_ASSIGN_TARGETS = [
+const FLEXXFORMS_FORM_ASSIGN_TARGETS = [
   { inputId: "ffMembershipFormId", label: "Membership Application" },
   { inputId: "ffLoanFormId", label: "Loan Application" },
+];
+
+const FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS = [
   { inputId: "ffGuarantorMasterDocId", label: "Guarantor Master Document" },
   { inputId: "ffBorrowerMasterDocId", label: "Borrower Master Document" },
+];
+
+const FLEXXFORMS_ASSIGN_TARGETS = [
+  ...FLEXXFORMS_FORM_ASSIGN_TARGETS,
+  ...FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS,
 ];
 
 function getFlexxFormsFieldValues() {
@@ -5347,41 +5355,66 @@ function assignFlexxFormToField(inputId, formId, label, statusEl) {
   }
 }
 
-function renderFlexxFormsCatalog(forms, statusEl) {
+function renderFlexxFormsCatalogItem(item, typeLabel, assignTargets) {
+  const id = item.id || item.formId || item.form_id || item.templateId || "";
+  const name = item.name || item.title || item.slug || "Untitled";
+  const assignButtons = assignTargets
+    .map(
+      ({ inputId, label }) =>
+        `<button type="button" class="btn small flexxforms-assign-btn" data-input-id="${escapeHtml(inputId)}" data-form-id="${escapeHtml(id)}" data-label="${escapeHtml(label)}">${escapeHtml(label)}</button>`
+    )
+    .join("");
+  return `<article class="flexxforms-catalog-item">
+    <div class="flexxforms-catalog-item-main">
+      <strong class="flexxforms-catalog-item-title">${escapeHtml(name)}</strong>
+      <span class="badge">${escapeHtml(typeLabel)}</span>
+      <code class="flexxforms-catalog-item-id">${escapeHtml(id)}</code>
+    </div>
+    <div class="flexxforms-catalog-item-actions">
+      <span class="hint">Assign to</span>
+      ${assignButtons}
+    </div>
+  </article>`;
+}
+
+function renderFlexxFormsCatalog(forms, templates, statusEl) {
   const section = $("#flexxformsCatalogSection");
   const picker = $("#flexxformsFormsPicker");
   if (!section || !picker) return;
 
-  if (!forms.length) {
-    section.classList.remove("hidden");
-    picker.innerHTML = '<p class="flexxforms-catalog-empty hint">No forms returned from FlexxForms yet. Publish a form in FlexxForms, then load again.</p>';
+  const formItems = Array.isArray(forms) ? forms : [];
+  const templateItems = Array.isArray(templates) ? templates : [];
+  section.classList.remove("hidden");
+
+  if (!formItems.length && !templateItems.length) {
+    picker.innerHTML =
+      '<p class="flexxforms-catalog-empty hint">Nothing published in FlexxForms yet. Publish a form or master document in FlexxForms, then load again.</p>';
     return;
   }
 
-  section.classList.remove("hidden");
-  picker.innerHTML = forms
-    .map((f) => {
-      const id = f.id || f.formId || f.form_id || "";
-      const name = f.name || f.title || "Untitled Form";
-      const typeLabel = f.type || f.kind || f.category || "Form";
-      const assignButtons = FLEXXFORMS_ASSIGN_TARGETS.map(
-        ({ inputId, label }) =>
-          `<button type="button" class="btn small flexxforms-assign-btn" data-input-id="${escapeHtml(inputId)}" data-form-id="${escapeHtml(id)}" data-label="${escapeHtml(label)}">${escapeHtml(label)}</button>`
-      ).join("");
-      return `<article class="flexxforms-catalog-item">
-        <div class="flexxforms-catalog-item-main">
-          <strong class="flexxforms-catalog-item-title">${escapeHtml(name)}</strong>
-          <span class="badge">${escapeHtml(typeLabel)}</span>
-          <code class="flexxforms-catalog-item-id">${escapeHtml(id)}</code>
-        </div>
-        <div class="flexxforms-catalog-item-actions">
-          <span class="hint">Assign to</span>
-          ${assignButtons}
-        </div>
-      </article>`;
-    })
-    .join("");
+  const chunks = [];
+  if (formItems.length) {
+    chunks.push('<p class="subtle flexxforms-catalog-group-title">Application Forms</p>');
+    chunks.push(
+      formItems
+        .map((f) => renderFlexxFormsCatalogItem(f, "Form", FLEXXFORMS_FORM_ASSIGN_TARGETS))
+        .join("")
+    );
+  }
+  if (templateItems.length) {
+    chunks.push('<p class="subtle flexxforms-catalog-group-title">Master Documents</p>');
+    chunks.push(
+      templateItems
+        .map((t) => renderFlexxFormsCatalogItem(t, "Master Document", FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS))
+        .join("")
+    );
+  } else if (formItems.length) {
+    chunks.push(
+      '<p class="flexxforms-catalog-empty hint">No master documents yet. In FlexxForms, create guarantor and borrower templates, mark them Master document, publish, then load again.</p>'
+    );
+  }
 
+  picker.innerHTML = chunks.join("");
   picker.querySelectorAll(".flexxforms-assign-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       assignFlexxFormToField(btn.dataset.inputId, btn.dataset.formId, btn.dataset.label, statusEl);
@@ -5530,22 +5563,24 @@ $("#refreshFlexxFormsForms")?.addEventListener("click", async () => {
   }
   section?.classList.remove("hidden");
   if (picker) {
-    picker.innerHTML = '<p class="flexxforms-catalog-loading hint">Loading forms from FlexxForms…</p>';
+    picker.innerHTML = '<p class="flexxforms-catalog-loading hint">Loading forms and documents from FlexxForms…</p>';
   }
   try {
     const res = await fetch("/api/flexxforms/forms");
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to list forms");
+    if (!res.ok) throw new Error(data.error || "Failed to list FlexxForms catalog");
     const forms = Array.isArray(data.forms) ? data.forms : [];
-    renderFlexxFormsCatalog(forms, status);
-    if (forms.length) {
+    const templates = Array.isArray(data.templates) ? data.templates : [];
+    renderFlexxFormsCatalog(forms, templates, status);
+    const total = forms.length + templates.length;
+    if (total) {
       setFormStatus(
         status,
-        `Loaded ${forms.length} item(s). Use Assign on each card, then Save Form & Document Ids.`,
+        `Loaded ${forms.length} form(s) and ${templates.length} master document(s). Assign each item, then Save Form & Document Ids.`,
         true
       );
     } else {
-      setFormStatus(status, "No forms returned from FlexxForms yet.", false);
+      setFormStatus(status, "Nothing published in FlexxForms yet.", false);
     }
   } catch (err) {
     section?.classList.add("hidden");

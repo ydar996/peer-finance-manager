@@ -119,6 +119,14 @@ h1 { margin: 0 0 4px; font-size: 28px; }
   margin: 0 0 10px;
 }
 
+.flexxforms-catalog-group-title {
+  margin: 16px 0 8px;
+}
+
+.flexxforms-catalog-group-title:first-child {
+  margin-top: 0;
+}
+
 .flexxforms-catalog-loading,
 .flexxforms-catalog-empty {
   margin: 0;

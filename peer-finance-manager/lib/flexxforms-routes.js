@@ -3,6 +3,7 @@ const {
   getFlexxFormsPublicConfig,
   retryProvision,
   listIntegrationForms,
+  listIntegrationDocumentTemplates,
   saveFormDocumentIds,
   getLoanDocuments,
   createLoanAgreementDocument,
@@ -70,7 +71,13 @@ function registerFlexxFormsRoutes(app) {
     try {
       const slug = requestOrgSlug(req);
       const forms = await listIntegrationForms(slug);
-      res.json({ forms });
+      let templates = [];
+      try {
+        templates = await listIntegrationDocumentTemplates(slug);
+      } catch (templateErr) {
+        console.warn("FlexxForms document templates list failed:", templateErr.message);
+      }
+      res.json({ forms, templates });
     } catch (err) {
       res.status(400).json({ error: err.message });
     }
