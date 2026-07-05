@@ -962,6 +962,54 @@ body.cp-public {
   gap: 16px;
 }
 
+.cp-apply-shell.is-landscape-focus {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  margin: 0;
+  padding: 6px;
+  gap: 0;
+  background: #fff;
+}
+
+.cp-apply-shell.is-landscape-focus .cp-apply-footnote {
+  display: none;
+}
+
+body.cp-apply-landscape .cp-topbar,
+body.cp-apply-landscape .cp-hero,
+body.cp-apply-landscape .cp-footer,
+body.cp-apply-landscape .cp-toc-fab,
+body.cp-apply-landscape .cp-back-top {
+  display: none !important;
+}
+
+body.cp-apply-landscape .cp-main {
+  padding: 0;
+  max-width: none;
+}
+
+body.cp-apply-landscape .cp-layout,
+body.cp-apply-landscape .cp-content-card {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body.cp-apply-landscape .cp-content-area {
+  padding: 0;
+}
+
+.cp-apply-shell.is-landscape-focus .cp-apply-embed-frame {
+  flex: 1;
+  min-height: 0 !important;
+  height: 100% !important;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+}
+
 .cp-apply-embed-frame {
   width: 100%;
   min-height: 480px;

@@ -283,12 +283,14 @@
                   );
                 }
                 area.innerHTML =
-                  '<div class="cp-apply-shell"><iframe class="cp-apply-embed-frame" title="Membership application form" src="' +
+                  '<div class="cp-apply-shell"><iframe class="cp-apply-embed-frame" title="Membership application form" allow="fullscreen" src="' +
                   embedUrl +
                   '"></iframe><p class="cp-apply-footnote">After you submit, our administrators will review your application and confirm your membership fee and initial contribution.</p></div>';
+                const shell = area.querySelector(".cp-apply-shell");
                 const frame = area.querySelector(".cp-apply-embed-frame");
                 if (frame && typeof window.bindFlexxFormsEmbedResize === "function") {
                   window.bindFlexxFormsEmbedResize(frame, {
+                    shell: shell,
                     minHeight: 480,
                     padding: 20,
                     fallbackHeight: 1600,

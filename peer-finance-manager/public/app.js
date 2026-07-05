@@ -5706,6 +5706,7 @@ async function loadMyLoanApplyEmbed() {
       frame.src = url;
       frame.classList.remove("hidden");
       window.bindFlexxFormsEmbedResize?.(frame, {
+        shell: frame.closest(".flexxforms-apply-card"),
         minHeight: 480,
         padding: 20,
         fallbackHeight: 1600,
@@ -5834,6 +5835,7 @@ $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
       frame.src = data.membershipEmbedUrl;
       frame.classList.remove("hidden");
       window.bindFlexxFormsEmbedResize?.(frame, {
+        shell: frame.closest(".flexxforms-apply-card"),
         minHeight: 480,
         padding: 20,
         fallbackHeight: 1600,
