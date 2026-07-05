@@ -30,6 +30,8 @@
           <a href="#" class="public-about-link">About Us</a>
           <span aria-hidden="true"> · </span>
           <a href="#" class="public-bylaws-link">Bylaws</a>
+          <span class="public-apply-sep hidden" aria-hidden="true"> · </span>
+          <a href="#" class="public-apply-link hidden">Apply for Membership</a>
         </p>
         <p class="login-foot subtle"><a href="#" id="openMembershipApplyLink">Apply for Membership</a></p>
         <p class="login-foot subtle"><a href="/register">Register a New Cooperative</a></p>
@@ -98,6 +100,8 @@
           <a href="#" class="public-about-link">About Us</a>
           <span aria-hidden="true"> · </span>
           <a href="#" class="public-bylaws-link">Bylaws</a>
+          <span class="public-apply-sep hidden" aria-hidden="true"> · </span>
+          <a href="#" class="public-apply-link hidden">Apply for Membership</a>
         </p>
         <p class="login-foot subtle"><a href="/register">Register a New Cooperative</a></p>
         <p class="login-status status" data-login-status="admin"></p>
@@ -491,6 +495,7 @@
             <div class="profile-disclosure-body">
               <p class="subtle">Your Cooperative owns its application forms and agreements. Open FlexxForms to build and publish them. Members will fill and sign them inside Peer Finance Manager.</p>
               <p class="hint" id="flexxformsAdminEmailLine">FlexxForms admin email: :</p>
+              <p class="hint hidden" id="flexxformsPublicApplyLine"></p>
               <p class="hint hidden" id="flexxformsTempPasswordLine"></p>
               <p class="status err hidden" id="flexxformsProvisionError"></p>
               <div class="panel-head-actions" style="margin-bottom: 12px;">
@@ -521,8 +526,8 @@
                 </label>
                 <button type="submit" class="btn primary">Save Form &amp; Document Ids</button>
               </form>
-              <p class="subtle" style="margin-top: 12px;">Recent FlexxForms submissions</p>
-              <ul class="file-list" id="flexxformsApplicationsList"><li class="hint">None yet</li></ul>
+              <p class="subtle" style="margin-top: 12px;">Membership Applications</p>
+              <div id="flexxformsApplicationsList" class="flexxforms-applications-list"><p class="hint">None yet</p></div>
               <p id="flexxformsFormsStatus" class="status"></p>
             </div>
           </details>
@@ -1221,6 +1226,8 @@
           <a href="#" class="public-about-link">About Us</a>
           <span aria-hidden="true"> · </span>
           <a href="#" class="public-bylaws-link">Bylaws</a>
+          <span class="public-apply-sep hidden" aria-hidden="true"> · </span>
+          <a href="#" class="public-apply-link hidden">Apply for Membership</a>
         </p>
         <div id="myProfileSection" class="card my-profile-card hidden"></div>
         <details class="profile-disclosure my-cooperative-reports-panel hidden" id="myCooperativeReportsCard">

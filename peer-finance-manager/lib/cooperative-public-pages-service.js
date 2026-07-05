@@ -164,15 +164,28 @@ function isBylawsPublished(slug) {
   );
 }
 
+function isApplyAvailable(slug) {
+  try {
+    const { getFlexxFormsPublicConfig } = require("./flexxforms-service");
+    const config = getFlexxFormsPublicConfig(slug);
+    return Boolean(config?.membershipFormId);
+  } catch {
+    return false;
+  }
+}
+
 function getPublicSummary(slug) {
   const org = getOrganization(slug);
   if (!org) return null;
   const aboutPublished = isAboutPublished(slug);
   const bylawsPublished = isBylawsPublished(slug);
+  const applyAvailable = isApplyAvailable(slug);
   return {
     organization: { slug: org.slug, name: org.name },
     aboutAvailable: aboutPublished,
     bylawsAvailable: bylawsPublished,
+    applyAvailable,
+    publicApplyUrl: applyAvailable ? `/c/${encodeURIComponent(org.slug)}/apply` : null,
   };
 }
 
@@ -208,6 +221,7 @@ function getPublicBylawsMeta(slug) {
 }
 
 function getAdminPublicPages(slug) {
+  const applyAvailable = isApplyAvailable(slug);
   return runWithOrg(slug, () => {
     const db = getDb();
     ensureSettingsTable(db);
@@ -230,6 +244,8 @@ function getAdminPublicPages(slug) {
       images,
       publicAboutUrl: `/c/${encodeURIComponent(slug)}/about`,
       publicBylawsUrl: `/c/${encodeURIComponent(slug)}/bylaws`,
+      applyAvailable,
+      publicApplyUrl: applyAvailable ? `/c/${encodeURIComponent(slug)}/apply` : null,
     };
   });
 }

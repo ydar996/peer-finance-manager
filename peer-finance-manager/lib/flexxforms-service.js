@@ -227,6 +227,9 @@ function getFlexxFormsAdminView(slug, { consumeTempPassword = false, sessionUser
       ? `${FLEXXFORMS_EMBED_BASE}/${ff.membershipFormId}`
       : null,
     loanEmbedUrl: ff.loanFormId ? `${FLEXXFORMS_EMBED_BASE}/${ff.loanFormId}` : null,
+    publicApplyUrl: ff.membershipFormId
+      ? `https://peer-finance-manager.netlify.app/c/${encodeURIComponent(org.slug)}/apply`
+      : null,
     provisioningConfigured: isProvisioningConfigured(),
   };
 }
@@ -243,6 +246,7 @@ function getFlexxFormsPublicConfig(slug) {
     membershipEmbedUrl: view.membershipEmbedUrl,
     loanEmbedUrl: view.loanEmbedUrl,
     embedBaseUrl: view.embedBaseUrl,
+    publicApplyUrl: view.publicApplyUrl,
   };
 }
 
@@ -595,11 +599,33 @@ function handleFormSubmitted(slug, payload) {
     if (payload?.purpose === "membership" || data?.purpose === "membership") kind = "membership";
     if (payload?.purpose === "loan" || data?.purpose === "loan") kind = "loan";
 
-    db.prepare(
+    const insert = db.prepare(
       `INSERT INTO flexxforms_applications (kind, flexxforms_submission_id, form_id, payload_json, status)
        VALUES (?, ?, ?, ?, 'pending')`
     ).run(kind, submissionId, formId || null, JSON.stringify(payload));
-    return { ok: true, kind };
+    const applicationId = insert.lastInsertRowid;
+
+    if (kind === "membership") {
+      try {
+        const {
+          processMembershipFormSubmission,
+          parseFlexxFormsMembershipPayload,
+        } = require("./flexxforms-membership-service");
+        const parsed = parseFlexxFormsMembershipPayload(payload);
+        db.prepare(
+          `UPDATE flexxforms_applications SET applicant_name = ?, applicant_email = ? WHERE id = ?`
+        ).run(parsed.displayName || null, parsed.email || null, applicationId);
+        const result = processMembershipFormSubmission(applicationId, payload);
+        return { ok: true, kind, applicationId, ...result };
+      } catch (err) {
+        db.prepare(
+          `UPDATE flexxforms_applications SET status = 'error', processing_error = ? WHERE id = ?`
+        ).run(err.message, applicationId);
+        return { ok: false, kind, applicationId, error: err.message };
+      }
+    }
+
+    return { ok: true, kind, applicationId };
   });
 }
 
@@ -682,17 +708,8 @@ function handleWebhook(rawBody, headers) {
 
 function listPendingApplications(slug) {
   return runWithOrg(slug, () => {
-    const db = getDb();
-    ensureLoanDocumentSchema(db);
-    return db
-      .prepare(
-        `SELECT id, kind, flexxforms_submission_id AS submissionId, form_id AS formId,
-                status, created_at AS createdAt
-         FROM flexxforms_applications
-         ORDER BY id DESC
-         LIMIT 50`
-      )
-      .all();
+    const { listMembershipApplications } = require("./flexxforms-membership-service");
+    return listMembershipApplications();
   });
 }
 
@@ -718,4 +735,9 @@ module.exports = {
   handleWebhook,
   listPendingApplications,
   findOrganizationByWebhookSecret,
+  approveMembershipApplication: (slug, applicationId, userId) =>
+    runWithOrg(slug, () => {
+      const { approveMembershipApplication } = require("./flexxforms-membership-service");
+      return approveMembershipApplication(applicationId, userId);
+    }),
 };

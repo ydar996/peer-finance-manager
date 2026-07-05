@@ -31,6 +31,20 @@
 
 **First visit may be slow** (up to 30 seconds) if the server was idle — wait and try again.
 
+### Apply for membership (public)
+
+Prospective members can learn about the Cooperative and apply without signing in:
+
+1. **About Us:** **https://peer-finance-manager.netlify.app/c/assurance/about**
+2. **Bylaws:** **https://peer-finance-manager.netlify.app/c/assurance/bylaws**
+3. **Apply for Membership:** **https://peer-finance-manager.netlify.app/c/assurance/apply**
+
+Each page includes **Apply for Membership** buttons that link to the online application. The apply page loads the FlexxForms membership form (no login required).
+
+Legacy deep link (still works): **https://peer-finance-manager.netlify.app/?apply=assurance** redirects to the apply page above.
+
+After you submit, the Cooperative receives your application automatically. An administrator will review it after your **membership fee** and **initial contribution** are confirmed.
+
 ---
 
 ## For administrators — full control
@@ -52,6 +66,15 @@
 | **Record** | Add members, record contributions, fees, expenses |
 | **Import** | **Bank Ledger Import** on live site (upload `cooperative-bank-ledger-reference.xlsx`); spreadsheet, profiles; optional CLI `npm run pfm:import-bank` on PC. Import shows **Ledger warnings** for proxy Zelle mis-credits before you confirm. |
 | **Users** | Member login accounts and credentials |
+
+**Manage Forms & Documents** (admin home, expandable panel):
+
+- **Public membership application link** — share **https://peer-finance-manager.netlify.app/c/assurance/apply** (also linked from About Us and Bylaws pages). Legacy `/?apply=assurance` redirects to the same page.
+- **Membership Applications** — each FlexxForms submission creates a **Pending Approval** member profile automatically.
+- Before you click **Approve Member**, record on that profile:
+  1. **Membership fee** ($100) — use **Record** or existing fee workflow.
+  2. **Initial contribution** ($100 deposit) — use **Record** to post a deposit for the applicant.
+- When both are recorded, status becomes **Ready for Approval** and **Approve Member** activates the account.
 
 ---
 

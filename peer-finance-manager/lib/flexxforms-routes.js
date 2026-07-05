@@ -9,6 +9,7 @@ const {
   createLoanAgreementDocument,
   listPendingApplications,
   isProvisioningConfigured,
+  approveMembershipApplication,
 } = require("./flexxforms-service");
 const { requireAuth, requireAdmin } = require("./auth-middleware");
 
@@ -91,6 +92,21 @@ function registerFlexxFormsRoutes(app) {
       res.status(400).json({ error: err.message });
     }
   });
+
+  app.post(
+    "/api/flexxforms/applications/:id/approve",
+    requireAuth,
+    requireAdmin,
+    (req, res) => {
+      try {
+        const slug = requestOrgSlug(req);
+        const result = approveMembershipApplication(slug, req.params.id, req.user?.id);
+        res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
 
   app.get("/api/flexxforms/config", requireAuth, (req, res) => {
     try {

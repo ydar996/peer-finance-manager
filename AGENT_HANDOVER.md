@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 4, 2026 (FlexxForms retry-provision email fix)  
+**Last updated:** July 5, 2026 (Public apply on About/Bylaws pages)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -97,6 +97,8 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-05** — **Public Apply for Membership pages:** `/c/{slug}/apply` served alongside About/Bylaws; nav, hero CTAs, footer links, and in-page **Become a Member** promos on About/Bylaws; FlexxForms iframe on apply page. Login/member footers link to apply when form is published; `/?apply={slug}` redirects to `/c/{slug}/apply`. Netlify redirect added in `scripts/netlify-build-config.js`. Files: `cooperative-public.html`, `cooperative-public.css`, `server.js`, `cooperative-public-pages-service.js`, `flexxforms-service.js`, `app.js`, `index.html`. **Production:** `git push`.
+- **2026-07-05** — **FlexxForms membership pipeline:** public apply link (`/?apply={slug}`), webhook `form.submitted` auto-creates pending member profile (`cooperative_account_status: pending_approval`), admin **Membership Applications** panel with fee/deposit checklist, **Approve Member** gated on membership fee ($100) + initial contribution ($100 deposit). Files: `lib/flexxforms-membership-service.js`, webhook handler, routes, admin UI. **Production:** `git push`.
 - **2026-07-04** — FlexxForms **document templates API:** `GET /integrations/documents/templates` merged into admin catalog load; forms vs master document assign targets; loan signing uses `signingUrl` / `signingSessions` (not `/embed/{id}` fallback). Webhook handles `document.updated` when status completed. FlexxForms fixed Assurance webhook URL to Render. **Production:** `git push`.
 - **2026-07-04** — FlexxForms admin **Published in FlexxForms** catalog: card layout with UUID, four Assign targets (membership, loan, guarantor, borrower), linked state; removed browser `prompt()`. **Production:** `git push`.
 - **2026-07-04** — FlexxForms **Load Forms** error copy: clarifies workspace must be connected (Retry → Ready badge) before listing forms; button disabled until provisioned. **Production:** `git push`.

@@ -19,6 +19,7 @@ const redirects = [
   "/product  /product.html  200",
   "/c/*/about  /cooperative-public.html  200",
   "/c/*/bylaws  /cooperative-public.html  200",
+  "/c/*/apply  /cooperative-public.html  200",
   "/  /member  302",
 ]
   .filter(Boolean)

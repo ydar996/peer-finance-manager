@@ -219,7 +219,7 @@ for (const portalPath of ["/member", "/staff", "/admin", "/register", "/platform
     res.sendFile(path.join(getPublicDir(), "index.html"));
   });
 }
-for (const publicPage of ["about", "bylaws"]) {
+for (const publicPage of ["about", "bylaws", "apply"]) {
   app.get(`/c/:slug/${publicPage}`, (req, res) => {
     res.sendFile(path.join(getPublicDir(), "cooperative-public.html"));
   });

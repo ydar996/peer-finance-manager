@@ -89,6 +89,12 @@ CREATE TABLE IF NOT EXISTS flexxforms_applications (
   status TEXT NOT NULL DEFAULT 'pending',
   member_id INTEGER,
   loan_id INTEGER,
+  applicant_name TEXT,
+  applicant_email TEXT,
+  processed_at TEXT,
+  approved_at TEXT,
+  approved_by_user_id INTEGER,
+  processing_error TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

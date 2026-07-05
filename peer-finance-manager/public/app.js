@@ -242,8 +242,18 @@ async function refreshPublicOrgLinks(slug) {
       link.href = `/c/${encodeURIComponent(normalized)}/bylaws`;
       link.classList.toggle("hidden", !data.bylawsAvailable);
     });
+    document.querySelectorAll(".public-apply-link").forEach((link) => {
+      link.href = data.publicApplyUrl || `/c/${encodeURIComponent(normalized)}/apply`;
+      link.classList.toggle("hidden", !data.applyAvailable);
+    });
+    document.querySelectorAll(".public-apply-sep").forEach((el) => {
+      el.classList.toggle("hidden", !data.applyAvailable);
+    });
     containers.forEach((el) => {
-      el.classList.toggle("hidden", !data.aboutAvailable && !data.bylawsAvailable);
+      el.classList.toggle(
+        "hidden",
+        !data.aboutAvailable && !data.bylawsAvailable && !data.applyAvailable
+      );
     });
   } catch (_) {
     containers.forEach((el) => el.classList.add("hidden"));
@@ -1717,7 +1727,21 @@ function emergencyContactName(profile) {
 function formatAccountStatus(status) {
   const raw = String(status || "active").trim();
   if (!raw) return "Active";
-  return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  if (raw === "pending_approval") return "Pending Approval";
+  return raw.charAt(0).toUpperCase() + raw.slice(1).replace(/_/g, " ");
+}
+
+function formatFlexxFormsApplicationStatus(status) {
+  const map = {
+    pending: "Received",
+    awaiting_payment: "Awaiting Payment",
+    awaiting_approval: "Ready for Approval",
+    approved: "Approved",
+    duplicate: "Duplicate",
+    rejected: "Rejected",
+    error: "Processing Error",
+  };
+  return map[status] || formatAccountStatus(status);
 }
 
 function profileFieldValue(value, { asDate = false } = {}) {
@@ -5075,7 +5099,10 @@ function renderPublicPagesAdmin(data) {
   const imagesList = $("#publicAboutImagesList");
   if (!data) return;
   if (linksEl) {
-    linksEl.innerHTML = `Public links: <a href="${escapeHtml(data.publicAboutUrl)}" target="_blank" rel="noopener">About</a> · <a href="${escapeHtml(data.publicBylawsUrl)}" target="_blank" rel="noopener">Bylaws</a>`;
+    const applyLink = data.publicApplyUrl
+      ? ` · <a href="${escapeHtml(data.publicApplyUrl)}" target="_blank" rel="noopener">Apply</a>`
+      : "";
+    linksEl.innerHTML = `Public links: <a href="${escapeHtml(data.publicAboutUrl)}" target="_blank" rel="noopener">About</a> · <a href="${escapeHtml(data.publicBylawsUrl)}" target="_blank" rel="noopener">Bylaws</a>${applyLink}`;
   }
   if (aboutHtml && document.activeElement !== aboutHtml) aboutHtml.value = data.aboutHtml || "";
   if (aboutPublished) aboutPublished.checked = !!data.aboutPublished;
@@ -5451,6 +5478,16 @@ async function loadFlexxFormsSettings() {
         ? `FlexxForms admin email: ${s.adminEmail}`
         : "FlexxForms admin email: not set yet";
     }
+    const applyLine = $("#flexxformsPublicApplyLine");
+    if (applyLine) {
+      if (s.publicApplyUrl) {
+        applyLine.innerHTML = `Public membership application link: <a href="${escapeHtml(s.publicApplyUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.publicApplyUrl)}</a>`;
+        applyLine.classList.remove("hidden");
+      } else {
+        applyLine.classList.add("hidden");
+        applyLine.textContent = "";
+      }
+    }
     const tempLine = $("#flexxformsTempPasswordLine");
     if (tempLine) {
       if (s.tempPassword) {
@@ -5495,19 +5532,75 @@ async function loadFlexxFormsApplications() {
     if (!res.ok) throw new Error(data.error || "Failed to load applications");
     const apps = data.applications || [];
     if (!apps.length) {
-      list.innerHTML = '<li class="hint">None yet</li>';
+      list.innerHTML = '<p class="hint">None yet. Share the public membership link and submissions will appear here automatically.</p>';
       return;
     }
     list.innerHTML = apps
-      .map(
-        (a) =>
-          `<li><strong>${escapeHtml(a.kind)}</strong> · ${escapeHtml(a.status)} · ${escapeHtml(a.createdAt || "")}${
-            a.submissionId ? ` · ${escapeHtml(a.submissionId)}` : ""
-          }</li>`
-      )
+      .map((a) => {
+        const readiness = a.readiness || {};
+        const feeLabel = readiness.membershipFeePaid ? "Paid" : "Not recorded";
+        const depositLabel = readiness.initialContributionMet
+          ? `Met ($${Number(readiness.depositTotal || 0).toFixed(2)})`
+          : `$${Number(readiness.depositTotal || 0).toFixed(2)} of $${Number(readiness.initialContributionRequired || 0).toFixed(2)}`;
+        const canApprove = a.status === "awaiting_approval" && readiness.canApprove;
+        const approveBtn = canApprove
+          ? `<button type="button" class="btn primary small ff-approve-application" data-id="${a.id}">Approve Member</button>`
+          : "";
+        const viewBtn = a.memberId
+          ? `<button type="button" class="btn small ff-view-application-member" data-member-id="${a.memberId}">View Profile</button>`
+          : "";
+        return `<article class="flexxforms-application-card">
+          <div class="flexxforms-application-head">
+            <strong>${escapeHtml(a.applicantName || "Applicant")}</strong>
+            <span class="badge">${escapeHtml(formatFlexxFormsApplicationStatus(a.status))}</span>
+          </div>
+          <p class="hint">${escapeHtml(a.applicantEmail || "No email on submission")}${a.createdAt ? ` · ${escapeHtml(a.createdAt)}` : ""}</p>
+          ${
+            a.memberId
+              ? `<ul class="flexxforms-application-checklist">
+                  <li>Membership fee ($${Number(readiness.membershipFeeRequired || 0).toFixed(0)}): <strong>${feeLabel}</strong></li>
+                  <li>Initial contribution: <strong>${depositLabel}</strong></li>
+                </ul>`
+              : `<p class="status err">${escapeHtml(a.processingError || "Profile not created yet")}</p>`
+          }
+          <div class="flexxforms-application-actions">${approveBtn}${viewBtn}</div>
+        </article>`;
+      })
       .join("");
+    list.querySelectorAll(".ff-approve-application").forEach((btn) => {
+      btn.addEventListener("click", () => approveFlexxFormsApplication(btn.dataset.id));
+    });
+    list.querySelectorAll(".ff-view-application-member").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (btn.dataset.memberId) openMemberProfileEditor(Number(btn.dataset.memberId));
+      });
+    });
   } catch {
-    list.innerHTML = '<li class="hint">Unable to load submissions</li>';
+    list.innerHTML = '<p class="hint">Unable to load applications</p>';
+  }
+}
+
+async function approveFlexxFormsApplication(applicationId) {
+  const status = $("#flexxformsFormsStatus");
+  if (!applicationId) return;
+  if (
+    !window.confirm(
+      "Approve this applicant as an active member? Membership fee and initial contribution must already be recorded."
+    )
+  ) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/flexxforms/applications/${applicationId}/approve`, {
+      method: "POST",
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Approval failed");
+    setFormStatus(status, "Member approved and account activated.", true);
+    await loadFlexxFormsApplications();
+    if (typeof loadMembers === "function") await loadMembers();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
   }
 }
 
@@ -5693,13 +5786,26 @@ $("#createBorrowerAgreementBtn")?.addEventListener("click", () => createLoanAgre
 
 $("#openMembershipApplyLink")?.addEventListener("click", (e) => {
   e.preventDefault();
+  const slug = (
+    document.querySelector("#loginScreenMember .org-slug-input")?.value ||
+    preferredOrgSlug() ||
+    ""
+  ).trim();
+  if (slug) {
+    window.location.href = `/c/${encodeURIComponent(slug.toLowerCase())}/apply`;
+    return;
+  }
+  openMembershipApplyScreen();
+});
+
+function openMembershipApplyScreen(slug) {
   hideAllScreens();
   $("#membershipApplyScreen")?.classList.remove("hidden");
   const slugInput = $("#membershipApplyOrgSlug");
-  if (slugInput && !slugInput.value) {
-    slugInput.value = localStorage.getItem(ORG_SLUG_KEY) || DEFAULT_ORG_SLUG || "";
-  }
-});
+  const preset = slug || localStorage.getItem(ORG_SLUG_KEY) || DEFAULT_ORG_SLUG || "";
+  if (slugInput && preset) slugInput.value = preset;
+  if (preset) $("#loadMembershipApplyBtn")?.click();
+}
 
 $("#closeMembershipApplyBtn")?.addEventListener("click", () => {
   showLoginForPortal("member");
@@ -5745,7 +5851,12 @@ $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
 
 applyAppBranding();
 fillOrgSlugInputs();
-if (getPortalFromPath() === "platform") {
+const applyOrgFromUrl = new URLSearchParams(window.location.search).get("apply");
+if (applyOrgFromUrl && getPortalFromPath() !== "platform" && !isPublicPagePath()) {
+  window.location.replace(
+    `/c/${encodeURIComponent(applyOrgFromUrl.trim().toLowerCase())}/apply`
+  );
+} else if (getPortalFromPath() === "platform") {
   bootstrapPlatformApp();
 } else if (isPublicPagePath()) {
   bootstrapPublicApp();

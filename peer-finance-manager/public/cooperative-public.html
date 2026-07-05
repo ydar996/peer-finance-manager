@@ -36,6 +36,7 @@
         <nav class="cp-segment" aria-label="Public Cooperative pages">
           <a id="navAbout" href="#"><span>About Us</span></a>
           <a id="navBylaws" href="#"><span>Bylaws</span></a>
+          <a id="navApply" href="#"><span>Apply for Membership</span></a>
         </nav>
       </div>
     </header>
@@ -50,6 +51,7 @@
           <div class="cp-hero-meta" id="heroMeta">
             <span class="cp-hero-chip" id="heroChip">Official Cooperative information</span>
           </div>
+          <div class="cp-hero-actions hidden" id="heroActions"></div>
         </div>
       </section>
 
@@ -92,6 +94,7 @@
     <footer class="cp-footer">
       <div class="cp-footer-inner">
         <p id="footerNote">Official Cooperative information for prospective and current members.</p>
+        <nav class="cp-footer-links" id="footerLinks" aria-label="Cooperative links"></nav>
       </div>
     </footer>
 
@@ -120,9 +123,17 @@
             apiPath: "bylaws",
             pageClass: "cp-page-bylaws",
           },
+          apply: {
+            title: "Apply for Membership",
+            eyebrow: "Join our Cooperative",
+            lead: "Complete the membership application below. No login is required. After you submit, our administrators will review your application.",
+            chip: "Online application · Secure FlexxForms",
+            apiPath: null,
+            pageClass: "cp-page-apply",
+          },
         };
 
-        const match = window.location.pathname.replace(/\/$/, "").match(/^\/c\/([^/]+)\/(about|bylaws)$/i);
+        const match = window.location.pathname.replace(/\/$/, "").match(/^\/c\/([^/]+)\/(about|bylaws|apply)$/i);
         if (!match) {
           showError("This page could not be found.");
           return;
@@ -133,6 +144,8 @@
         const copy = PAGE_COPY[page];
         const aboutHref = "/c/" + encodeURIComponent(slug) + "/about";
         const bylawsHref = "/c/" + encodeURIComponent(slug) + "/bylaws";
+        const applyHref = "/c/" + encodeURIComponent(slug) + "/apply";
+        const memberSignInHref = "/member?org=" + encodeURIComponent(slug);
 
         document.body.classList.add(copy.pageClass);
         document.getElementById("pageTitle").textContent = copy.title;
@@ -142,11 +155,42 @@
 
         const navAbout = document.getElementById("navAbout");
         const navBylaws = document.getElementById("navBylaws");
+        const navApply = document.getElementById("navApply");
         navAbout.href = aboutHref;
         navBylaws.href = bylawsHref;
+        navApply.href = applyHref;
         navAbout.classList.toggle("active", page === "about");
         navBylaws.classList.toggle("active", page === "bylaws");
-        (page === "about" ? navAbout : navBylaws).setAttribute("aria-current", "page");
+        navApply.classList.toggle("active", page === "apply");
+        [navAbout, navBylaws, navApply].forEach(function (link) {
+          link.removeAttribute("aria-current");
+        });
+        if (page === "about") navAbout.setAttribute("aria-current", "page");
+        if (page === "bylaws") navBylaws.setAttribute("aria-current", "page");
+        if (page === "apply") navApply.setAttribute("aria-current", "page");
+
+        renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref);
+        renderHeroActions(page, aboutHref, bylawsHref, applyHref);
+
+        if (page === "apply") {
+          document.querySelector(".cp-layout").classList.add("cp-layout-apply");
+          document.getElementById("tocFab").style.display = "none";
+          document.getElementById("tocPanel").style.display = "none";
+          loadApplyForm(slug);
+        } else {
+          fetch("/api/public/organizations/" + encodeURIComponent(slug) + "/" + copy.apiPath)
+            .then(function (res) {
+              return res.json().then(function (data) {
+                if (!res.ok) throw new Error(data.error || "Content not available");
+                if (!data.html) throw new Error("This page has no published content yet.");
+                renderContent(data.html, applyHref, page);
+              });
+            })
+            .catch(function (err) {
+              showError(err.message);
+              document.getElementById("contentArea").innerHTML = "";
+            });
+        }
 
         const tocFab = document.getElementById("tocFab");
         const tocPanel = document.getElementById("tocPanel");
@@ -187,25 +231,105 @@
           })
           .catch(function () {});
 
-        fetch("/api/public/organizations/" + encodeURIComponent(slug) + "/" + copy.apiPath)
-          .then(function (res) {
-            return res.json().then(function (data) {
-              if (!res.ok) throw new Error(data.error || "Content not available");
-              if (!data.html) throw new Error("This page has no published content yet.");
-              renderContent(data.html);
-            });
-          })
-          .catch(function (err) {
-            showError(err.message);
-            document.getElementById("contentArea").innerHTML = "";
-          });
+        function renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref) {
+          const footer = document.getElementById("footerLinks");
+          if (!footer) return;
+          footer.innerHTML =
+            '<a href="' +
+            aboutHref +
+            '">About Us</a><a href="' +
+            bylawsHref +
+            '">Bylaws</a><a href="' +
+            applyHref +
+            '">Apply for Membership</a><a href="' +
+            memberSignInHref +
+            '">Member Sign In</a>';
+        }
 
-        function renderContent(html) {
+        function renderHeroActions(page, aboutHref, bylawsHref, applyHref) {
+          const actions = document.getElementById("heroActions");
+          if (!actions || page === "apply") return;
+          actions.classList.remove("hidden");
+          if (page === "about") {
+            actions.innerHTML =
+              '<a class="cp-hero-btn cp-hero-btn-primary" href="' +
+              applyHref +
+              '">Apply for Membership</a><a class="cp-hero-btn cp-hero-btn-secondary" href="' +
+              bylawsHref +
+              '">Read Bylaws</a>';
+          } else {
+            actions.innerHTML =
+              '<a class="cp-hero-btn cp-hero-btn-primary" href="' +
+              applyHref +
+              '">Apply for Membership</a><a class="cp-hero-btn cp-hero-btn-secondary" href="' +
+              aboutHref +
+              '">About Us</a>';
+          }
+        }
+
+        function loadApplyForm(slug) {
+          const area = document.getElementById("contentArea");
+          area.innerHTML =
+            '<div class="cp-content-loading"><div class="cp-spinner" aria-hidden="true"></div><p>Loading membership application…</p></div>';
+          fetch("/api/public/organizations/" + encodeURIComponent(slug) + "/flexxforms")
+            .then(function (res) {
+              return res.json().then(function (data) {
+                if (!res.ok) throw new Error(data.error || "Unable to load application form");
+                const embedUrl = data.membershipEmbedUrl;
+                if (!embedUrl) {
+                  throw new Error(
+                    "The membership application is not published yet. Please check back soon or contact the Cooperative."
+                  );
+                }
+                area.innerHTML =
+                  '<div class="cp-apply-shell"><iframe class="cp-apply-embed-frame" title="Membership application form" src="' +
+                  embedUrl +
+                  '"></iframe><p class="cp-apply-footnote">After you submit, our administrators will review your application and confirm your membership fee and initial contribution.</p></div>';
+              });
+            })
+            .catch(function (err) {
+              area.innerHTML = "";
+              showError(err.message);
+            });
+        }
+
+        function renderContent(html, applyHref, page) {
           const area = document.getElementById("contentArea");
           area.innerHTML = html;
           enhanceContent(area);
+          injectMembershipApplyPromos(area, applyHref, page);
           buildToc(area);
           observeSections(area);
+        }
+
+        function injectMembershipApplyPromos(area, applyHref, page) {
+          if (!applyHref) return;
+          if (!area.querySelector(".cp-apply-promo")) {
+            const promo = document.createElement("div");
+            promo.className = "cp-apply-promo";
+            promo.innerHTML =
+              '<div class="cp-apply-promo-copy"><h3>Become a Member</h3><p>Ready to join our Cooperative? Complete the online membership application. No login required.</p></div><a class="cp-crosslink-btn" href="' +
+              applyHref +
+              '">Apply for Membership</a>';
+            const membershipSection = area.querySelector("#membership");
+            if (membershipSection) {
+              membershipSection.appendChild(promo);
+            } else if (page === "bylaws") {
+              const firstSection = area.querySelector(".cp-section");
+              if (firstSection) firstSection.insertAdjacentElement("afterend", promo);
+              else area.insertAdjacentElement("afterbegin", promo);
+            } else {
+              area.appendChild(promo);
+            }
+          }
+          area.querySelectorAll(".cp-crosslink-card").forEach(function (card) {
+            if (card.querySelector(".cp-crosslink-apply")) return;
+            const applyLink = document.createElement("a");
+            applyLink.className = "cp-crosslink-btn cp-crosslink-apply";
+            applyLink.href = applyHref;
+            applyLink.textContent = "Apply for Membership";
+            card.appendChild(applyLink);
+          });
         }
 
         function enhanceContent(area) {
