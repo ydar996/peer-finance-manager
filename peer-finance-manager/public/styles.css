@@ -32,10 +32,13 @@ h1 { margin: 0 0 4px; font-size: 28px; }
 
 .flexxforms-embed-frame {
   width: 100%;
-  min-height: 720px;
+  min-height: 320px;
+  height: 320px;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #fff;
+  overflow: hidden;
+  display: block;
 }
 .flexxforms-apply-card {
   max-width: 960px;

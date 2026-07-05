@@ -13,6 +13,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/cooperative-public.css" />
+    <script src="/flexxforms-embed.js" defer></script>
   </head>
   <body class="cp-public">
     <div class="cp-progress" id="scrollProgress" aria-hidden="true"></div>
@@ -48,9 +49,7 @@
           <p class="cp-hero-eyebrow" id="heroEyebrow">Welcome</p>
           <h1 id="pageTitle">About Us</h1>
           <p class="cp-hero-lead" id="heroLead">Learn who we are and how membership works.</p>
-          <div class="cp-hero-meta" id="heroMeta">
-            <span class="cp-hero-chip" id="heroChip">Official Cooperative information</span>
-          </div>
+          <div class="cp-hero-meta hidden" id="heroMeta" aria-label="Jump to section"></div>
           <div class="cp-hero-actions hidden" id="heroActions"></div>
         </div>
       </section>
@@ -111,7 +110,11 @@
             title: "About Us",
             eyebrow: "Who we are",
             lead: "Our mission, membership guidelines, goals, and leadership: shared openly for anyone considering joining.",
-            chip: "Membership · Goals · Leadership",
+            sectionJumps: [
+              { label: "Membership", target: "membership" },
+              { label: "Goals", target: "goals" },
+              { label: "Leadership", target: "officials" },
+            ],
             apiPath: "about",
             pageClass: "cp-page-about",
           },
@@ -119,7 +122,6 @@
             title: "Bylaws",
             eyebrow: "Governance",
             lead: "The rules and structure that guide how our Cooperative operates, organized for easy reading.",
-            chip: "Articles · Membership · Governance",
             apiPath: "bylaws",
             pageClass: "cp-page-bylaws",
           },
@@ -127,7 +129,6 @@
             title: "Apply for Membership",
             eyebrow: "Join our Cooperative",
             lead: "Complete the membership application below. No login is required. After you submit, our administrators will review your application.",
-            chip: "Online application · Secure FlexxForms",
             apiPath: null,
             pageClass: "cp-page-apply",
           },
@@ -151,7 +152,7 @@
         document.getElementById("pageTitle").textContent = copy.title;
         document.getElementById("heroEyebrow").textContent = copy.eyebrow;
         document.getElementById("heroLead").textContent = copy.lead;
-        document.getElementById("heroChip").textContent = copy.chip;
+        document.getElementById("heroMeta").classList.add("hidden");
 
         const navAbout = document.getElementById("navAbout");
         const navBylaws = document.getElementById("navBylaws");
@@ -285,6 +286,10 @@
                   '<div class="cp-apply-shell"><iframe class="cp-apply-embed-frame" title="Membership application form" src="' +
                   embedUrl +
                   '"></iframe><p class="cp-apply-footnote">After you submit, our administrators will review your application and confirm your membership fee and initial contribution.</p></div>';
+                const frame = area.querySelector(".cp-apply-embed-frame");
+                if (frame && typeof window.bindFlexxFormsEmbedResize === "function") {
+                  window.bindFlexxFormsEmbedResize(frame, { minHeight: 320, padding: 16 });
+                }
               });
             })
             .catch(function (err) {
@@ -298,8 +303,43 @@
           area.innerHTML = html;
           enhanceContent(area);
           injectMembershipApplyPromos(area, applyHref, page);
+          syncHeroSectionJumps(copy.sectionJumps, area);
           buildToc(area);
           observeSections(area);
+        }
+
+        function syncHeroSectionJumps(jumps, root) {
+          const meta = document.getElementById("heroMeta");
+          if (!meta || !jumps || !jumps.length) {
+            meta?.classList.add("hidden");
+            return;
+          }
+          const available = jumps.filter(function (jump) {
+            return root.querySelector("#" + jump.target);
+          });
+          if (!available.length) {
+            meta.classList.add("hidden");
+            meta.innerHTML = "";
+            return;
+          }
+          meta.classList.remove("hidden");
+          meta.innerHTML = "";
+          const nav = document.createElement("nav");
+          nav.className = "cp-hero-jumps";
+          nav.setAttribute("aria-label", "Jump to section");
+          available.forEach(function (jump) {
+            const link = document.createElement("a");
+            link.className = "cp-hero-chip cp-hero-jump";
+            link.href = "#" + jump.target;
+            link.textContent = jump.label;
+            link.addEventListener("click", function (e) {
+              e.preventDefault();
+              const target = document.getElementById(jump.target);
+              if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+            });
+            nav.appendChild(link);
+          });
+          meta.appendChild(nav);
         }
 
         function injectMembershipApplyPromos(area, applyHref, page) {

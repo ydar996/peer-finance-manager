@@ -5705,6 +5705,7 @@ async function loadMyLoanApplyEmbed() {
     if (frame) {
       frame.src = url;
       frame.classList.remove("hidden");
+      window.bindFlexxFormsEmbedResize?.(frame, { minHeight: 320, padding: 16 });
     }
   } catch {
     card.classList.add("hidden");
@@ -5784,20 +5785,6 @@ async function createLoanAgreement(purpose) {
 $("#createGuarantorAgreementBtn")?.addEventListener("click", () => createLoanAgreement("guarantor"));
 $("#createBorrowerAgreementBtn")?.addEventListener("click", () => createLoanAgreement("borrower"));
 
-$("#openMembershipApplyLink")?.addEventListener("click", (e) => {
-  e.preventDefault();
-  const slug = (
-    document.querySelector("#loginScreenMember .org-slug-input")?.value ||
-    preferredOrgSlug() ||
-    ""
-  ).trim();
-  if (slug) {
-    window.location.href = `/c/${encodeURIComponent(slug.toLowerCase())}/apply`;
-    return;
-  }
-  openMembershipApplyScreen();
-});
-
 function openMembershipApplyScreen(slug) {
   hideAllScreens();
   $("#membershipApplyScreen")?.classList.remove("hidden");
@@ -5842,6 +5829,7 @@ $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
     if (frame) {
       frame.src = data.membershipEmbedUrl;
       frame.classList.remove("hidden");
+      window.bindFlexxFormsEmbedResize?.(frame, { minHeight: 320, padding: 16 });
     }
     setFormStatus(status, "", true);
   } catch (err) {

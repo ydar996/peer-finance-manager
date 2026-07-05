@@ -97,6 +97,8 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-05** — **Apply embed mobile height:** `flexxforms-embed.js` listens for FlexxForms `flexxforms:resize` postMessage and grows the iframe to fit the form (no nested scroll). Apply page hero compact on mobile. **Country dropdown "Loading…":** FlexxForms-side (lazy country library in embed); needs FlexxForms default US on address field or chunk-load fix. **Production:** `git push`.
+- **2026-07-05** — **About hero section jumps:** Membership, Goals, and Leadership chips on `/c/{slug}/about` are now anchor buttons that scroll to `#membership`, `#goals`, and `#officials`; static chips removed on Bylaws/Apply. **Member login:** removed duplicate standalone Apply link (kept single link in public org links row). **Production:** `git push`.
 - **2026-07-05** — **Public Apply for Membership pages:** `/c/{slug}/apply` served alongside About/Bylaws; nav, hero CTAs, footer links, and in-page **Become a Member** promos on About/Bylaws; FlexxForms iframe on apply page. Login/member footers link to apply when form is published; `/?apply={slug}` redirects to `/c/{slug}/apply`. Netlify redirect added in `scripts/netlify-build-config.js`. Files: `cooperative-public.html`, `cooperative-public.css`, `server.js`, `cooperative-public-pages-service.js`, `flexxforms-service.js`, `app.js`, `index.html`. **Production:** `git push`.
 - **2026-07-05** — **FlexxForms membership pipeline:** public apply link (`/?apply={slug}`), webhook `form.submitted` auto-creates pending member profile (`cooperative_account_status: pending_approval`), admin **Membership Applications** panel with fee/deposit checklist, **Approve Member** gated on membership fee ($100) + initial contribution ($100 deposit). Files: `lib/flexxforms-membership-service.js`, webhook handler, routes, admin UI. **Production:** `git push`.
 - **2026-07-04** — FlexxForms **document templates API:** `GET /integrations/documents/templates` merged into admin catalog load; forms vs master document assign targets; loan signing uses `signingUrl` / `signingSessions` (not `/embed/{id}` fallback). Webhook handles `document.updated` when status completed. FlexxForms fixed Assurance webhook URL to Render. **Production:** `git push`.
@@ -337,6 +339,7 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 | 4 | **PC ↔ cloud data sync** | **Bank ledger:** Admin → Import on live site (no WinSCP). **Profiles/manual DB edits:** WinSCP + Manual Deploy. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — Admin → Import → Bank Ledger Import (`POST /api/bank-import/run`). |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
+| 7 | **FlexxForms embed country default** | Address (US-Type) country/phone dropdowns show "Loading…" in embed; lazy country chunk or missing default US. Fix in FlexxForms (default field value + reliable country list in iframe). |
 
 ### High — user said they will provide info later
 
