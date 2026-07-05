@@ -288,7 +288,11 @@
                   '"></iframe><p class="cp-apply-footnote">After you submit, our administrators will review your application and confirm your membership fee and initial contribution.</p></div>';
                 const frame = area.querySelector(".cp-apply-embed-frame");
                 if (frame && typeof window.bindFlexxFormsEmbedResize === "function") {
-                  window.bindFlexxFormsEmbedResize(frame, { minHeight: 320, padding: 16 });
+                  window.bindFlexxFormsEmbedResize(frame, {
+                    minHeight: 480,
+                    padding: 20,
+                    fallbackHeight: 1600,
+                  });
                 }
               });
             })

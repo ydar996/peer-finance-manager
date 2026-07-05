@@ -5705,7 +5705,11 @@ async function loadMyLoanApplyEmbed() {
     if (frame) {
       frame.src = url;
       frame.classList.remove("hidden");
-      window.bindFlexxFormsEmbedResize?.(frame, { minHeight: 320, padding: 16 });
+      window.bindFlexxFormsEmbedResize?.(frame, {
+        minHeight: 480,
+        padding: 20,
+        fallbackHeight: 1600,
+      });
     }
   } catch {
     card.classList.add("hidden");
@@ -5829,7 +5833,11 @@ $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
     if (frame) {
       frame.src = data.membershipEmbedUrl;
       frame.classList.remove("hidden");
-      window.bindFlexxFormsEmbedResize?.(frame, { minHeight: 320, padding: 16 });
+      window.bindFlexxFormsEmbedResize?.(frame, {
+        minHeight: 480,
+        padding: 20,
+        fallbackHeight: 1600,
+      });
     }
     setFormStatus(status, "", true);
   } catch (err) {
