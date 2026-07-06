@@ -47,9 +47,9 @@
   }
 
   /**
-   * Mount a FlexxForms application form using the host embed.js SDK.
-   * @param {HTMLElement} container - Parent element (cleared before mount)
-   * @param {{ formId?: string, formTitle?: string, embedUrl?: string, onCompleted?: Function, onError?: Function }} opts
+   * Mount a FlexxForms form via host embed.js.
+   * Uses data-form-path="p" (public form) so deal/partner chrome ("Back to deal") is not shown.
+   * Mounts once after embed.js loads (avoids duplicate iframes from mountAll + mount).
    */
   function mountFlexxFormsEmbed(container, opts) {
     opts = opts || {};
@@ -59,13 +59,14 @@
     }
 
     var formTitle = opts.formTitle || "Application form";
+    var formPath = opts.formPath || "p";
+    var minHeight = opts.minHeight || 480;
+
     container.innerHTML = "";
     container.classList.remove("hidden");
 
     var host = document.createElement("div");
     host.className = "flexxforms-embed-mount";
-    host.setAttribute("data-form-id", formId);
-    host.setAttribute("data-form-title", formTitle);
     container.appendChild(host);
 
     var completedHandler = opts.onCompleted
@@ -82,9 +83,17 @@
       : null;
 
     return ensureFlexxFormsEmbedScript().then(function () {
-      if (typeof global.FlexxForms?.mount === "function") {
-        global.FlexxForms.mount(host);
+      host.setAttribute("data-form-id", formId);
+      host.setAttribute("data-form-title", formTitle);
+      host.setAttribute("data-form-path", formPath);
+      host.setAttribute("data-min-height", String(minHeight));
+
+      if (!host.querySelector("iframe[data-flexxforms-form-id]")) {
+        if (typeof global.FlexxForms?.mount === "function") {
+          global.FlexxForms.mount(host);
+        }
       }
+
       if (completedHandler && typeof global.FlexxForms?.on === "function") {
         global.FlexxForms.on("completed", completedHandler);
       }
@@ -94,6 +103,8 @@
       return host;
     });
   }
+
+  /** Raw iframe resize listener for signing URLs (not application forms). */
   function bindFlexxFormsEmbedResize(iframe, opts) {
     if (!iframe || iframe.dataset.flexxformsBound === "1") return function () {};
     iframe.dataset.flexxformsBound = "1";

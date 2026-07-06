@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-06** — **FlexxForms embed fix:** use `data-form-path="p"` (public form URL, no PlacementExpress / "Back to deal" chrome). Mount embed.js once after script load to prevent duplicate forms. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms embed.js (July 2026):** membership and loan apply flows use FlexxForms host `embed.js` (`data-form-id` + auto-resize) instead of static iframes on `/c/{slug}/apply`, legacy `/?apply=`, and member loan apply. `mountFlexxFormsEmbed()` in `flexxforms-embed.js`; success UI on completed event. Webhook unchanged. **Production:** `git push`.
 - **2026-07-05** — **Record tab collapsible sections:** all Record forms and recent lists use collapsed `<details>` by default; Register Member / Update Profile auto-expand when opened from Members tab. **Production:** `git push`.
 - **2026-07-05** — **Meetings tab layout:** scheduled meetings list moved to top of Meetings page (form and reminder settings below). **Production:** `git push`.
