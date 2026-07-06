@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-06** — **FlexxForms public embed (permanent):** dropped `embed.js` for cooperative apply forms. Direct iframe to `/p/{formId}` with no `?embed=1` or `/embed` path (only mode that hides PlacementExpress / "Back to deal"). Resize + completion via postMessage. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms embed fix:** use `data-form-path="p"` (public form URL, no PlacementExpress / "Back to deal" chrome). Mount embed.js once after script load to prevent duplicate forms. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms embed.js (July 2026):** membership and loan apply flows use FlexxForms host `embed.js` (`data-form-id` + auto-resize) instead of static iframes on `/c/{slug}/apply`, legacy `/?apply=`, and member loan apply. `mountFlexxFormsEmbed()` in `flexxforms-embed.js`; success UI on completed event. Webhook unchanged. **Production:** `git push`.
 - **2026-07-05** — **Record tab collapsible sections:** all Record forms and recent lists use collapsed `<details>` by default; Register Member / Update Profile auto-expand when opened from Members tab. **Production:** `git push`.
@@ -350,7 +351,7 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 | 4 | **PC ↔ cloud data sync** | **Bank ledger:** Admin → Import on live site (no WinSCP). **Profiles/manual DB edits:** WinSCP + Manual Deploy. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — Admin → Import → Bank Ledger Import (`POST /api/bank-import/run`). |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
-| 7 | **FlexxForms embed (verify after July 2026 `embed.js`)** | PFM now uses FlexxForms `embed.js` on apply pages. Retest mobile submit, country dropdown, and address fields. Close if FlexxForms deploy `6a4bb458` fixed it. |
+| 7 | **FlexxForms: unlink membership form from PlacementExpress deal** | PFM now uses `/p/{id}` only (no embed.js). FlexxForms must ensure form `8d5e2b33-922e-4044-ad5c-6fe8bb0473d5` is a standalone published public form, not a deal document; `/p/` must never show "Back to deal" or PlacementExpress header. |
 
 ### High — user said they will provide info later
 

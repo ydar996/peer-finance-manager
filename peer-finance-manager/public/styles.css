@@ -40,7 +40,8 @@ h1 { margin: 0 0 4px; font-size: 28px; }
 }
 
 .flexxforms-embed-host iframe,
-.flexxforms-embed-mount iframe {
+.flexxforms-embed-mount iframe,
+.flexxforms-public-embed-frame {
   width: 100%;
   display: block;
   border: 0;

@@ -19,7 +19,7 @@ const FLEXXFORMS_EMBED_BASE = "https://flexxforms.netlify.app/embed";
 const FLEXXFORMS_PUBLIC_FORM_BASE = "https://flexxforms.netlify.app/p";
 const ASSURANCE_FLEXXFORMS_ADMIN_EMAIL = "assuranceflex@eworkchop.com";
 
-/** Public respondent form URL (direct link). Form embeds use FlexxForms embed.js with data-form-id. */
+/** Public respondent URL: /p/{formId} only (no ?embed=1 — that shows deal/partner chrome). */
 function buildFlexxFormsEmbedUrl(formId) {
   if (!formId) return null;
   return `${FLEXXFORMS_PUBLIC_FORM_BASE}/${encodeURIComponent(formId)}`;
