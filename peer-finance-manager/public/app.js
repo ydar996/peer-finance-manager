@@ -5654,6 +5654,8 @@ async function reprocessFlexxFormsApplication(applicationId) {
     let message = "Application data refreshed from submission.";
     if (data.fetchedFromApi) {
       message += " Full answers loaded from FlexxForms API.";
+    } else if (data.diagnosis?.hasFlexxFormsAnswers) {
+      message += ` Parsed from FlexxForms answers[] (${data.diagnosis.answerLabels?.length || 0} fields).`;
     } else if (data.diagnosis?.labelKeys?.length) {
       message += ` Parsed ${data.diagnosis.populatedFieldCount || 0} core fields from ${data.diagnosis.labelKeys.length} labels.`;
     } else {

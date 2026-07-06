@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 6, 2026 (Apply redirects to FlexxForms direct URL)  
+**Last updated:** July 6, 2026 (FlexxForms `answers[]` parser + integrations API fetch)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -107,6 +107,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-06** — **FlexxForms `answers[]` parser (partner fix):** FlexxForms now ships labeled `answers[]` on `form.submitted` webhooks and via `GET /api/integrations/forms/{formId}/submissions/{submissionId}`. PFM parses applicant vs next-of-kin by **lowest/second `fieldIndex` on name rows** (not generic `firstName`/`lastName` scan). Reprocess fetches full submission when stored webhook lacks `answers[]`. Legacy label walk remains as fallback. **Production:** `git push` (pending user deploy request).
 - **2026-07-06** — **FlexxForms sparse webhook guard:** Post-deploy retest confirmed webhook has no labeled answers and integrations API fetch failed; PFM wrongly imported Mia Testy from generic `firstName`/`lastName`. Reprocess/webhook now **refuse** to create or update profiles when payload is sparse and API fetch fails. Escalation to FlexxForms required for full answers in webhook or working GET submission API. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms webhook field enrichment:** Reprocess appeared to do nothing because stored `form.submitted` webhook often has only submission metadata (generic `firstName`/`lastName` keys), not labeled form answers. **Fix:** Reprocess and new webhooks fetch full submission from FlexxForms integrations API when stored payload has fewer than 4 core fields; deeper label/field-id parsing; clearer admin status message. **Production:** `git push`.
 - **2026-07-06** — **Admin delete membership applications:** Forms & Documents → Membership Applications **Delete** removes FlexxForms submission row; also deletes linked **pending approval** prospective member when no ledger transactions or loans. **Production:** `git push`.
@@ -404,7 +405,9 @@ Platform requirements (all Cooperatives):
 2. Membership and loan application forms published for PFM workspaces must be standalone public forms, not PlacementExpress deal documents (unless you provide a dedicated public mode).
 3. If embed.js is recommended for resize/submit: support data-form-path="p" WITHOUT appending ?embed=1, OR add data-embed-mode="public" that never loads deal/partner chrome.
 4. form.submitted webhook must fire for every successful public submit; formSubmissionId in postMessage must match webhook submissionId.
-5. Mobile submit, validation feedback ("Submitting…", visible errors), and address sub-fields (city, state, zip, country) must work inside cross-origin iframes on peer-finance-manager.netlify.app.
+5. Webhook and integrations API must include **answers[]** with `fieldIndex`, `label`, `value` (and `partKey` for name/address parts). PFM uses lowest name `fieldIndex` = applicant, second = next of kin. Do not rely on generic `firstName`/`lastName` keys in `data`.
+6. Integrations API (Bearer tenant apiKey): `GET /api/integrations/forms/{formId}/submissions/{submissionId}`; list fallback `GET /api/integrations/forms/{formId}/submissions?limit=50`. Paths `/integrations/submissions/{id}` and `/integrations/form-submissions/{id}` do not exist.
+7. Mobile submit, validation feedback ("Submitting…", visible errors), and address sub-fields (city, state, zip, country) must work inside cross-origin iframes on peer-finance-manager.netlify.app.
 
 Example (Assurance Cooperative, slug assurance):
   membership_form_id: 8d5e2b33-922e-4044-ad5c-6fe8bb0473d5
@@ -431,7 +434,7 @@ Peer Finance Manager / Assurance Cooperative
 | 4 | **PC ↔ cloud data sync** | **Bank ledger:** Admin → Import on live site (no WinSCP). **Profiles/manual DB edits:** WinSCP + Manual Deploy. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — Admin → Import → Bank Ledger Import (`POST /api/bank-import/run`). |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
-| 7 | **FlexxForms: webhook must include full field answers** | **Blocked on FlexxForms.** Webhook metadata only; GET submission API 404. PFM guard stops wrong imports. **Keep** test application (do not approve); **Reprocess Data** after FlexxForms fix. Escalation sent. |
+| 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |
 
 ### High — user said they will provide info later
 

@@ -92,6 +92,162 @@ function cleanPhone(value) {
   return s || null;
 }
 
+/** FlexxForms July 2026: answers[] with fieldIndex, label, value, partKey. */
+function findAnswersArray(payload) {
+  const seen = new Set();
+  const walk = (node, depth = 0) => {
+    if (!node || depth > 16) return null;
+    if (typeof node === "object" && node !== null) {
+      if (seen.has(node)) return null;
+      seen.add(node);
+    }
+    if (Array.isArray(node?.answers) && node.answers.length > 0) {
+      const first = node.answers[0];
+      if (first && (first.label != null || first.fieldLabel != null) && first.value != null) {
+        return node.answers;
+      }
+    }
+    if (!node || typeof node !== "object") return null;
+    for (const val of Object.values(node)) {
+      const hit = walk(val, depth + 1);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  return walk(payload);
+}
+
+function namePartFromAnswerRow(row) {
+  const label = String(row.label || row.fieldLabel || "").toLowerCase();
+  const partKey = String(row.partKey || "").toLowerCase();
+  if (partKey.includes("first") || label.includes("first name")) return "first";
+  if (partKey.includes("middle") || label.includes("middle")) return "middle";
+  if (partKey.includes("last") || label.includes("last name")) return "last";
+  return null;
+}
+
+function isNameAnswerRow(row) {
+  const label = String(row.label || row.fieldLabel || "").toLowerCase();
+  return label.includes("name");
+}
+
+function addressPartFromLabel(label) {
+  const sub = String(label || "")
+    .split("—")
+    .pop()
+    ?.trim()
+    .toLowerCase() || String(label || "").toLowerCase();
+  if (sub.includes("address line 1") || sub === "street" || sub.includes("line 1")) return "line1";
+  if (sub.includes("address line 2") || sub.includes("line 2")) return "line2";
+  if (sub.includes("city")) return "city";
+  if (sub.includes("state") || sub.includes("province")) return "state";
+  if (sub.includes("zip") || sub.includes("postal")) return "postal";
+  if (sub.includes("country")) return "country";
+  return null;
+}
+
+function fillNameGroup(nameRows, fieldIndex, target) {
+  for (const row of nameRows.filter((r) => Number(r.fieldIndex ?? 9999) === fieldIndex)) {
+    const part = namePartFromAnswerRow(row);
+    const val = String(row.value || "").trim();
+    if (!val) continue;
+    if (part === "first") target.firstName = val;
+    else if (part === "middle") target.middleName = val;
+    else if (part === "last") target.lastName = val;
+  }
+}
+
+function parseFromFlexxFormsAnswers(answers) {
+  if (!Array.isArray(answers) || !answers.length) return null;
+
+  const result = {
+    firstName: null,
+    middleName: null,
+    lastName: null,
+    email: null,
+    phone: null,
+    gender: null,
+    dateOfBirth: null,
+    addressLine1: null,
+    addressLine2: null,
+    city: null,
+    state: null,
+    postalCode: null,
+    country: null,
+    nextOfKinFirstName: null,
+    nextOfKinLastName: null,
+    nextOfKinPhone: null,
+    nextOfKinRelationship: null,
+    signatureName: null,
+  };
+
+  const nameRows = answers.filter(isNameAnswerRow);
+  const nameIndexes = [...new Set(nameRows.map((r) => Number(r.fieldIndex ?? 9999)))].sort(
+    (a, b) => a - b
+  );
+  const applicantNameIndex = nameIndexes[0];
+  const nokNameIndex = nameIndexes.length > 1 ? nameIndexes[1] : null;
+
+  if (applicantNameIndex != null) fillNameGroup(nameRows, applicantNameIndex, result);
+  if (nokNameIndex != null) {
+    const nok = {};
+    fillNameGroup(nameRows, nokNameIndex, nok);
+    result.nextOfKinFirstName = nok.firstName || null;
+    result.nextOfKinLastName = nok.lastName || null;
+  }
+
+  for (const row of answers) {
+    const label = String(row.label || row.fieldLabel || "").trim();
+    const labelNorm = normalizeFieldKey(label);
+    const val = String(row.value ?? "").trim();
+    if (!val || val.startsWith("data:image")) continue;
+    const fieldIndex = Number(row.fieldIndex ?? 9999);
+
+    if (labelNorm === "emailaddress" || labelNorm === "email" || label === "Email Address") {
+      result.email = val;
+      continue;
+    }
+    if (labelNorm.includes("gender") || label === "Gender") {
+      result.gender = val;
+      continue;
+    }
+    if (labelNorm.includes("dateofbirth") || labelNorm.includes("datebirth") || label === "Date of Birth") {
+      result.dateOfBirth = parseUsDate(val);
+      continue;
+    }
+    if (labelNorm.includes("relationship")) {
+      result.nextOfKinRelationship = val;
+      continue;
+    }
+    if (labelNorm.includes("signature") && !val.startsWith("data:")) {
+      result.signatureName = val;
+      continue;
+    }
+
+    if (labelNorm.includes("phone") || labelNorm.includes("mobile") || labelNorm.includes("telephone")) {
+      if (nokNameIndex != null && fieldIndex >= nokNameIndex) {
+        result.nextOfKinPhone = cleanPhone(val);
+      } else {
+        result.phone = cleanPhone(val);
+      }
+      continue;
+    }
+
+    if (label.startsWith("Address (US-Type)") || labelNorm.includes("addressustype")) {
+      const part = addressPartFromLabel(label);
+      if (part === "line1") result.addressLine1 = val;
+      else if (part === "line2") result.addressLine2 = val;
+      else if (part === "city") result.city = val;
+      else if (part === "state") result.state = val;
+      else if (part === "postal") result.postalCode = val;
+      else if (part === "country") result.country = val;
+    }
+  }
+
+  if (!result.firstName && !result.lastName && !result.email) return null;
+  return result;
+}
+
 function collectLabeledFields(data, byLabel) {
   const add = (label, value) => {
     if (!label || value == null) return;
@@ -386,6 +542,7 @@ function pickMembershipField(flat, logicalName) {
 }
 
 function isUnreliableSparseSubmission(diagnosis) {
+  if (diagnosis.hasFlexxFormsAnswers) return false;
   if (diagnosis.labelKeys.length > 0) return false;
   if (diagnosis.parsed.email && diagnosis.populatedFieldCount >= 4) return false;
   return true;
@@ -402,9 +559,13 @@ function assertReliableSubmissionPayload(diagnosis, { fetchedFromApi = false } =
 }
 
 function diagnoseMembershipPayload(payload) {
+  const answers = findAnswersArray(payload);
   const flat = flattenSubmissionValues(payload);
   const parsed = parseFlexxFormsMembershipPayload(payload);
   const labelKeys = Object.keys(flat.byLabel).filter((key) => key.length > 2 && key === key.trim());
+  const answerLabels = answers
+    ? answers.map((r) => r.label || r.fieldLabel).filter(Boolean)
+    : [];
   const populated = [
     parsed.firstName,
     parsed.lastName,
@@ -413,7 +574,14 @@ function diagnoseMembershipPayload(payload) {
     parsed.city,
     parsed.state,
   ].filter(Boolean).length;
-  return { parsed, labelKeys, populatedFieldCount: populated, flat };
+  return {
+    parsed,
+    labelKeys,
+    answerLabels,
+    hasFlexxFormsAnswers: Boolean(answers?.length >= 3),
+    populatedFieldCount: populated,
+    flat,
+  };
 }
 
 function mergeSubmissionPayload(webhookPayload, apiPayload) {
@@ -430,14 +598,11 @@ function mergeSubmissionPayload(webhookPayload, apiPayload) {
     data: {
       ...webhookData,
       ...apiData,
-      fields:
-        apiData.fields ||
-        apiData.responses ||
-        apiData.answers ||
-        webhookData.fields ||
-        webhookData.responses,
+      fields: apiData.fields || webhookData.fields,
+      answers: apiData.answers || apiData.responses || webhookData.answers,
       submission: apiData.submission || apiPayload.submission || apiPayload,
     },
+    answers: apiData.answers || apiPayload.answers || webhookPayload.answers,
     submission: apiPayload.submission || apiPayload,
     _pfmEnrichedFromApi: true,
   };
@@ -453,6 +618,29 @@ function parseUsDate(value) {
 }
 
 function parseFlexxFormsMembershipPayload(payload) {
+  const answers = findAnswersArray(payload);
+  if (answers?.length) {
+    const fromAnswers = parseFromFlexxFormsAnswers(answers);
+    if (fromAnswers) {
+      const displayName = buildFullName(
+        fromAnswers.firstName,
+        fromAnswers.middleName,
+        fromAnswers.lastName
+      );
+      const signedAtRaw =
+        payload?.submittedAt ||
+        payload?.submitted_at ||
+        payload?.data?.submittedAt ||
+        payload?.data?.submitted_at ||
+        null;
+      return {
+        ...fromAnswers,
+        displayName,
+        applicationSignedAt: parseSignedAt(signedAtRaw) || signedAtRaw,
+      };
+    }
+  }
+
   const flat = flattenSubmissionValues(payload);
   const firstName = pickMembershipField(flat, "firstName");
   const middleName = pickMembershipField(flat, "middleName");
@@ -968,6 +1156,8 @@ function listMembershipApplications() {
 module.exports = {
   PENDING_ACCOUNT_STATUS,
   parseFlexxFormsMembershipPayload,
+  findAnswersArray,
+  parseFromFlexxFormsAnswers,
   diagnoseMembershipPayload,
   mergeSubmissionPayload,
   isUnreliableSparseSubmission,

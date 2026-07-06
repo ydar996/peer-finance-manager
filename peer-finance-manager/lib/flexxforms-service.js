@@ -592,34 +592,27 @@ async function fetchFlexxFormsSubmissionDetail(slug, submissionId, formId) {
   if (!submissionId) return null;
   const ff = getOrganizationFlexxForms(slug);
   if (!ff?.apiKey) return null;
+  const resolvedFormId = formId || ff.membershipFormId;
+  if (!resolvedFormId) return null;
 
-  const paths = [
-    `/integrations/submissions/${encodeURIComponent(submissionId)}`,
-    formId
-      ? `/integrations/forms/${encodeURIComponent(formId)}/submissions/${encodeURIComponent(submissionId)}`
-      : null,
-    `/integrations/form-submissions/${encodeURIComponent(submissionId)}`,
-    formId ? `/integrations/forms/${encodeURIComponent(formId)}/submissions` : null,
-  ].filter(Boolean);
+  const detailPath = `/integrations/forms/${encodeURIComponent(resolvedFormId)}/submissions/${encodeURIComponent(submissionId)}`;
+  try {
+    const data = await flexxformsFetch(detailPath, { apiKey: ff.apiKey });
+    if (data) return data;
+  } catch (_) {}
 
-  for (const path of paths) {
-    try {
-      const data = await flexxformsFetch(path, { apiKey: ff.apiKey });
-      if (!data) continue;
-      if (path.endsWith("/submissions") && !path.includes(submissionId)) {
-        const items = data.submissions || data.items || data.results || (Array.isArray(data) ? data : []);
-        const hit = items.find(
-          (row) =>
-            String(row.id || row.submissionId || row.submission_id) === String(submissionId)
-        );
-        if (hit) return hit;
-        continue;
-      }
-      return data;
-    } catch (err) {
-      if (err.status === 404 || err.status === 405) continue;
-    }
-  }
+  try {
+    const list = await flexxformsFetch(
+      `/integrations/forms/${encodeURIComponent(resolvedFormId)}/submissions?limit=50`,
+      { apiKey: ff.apiKey }
+    );
+    const items = list?.submissions || list?.items || (Array.isArray(list) ? list : []);
+    return (
+      items.find(
+        (row) => String(row.id || row.submissionId || row.submission_id) === String(submissionId)
+      ) || null
+    );
+  } catch (_) {}
   return null;
 }
 
@@ -629,7 +622,7 @@ async function enrichMembershipSubmissionPayload(slug, payload) {
     mergeSubmissionPayload,
   } = require("./flexxforms-membership-service");
   const initial = diagnoseMembershipPayload(payload);
-  if (initial.populatedFieldCount >= 4) return { payload, fetched: false, diagnosis: initial };
+  if (initial.hasFlexxFormsAnswers) return { payload, fetched: false, diagnosis: initial };
 
   const data = payload?.data || payload;
   const submissionId =
@@ -639,7 +632,12 @@ async function enrichMembershipSubmissionPayload(slug, payload) {
     payload?.submissionId ||
     payload?.submission_id ||
     null;
-  const formId = data?.formId || data?.form_id || payload?.formId || null;
+  const formId =
+    data?.formId ||
+    data?.form_id ||
+    payload?.formId ||
+    getOrganizationFlexxForms(slug)?.membershipFormId ||
+    null;
   const fetched = await fetchFlexxFormsSubmissionDetail(slug, submissionId, formId);
   if (!fetched) {
     return { payload, fetched: false, diagnosis: initial };
