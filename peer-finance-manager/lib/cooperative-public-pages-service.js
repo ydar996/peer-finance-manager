@@ -185,7 +185,15 @@ function getPublicSummary(slug) {
     aboutAvailable: aboutPublished,
     bylawsAvailable: bylawsPublished,
     applyAvailable,
-    publicApplyUrl: applyAvailable ? `/c/${encodeURIComponent(org.slug)}/apply` : null,
+    publicApplyUrl: (() => {
+      try {
+        const { getFlexxFormsPublicConfig } = require("./flexxforms-service");
+        const ff = getFlexxFormsPublicConfig(slug);
+        return ff?.membershipEmbedUrl || null;
+      } catch {
+        return null;
+      }
+    })(),
   };
 }
 
@@ -245,7 +253,15 @@ function getAdminPublicPages(slug) {
       publicAboutUrl: `/c/${encodeURIComponent(slug)}/about`,
       publicBylawsUrl: `/c/${encodeURIComponent(slug)}/bylaws`,
       applyAvailable,
-      publicApplyUrl: applyAvailable ? `/c/${encodeURIComponent(slug)}/apply` : null,
+      publicApplyUrl: (() => {
+        try {
+          const { getFlexxFormsPublicConfig } = require("./flexxforms-service");
+          const ff = getFlexxFormsPublicConfig(slug);
+          return ff?.membershipEmbedUrl || null;
+        } catch {
+          return null;
+        }
+      })(),
     };
   });
 }

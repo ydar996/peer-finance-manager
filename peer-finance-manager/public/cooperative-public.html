@@ -13,7 +13,6 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/cooperative-public.css" />
-    <script src="/flexxforms-embed.js" defer></script>
   </head>
   <body class="cp-public">
     <div class="cp-progress" id="scrollProgress" aria-hidden="true"></div>
@@ -128,7 +127,7 @@
           apply: {
             title: "Apply for Membership",
             eyebrow: "Join our Cooperative",
-            lead: "Complete the membership application below. No login is required. After you submit, our administrators will review your application.",
+            lead: "Opening the membership application form…",
             apiPath: null,
             pageClass: "cp-page-apply",
           },
@@ -142,20 +141,42 @@
 
         const slug = decodeURIComponent(match[1]).toLowerCase();
         const page = match[2].toLowerCase();
+
+        if (page === "apply") {
+          document.body.classList.add("cp-page-apply");
+          document.getElementById("hero").classList.add("hidden");
+          document.getElementById("contentArea").innerHTML =
+            '<div class="cp-content-loading"><div class="cp-spinner" aria-hidden="true"></div><p>Opening membership application…</p></div>';
+          fetch("/api/public/organizations/" + encodeURIComponent(slug) + "/flexxforms")
+            .then(function (res) {
+              return res.json().then(function (data) {
+                if (!res.ok) throw new Error(data.error || "Unable to open application form");
+                var url = data.membershipEmbedUrl;
+                if (!url) {
+                  throw new Error(
+                    "The membership application is not published yet. Please check back soon or contact the Cooperative."
+                  );
+                }
+                window.location.replace(url);
+              });
+            })
+            .catch(function (err) {
+              document.getElementById("contentArea").innerHTML = "";
+              showError(err.message);
+            });
+          return;
+        }
+
         const copy = PAGE_COPY[page];
         const aboutHref = "/c/" + encodeURIComponent(slug) + "/about";
         const bylawsHref = "/c/" + encodeURIComponent(slug) + "/bylaws";
-        const applyHref = "/c/" + encodeURIComponent(slug) + "/apply";
+        let applyHref = "/c/" + encodeURIComponent(slug) + "/apply";
         const memberSignInHref = "/member?org=" + encodeURIComponent(slug);
 
         document.body.classList.add(copy.pageClass);
-        if (page === "apply") {
-          document.getElementById("hero").classList.add("hidden");
-        } else {
-          document.getElementById("pageTitle").textContent = copy.title;
-          document.getElementById("heroEyebrow").textContent = copy.eyebrow;
-          document.getElementById("heroLead").textContent = copy.lead;
-        }
+        document.getElementById("pageTitle").textContent = copy.title;
+        document.getElementById("heroEyebrow").textContent = copy.eyebrow;
+        document.getElementById("heroLead").textContent = copy.lead;
         document.getElementById("heroMeta").classList.add("hidden");
 
         const navAbout = document.getElementById("navAbout");
@@ -166,13 +187,20 @@
         navApply.href = applyHref;
         navAbout.classList.toggle("active", page === "about");
         navBylaws.classList.toggle("active", page === "bylaws");
-        navApply.classList.toggle("active", page === "apply");
+        navApply.classList.toggle("active", false);
         [navAbout, navBylaws, navApply].forEach(function (link) {
           link.removeAttribute("aria-current");
         });
         if (page === "about") navAbout.setAttribute("aria-current", "page");
         if (page === "bylaws") navBylaws.setAttribute("aria-current", "page");
-        if (page === "apply") navApply.setAttribute("aria-current", "page");
+
+        function applyPublicApplyUrl(url) {
+          if (!url) return;
+          applyHref = url;
+          navApply.href = applyHref;
+          renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref);
+          renderHeroActions(page, aboutHref, bylawsHref, applyHref);
+        }
 
         renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref);
         renderHeroActions(page, aboutHref, bylawsHref, applyHref);
@@ -183,27 +211,18 @@
         const backTop = document.getElementById("backTop");
         const scrollProgress = document.getElementById("scrollProgress");
 
-        if (page === "apply") {
-          document.querySelector(".cp-layout").classList.add("cp-layout-apply");
-          document.body.classList.add("cp-page-apply-active");
-          if (tocFab) tocFab.style.display = "none";
-          if (tocPanel) tocPanel.style.display = "none";
-          if (backTop) backTop.classList.add("hidden");
-          loadApplyForm(slug);
-        } else {
-          fetch("/api/public/organizations/" + encodeURIComponent(slug) + "/" + copy.apiPath)
-            .then(function (res) {
-              return res.json().then(function (data) {
-                if (!res.ok) throw new Error(data.error || "Content not available");
-                if (!data.html) throw new Error("This page has no published content yet.");
-                renderContent(data.html, applyHref, page);
-              });
-            })
-            .catch(function (err) {
-              showError(err.message);
-              document.getElementById("contentArea").innerHTML = "";
+        fetch("/api/public/organizations/" + encodeURIComponent(slug) + "/" + copy.apiPath)
+          .then(function (res) {
+            return res.json().then(function (data) {
+              if (!res.ok) throw new Error(data.error || "Content not available");
+              if (!data.html) throw new Error("This page has no published content yet.");
+              renderContent(data.html, applyHref, page);
             });
-        }
+          })
+          .catch(function (err) {
+            showError(err.message);
+            document.getElementById("contentArea").innerHTML = "";
+          });
 
         tocFab?.addEventListener("click", function () {
           const open = tocPanel.classList.toggle("is-open");
@@ -234,6 +253,7 @@
               } else {
                 document.title = copy.title;
               }
+              applyPublicApplyUrl(data.publicApplyUrl);
             });
           })
           .catch(function () {});
@@ -272,86 +292,6 @@
               aboutHref +
               '">About Us</a>';
           }
-        }
-
-        function loadApplyForm(slug) {
-          const area = document.getElementById("contentArea");
-          area.innerHTML =
-            '<div class="cp-content-loading"><div class="cp-spinner" aria-hidden="true"></div><p>Loading membership application…</p></div>';
-          fetch("/api/public/organizations/" + encodeURIComponent(slug) + "/flexxforms")
-            .then(function (res) {
-              return res.json().then(function (data) {
-                if (!res.ok) throw new Error(data.error || "Unable to load application form");
-                const formId = data.membershipFormId;
-                const embedUrl = data.membershipEmbedUrl;
-                if (!formId && !embedUrl) {
-                  throw new Error(
-                    "The membership application is not published yet. Please check back soon or contact the Cooperative."
-                  );
-                }
-                const publicFormUrl =
-                  embedUrl ||
-                  (formId
-                    ? "https://flexxforms.netlify.app/p/" + encodeURIComponent(formId)
-                    : "");
-                area.innerHTML =
-                  '<div class="cp-apply-shell"><p class="cp-apply-sign-tip"><strong>Signing Tip:</strong> When you reach the signature field, rotate your phone to landscape for the best signing experience.</p><div class="cp-apply-primary-action"><a id="cpApplyPrimaryBtn" class="cp-crosslink-btn cp-apply-primary-btn" href="' +
-                  publicFormUrl +
-                  '" target="_blank" rel="noopener noreferrer">Complete Application (Recommended)</a><p class="cp-apply-primary-hint">Opens the full application form on FlexxForms. Use this if Submit below does not respond.</p></div><p id="cpApplyStatus" class="cp-apply-status hidden" role="status" aria-live="polite"></p><p class="cp-apply-embed-label">Or complete the embedded form below</p><div id="cpApplyEmbedHost" class="cp-apply-embed-host"></div><p id="cpApplySuccess" class="cp-apply-success hidden" role="status">Thank you! Your membership application was received. Our administrators will review it after your membership fee and initial contribution are confirmed.</p><p class="cp-apply-footnote">After you submit, our administrators will review your application and confirm your membership fee and initial contribution.</p></div>';
-                const host = document.getElementById("cpApplyEmbedHost");
-                const statusEl = document.getElementById("cpApplyStatus");
-                function setApplyStatus(message, kind) {
-                  if (!statusEl) return;
-                  if (!message) {
-                    statusEl.textContent = "";
-                    statusEl.className = "cp-apply-status hidden";
-                    return;
-                  }
-                  statusEl.textContent = message;
-                  statusEl.className = "cp-apply-status cp-apply-status-" + (kind || "info");
-                  statusEl.classList.remove("hidden");
-                }
-                if (host && typeof window.mountFlexxFormsEmbed === "function") {
-                  window
-                    .mountFlexxFormsEmbed(host, {
-                      formId: formId,
-                      embedUrl: embedUrl,
-                      formTitle: "Membership application",
-                      onSubmitting: function () {
-                        setApplyStatus("Submitting your application…", "info");
-                      },
-                      onError: function (data) {
-                        var msg =
-                          (data && (data.message || data.error)) ||
-                          "Please fix the highlighted fields in the form and try again.";
-                        setApplyStatus(msg, "error");
-                      },
-                      onCompleted: function () {
-                        setApplyStatus("", "");
-                        var success = document.getElementById("cpApplySuccess");
-                        var footnote = area.querySelector(".cp-apply-footnote");
-                        var signTip = area.querySelector(".cp-apply-sign-tip");
-                        var primary = area.querySelector(".cp-apply-primary-action");
-                        var embedLabel = area.querySelector(".cp-apply-embed-label");
-                        if (success) success.classList.remove("hidden");
-                        if (footnote) footnote.classList.add("hidden");
-                        if (signTip) signTip.classList.add("hidden");
-                        if (primary) primary.classList.add("hidden");
-                        if (embedLabel) embedLabel.classList.add("hidden");
-                        host.classList.add("hidden");
-                        success?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      },
-                    })
-                    .catch(function (err) {
-                      showError(err.message || "Unable to load application form");
-                    });
-                }
-              });
-            })
-            .catch(function (err) {
-              area.innerHTML = "";
-              showError(err.message);
-            });
         }
 
         function renderContent(html, applyHref, page) {

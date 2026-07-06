@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 6, 2026 (FlexxForms official /p/ iframe + postMessage)  
+**Last updated:** July 6, 2026 (Apply redirects to FlexxForms direct URL)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -107,6 +107,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-06** — **Apply: redirect to FlexxForms (no embed):** removed broken iframe apply page. `/c/{slug}/apply` and all **Apply for Membership** links go directly to `https://flexxforms.netlify.app/p/{formId}`. Server 302 on Render; Netlify shows brief redirect via cooperative-public.html. Webhook unchanged. **Production:** `git push`.
 - **2026-07-06** — **Apply page infinite loading fix:** `backTop` was referenced before `const` declaration (TDZ ReferenceError), so apply page script never reached `loadApplyForm()`. **Production:** `git push`.
 - **2026-07-06** — **AGENT_HANDOVER:** FlexxForms partner messages: wait for user post-deploy retest before drafting escalations (rule §0 item 5).
 - **2026-07-06** — **FlexxForms public SDK + primary full-window CTA:** embed.js `data-embed-mode="public"` with postMessage + `FlexxForms.on` handlers; iframe scrolling enabled; taller defaults; **Complete Application (Recommended)** button opens `/p/{id}` directly; hide back-to-top on apply page. **Production:** `git push`.
@@ -363,7 +364,7 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 | Item | Value |
 |------|--------|
 | Host pages | `/c/{slug}/apply`, legacy `/?apply={slug}`, member loan apply, login membership apply |
-| Embed method | FlexxForms `embed.js` with `data-form-path="p"` + `data-embed-mode="public"`; postMessage + `FlexxForms.on` for completed/error. Primary CTA opens `/p/{formId}` in new tab. Direct iframe fallback if SDK fails. |
+| Embed method | **No embed on apply.** `/c/{slug}/apply` redirects to `https://flexxforms.netlify.app/p/{formId}`. `publicApplyUrl` and nav links use the FlexxForms URL directly. Webhook unchanged. Loan apply in member portal may still use `mountFlexxFormsEmbed`. |
 | Form ids | Per Cooperative in registry `organizations`: `membership_form_id`, `loan_form_id`, guarantor/borrower master doc ids |
 | Webhook | `POST https://peer-finance-manager.onrender.com/api/flexxforms/webhook` (HMAC, unchanged) |
 | Provision | `POST /platform/workspaces/ensure` on org register; admin assigns ids in **Forms & Documents** |

@@ -232,9 +232,7 @@ function getFlexxFormsAdminView(slug, { consumeTempPassword = false, sessionUser
     embedBaseUrl: FLEXXFORMS_EMBED_BASE,
     membershipEmbedUrl: buildFlexxFormsEmbedUrl(ff.membershipFormId),
     loanEmbedUrl: buildFlexxFormsEmbedUrl(ff.loanFormId),
-    publicApplyUrl: ff.membershipFormId
-      ? `https://peer-finance-manager.netlify.app/c/${encodeURIComponent(org.slug)}/apply`
-      : null,
+    publicApplyUrl: ff.membershipFormId ? buildFlexxFormsEmbedUrl(ff.membershipFormId) : null,
     provisioningConfigured: isProvisioningConfigured(),
   };
 }

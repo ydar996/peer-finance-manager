@@ -219,11 +219,30 @@ for (const portalPath of ["/member", "/staff", "/admin", "/register", "/platform
     res.sendFile(path.join(getPublicDir(), "index.html"));
   });
 }
-for (const publicPage of ["about", "bylaws", "apply"]) {
+for (const publicPage of ["about", "bylaws"]) {
   app.get(`/c/:slug/${publicPage}`, (req, res) => {
     res.sendFile(path.join(getPublicDir(), "cooperative-public.html"));
   });
 }
+app.get("/c/:slug/apply", (req, res) => {
+  try {
+    const { getFlexxFormsPublicConfig } = require("./lib/flexxforms-service");
+    const slug = String(req.params.slug || "").toLowerCase();
+    const config = getFlexxFormsPublicConfig(slug);
+    const target = config?.membershipEmbedUrl;
+    if (!target) {
+      return res
+        .status(404)
+        .type("html")
+        .send(
+          "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Application Not Available</title></head><body><p>The membership application is not published yet. Please check back soon or contact your Cooperative.</p></body></html>"
+        );
+    }
+    return res.redirect(302, target);
+  } catch (err) {
+    res.status(400).type("html").send(`<!DOCTYPE html><html><body><p>${err.message}</p></body></html>`);
+  }
+});
 
 app.use("/api", (req, res, next) => {
   if (

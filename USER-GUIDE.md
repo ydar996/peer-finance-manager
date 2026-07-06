@@ -37,11 +37,11 @@ Prospective members can learn about the Cooperative and apply without signing in
 
 1. **About Us:** **https://peer-finance-manager.netlify.app/c/assurance/about**
 2. **Bylaws:** **https://peer-finance-manager.netlify.app/c/assurance/bylaws**
-3. **Apply for Membership:** **https://peer-finance-manager.netlify.app/c/assurance/apply**
+3. **Apply for Membership:** opens the FlexxForms application form directly at `https://flexxforms.netlify.app/p/{formId}` (no login required). The link `https://peer-finance-manager.netlify.app/c/assurance/apply` redirects there automatically.
 
-Each page includes **Apply for Membership** buttons that link to the online application. The apply page loads the FlexxForms membership form in a public iframe (`/p/{formId}`, no third-party deal chrome). A **Signing Tip** at the top asks you to rotate your phone to **landscape** when you reach the signature field. After a successful submit, a confirmation message appears on the page; your application also flows to administrators automatically.
+Each page includes **Apply for Membership** buttons that open the online application on FlexxForms. After a successful submit, your application flows to administrators automatically via the FlexxForms webhook.
 
-Legacy deep link (still works): **https://peer-finance-manager.netlify.app/?apply=assurance** redirects to the apply page above.
+Legacy deep link (still works): **https://peer-finance-manager.netlify.app/?apply=assurance** redirects to the FlexxForms form.
 
 After you submit, the Cooperative receives your application automatically. An administrator will review it after your **membership fee** and **initial contribution** are confirmed.
 
@@ -74,7 +74,7 @@ After you submit, the Cooperative receives your application automatically. An ad
 
 **Forms & Documents** tab (admin):
 
-- **Public membership application link** — share **https://peer-finance-manager.netlify.app/c/assurance/apply** (also linked from About Us and Bylaws pages). Legacy `/?apply=assurance` redirects to the same page.
+- **Public membership application link** — share **https://peer-finance-manager.netlify.app/c/assurance/apply** or the direct FlexxForms URL from **Forms & Documents** (also linked from About Us and Bylaws). Legacy `/?apply=assurance` still redirects to the form.
 - **Membership Applications** — each FlexxForms submission creates a **Pending Approval** member profile automatically.
 - Before you click **Approve Member**, record on that profile:
   1. **Membership fee** ($100) — use **Record** or existing fee workflow.
