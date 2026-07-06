@@ -299,6 +299,11 @@
         <button type="button" class="tab" data-tab="loans" data-roles="admin,staff">Loans</button>
         <button type="button" class="tab" data-tab="record" data-roles="admin">Record</button>
         <button type="button" class="tab" data-tab="import" data-roles="admin">Import</button>
+        <button type="button" class="tab" data-tab="status-report" data-roles="admin,staff">Status Report</button>
+        <button type="button" class="tab" data-tab="meetings" data-roles="admin,staff">Meetings</button>
+        <button type="button" class="tab" data-tab="public-pages" data-roles="admin">Public Pages</button>
+        <button type="button" class="tab" data-tab="forms" data-roles="admin">Forms &amp; Documents</button>
+        <button type="button" class="tab" data-tab="subscription" data-roles="admin">Subscription</button>
         <button type="button" class="tab" data-tab="users" data-roles="admin">Users</button>
         <button type="button" class="tab" data-tab="my-account" data-roles="member">My Account</button>
       </nav>
@@ -315,241 +320,6 @@
           <div id="booksGrid" class="books-grid">
             <p class="hint">Loading…</p>
           </div>
-          <details class="card profile-disclosure admin-only-report-settings hidden" id="publicPagesPanel">
-            <summary>Public About &amp; Bylaws</summary>
-            <div class="profile-disclosure-body public-pages-admin">
-              <p class="hint">These pages are visible without signing in : share the links with prospective members.</p>
-              <p class="subtle" id="publicPagesLinks">Public links: :</p>
-              <label class="toggle-row">
-                <input type="checkbox" id="publicAboutPublished" />
-                Publish About Us page
-              </label>
-              <label class="field-row">
-                <span>About page HTML</span>
-                <textarea id="publicAboutHtml" rows="12" placeholder="HTML content for your About page"></textarea>
-              </label>
-              <p class="hint subtle">Use <code>src="about/your-image.png"</code> for images uploaded below.</p>
-              <div class="panel-head-actions">
-                <button type="button" class="btn primary" id="savePublicAbout">Save About Page</button>
-                <label class="btn">
-                  Upload About Image
-                  <input type="file" id="publicAboutImageUpload" accept="image/*" class="hidden" />
-                </label>
-              </div>
-              <ul class="file-list" id="publicAboutImagesList"></ul>
-              <hr />
-              <label class="toggle-row">
-                <input type="checkbox" id="publicBylawsPublished" />
-                Publish Bylaws page
-              </label>
-              <p class="subtle" id="publicBylawsFileStatus">Bylaws PDF: :</p>
-              <div class="panel-head-actions">
-                <label class="btn primary">
-                  Upload Bylaws PDF
-                  <input type="file" id="publicBylawsUpload" accept="application/pdf,.pdf" class="hidden" />
-                </label>
-                <button type="button" class="btn" id="savePublicBylawsSettings">Save Bylaws Settings</button>
-              </div>
-              <p class="status" id="publicPagesStatus"></p>
-            </div>
-          </details>
-          <details class="card monthly-status-report-card profile-disclosure" id="monthlyStatusReportPanel">
-            <summary class="monthly-status-report-summary">
-              <span class="monthly-status-report-summary-text">Monthly Status Report</span>
-              <span class="badge" id="monthlyStatusReportBadge">Loading…</span>
-            </summary>
-            <div class="profile-disclosure-body monthly-status-report-body">
-              <p class="subtle">Cooperative status PDF for your organization. Figures reflect the ledger as at the report date. Report period: <strong id="monthlyStatusReportPeriod">:</strong></p>
-              <p id="monthlyStatusPerformanceOverview" class="monthly-status-performance-overview hidden"></p>
-              <details class="monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="monthlyStatusReportSettingsPanel">
-                <summary>Organization &amp; Report Settings</summary>
-                <div class="profile-disclosure-body monthly-status-report-settings">
-                  <label class="field-row">
-                    <span>Cooperative time zone (reports, dashboard, ledger dates)</span>
-                    <select id="cooperativeTimezone"></select>
-                  </label>
-                  <p class="hint subtle">Default is Pacific (Los Angeles / San Diego). All administrators share one time zone per Cooperative.</p>
-                  <label class="toggle-row">
-                    <input type="checkbox" id="monthlyStatusAutoGenerate" checked />
-                    Automatically generate at month end (as at last calendar day)
-                  </label>
-                  <label class="toggle-row">
-                    <input type="checkbox" id="monthlyStatusAutoPublish" checked />
-                    Automatically publish to member portal when generated
-                  </label>
-                  <label class="field-row">
-                    <span>Organization website (optional, shown on report cover)</span>
-                    <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
-                  </label>
-                  <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the Cooperative report is built as at that calendar month-end date and published to members. You can still regenerate and publish manually anytime. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
-                  <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Organization Settings</button>
-                </div>
-              </details>
-              <div class="panel-head-actions monthly-status-report-actions">
-                <button type="button" class="btn admin-only-report-settings hidden month-end-auto-publish-toggle" id="toggleMonthEndAutoPublish" title="When on, the report is generated and published to members on the last day of each month.">Month-end auto-publish: …</button>
-                <button type="button" class="btn primary admin-only-report-settings hidden" id="generateMonthlyStatusReport">Generate Report</button>
-                <button type="button" class="btn admin-only-report-settings hidden" id="publishMonthlyStatusReport">Publish to Members</button>
-                <button type="button" class="btn admin-only-report-settings hidden" id="unpublishMonthlyStatusReport">Unpublish from Members</button>
-                <button type="button" class="btn" id="downloadMonthlyStatusReport">Download PDF</button>
-              </div>
-              <p id="monthlyStatusReportStatus" class="status"></p>
-              <details class="operational-expenses-preview-panel profile-disclosure" id="operationalExpensesPreview">
-                <summary class="operational-expenses-preview-summary">
-                  <span>Operational Expenses</span>
-                  <span class="badge" id="operationalExpensesPreviewTotal">:</span>
-                </summary>
-                <div class="profile-disclosure-body" id="operationalExpensesPreviewBody">
-                  <p class="hint">Loading…</p>
-                </div>
-              </details>
-              <details class="expense-report-labels-panel admin-only-report-settings hidden" id="expenseReportLabelsPanel">
-                <summary>Operational Expense Labels</summary>
-                <div class="profile-disclosure-body">
-                  <p class="subtle">Assign a report label to each expense line. When every line has a label, the PDF shows consolidated totals by label.</p>
-                  <div class="table-wrap expense-report-labels-table-wrap">
-                    <table class="expense-report-labels-table">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Bank description</th>
-                          <th class="money">Amount</th>
-                          <th>Report label</th>
-                        </tr>
-                      </thead>
-                      <tbody id="expenseReportLabelsBody">
-                        <tr><td colspan="4">Loading…</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <button type="button" class="btn primary" id="saveExpenseReportLabels">Save Expense Labels</button>
-                  <p id="expenseReportLabelsStatus" class="status"></p>
-                </div>
-              </details>
-            </div>
-          </details>
-          <details class="card cooperative-meetings-card profile-disclosure" id="cooperativeMeetingsPanel">
-            <summary class="monthly-status-report-summary">
-              <span class="monthly-status-report-summary-text">Meetings &amp; Announcements</span>
-              <span class="badge" id="cooperativeMeetingsBadge">Loading…</span>
-            </summary>
-            <div class="profile-disclosure-body cooperative-meetings-body">
-              <p class="subtle">Schedule Cooperative meetings for your organization. Announced meetings appear on every member&apos;s portal and trigger email notifications when SMTP is configured.</p>
-              <details class="monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="cooperativeMeetingsSettingsPanel">
-                <summary>Meeting Reminder Settings</summary>
-                <div class="profile-disclosure-body">
-                  <label class="toggle-row">
-                    <input type="checkbox" id="meetingsAutoReminder" checked />
-                    Send automatic email reminders before each announced meeting
-                  </label>
-                  <label class="field-row">
-                    <span>Reminder lead time (hours before meeting)</span>
-                    <input type="number" id="meetingsReminderHours" min="1" max="168" value="24" />
-                  </label>
-                  <p class="hint subtle">Uses your Cooperative time zone from Organization &amp; Report Settings above. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
-                  <button type="button" class="btn" id="saveMeetingSettings">Save Reminder Settings</button>
-                </div>
-              </details>
-              <form id="cooperativeMeetingForm" class="entry-form cooperative-meeting-form admin-only-report-settings hidden">
-                <input type="hidden" id="cooperativeMeetingId" value="" />
-                <label>Title
-                  <input type="text" id="cooperativeMeetingTitle" required maxlength="200" placeholder="Monthly General Meeting" />
-                </label>
-                <label>Date
-                  <input type="date" id="cooperativeMeetingDate" required />
-                </label>
-                <label>Time
-                  <input type="time" id="cooperativeMeetingTime" required />
-                </label>
-                <label>Location (optional)
-                  <input type="text" id="cooperativeMeetingLocation" placeholder="Community center or address" />
-                </label>
-                <label>Virtual link (optional)
-                  <input type="url" id="cooperativeMeetingVirtualLink" placeholder="https://zoom.us/..." />
-                </label>
-                <label>Agenda (optional)
-                  <textarea id="cooperativeMeetingAgenda" rows="4" placeholder="Welcome, financial review, Q&amp;A…"></textarea>
-                </label>
-                <label>Admin notes (optional, not shown to members)
-                  <textarea id="cooperativeMeetingAdminNotes" rows="2"></textarea>
-                </label>
-                <div class="panel-head-actions">
-                  <button type="submit" class="btn primary" id="saveCooperativeMeeting">Save Draft</button>
-                  <button type="button" class="btn hidden" id="resetCooperativeMeetingForm">New Meeting</button>
-                </div>
-              </form>
-              <div class="panel-head-actions cooperative-meetings-list-actions">
-                <button type="button" class="btn admin-only-report-settings hidden" id="refreshCooperativeMeetings">Refresh</button>
-              </div>
-              <ul class="file-list cooperative-meetings-list" id="cooperativeMeetingsList">
-                <li class="hint">Loading…</li>
-              </ul>
-              <p id="cooperativeMeetingsStatus" class="status"></p>
-            </div>
-          </details>
-          <details class="card flexxforms-forms-card profile-disclosure admin-only-report-settings hidden" id="flexxformsFormsPanel">
-            <summary class="monthly-status-report-summary">
-              <span class="monthly-status-report-summary-text">Manage Forms &amp; Documents</span>
-              <span class="badge" id="flexxformsFormsBadge">:</span>
-            </summary>
-            <div class="profile-disclosure-body">
-              <p class="subtle">Your Cooperative owns its application forms and agreements. Open FlexxForms to build and publish them. Members will fill and sign them inside Peer Finance Manager.</p>
-              <p class="hint" id="flexxformsAdminEmailLine">FlexxForms admin email: :</p>
-              <p class="hint hidden" id="flexxformsPublicApplyLine"></p>
-              <p class="hint hidden" id="flexxformsTempPasswordLine"></p>
-              <p class="status err hidden" id="flexxformsProvisionError"></p>
-              <div class="panel-head-actions" style="margin-bottom: 12px;">
-                <a class="btn primary" id="openFlexxFormsBtn" href="https://flexxforms.netlify.app/login" target="_blank" rel="noopener noreferrer">Open FlexxForms</a>
-                <button type="button" class="btn" id="retryFlexxFormsProvision">Retry FlexxForms Setup</button>
-                <button type="button" class="btn" id="refreshFlexxFormsForms">Load Forms &amp; Documents</button>
-              </div>
-              <section id="flexxformsCatalogSection" class="flexxforms-catalog hidden" aria-live="polite">
-                <div class="flexxforms-catalog-head">
-                  <h4>Published in FlexxForms</h4>
-                  <p class="hint">Forms link to membership and loan applications. Master documents link to guarantor and borrower agreements. Assign each item, then click Save Form &amp; Document Ids.</p>
-                </div>
-                <div id="flexxformsFormsPicker" class="flexxforms-catalog-list"></div>
-              </section>
-              <p class="subtle flexxforms-manual-ids-head">Form &amp; Document Ids</p>
-              <form id="flexxformsSettingsForm" class="entry-form cooperative-meeting-form">
-                <label>Membership Form Id
-                  <input type="text" id="ffMembershipFormId" placeholder="UUID from FlexxForms" />
-                </label>
-                <label>Loan Form Id
-                  <input type="text" id="ffLoanFormId" placeholder="UUID from FlexxForms" />
-                </label>
-                <label>Guarantor Master Document Id
-                  <input type="text" id="ffGuarantorMasterDocId" placeholder="UUID from FlexxForms" />
-                </label>
-                <label>Borrower Master Document Id
-                  <input type="text" id="ffBorrowerMasterDocId" placeholder="UUID from FlexxForms" />
-                </label>
-                <button type="submit" class="btn primary">Save Form &amp; Document Ids</button>
-              </form>
-              <p class="subtle" style="margin-top: 12px;">Membership Applications</p>
-              <div id="flexxformsApplicationsList" class="flexxforms-applications-list"><p class="hint">None yet</p></div>
-              <p id="flexxformsFormsStatus" class="status"></p>
-            </div>
-          </details>
-          <details class="card platform-subscription-card profile-disclosure admin-only-report-settings hidden" id="platformSubscriptionPanel">
-            <summary class="monthly-status-report-summary">
-              <span class="monthly-status-report-summary-text">Platform Subscription</span>
-              <span class="badge" id="platformSubscriptionBadge">Loading…</span>
-            </summary>
-            <div class="profile-disclosure-body platform-subscription-body">
-              <p class="subtle">Peer Finance Manager SaaS fee for your Cooperative. Pay by credit/debit card (Stripe) or mail a check.</p>
-              <div id="platformSubscriptionSummary" class="platform-subscription-summary">Loading…</div>
-              <div class="panel-head-actions platform-subscription-actions">
-                <button type="button" class="btn primary" id="payMonthlyStripe">Pay Monthly</button>
-                <button type="button" class="btn primary" id="payQuarterlyStripe">Pay Quarterly</button>
-                <button type="button" class="btn primary" id="payAnnualStripe">Pay Annual</button>
-                <button type="button" class="btn" id="openStripePortal" hidden>Manage Card on File</button>
-                <button type="button" class="btn" id="requestCheckPayment">Request Check Payment</button>
-                <button type="button" class="btn" id="refreshPlatformSubscription">Refresh</button>
-              </div>
-              <div id="platformCheckInstructions" class="platform-check-instructions hidden"></div>
-              <p id="platformSubscriptionStatus" class="status"></p>
-            </div>
-          </details>
         </div>
         <div id="booksDetail" class="books-detail hidden">
           <div class="panel-head">
@@ -569,6 +339,254 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <section id="panel-status-report" class="panel">
+        <div class="panel-head">
+          <h2>Monthly Status Report</h2>
+          <div class="panel-head-actions">
+            <span class="badge" id="monthlyStatusReportBadge">Loading…</span>
+          </div>
+        </div>
+        <div id="monthlyStatusReportPanel" class="monthly-status-report-body">
+          <p class="subtle">Cooperative status PDF for your organization. Figures reflect the ledger as at the report date. Report period: <strong id="monthlyStatusReportPeriod">:</strong></p>
+          <p id="monthlyStatusPerformanceOverview" class="monthly-status-performance-overview hidden"></p>
+          <details class="card monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="monthlyStatusReportSettingsPanel">
+            <summary>Organization &amp; Report Settings</summary>
+            <div class="profile-disclosure-body monthly-status-report-settings">
+              <label class="field-row">
+                <span>Cooperative time zone (reports, dashboard, ledger dates)</span>
+                <select id="cooperativeTimezone"></select>
+              </label>
+              <p class="hint subtle">Default is Pacific (Los Angeles / San Diego). All administrators share one time zone per Cooperative.</p>
+              <label class="toggle-row">
+                <input type="checkbox" id="monthlyStatusAutoGenerate" checked />
+                Automatically generate at month end (as at last calendar day)
+              </label>
+              <label class="toggle-row">
+                <input type="checkbox" id="monthlyStatusAutoPublish" checked />
+                Automatically publish to member portal when generated
+              </label>
+              <label class="field-row">
+                <span>Organization website (optional, shown on report cover)</span>
+                <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
+              </label>
+              <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the Cooperative report is built as at that calendar month-end date and published to members. You can still regenerate and publish manually anytime. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
+              <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Organization Settings</button>
+            </div>
+          </details>
+          <div class="panel-head-actions monthly-status-report-actions">
+            <button type="button" class="btn admin-only-report-settings hidden month-end-auto-publish-toggle" id="toggleMonthEndAutoPublish" title="When on, the report is generated and published to members on the last day of each month.">Month-end auto-publish: …</button>
+            <button type="button" class="btn primary admin-only-report-settings hidden" id="generateMonthlyStatusReport">Generate Report</button>
+            <button type="button" class="btn admin-only-report-settings hidden" id="publishMonthlyStatusReport">Publish to Members</button>
+            <button type="button" class="btn admin-only-report-settings hidden" id="unpublishMonthlyStatusReport">Unpublish from Members</button>
+            <button type="button" class="btn" id="downloadMonthlyStatusReport">Download PDF</button>
+          </div>
+          <p id="monthlyStatusReportStatus" class="status"></p>
+          <details class="card operational-expenses-preview-panel profile-disclosure" id="operationalExpensesPreview">
+            <summary class="operational-expenses-preview-summary">
+              <span>Operational Expenses</span>
+              <span class="badge" id="operationalExpensesPreviewTotal">:</span>
+            </summary>
+            <div class="profile-disclosure-body" id="operationalExpensesPreviewBody">
+              <p class="hint">Loading…</p>
+            </div>
+          </details>
+          <details class="card expense-report-labels-panel admin-only-report-settings hidden" id="expenseReportLabelsPanel">
+            <summary>Operational Expense Labels</summary>
+            <div class="profile-disclosure-body">
+              <p class="subtle">Assign a report label to each expense line. When every line has a label, the PDF shows consolidated totals by label.</p>
+              <div class="table-wrap expense-report-labels-table-wrap">
+                <table class="expense-report-labels-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Bank description</th>
+                      <th class="money">Amount</th>
+                      <th>Report label</th>
+                    </tr>
+                  </thead>
+                  <tbody id="expenseReportLabelsBody">
+                    <tr><td colspan="4">Loading…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <button type="button" class="btn primary" id="saveExpenseReportLabels">Save Expense Labels</button>
+              <p id="expenseReportLabelsStatus" class="status"></p>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <section id="panel-meetings" class="panel">
+        <div class="panel-head">
+          <h2>Meetings &amp; Announcements</h2>
+          <div class="panel-head-actions">
+            <span class="badge" id="cooperativeMeetingsBadge">Loading…</span>
+            <button type="button" class="btn admin-only-report-settings hidden" id="refreshCooperativeMeetings">Refresh</button>
+          </div>
+        </div>
+        <div id="cooperativeMeetingsPanel" class="cooperative-meetings-body">
+          <p class="subtle">Schedule Cooperative meetings for your organization. Announced meetings appear on every member&apos;s portal and trigger email notifications when SMTP is configured.</p>
+          <details class="card monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="cooperativeMeetingsSettingsPanel">
+            <summary>Meeting Reminder Settings</summary>
+            <div class="profile-disclosure-body">
+              <label class="toggle-row">
+                <input type="checkbox" id="meetingsAutoReminder" checked />
+                Send automatic email reminders before each announced meeting
+              </label>
+              <label class="field-row">
+                <span>Reminder lead time (hours before meeting)</span>
+                <input type="number" id="meetingsReminderHours" min="1" max="168" value="24" />
+              </label>
+              <p class="hint subtle">Uses your Cooperative time zone from Organization &amp; Report Settings on the Status Report tab. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
+              <button type="button" class="btn" id="saveMeetingSettings">Save Reminder Settings</button>
+            </div>
+          </details>
+          <form id="cooperativeMeetingForm" class="entry-form cooperative-meeting-form admin-only-report-settings hidden">
+            <input type="hidden" id="cooperativeMeetingId" value="" />
+            <label>Title
+              <input type="text" id="cooperativeMeetingTitle" required maxlength="200" placeholder="Monthly General Meeting" />
+            </label>
+            <label>Date
+              <input type="date" id="cooperativeMeetingDate" required />
+            </label>
+            <label>Time
+              <input type="time" id="cooperativeMeetingTime" required />
+            </label>
+            <label>Location (optional)
+              <input type="text" id="cooperativeMeetingLocation" placeholder="Community center or address" />
+            </label>
+            <label>Virtual link (optional)
+              <input type="url" id="cooperativeMeetingVirtualLink" placeholder="https://zoom.us/..." />
+            </label>
+            <label>Agenda (optional)
+              <textarea id="cooperativeMeetingAgenda" rows="4" placeholder="Welcome, financial review, Q&amp;A…"></textarea>
+            </label>
+            <label>Admin notes (optional, not shown to members)
+              <textarea id="cooperativeMeetingAdminNotes" rows="2"></textarea>
+            </label>
+            <div class="panel-head-actions">
+              <button type="submit" class="btn primary" id="saveCooperativeMeeting">Save Draft</button>
+              <button type="button" class="btn hidden" id="resetCooperativeMeetingForm">New Meeting</button>
+            </div>
+          </form>
+          <ul class="file-list cooperative-meetings-list" id="cooperativeMeetingsList">
+            <li class="hint">Loading…</li>
+          </ul>
+          <p id="cooperativeMeetingsStatus" class="status"></p>
+        </div>
+      </section>
+
+      <section id="panel-public-pages" class="panel">
+        <div class="panel-head">
+          <h2>Public About &amp; Bylaws</h2>
+        </div>
+        <div id="publicPagesPanel" class="public-pages-admin">
+          <p class="hint">These pages are visible without signing in : share the links with prospective members.</p>
+          <p class="subtle" id="publicPagesLinks">Public links: :</p>
+          <label class="toggle-row">
+            <input type="checkbox" id="publicAboutPublished" />
+            Publish About Us page
+          </label>
+          <label class="field-row">
+            <span>About page HTML</span>
+            <textarea id="publicAboutHtml" rows="12" placeholder="HTML content for your About page"></textarea>
+          </label>
+          <p class="hint subtle">Use <code>src="about/your-image.png"</code> for images uploaded below.</p>
+          <div class="panel-head-actions">
+            <button type="button" class="btn primary" id="savePublicAbout">Save About Page</button>
+            <label class="btn">
+              Upload About Image
+              <input type="file" id="publicAboutImageUpload" accept="image/*" class="hidden" />
+            </label>
+          </div>
+          <ul class="file-list" id="publicAboutImagesList"></ul>
+          <hr />
+          <label class="toggle-row">
+            <input type="checkbox" id="publicBylawsPublished" />
+            Publish Bylaws page
+          </label>
+          <p class="subtle" id="publicBylawsFileStatus">Bylaws PDF: :</p>
+          <div class="panel-head-actions">
+            <label class="btn primary">
+              Upload Bylaws PDF
+              <input type="file" id="publicBylawsUpload" accept="application/pdf,.pdf" class="hidden" />
+            </label>
+            <button type="button" class="btn" id="savePublicBylawsSettings">Save Bylaws Settings</button>
+          </div>
+          <p class="status" id="publicPagesStatus"></p>
+        </div>
+      </section>
+
+      <section id="panel-forms" class="panel">
+        <div class="panel-head">
+          <h2>Forms &amp; Documents</h2>
+          <div class="panel-head-actions">
+            <span class="badge" id="flexxformsFormsBadge">:</span>
+            <button type="button" class="btn" id="refreshFlexxFormsForms">Load Forms &amp; Documents</button>
+          </div>
+        </div>
+        <div id="flexxformsFormsPanel">
+          <p class="subtle">Your Cooperative owns its application forms and agreements. Open FlexxForms to build and publish them. Members will fill and sign them inside Peer Finance Manager.</p>
+          <p class="hint" id="flexxformsAdminEmailLine">FlexxForms admin email: :</p>
+          <p class="hint hidden" id="flexxformsPublicApplyLine"></p>
+          <p class="hint hidden" id="flexxformsTempPasswordLine"></p>
+          <p class="status err hidden" id="flexxformsProvisionError"></p>
+          <div class="panel-head-actions" style="margin-bottom: 12px;">
+            <a class="btn primary" id="openFlexxFormsBtn" href="https://flexxforms.netlify.app/login" target="_blank" rel="noopener noreferrer">Open FlexxForms</a>
+            <button type="button" class="btn" id="retryFlexxFormsProvision">Retry FlexxForms Setup</button>
+          </div>
+          <section id="flexxformsCatalogSection" class="flexxforms-catalog hidden" aria-live="polite">
+            <div class="flexxforms-catalog-head">
+              <h4>Published in FlexxForms</h4>
+              <p class="hint">Forms link to membership and loan applications. Master documents link to guarantor and borrower agreements. Assign each item, then click Save Form &amp; Document Ids.</p>
+            </div>
+            <div id="flexxformsFormsPicker" class="flexxforms-catalog-list"></div>
+          </section>
+          <p class="subtle flexxforms-manual-ids-head">Form &amp; Document Ids</p>
+          <form id="flexxformsSettingsForm" class="entry-form cooperative-meeting-form">
+            <label>Membership Form Id
+              <input type="text" id="ffMembershipFormId" placeholder="UUID from FlexxForms" />
+            </label>
+            <label>Loan Form Id
+              <input type="text" id="ffLoanFormId" placeholder="UUID from FlexxForms" />
+            </label>
+            <label>Guarantor Master Document Id
+              <input type="text" id="ffGuarantorMasterDocId" placeholder="UUID from FlexxForms" />
+            </label>
+            <label>Borrower Master Document Id
+              <input type="text" id="ffBorrowerMasterDocId" placeholder="UUID from FlexxForms" />
+            </label>
+            <button type="submit" class="btn primary">Save Form &amp; Document Ids</button>
+          </form>
+          <p class="subtle" style="margin-top: 12px;">Membership Applications</p>
+          <div id="flexxformsApplicationsList" class="flexxforms-applications-list"><p class="hint">None yet</p></div>
+          <p id="flexxformsFormsStatus" class="status"></p>
+        </div>
+      </section>
+
+      <section id="panel-subscription" class="panel">
+        <div class="panel-head">
+          <h2>Platform Subscription</h2>
+          <div class="panel-head-actions">
+            <span class="badge" id="platformSubscriptionBadge">Loading…</span>
+            <button type="button" class="btn" id="refreshPlatformSubscription">Refresh</button>
+          </div>
+        </div>
+        <div id="platformSubscriptionPanel" class="platform-subscription-body">
+          <p class="subtle">Peer Finance Manager SaaS fee for your Cooperative. Pay by credit/debit card (Stripe) or mail a check.</p>
+          <div id="platformSubscriptionSummary" class="platform-subscription-summary">Loading…</div>
+          <div class="panel-head-actions platform-subscription-actions">
+            <button type="button" class="btn primary" id="payMonthlyStripe">Pay Monthly</button>
+            <button type="button" class="btn primary" id="payQuarterlyStripe">Pay Quarterly</button>
+            <button type="button" class="btn primary" id="payAnnualStripe">Pay Annual</button>
+            <button type="button" class="btn" id="openStripePortal" hidden>Manage Card on File</button>
+            <button type="button" class="btn" id="requestCheckPayment">Request Check Payment</button>
+          </div>
+          <div id="platformCheckInstructions" class="platform-check-instructions hidden"></div>
+          <p id="platformSubscriptionStatus" class="status"></p>
         </div>
       </section>
 

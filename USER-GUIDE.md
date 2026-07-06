@@ -59,15 +59,20 @@ After you submit, the Cooperative receives your application automatically. An ad
 
 | Tab | What it does |
 |-----|----------------|
-| **Cooperative Books** | Income, expenses, member contributions, loans summary; CD balance and **Expected CD Interest**. **Monthly Status Report** panel: generate month-end PDF, optional auto-generate/auto-publish toggles (admin), publish to member portal, download PDF. **Meetings & Announcements** panel (admin): schedule meetings, announce to members (portal + email), cancel, reminder settings. |
+| **Cooperative Books** | Income, expenses, member contributions, loans summary; CD balance and **Expected CD Interest**. Click a card for detail. |
 | **Members & Accounts** | Member list, balances, full profiles; select a member to **Upload Photo** (admin) |
 | **Statements** | Generate batch PDF statements |
 | **Loans** | View and manage loans |
 | **Record** | Add members, record contributions, fees, expenses |
 | **Import** | **Bank Ledger Import** on live site (upload `cooperative-bank-ledger-reference.xlsx`); spreadsheet, profiles; optional CLI `npm run pfm:import-bank` on PC. Import shows **Ledger warnings** for proxy Zelle mis-credits before you confirm. |
+| **Status Report** | Monthly Cooperative status PDF: generate, publish to member portal, download; organization time zone and auto-publish settings (admin) |
+| **Meetings** | Schedule meetings, announce to members (portal + email), cancel, reminder settings (admin) |
+| **Public Pages** | Publish About Us HTML and Bylaws PDF for prospective members (admin) |
+| **Forms & Documents** | FlexxForms setup, membership/loan form ids, review and approve membership applications (admin) |
+| **Subscription** | Peer Finance Manager SaaS billing: Stripe or check (admin) |
 | **Users** | Member login accounts and credentials |
 
-**Manage Forms & Documents** (admin home, expandable panel):
+**Forms & Documents** tab (admin):
 
 - **Public membership application link** — share **https://peer-finance-manager.netlify.app/c/assurance/apply** (also linked from About Us and Bylaws pages). Legacy `/?apply=assurance` redirects to the same page.
 - **Membership Applications** — each FlexxForms submission creates a **Pending Approval** member profile automatically.

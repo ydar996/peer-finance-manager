@@ -604,7 +604,9 @@ th { background: #f8fafc; font-weight: 600; }
 }
 .monthly-status-performance-overview.hidden { display: none; }
 .monthly-status-report-card .toggle-row,
-.monthly-status-report-card .field-row {
+.monthly-status-report-card .field-row,
+.monthly-status-report-body .toggle-row,
+.monthly-status-report-body .field-row {
   display: flex;
   flex-direction: column;
   gap: 6px;

@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-05** — **Admin nav tabs:** moved Public Pages, Status Report, Meetings, Forms & Documents, and Subscription off the Cooperative Books scroll stack into dedicated top-level tabs (lazy-loaded). Cooperative Books is dashboard cards only. **Production:** `git push`.
 - **2026-07-05** — **Apply signing tip sizing:** reduced callout font/padding so it matches FlexxForms field scale. **Production:** `git push`.
 - **2026-07-05** — **Apply page signing tip:** landscape rotation note above membership form on `/c/{slug}/apply`. **Production:** `git push`.
 - **2026-07-05** — **Apply embed landscape fix:** removed broken fullscreen landscape mode (was hiding entire page). Form iframe stays tall in both orientations; page scrolls normally. **Production:** `git push`.

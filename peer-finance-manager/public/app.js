@@ -683,6 +683,7 @@ function handleBillingReturnParams() {
   const params = new URLSearchParams(window.location.search);
   const billing = params.get("billing");
   if (!billing) return;
+  switchTab("subscription");
   const statusEl = $("#platformSubscriptionStatus");
   if (billing === "success") {
     if (statusEl) setFormStatus(statusEl, "Payment received. Subscription will activate shortly.", true);
@@ -763,8 +764,6 @@ async function bootstrapApp() {
   if (role === "admin") {
     loadRecordTabData();
     loadUsers();
-    loadPlatformSubscriptionPanel();
-    loadPublicPagesPanel();
     handleBillingReturnParams();
   }
 }
@@ -1054,6 +1053,11 @@ function switchTab(name, options = {}) {
   }
   if (name === "my-account" && currentUser?.role === "member" && !sameTab) loadMyAccount();
   if (name === "import" && currentUser?.role === "admin" && !sameTab) loadBankImportPanel();
+  if (name === "status-report" && !sameTab) loadMonthlyStatusReportPanel();
+  if (name === "meetings" && !sameTab) loadCooperativeMeetingsPanel();
+  if (name === "public-pages" && currentUser?.role === "admin" && !sameTab) loadPublicPagesPanel();
+  if (name === "forms" && currentUser?.role === "admin" && !sameTab) loadFlexxFormsSettings();
+  if (name === "subscription" && currentUser?.role === "admin" && !sameTab) loadPlatformSubscriptionPanel();
 
   activeTab = name;
 }
@@ -1514,9 +1518,6 @@ async function loadBooks() {
       }),
     ].join("");
     bindBookCards();
-    loadMonthlyStatusReportPanel();
-    loadCooperativeMeetingsPanel();
-    loadFlexxFormsSettings();
   } catch (err) {
     if (requestId !== booksRequestId) return;
     grid.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
