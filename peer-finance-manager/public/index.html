@@ -428,22 +428,11 @@
           </div>
         </div>
         <div id="cooperativeMeetingsPanel" class="cooperative-meetings-body">
+          <ul class="file-list cooperative-meetings-list" id="cooperativeMeetingsList">
+            <li class="hint">Loading…</li>
+          </ul>
+          <p id="cooperativeMeetingsStatus" class="status"></p>
           <p class="subtle">Schedule Cooperative meetings for your organization. Announced meetings appear on every member&apos;s portal and trigger email notifications when SMTP is configured.</p>
-          <details class="card monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="cooperativeMeetingsSettingsPanel">
-            <summary>Meeting Reminder Settings</summary>
-            <div class="profile-disclosure-body">
-              <label class="toggle-row">
-                <input type="checkbox" id="meetingsAutoReminder" checked />
-                Send automatic email reminders before each announced meeting
-              </label>
-              <label class="field-row">
-                <span>Reminder lead time (hours before meeting)</span>
-                <input type="number" id="meetingsReminderHours" min="1" max="168" value="24" />
-              </label>
-              <p class="hint subtle">Uses your Cooperative time zone from Organization &amp; Report Settings on the Status Report tab. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
-              <button type="button" class="btn" id="saveMeetingSettings">Save Reminder Settings</button>
-            </div>
-          </details>
           <form id="cooperativeMeetingForm" class="entry-form cooperative-meeting-form admin-only-report-settings hidden">
             <input type="hidden" id="cooperativeMeetingId" value="" />
             <label>Title
@@ -472,10 +461,21 @@
               <button type="button" class="btn hidden" id="resetCooperativeMeetingForm">New Meeting</button>
             </div>
           </form>
-          <ul class="file-list cooperative-meetings-list" id="cooperativeMeetingsList">
-            <li class="hint">Loading…</li>
-          </ul>
-          <p id="cooperativeMeetingsStatus" class="status"></p>
+          <details class="card monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="cooperativeMeetingsSettingsPanel">
+            <summary>Meeting Reminder Settings</summary>
+            <div class="profile-disclosure-body">
+              <label class="toggle-row">
+                <input type="checkbox" id="meetingsAutoReminder" checked />
+                Send automatic email reminders before each announced meeting
+              </label>
+              <label class="field-row">
+                <span>Reminder lead time (hours before meeting)</span>
+                <input type="number" id="meetingsReminderHours" min="1" max="168" value="24" />
+              </label>
+              <p class="hint subtle">Uses your Cooperative time zone from Organization &amp; Report Settings on the Status Report tab. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
+              <button type="button" class="btn" id="saveMeetingSettings">Save Reminder Settings</button>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -714,8 +714,9 @@
         <p class="hint">Register Members, Record Contributions, Withdrawals, Distributions, Membership Fees, Loans, Loan Repayments, CD Balance Updates, and Expenses : All Without Excel. Use the Import Tab Only When You Have a Spreadsheet or Application File.</p>
 
         <div class="record-grid">
-          <div class="card accent">
-            <h3>Register New Member</h3>
+          <details class="card accent profile-disclosure record-section" id="recordSectionRegisterMember">
+            <summary class="record-section-summary">Register New Member</summary>
+            <div class="profile-disclosure-body">
             <p class="subtle">Add a Member to the Cooperative Ledger and Optionally Save Their Biodata and Registration Fee.</p>
             <form id="registerMemberForm" class="entry-form">
               <label>Ledger Account Name
@@ -758,10 +759,12 @@
               <button type="submit" class="btn primary">Register Member</button>
             </form>
             <p id="registerMemberStatus" class="status"></p>
-          </div>
+            </div>
+          </details>
 
-          <div class="card">
-            <h3>Update Member Profile</h3>
+          <details class="card profile-disclosure record-section" id="recordSectionUpdateProfile">
+            <summary class="record-section-summary">Update Member Profile</summary>
+            <div class="profile-disclosure-body">
             <p class="subtle">Select a Member to Load Their Details, Then Change Phone, Address, Email, or Other Biodata.</p>
             <form id="updateProfileForm" class="entry-form">
               <label>Member
@@ -837,10 +840,12 @@
               <button type="submit" class="btn primary">Save Profile</button>
             </form>
             <p id="updateProfileStatus" class="status"></p>
-          </div>
+            </div>
+          </details>
 
-          <div class="card">
-            <h3>Registration Fee</h3>
+          <details class="card profile-disclosure record-section" id="recordSectionMembershipFee">
+            <summary class="record-section-summary">Registration Fee</summary>
+            <div class="profile-disclosure-body">
             <p class="subtle">Record the One-Time Membership Fee for an Existing Member.</p>
             <form id="membershipFeeForm" class="entry-form">
               <label>Member
@@ -859,9 +864,11 @@
               <button type="submit" class="btn primary">Record Fee</button>
             </form>
             <p id="membershipFeeStatus" class="status"></p>
-          </div>
-          <div class="card accent">
-            <h3>Current Bank Balance</h3>
+            </div>
+          </details>
+          <details class="card accent profile-disclosure record-section" id="recordSectionCheckingBalance">
+            <summary class="record-section-summary">Current Bank Balance</summary>
+            <div class="profile-disclosure-body">
             <p class="subtle" id="checkingBalanceCurrent">Loading current bank balance…</p>
             <form id="checkingBalanceForm" class="entry-form">
               <label>Current Balance (From Bank Statement)
@@ -876,9 +883,11 @@
               <button type="submit" class="btn primary">Update Bank Balance</button>
             </form>
             <p id="checkingBalanceStatus" class="status"></p>
-          </div>
-          <div class="card accent">
-            <h3>CD Account Balance</h3>
+            </div>
+          </details>
+          <details class="card accent profile-disclosure record-section" id="recordSectionCdBalance">
+            <summary class="record-section-summary">CD Account Balance</summary>
+            <div class="profile-disclosure-body">
             <p class="subtle" id="cdBalanceCurrent">Loading Current CD Balance…</p>
             <form id="cdBalanceForm" class="entry-form">
               <label>Current Balance (From Bank Statement)
@@ -893,9 +902,11 @@
               <button type="submit" class="btn primary">Update CD Balance</button>
             </form>
             <p id="cdBalanceStatus" class="status"></p>
-          </div>
-          <div class="card">
-            <h3>Member Contributions Account</h3>
+            </div>
+          </details>
+          <details class="card profile-disclosure record-section" id="recordSectionDeposit">
+            <summary class="record-section-summary">Member Contributions Account</summary>
+            <div class="profile-disclosure-body">
             <form id="depositForm" class="entry-form">
               <label>Member
                 <div class="member-picker" data-input-name="memberId" data-placeholder="Search by Name or DOB">
@@ -925,10 +936,12 @@
               <button type="submit" class="btn primary">Record Entry</button>
             </form>
             <p id="depositStatus" class="status"></p>
-          </div>
+            </div>
+          </details>
 
-          <div class="card accent">
-            <h3>Member Distribution</h3>
+          <details class="card accent profile-disclosure record-section" id="recordSectionDistribution">
+            <summary class="record-section-summary">Member Distribution</summary>
+            <div class="profile-disclosure-body">
             <p class="subtle">Credit Cooperative Income to One Member (Interest or Profit Share).</p>
             <form id="distributionForm" class="entry-form">
               <label>Member
@@ -953,10 +966,12 @@
               <button type="submit" class="btn primary">Record Distribution</button>
             </form>
             <p id="distributionStatus" class="status"></p>
-          </div>
+            </div>
+          </details>
 
-          <div class="card">
-            <h3>Bulk Distribution (Excel)</h3>
+          <details class="card profile-disclosure record-section" id="recordSectionBulkDistribution">
+            <summary class="record-section-summary">Bulk Distribution (Excel)</summary>
+            <div class="profile-disclosure-body">
             <p class="subtle">Upload a Sheet With <strong>Member Name</strong> and an Amount Column (Distribution, Interest, Amount, or Dividend).</p>
             <form id="distributionBulkForm" class="entry-form">
               <label>Distribution Excel
@@ -971,10 +986,12 @@
               <button type="submit" class="btn primary">Import Distribution Credits</button>
             </form>
             <p id="distributionBulkStatus" class="status"></p>
-          </div>
+            </div>
+          </details>
 
-          <div class="card">
-            <h3>New Loan</h3>
+          <details class="card profile-disclosure record-section" id="recordSectionNewLoan">
+            <summary class="record-section-summary">New Loan</summary>
+            <div class="profile-disclosure-body">
             <form id="newLoanForm" class="entry-form">
               <label>Borrower
                 <div class="member-picker" data-input-name="borrowerId" data-placeholder="Search Borrower by Name or DOB">
@@ -1015,10 +1032,12 @@
               <button type="submit" class="btn primary">Create Loan</button>
             </form>
             <p id="newLoanStatus" class="status"></p>
-          </div>
+            </div>
+          </details>
 
-          <div class="card">
-            <h3>Loan Repayment</h3>
+          <details class="card profile-disclosure record-section" id="recordSectionLoanRepayment">
+            <summary class="record-section-summary">Loan Repayment</summary>
+            <div class="profile-disclosure-body">
             <form id="repaymentForm" class="entry-form">
               <label>Loan
                 <select name="loanId" id="repaymentLoanSelect" required></select>
@@ -1035,10 +1054,12 @@
               <button type="submit" class="btn primary">Record Repayment</button>
             </form>
             <p id="repaymentStatus" class="status"></p>
-          </div>
+            </div>
+          </details>
 
-          <div class="card">
-            <h3>Cooperative Expense</h3>
+          <details class="card profile-disclosure record-section" id="recordSectionExpense">
+            <summary class="record-section-summary">Cooperative Expense</summary>
+            <div class="profile-disclosure-body">
             <form id="expenseForm" class="entry-form">
               <label>Category
                 <select name="category" id="expenseCategorySelect" required></select>
@@ -1055,11 +1076,13 @@
               <button type="submit" class="btn primary">Record Expense</button>
             </form>
             <p id="expenseStatus" class="status"></p>
-          </div>
+            </div>
+          </details>
         </div>
 
-        <div class="card">
-          <h3>Recent Expenses</h3>
+        <details class="card profile-disclosure record-section record-recent" id="recordSectionRecentExpenses">
+          <summary class="record-section-summary">Recent Expenses</summary>
+          <div class="profile-disclosure-body">
           <div class="table-wrap compact">
             <table>
               <thead>
@@ -1070,10 +1093,12 @@
               </tbody>
             </table>
           </div>
-        </div>
+          </div>
+        </details>
 
-        <div class="card">
-          <h3>Recent Distributions</h3>
+        <details class="card profile-disclosure record-section record-recent" id="recordSectionRecentDistributions">
+          <summary class="record-section-summary">Recent Distributions</summary>
+          <div class="profile-disclosure-body">
           <div class="table-wrap compact">
             <table>
               <thead>
@@ -1084,7 +1109,8 @@
               </tbody>
             </table>
           </div>
-        </div>
+          </div>
+        </details>
       </section>
 
       <section id="panel-import" class="panel">

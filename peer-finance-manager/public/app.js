@@ -2625,7 +2625,10 @@ async function toggleLoanDetail(row) {
 }
 
 $("#refreshMembers").addEventListener("click", loadMembers);
-$("#goRegisterMemberBtn")?.addEventListener("click", () => switchTab("record"));
+$("#goRegisterMemberBtn")?.addEventListener("click", () => {
+  switchTab("record");
+  openRecordSection("recordSectionRegisterMember");
+});
 $("#refreshBooks")?.addEventListener("click", loadBooks);
 
 function collapseMonthlyStatusReportSettings() {
@@ -4255,10 +4258,18 @@ async function loadProfileIntoUpdateForm(memberId) {
   }
 }
 
+function openRecordSection(sectionId) {
+  const section = document.getElementById(sectionId);
+  if (section?.tagName === "DETAILS") section.open = true;
+}
+
 function openMemberProfileEditor(memberId) {
   switchTab("record", { skipRecordLoad: true });
-  loadRecordTabData().then(() => loadProfileIntoUpdateForm(memberId));
-  document.getElementById("updateProfileForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  loadRecordTabData().then(() => {
+    loadProfileIntoUpdateForm(memberId);
+    openRecordSection("recordSectionUpdateProfile");
+    document.getElementById("updateProfileForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 async function loadCheckingBalanceForm() {

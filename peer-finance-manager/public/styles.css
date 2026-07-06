@@ -1040,6 +1040,29 @@ tr.loan-row:hover { background: #f8fafc; }
 .description-toggle {
   display: none;
 }
+.record-grid .record-section.card,
+.record-section.card.record-recent {
+  padding: 0;
+  margin-bottom: 0;
+  min-width: 0;
+  overflow: visible;
+}
+.record-section summary.record-section-summary {
+  font-weight: 600;
+  font-size: 16px;
+  color: #1e293b;
+  padding: 16px 20px;
+  cursor: pointer;
+}
+.record-section .profile-disclosure-body {
+  padding: 0 20px 20px;
+}
+.record-section .profile-disclosure-body > .subtle:first-child {
+  margin-top: 0;
+}
+.record-recent {
+  margin-bottom: 16px;
+}
 .record-grid .card {
   min-width: 0;
   overflow: visible;

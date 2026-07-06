@@ -63,7 +63,7 @@ After you submit, the Cooperative receives your application automatically. An ad
 | **Members & Accounts** | Member list, balances, full profiles; select a member to **Upload Photo** (admin) |
 | **Statements** | Generate batch PDF statements |
 | **Loans** | View and manage loans |
-| **Record** | Add members, record contributions, fees, expenses |
+| **Record** | Add members, record contributions, fees, expenses (each form collapsed until expanded) |
 | **Import** | **Bank Ledger Import** on live site (upload `cooperative-bank-ledger-reference.xlsx`); spreadsheet, profiles; optional CLI `npm run pfm:import-bank` on PC. Import shows **Ledger warnings** for proxy Zelle mis-credits before you confirm. |
 | **Status Report** | Monthly Cooperative status PDF: generate, publish to member portal, download; organization time zone and auto-publish settings (admin) |
 | **Meetings** | Schedule meetings, announce to members (portal + email), cancel, reminder settings (admin) |
