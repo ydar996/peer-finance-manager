@@ -5558,6 +5558,14 @@ async function loadFlexxFormsApplications() {
         const approveBtn = canApprove
           ? `<button type="button" class="btn primary small ff-approve-application" data-id="${a.id}">Approve Member</button>`
           : "";
+        const reprocessBtn =
+          a.status !== "approved"
+            ? `<button type="button" class="btn small ff-reprocess-application" data-id="${a.id}">Reprocess Data</button>`
+            : "";
+        const deleteBtn =
+          a.status !== "approved"
+            ? `<button type="button" class="btn linkish small ff-delete-application" data-id="${a.id}">Delete</button>`
+            : "";
         const viewBtn = a.memberId
           ? `<button type="button" class="btn small ff-view-application-member" data-member-id="${a.memberId}">View Profile</button>`
           : "";
@@ -5575,12 +5583,18 @@ async function loadFlexxFormsApplications() {
                 </ul>`
               : `<p class="status err">${escapeHtml(a.processingError || "Profile not created yet")}</p>`
           }
-          <div class="flexxforms-application-actions">${approveBtn}${viewBtn}</div>
+          <div class="flexxforms-application-actions">${approveBtn}${reprocessBtn}${viewBtn}${deleteBtn}</div>
         </article>`;
       })
       .join("");
     list.querySelectorAll(".ff-approve-application").forEach((btn) => {
       btn.addEventListener("click", () => approveFlexxFormsApplication(btn.dataset.id));
+    });
+    list.querySelectorAll(".ff-reprocess-application").forEach((btn) => {
+      btn.addEventListener("click", () => reprocessFlexxFormsApplication(btn.dataset.id));
+    });
+    list.querySelectorAll(".ff-delete-application").forEach((btn) => {
+      btn.addEventListener("click", () => deleteFlexxFormsApplication(btn.dataset.id));
     });
     list.querySelectorAll(".ff-view-application-member").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -5589,6 +5603,59 @@ async function loadFlexxFormsApplications() {
     });
   } catch {
     list.innerHTML = '<p class="hint">Unable to load applications</p>';
+  }
+}
+
+async function deleteFlexxFormsApplication(applicationId) {
+  const status = $("#flexxformsFormsStatus");
+  if (!applicationId) return;
+  if (
+    !window.confirm(
+      "Delete this membership application?\n\nThis removes the FlexxForms submission from Membership Applications. If the linked profile is still pending approval with no ledger activity, the prospective member profile is deleted too."
+    )
+  ) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/flexxforms/applications/${applicationId}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Delete failed");
+    const message = data.memberRemoved
+      ? "Application and prospective member profile deleted."
+      : data.applicationOnly
+        ? "Application deleted. Linked member profile was kept."
+        : "Application deleted.";
+    setFormStatus(status, message, true);
+    await loadFlexxFormsApplications();
+    if (typeof loadMembers === "function") await loadMembers();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+}
+
+async function reprocessFlexxFormsApplication(applicationId) {
+  const status = $("#flexxformsFormsStatus");
+  if (!applicationId) return;
+  if (
+    !window.confirm(
+      "Re-read the stored FlexxForms submission and refresh this applicant profile? Use this if fields were imported incorrectly."
+    )
+  ) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/flexxforms/applications/${applicationId}/reprocess`, {
+      method: "POST",
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Reprocess failed");
+    setFormStatus(status, "Application data refreshed from submission.", true);
+    await loadFlexxFormsApplications();
+    if (typeof loadMembers === "function") await loadMembers();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
   }
 }
 

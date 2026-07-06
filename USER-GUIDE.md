@@ -80,6 +80,7 @@ After you submit, the Cooperative receives your application automatically. An ad
   1. **Membership fee** ($100) — use **Record** or existing fee workflow.
   2. **Initial contribution** ($100 deposit) — use **Record** to post a deposit for the applicant.
 - When both are recorded, status becomes **Ready for Approval** and **Approve Member** activates the account.
+- **Delete** (test or mistaken submissions): removes the application from the list. If the linked profile is still **Pending Approval** with no deposits, fees, or loans on the ledger, the prospective member profile is removed too. Approved members cannot be deleted here.
 
 ---
 

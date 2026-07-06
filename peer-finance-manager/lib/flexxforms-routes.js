@@ -108,6 +108,40 @@ function registerFlexxFormsRoutes(app) {
     }
   );
 
+  app.post(
+    "/api/flexxforms/applications/:id/reprocess",
+    requireAuth,
+    requireAdmin,
+    (req, res) => {
+      try {
+        const slug = requestOrgSlug(req);
+        const { reprocessMembershipApplication: reprocess } = require("./flexxforms-membership-service");
+        const { runWithOrg } = require("./org-context");
+        const result = runWithOrg(slug, () => reprocess(Number(req.params.id)));
+        res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.delete(
+    "/api/flexxforms/applications/:id",
+    requireAuth,
+    requireAdmin,
+    (req, res) => {
+      try {
+        const slug = requestOrgSlug(req);
+        const { deleteMembershipApplication } = require("./flexxforms-membership-service");
+        const { runWithOrg } = require("./org-context");
+        const result = runWithOrg(slug, () => deleteMembershipApplication(Number(req.params.id)));
+        res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
+
   app.get("/api/flexxforms/config", requireAuth, (req, res) => {
     try {
       const slug = requestOrgSlug(req);

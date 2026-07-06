@@ -136,6 +136,18 @@ app.post(
     try {
       const { handleWebhook } = require("./lib/flexxforms-service");
       const result = handleWebhook(req.body, req.headers);
+      console.log(
+        "[flexxforms-webhook]",
+        JSON.stringify({
+          at: new Date().toISOString(),
+          organizationSlug: result.organizationSlug,
+          ok: result.ok,
+          kind: result.kind,
+          applicationId: result.applicationId,
+          ignored: result.ignored,
+          eventType: result.eventType,
+        })
+      );
       res.json({ success: true, ...result });
     } catch (err) {
       console.error("FlexxForms webhook error:", err.message);
