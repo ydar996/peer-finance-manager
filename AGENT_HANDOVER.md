@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-05** — **Apply form embed overhaul:** use FlexxForms public form URL `/p/{id}` (removes erroneous "Back to deal" partner chrome from `/embed?embed=1`). Iframe opens at full form height (~2800px mobile) so the form is not clipped; page scrolls as one document. Apply hero hidden. Landscape: entire screen goes to form only. **Production:** `git push`.
 - **2026-07-05** — **Apply embed landscape/signature:** on mobile landscape, apply shell goes full viewport and iframe resizes to `visualViewport` height; orientation/viewport listeners reset embed height and notify FlexxForms. `allow="fullscreen"` on iframe. **Production:** `git push`.
 - **2026-07-05** — **Apply embed scroll fix:** FlexxForms embed URLs now include `?embed=1` (required for `flexxforms:resize` postMessage). `flexxforms-embed.js` keeps iframe scrollable until resize arrives; fallback height if resize missing. Apply page card `overflow: visible`. **Country dropdown "Loading…":** FlexxForms-side. **Production:** `git push`.
 - **2026-07-05** — **Apply embed mobile height:** `flexxforms-embed.js` listens for FlexxForms `flexxforms:resize` postMessage and grows the iframe to fit the form (no nested scroll). Apply page hero compact on mobile. **Country dropdown "Loading…":** FlexxForms-side (lazy country library in embed); needs FlexxForms default US on address field or chunk-load fix. **Production:** `git push`.

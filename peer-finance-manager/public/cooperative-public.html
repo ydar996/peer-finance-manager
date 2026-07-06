@@ -149,9 +149,13 @@
         const memberSignInHref = "/member?org=" + encodeURIComponent(slug);
 
         document.body.classList.add(copy.pageClass);
-        document.getElementById("pageTitle").textContent = copy.title;
-        document.getElementById("heroEyebrow").textContent = copy.eyebrow;
-        document.getElementById("heroLead").textContent = copy.lead;
+        if (page === "apply") {
+          document.getElementById("hero").classList.add("hidden");
+        } else {
+          document.getElementById("pageTitle").textContent = copy.title;
+          document.getElementById("heroEyebrow").textContent = copy.eyebrow;
+          document.getElementById("heroLead").textContent = copy.lead;
+        }
         document.getElementById("heroMeta").classList.add("hidden");
 
         const navAbout = document.getElementById("navAbout");
@@ -289,12 +293,7 @@
                 const shell = area.querySelector(".cp-apply-shell");
                 const frame = area.querySelector(".cp-apply-embed-frame");
                 if (frame && typeof window.bindFlexxFormsEmbedResize === "function") {
-                  window.bindFlexxFormsEmbedResize(frame, {
-                    shell: shell,
-                    minHeight: 480,
-                    padding: 20,
-                    fallbackHeight: 1600,
-                  });
+                  window.bindFlexxFormsEmbedResize(frame, { shell: shell, padding: 24 });
                 }
               });
             })

@@ -24,79 +24,51 @@
     return window.innerHeight || document.documentElement.clientHeight || 480;
   }
 
-  function isMobileLandscape() {
-    return window.matchMedia("(orientation: landscape)").matches && viewportHeight() < 520;
+  /** Tall enough for membership form + signature on first paint (parent page scrolls, not a clipped iframe). */
+  function defaultFullFormHeight() {
+    const vw = window.innerWidth || 390;
+    if (vw < 768) return Math.max(2800, Math.round(viewportHeight() * 3.5));
+    return Math.max(2400, Math.round(viewportHeight() * 2.6));
   }
 
   function bindFlexxFormsEmbedResize(iframe, opts) {
-    if (!iframe || iframe.dataset.flexxformsResizeBound === "1") return function () {};
-    iframe.dataset.flexxformsResizeBound = "1";
+    if (!iframe || iframe.dataset.flexxformsBound === "1") return function () {};
+    iframe.dataset.flexxformsBound = "1";
 
     const shell = (opts && opts.shell) || iframe.closest(".cp-apply-shell, .flexxforms-apply-card");
+    const padding = (opts && opts.padding) || 24;
     const minHeight = (opts && opts.minHeight) || 480;
-    const padding = (opts && opts.padding) || 20;
-    const fallbackHeight = (opts && opts.fallbackHeight) || 1400;
-    const fallbackDelayMs = (opts && opts.fallbackDelayMs) || 2500;
-    const lockScrollMinHeight = (opts && opts.lockScrollMinHeight) || 640;
+    let portraitHeight = (opts && opts.fullFormHeight) || defaultFullFormHeight();
 
     iframe.setAttribute("allow", "fullscreen");
-    iframe.style.display = "block";
     iframe.style.width = "100%";
+    iframe.style.display = "block";
 
-    let maxSeenHeight = 0;
-    let resizeReceived = false;
-    let fallbackTimer = null;
-    let landscapeActive = false;
-
-    function setScrolling(enabled) {
-      iframe.setAttribute("scrolling", enabled ? "auto" : "no");
+    function isLandscape() {
+      return window.matchMedia("(orientation: landscape)").matches;
     }
 
-    function notifyIframeResize() {
+    function setIframeHeight(height, allowInternalScroll) {
+      const next = Math.max(minHeight, Math.ceil(height));
+      iframe.style.height = `${next}px`;
+      iframe.style.minHeight = `${next}px`;
+      iframe.setAttribute("scrolling", allowInternalScroll ? "auto" : "no");
+    }
+
+    function syncLayout() {
+      const landscape = isLandscape();
+      if (shell) shell.classList.toggle("is-landscape-focus", landscape);
+      document.body.classList.toggle("cp-apply-landscape", landscape);
+
+      if (landscape) {
+        setIframeHeight(viewportHeight() - 8, true);
+      } else {
+        setIframeHeight(portraitHeight, false);
+      }
+
       try {
         iframe.contentWindow?.dispatchEvent(new Event("resize"));
       } catch (_) {}
-    }
-
-    function applyHeight(height, force) {
-      if (landscapeActive && !force) return;
-      maxSeenHeight = Math.max(force ? 0 : maxSeenHeight, height);
-      const next = Math.max(minHeight, Math.ceil(maxSeenHeight) + padding);
-      iframe.style.height = `${next}px`;
-      iframe.style.minHeight = `${next}px`;
-      if (!landscapeActive && maxSeenHeight >= lockScrollMinHeight) {
-        setScrolling(false);
-      }
-    }
-
-    function applyLandscapeLayout() {
-      const nextLandscape = isMobileLandscape();
-      landscapeActive = nextLandscape;
-      if (shell) shell.classList.toggle("is-landscape-focus", nextLandscape);
-      document.body.classList.toggle("cp-apply-landscape", nextLandscape);
-
-      if (nextLandscape) {
-        const h = Math.max(280, Math.floor(viewportHeight() - 12));
-        iframe.style.height = `${h}px`;
-        iframe.style.minHeight = `${h}px`;
-        setScrolling(true);
-      } else {
-        maxSeenHeight = 0;
-        applyHeight(minHeight, true);
-        setScrolling(true);
-      }
-      notifyIframeResize();
-    }
-
-    function scheduleFallback() {
-      if (fallbackTimer) clearTimeout(fallbackTimer);
-      fallbackTimer = setTimeout(function () {
-        if (landscapeActive) return;
-        if (!resizeReceived || maxSeenHeight < lockScrollMinHeight) {
-          applyHeight(fallbackHeight, true);
-          setScrolling(true);
-        }
-      }, fallbackDelayMs);
     }
 
     function onMessage(event) {
@@ -105,52 +77,34 @@
       const data = event.data;
       if (!data || data.type !== "flexxforms:resize") return;
       if (typeof data.height !== "number" || data.height <= 0) return;
-      resizeReceived = true;
-      if (landscapeActive) {
-        const h = Math.max(data.height + padding, Math.floor(viewportHeight() - 12));
-        iframe.style.height = `${h}px`;
-        iframe.style.minHeight = `${h}px`;
-        setScrolling(true);
-        return;
-      }
-      applyHeight(data.height);
+      if (isLandscape()) return;
+      portraitHeight = Math.max(portraitHeight, data.height + padding);
+      setIframeHeight(portraitHeight, false);
     }
 
-    function onViewportChange() {
-      applyLandscapeLayout();
-      if (!landscapeActive) {
-        maxSeenHeight = 0;
-        resizeReceived = false;
-        scheduleFallback();
-      }
-    }
-
-    const debouncedViewportChange = debounce(onViewportChange, 120);
+    const debouncedLayout = debounce(syncLayout, 100);
 
     window.addEventListener("message", onMessage);
-    window.addEventListener("orientationchange", debouncedViewportChange);
-    window.addEventListener("resize", debouncedViewportChange);
+    window.addEventListener("orientationchange", debouncedLayout);
+    window.addEventListener("resize", debouncedLayout);
     if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", debouncedViewportChange);
+      window.visualViewport.addEventListener("resize", debouncedLayout);
     }
-    iframe.addEventListener("load", scheduleFallback);
-    iframe.addEventListener("load", debouncedViewportChange);
+    iframe.addEventListener("load", debouncedLayout);
 
-    setScrolling(true);
-    applyHeight(minHeight, true);
-    applyLandscapeLayout();
+    setIframeHeight(portraitHeight, false);
+    syncLayout();
 
     return function unbind() {
       window.removeEventListener("message", onMessage);
-      window.removeEventListener("orientationchange", debouncedViewportChange);
-      window.removeEventListener("resize", debouncedViewportChange);
+      window.removeEventListener("orientationchange", debouncedLayout);
+      window.removeEventListener("resize", debouncedLayout);
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", debouncedViewportChange);
+        window.visualViewport.removeEventListener("resize", debouncedLayout);
       }
-      if (fallbackTimer) clearTimeout(fallbackTimer);
       if (shell) shell.classList.remove("is-landscape-focus");
       document.body.classList.remove("cp-apply-landscape");
-      delete iframe.dataset.flexxformsResizeBound;
+      delete iframe.dataset.flexxformsBound;
     };
   }
 

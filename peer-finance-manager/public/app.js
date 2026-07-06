@@ -5707,9 +5707,7 @@ async function loadMyLoanApplyEmbed() {
       frame.classList.remove("hidden");
       window.bindFlexxFormsEmbedResize?.(frame, {
         shell: frame.closest(".flexxforms-apply-card"),
-        minHeight: 480,
-        padding: 20,
-        fallbackHeight: 1600,
+        padding: 24,
       });
     }
   } catch {
@@ -5836,9 +5834,7 @@ $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
       frame.classList.remove("hidden");
       window.bindFlexxFormsEmbedResize?.(frame, {
         shell: frame.closest(".flexxforms-apply-card"),
-        minHeight: 480,
-        padding: 20,
-        fallbackHeight: 1600,
+        padding: 24,
       });
     }
     setFormStatus(status, "", true);

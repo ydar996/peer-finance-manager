@@ -16,13 +16,13 @@ const { runWithOrg } = require("./org-context");
 
 const FLEXXFORMS_LOGIN_URL = "https://flexxforms.netlify.app/login";
 const FLEXXFORMS_EMBED_BASE = "https://flexxforms.netlify.app/embed";
+const FLEXXFORMS_PUBLIC_FORM_BASE = "https://flexxforms.netlify.app/p";
 const ASSURANCE_FLEXXFORMS_ADMIN_EMAIL = "assuranceflex@eworkchop.com";
 
-/** FlexxForms only posts flexxforms:resize to the parent when ?embed=1 is set. */
+/** Public respondent form URL (no partner/deal chrome). Do not use /embed?embed=1 — that shows "Back to deal". */
 function buildFlexxFormsEmbedUrl(formId) {
   if (!formId) return null;
-  const params = new URLSearchParams({ embed: "1" });
-  return `${FLEXXFORMS_EMBED_BASE}/${encodeURIComponent(formId)}?${params.toString()}`;
+  return `${FLEXXFORMS_PUBLIC_FORM_BASE}/${encodeURIComponent(formId)}`;
 }
 
 function getApiBase() {

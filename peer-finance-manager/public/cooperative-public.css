@@ -962,12 +962,20 @@ body.cp-public {
   gap: 16px;
 }
 
+.cp-page-apply .cp-hero {
+  display: none;
+}
+
+.cp-page-apply .cp-main {
+  padding-top: 8px;
+}
+
 .cp-apply-shell.is-landscape-focus {
   position: fixed;
   inset: 0;
   z-index: 200;
   margin: 0;
-  padding: 6px;
+  padding: 0;
   gap: 0;
   background: #fff;
 }
@@ -1002,18 +1010,15 @@ body.cp-apply-landscape .cp-content-area {
 }
 
 .cp-apply-shell.is-landscape-focus .cp-apply-embed-frame {
-  flex: 1;
   min-height: 0 !important;
   height: 100% !important;
   border-radius: 0;
-  border-left: 0;
-  border-right: 0;
+  border: 0;
 }
 
 .cp-apply-embed-frame {
   width: 100%;
-  min-height: 480px;
-  height: 480px;
+  min-height: 2400px;
   border: 1px solid var(--cp-border-strong);
   border-radius: 18px;
   background: #fff;
@@ -1238,30 +1243,11 @@ body.cp-apply-landscape .cp-content-area {
   }
 
   .cp-apply-embed-frame {
-    min-height: 420px;
-    height: 420px;
-  }
-
-  .cp-page-apply .cp-hero {
-    margin-bottom: 12px;
-  }
-
-  .cp-page-apply .cp-hero-inner {
-    padding: 16px 18px;
-  }
-
-  .cp-page-apply .cp-hero-eyebrow,
-  .cp-page-apply .cp-hero-lead {
-    display: none;
-  }
-
-  .cp-page-apply .cp-hero h1 {
-    font-size: 1.55rem;
-    margin-bottom: 0;
+    min-height: 2800px;
   }
 
   .cp-page-apply .cp-main {
-    padding-bottom: 24px;
+    padding-bottom: 16px;
   }
 
   .cp-apply-promo,
