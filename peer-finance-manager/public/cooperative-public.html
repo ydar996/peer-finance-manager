@@ -280,20 +280,33 @@
             .then(function (res) {
               return res.json().then(function (data) {
                 if (!res.ok) throw new Error(data.error || "Unable to load application form");
+                const formId = data.membershipFormId;
                 const embedUrl = data.membershipEmbedUrl;
-                if (!embedUrl) {
+                if (!formId && !embedUrl) {
                   throw new Error(
                     "The membership application is not published yet. Please check back soon or contact the Cooperative."
                   );
                 }
                 area.innerHTML =
-                  '<div class="cp-apply-shell"><p class="cp-apply-sign-tip"><strong>Signing Tip:</strong> When you reach the signature field, rotate your phone to landscape for the best signing experience.</p><iframe class="cp-apply-embed-frame" title="Membership application form" allow="fullscreen" src="' +
-                  embedUrl +
-                  '"></iframe><p class="cp-apply-footnote">After you submit, our administrators will review your application and confirm your membership fee and initial contribution.</p></div>';
-                const shell = area.querySelector(".cp-apply-shell");
-                const frame = area.querySelector(".cp-apply-embed-frame");
-                if (frame && typeof window.bindFlexxFormsEmbedResize === "function") {
-                  window.bindFlexxFormsEmbedResize(frame, { padding: 24 });
+                  '<div class="cp-apply-shell"><p class="cp-apply-sign-tip"><strong>Signing Tip:</strong> When you reach the signature field, rotate your phone to landscape for the best signing experience.</p><div id="cpApplyEmbedHost" class="cp-apply-embed-host"></div><p id="cpApplySuccess" class="cp-apply-success hidden" role="status">Thank you! Your membership application was received. Our administrators will review it after your membership fee and initial contribution are confirmed.</p><p class="cp-apply-footnote">After you submit, our administrators will review your application and confirm your membership fee and initial contribution.</p></div>';
+                const host = document.getElementById("cpApplyEmbedHost");
+                if (host && typeof window.mountFlexxFormsEmbed === "function") {
+                  window
+                    .mountFlexxFormsEmbed(host, {
+                      formId: formId,
+                      embedUrl: embedUrl,
+                      formTitle: "Membership application",
+                      onCompleted: function () {
+                        var success = document.getElementById("cpApplySuccess");
+                        var footnote = area.querySelector(".cp-apply-footnote");
+                        if (success) success.classList.remove("hidden");
+                        if (footnote) footnote.classList.add("hidden");
+                        host.scrollIntoView({ behavior: "smooth", block: "start" });
+                      },
+                    })
+                    .catch(function (err) {
+                      showError(err.message || "Unable to load application form");
+                    });
                 }
               });
             })

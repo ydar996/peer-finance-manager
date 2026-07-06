@@ -1,95 +1,125 @@
 (function (global) {
-  function isFlexxFormsOrigin(origin) {
-    if (!origin) return false;
+  const FLEXXFORMS_EMBED_SCRIPT = "https://flexxforms.netlify.app/embed.js";
+
+  function ensureFlexxFormsEmbedScript() {
+    if (global.__flexxformsEmbedScriptPromise) return global.__flexxformsEmbedScriptPromise;
+    global.__flexxformsEmbedScriptPromise = new Promise(function (resolve, reject) {
+      if (global.FlexxForms) {
+        resolve();
+        return;
+      }
+      var existing = document.querySelector('script[src="' + FLEXXFORMS_EMBED_SCRIPT + '"]');
+      if (existing) {
+        if (global.FlexxForms) {
+          resolve();
+          return;
+        }
+        existing.addEventListener("load", function () {
+          resolve();
+        });
+        existing.addEventListener("error", function () {
+          reject(new Error("Failed to load FlexxForms embed.js"));
+        });
+        return;
+      }
+      var script = document.createElement("script");
+      script.src = FLEXXFORMS_EMBED_SCRIPT;
+      script.async = true;
+      script.onload = function () {
+        resolve();
+      };
+      script.onerror = function () {
+        reject(new Error("Failed to load FlexxForms embed.js"));
+      };
+      document.head.appendChild(script);
+    });
+    return global.__flexxformsEmbedScriptPromise;
+  }
+
+  function parseFormIdFromEmbedUrl(url) {
+    if (!url) return null;
     try {
-      const host = new URL(origin).hostname;
-      return host === "flexxforms.netlify.app" || host.endsWith(".flexxforms.netlify.app");
-    } catch {
-      return false;
+      var parts = new URL(url, window.location.origin).pathname.split("/").filter(Boolean);
+      return parts[parts.length - 1] || null;
+    } catch (_) {
+      return null;
     }
   }
 
-  function viewportHeight() {
-    if (window.visualViewport && window.visualViewport.height) {
-      return window.visualViewport.height;
+  /**
+   * Mount a FlexxForms application form using the host embed.js SDK.
+   * @param {HTMLElement} container - Parent element (cleared before mount)
+   * @param {{ formId?: string, formTitle?: string, embedUrl?: string, onCompleted?: Function, onError?: Function }} opts
+   */
+  function mountFlexxFormsEmbed(container, opts) {
+    opts = opts || {};
+    var formId = opts.formId || parseFormIdFromEmbedUrl(opts.embedUrl);
+    if (!container || !formId) {
+      return Promise.reject(new Error("FlexxForms form id is required"));
     }
-    return window.innerHeight || document.documentElement.clientHeight || 480;
-  }
 
-  /** Tall enough that the full form + signature pad render without a clipped iframe box. */
-  function defaultFullFormHeight() {
-    const vw = window.innerWidth || 390;
-    const vh = viewportHeight();
-    const landscape = window.matchMedia("(orientation: landscape)").matches;
-    if (landscape && vh < 520) {
-      return Math.max(1600, Math.round(vh * 4));
-    }
-    if (vw < 768) return Math.max(2800, Math.round(vh * 3.5));
-    return Math.max(2400, Math.round(vh * 2.6));
-  }
+    var formTitle = opts.formTitle || "Application form";
+    container.innerHTML = "";
+    container.classList.remove("hidden");
 
+    var host = document.createElement("div");
+    host.className = "flexxforms-embed-mount";
+    host.setAttribute("data-form-id", formId);
+    host.setAttribute("data-form-title", formTitle);
+    container.appendChild(host);
+
+    var completedHandler = opts.onCompleted
+      ? function (payload) {
+          if (payload && payload.formId && payload.formId !== formId) return;
+          opts.onCompleted(payload);
+        }
+      : null;
+    var errorHandler = opts.onError
+      ? function (payload) {
+          if (payload && payload.formId && payload.formId !== formId) return;
+          opts.onError(payload);
+        }
+      : null;
+
+    return ensureFlexxFormsEmbedScript().then(function () {
+      if (typeof global.FlexxForms?.mount === "function") {
+        global.FlexxForms.mount(host);
+      }
+      if (completedHandler && typeof global.FlexxForms?.on === "function") {
+        global.FlexxForms.on("completed", completedHandler);
+      }
+      if (errorHandler && typeof global.FlexxForms?.on === "function") {
+        global.FlexxForms.on("error", errorHandler);
+      }
+      return host;
+    });
+  }
   function bindFlexxFormsEmbedResize(iframe, opts) {
     if (!iframe || iframe.dataset.flexxformsBound === "1") return function () {};
     iframe.dataset.flexxformsBound = "1";
-
-    const padding = (opts && opts.padding) || 24;
-    const minHeight = (opts && opts.minHeight) || 480;
-    let formHeight = (opts && opts.fullFormHeight) || defaultFullFormHeight();
-
-    iframe.setAttribute("allow", "fullscreen");
-    iframe.setAttribute("scrolling", "no");
-    iframe.style.width = "100%";
-    iframe.style.display = "block";
-
-    function applyHeight(height) {
-      formHeight = Math.max(minHeight, Math.ceil(height));
-      iframe.style.height = `${formHeight}px`;
-      iframe.style.minHeight = `${formHeight}px`;
-    }
-
-    function refreshHeight() {
-      applyHeight(Math.max(formHeight, defaultFullFormHeight()));
-      try {
-        iframe.contentWindow?.dispatchEvent(new Event("resize"));
-      } catch (_) {}
-    }
+    var padding = (opts && opts.padding) || 24;
+    var minHeight = (opts && opts.minHeight) || 400;
 
     function onMessage(event) {
-      if (!isFlexxFormsOrigin(event.origin)) return;
+      if (event.origin !== "https://flexxforms.netlify.app") return;
       if (iframe.contentWindow && event.source !== iframe.contentWindow) return;
-      const data = event.data;
+      var data = event.data;
       if (!data || data.type !== "flexxforms:resize") return;
       if (typeof data.height !== "number" || data.height <= 0) return;
-      applyHeight(data.height + padding);
-    }
-
-    let resizeTimer = null;
-    function onViewportChange() {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(refreshHeight, 150);
+      iframe.style.height = Math.max(minHeight, Math.ceil(data.height + padding)) + "px";
     }
 
     window.addEventListener("message", onMessage);
-    window.addEventListener("orientationchange", onViewportChange);
-    window.addEventListener("resize", onViewportChange);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", onViewportChange);
-    }
-    iframe.addEventListener("load", refreshHeight);
-
-    applyHeight(formHeight);
+    iframe.style.width = "100%";
+    iframe.style.display = "block";
+    iframe.style.minHeight = minHeight + "px";
 
     return function unbind() {
       window.removeEventListener("message", onMessage);
-      window.removeEventListener("orientationchange", onViewportChange);
-      window.removeEventListener("resize", onViewportChange);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", onViewportChange);
-      }
-      clearTimeout(resizeTimer);
       delete iframe.dataset.flexxformsBound;
     };
   }
 
+  global.mountFlexxFormsEmbed = mountFlexxFormsEmbed;
   global.bindFlexxFormsEmbedResize = bindFlexxFormsEmbedResize;
 })(window);

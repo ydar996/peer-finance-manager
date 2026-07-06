@@ -39,7 +39,7 @@ Prospective members can learn about the Cooperative and apply without signing in
 2. **Bylaws:** **https://peer-finance-manager.netlify.app/c/assurance/bylaws**
 3. **Apply for Membership:** **https://peer-finance-manager.netlify.app/c/assurance/apply**
 
-Each page includes **Apply for Membership** buttons that link to the online application. The apply page loads the FlexxForms membership form (no login required). A **Signing Tip** at the top of the form asks you to rotate your phone to **landscape** when you reach the signature field.
+Each page includes **Apply for Membership** buttons that link to the online application. The apply page loads the FlexxForms membership form via **embed.js** (no login required). A **Signing Tip** at the top asks you to rotate your phone to **landscape** when you reach the signature field. After a successful submit, a confirmation message appears on the page; your application also flows to administrators automatically.
 
 Legacy deep link (still works): **https://peer-finance-manager.netlify.app/?apply=assurance** redirects to the apply page above.
 

@@ -30,9 +30,26 @@ h1 { margin: 0 0 4px; font-size: 28px; }
   color: #1e293b;
 }
 
+.flexxforms-embed-host {
+  width: 100%;
+  min-height: 400px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.flexxforms-embed-host iframe,
+.flexxforms-embed-mount iframe {
+  width: 100%;
+  display: block;
+  border: 0;
+  min-height: 400px;
+}
+
 .flexxforms-embed-frame {
   width: 100%;
-  min-height: 2400px;
+  min-height: 400px;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #fff;

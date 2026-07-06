@@ -986,14 +986,35 @@ body.cp-public {
   font-weight: 600;
 }
 
-.cp-apply-embed-frame {
+.cp-apply-embed-host,
+.flexxforms-embed-host {
   width: 100%;
-  min-height: 2400px;
-  border: 1px solid var(--cp-border-strong);
+  min-height: 400px;
+  border: 1px solid var(--cp-border-strong, #e2e8f0);
   border-radius: 18px;
   background: #fff;
-  box-shadow: var(--cp-shadow-sm);
+  box-shadow: var(--cp-shadow-sm, 0 1px 3px rgba(15, 23, 42, 0.08));
+  overflow: hidden;
+}
+
+.cp-apply-embed-host iframe,
+.flexxforms-embed-host iframe,
+.flexxforms-embed-mount iframe {
+  width: 100%;
   display: block;
+  border: 0;
+  min-height: 400px;
+}
+
+.cp-apply-success {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #047857;
+  font-size: 0.92rem;
+  line-height: 1.55;
 }
 
 .cp-page-apply .cp-content-card {
@@ -1212,8 +1233,8 @@ body.cp-public {
     text-align: center;
   }
 
-  .cp-apply-embed-frame {
-    min-height: 2800px;
+  .cp-apply-embed-host {
+    min-height: 400px;
   }
 
   .cp-page-apply .cp-main {

@@ -5697,27 +5697,30 @@ $("#refreshFlexxFormsForms")?.addEventListener("click", async () => {
 async function loadMyLoanApplyEmbed() {
   const card = $("#myLoanApplyCard");
   const hint = $("#myLoanApplyHint");
-  const frame = $("#myLoanApplyFrame");
+  const host = $("#myLoanApplyEmbed");
   if (!card || currentUser?.role !== "member") return;
   try {
     const res = await fetch("/api/flexxforms/config");
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to load forms");
-    const url = data.config?.loanEmbedUrl;
+    const formId = data.config?.loanFormId;
+    const embedUrl = data.config?.loanEmbedUrl;
     card.classList.remove("hidden");
-    if (!url) {
+    if (!formId && !embedUrl) {
       if (hint) {
         hint.textContent =
           "Ask your administrator to publish a loan form in Manage Forms & Documents.";
       }
-      frame?.classList.add("hidden");
+      host?.classList.add("hidden");
       return;
     }
     if (hint) hint.textContent = "Complete the loan application below. Powered by FlexxForms.";
-    if (frame) {
-      frame.src = url;
-      frame.classList.remove("hidden");
-      window.bindFlexxFormsEmbedResize?.(frame, { padding: 24 });
+    if (host && window.mountFlexxFormsEmbed) {
+      await window.mountFlexxFormsEmbed(host, {
+        formId,
+        embedUrl,
+        formTitle: "Loan application",
+      });
     }
   } catch {
     card.classList.add("hidden");
@@ -5812,8 +5815,9 @@ $("#closeMembershipApplyBtn")?.addEventListener("click", () => {
 
 $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
   const status = $("#membershipApplyStatus");
+  const success = $("#membershipApplySuccess");
   const hint = $("#membershipApplyHint");
-  const frame = $("#membershipApplyFrame");
+  const host = $("#membershipApplyEmbed");
   const slug = ($("#membershipApplyOrgSlug")?.value || "").trim();
   if (!slug) {
     setFormStatus(status, "Organization code is required.", false);
@@ -5825,12 +5829,14 @@ $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
     );
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Unable to load application form");
-    if (!data.membershipEmbedUrl) {
+    const formId = data.membershipFormId;
+    const embedUrl = data.membershipEmbedUrl;
+    if (!formId && !embedUrl) {
       if (hint) {
         hint.textContent =
           "Ask your administrator to publish a membership form in Manage Forms & Documents.";
       }
-      frame?.classList.add("hidden");
+      host?.classList.add("hidden");
       setFormStatus(status, "Membership form is not published yet.", false);
       return;
     }
@@ -5838,10 +5844,24 @@ $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
     if (hint) {
       hint.textContent = `${data.organizationName || "Cooperative"} membership application. Powered by FlexxForms.`;
     }
-    if (frame) {
-      frame.src = data.membershipEmbedUrl;
-      frame.classList.remove("hidden");
-      window.bindFlexxFormsEmbedResize?.(frame, { padding: 24 });
+    if (success) {
+      success.textContent = "";
+      success.classList.add("hidden");
+    }
+    if (host && window.mountFlexxFormsEmbed) {
+      await window.mountFlexxFormsEmbed(host, {
+        formId,
+        embedUrl,
+        formTitle: "Membership application",
+        onCompleted: () => {
+          if (success) {
+            success.textContent =
+              "Thank you! Your application was received. Our administrators will review it after your membership fee and initial contribution are confirmed.";
+            success.classList.remove("hidden");
+          }
+          host.scrollIntoView({ behavior: "smooth", block: "start" });
+        },
+      });
     }
     setFormStatus(status, "", true);
   } catch (err) {
