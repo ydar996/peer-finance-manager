@@ -9,14 +9,6 @@
     }
   }
 
-  function debounce(fn, wait) {
-    let timer = null;
-    return function () {
-      clearTimeout(timer);
-      timer = setTimeout(fn, wait);
-    };
-  }
-
   function viewportHeight() {
     if (window.visualViewport && window.visualViewport.height) {
       return window.visualViewport.height;
@@ -24,48 +16,39 @@
     return window.innerHeight || document.documentElement.clientHeight || 480;
   }
 
-  /** Tall enough for membership form + signature on first paint (parent page scrolls, not a clipped iframe). */
+  /** Tall enough that the full form + signature pad render without a clipped iframe box. */
   function defaultFullFormHeight() {
     const vw = window.innerWidth || 390;
-    if (vw < 768) return Math.max(2800, Math.round(viewportHeight() * 3.5));
-    return Math.max(2400, Math.round(viewportHeight() * 2.6));
+    const vh = viewportHeight();
+    const landscape = window.matchMedia("(orientation: landscape)").matches;
+    if (landscape && vh < 520) {
+      return Math.max(1600, Math.round(vh * 4));
+    }
+    if (vw < 768) return Math.max(2800, Math.round(vh * 3.5));
+    return Math.max(2400, Math.round(vh * 2.6));
   }
 
   function bindFlexxFormsEmbedResize(iframe, opts) {
     if (!iframe || iframe.dataset.flexxformsBound === "1") return function () {};
     iframe.dataset.flexxformsBound = "1";
 
-    const shell = (opts && opts.shell) || iframe.closest(".cp-apply-shell, .flexxforms-apply-card");
     const padding = (opts && opts.padding) || 24;
     const minHeight = (opts && opts.minHeight) || 480;
-    let portraitHeight = (opts && opts.fullFormHeight) || defaultFullFormHeight();
+    let formHeight = (opts && opts.fullFormHeight) || defaultFullFormHeight();
 
     iframe.setAttribute("allow", "fullscreen");
+    iframe.setAttribute("scrolling", "no");
     iframe.style.width = "100%";
     iframe.style.display = "block";
 
-    function isLandscape() {
-      return window.matchMedia("(orientation: landscape)").matches;
+    function applyHeight(height) {
+      formHeight = Math.max(minHeight, Math.ceil(height));
+      iframe.style.height = `${formHeight}px`;
+      iframe.style.minHeight = `${formHeight}px`;
     }
 
-    function setIframeHeight(height, allowInternalScroll) {
-      const next = Math.max(minHeight, Math.ceil(height));
-      iframe.style.height = `${next}px`;
-      iframe.style.minHeight = `${next}px`;
-      iframe.setAttribute("scrolling", allowInternalScroll ? "auto" : "no");
-    }
-
-    function syncLayout() {
-      const landscape = isLandscape();
-      if (shell) shell.classList.toggle("is-landscape-focus", landscape);
-      document.body.classList.toggle("cp-apply-landscape", landscape);
-
-      if (landscape) {
-        setIframeHeight(viewportHeight() - 8, true);
-      } else {
-        setIframeHeight(portraitHeight, false);
-      }
-
+    function refreshHeight() {
+      applyHeight(Math.max(formHeight, defaultFullFormHeight()));
       try {
         iframe.contentWindow?.dispatchEvent(new Event("resize"));
       } catch (_) {}
@@ -77,33 +60,33 @@
       const data = event.data;
       if (!data || data.type !== "flexxforms:resize") return;
       if (typeof data.height !== "number" || data.height <= 0) return;
-      if (isLandscape()) return;
-      portraitHeight = Math.max(portraitHeight, data.height + padding);
-      setIframeHeight(portraitHeight, false);
+      applyHeight(data.height + padding);
     }
 
-    const debouncedLayout = debounce(syncLayout, 100);
+    let resizeTimer = null;
+    function onViewportChange() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(refreshHeight, 150);
+    }
 
     window.addEventListener("message", onMessage);
-    window.addEventListener("orientationchange", debouncedLayout);
-    window.addEventListener("resize", debouncedLayout);
+    window.addEventListener("orientationchange", onViewportChange);
+    window.addEventListener("resize", onViewportChange);
     if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", debouncedLayout);
+      window.visualViewport.addEventListener("resize", onViewportChange);
     }
-    iframe.addEventListener("load", debouncedLayout);
+    iframe.addEventListener("load", refreshHeight);
 
-    setIframeHeight(portraitHeight, false);
-    syncLayout();
+    applyHeight(formHeight);
 
     return function unbind() {
       window.removeEventListener("message", onMessage);
-      window.removeEventListener("orientationchange", debouncedLayout);
-      window.removeEventListener("resize", debouncedLayout);
+      window.removeEventListener("orientationchange", onViewportChange);
+      window.removeEventListener("resize", onViewportChange);
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", debouncedLayout);
+        window.visualViewport.removeEventListener("resize", onViewportChange);
       }
-      if (shell) shell.classList.remove("is-landscape-focus");
-      document.body.classList.remove("cp-apply-landscape");
+      clearTimeout(resizeTimer);
       delete iframe.dataset.flexxformsBound;
     };
   }
