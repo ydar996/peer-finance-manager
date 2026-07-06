@@ -107,6 +107,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-06** — **FlexxForms sparse webhook guard:** Post-deploy retest confirmed webhook has no labeled answers and integrations API fetch failed; PFM wrongly imported Mia Testy from generic `firstName`/`lastName`. Reprocess/webhook now **refuse** to create or update profiles when payload is sparse and API fetch fails. Escalation to FlexxForms required for full answers in webhook or working GET submission API. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms webhook field enrichment:** Reprocess appeared to do nothing because stored `form.submitted` webhook often has only submission metadata (generic `firstName`/`lastName` keys), not labeled form answers. **Fix:** Reprocess and new webhooks fetch full submission from FlexxForms integrations API when stored payload has fewer than 4 core fields; deeper label/field-id parsing; clearer admin status message. **Production:** `git push`.
 - **2026-07-06** — **Admin delete membership applications:** Forms & Documents → Membership Applications **Delete** removes FlexxForms submission row; also deletes linked **pending approval** prospective member when no ledger transactions or loans. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms membership payload parsing fix:** webhook extractor was flattening entire JSON blindly — next-of-kin `firstName`/`lastName` could overwrite applicant (e.g. Mia Testy instead of applicant); generic walk corrupted `fields` arrays; FlexxForms field labels (`First Name`, `Email`, `Current Address: …`) not matched. Parser now uses labeled fields from the FlexxForms webhook first, scopes applicant vs next-of-kin buckets, maps Assurance membership form question text. Admin **Reprocess Data** button re-applies stored `payload_json` to linked profile. **Production:** `git push`.
@@ -430,7 +431,7 @@ Peer Finance Manager / Assurance Cooperative
 | 4 | **PC ↔ cloud data sync** | **Bank ledger:** Admin → Import on live site (no WinSCP). **Profiles/manual DB edits:** WinSCP + Manual Deploy. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — Admin → Import → Bank Ledger Import (`POST /api/bank-import/run`). |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
-| 7 | **FlexxForms: deploy webhook enrichment + retest import** | Root cause: webhook stored metadata only (wrong generic `firstName`/`lastName`), not labeled answers. Reprocess now fetches full submission from FlexxForms API. Deploy `git push`, then **Reprocess Data** or delete test and resubmit. If still wrong, escalate FlexxForms: include full field answers in `form.submitted` webhook. |
+| 7 | **FlexxForms: webhook must include full field answers** | **Blocked on FlexxForms.** Webhook metadata only; GET submission API 404. PFM guard stops wrong imports. **Keep** test application (do not approve); **Reprocess Data** after FlexxForms fix. Escalation sent. |
 
 ### High — user said they will provide info later
 

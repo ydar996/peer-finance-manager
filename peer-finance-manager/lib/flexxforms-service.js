@@ -599,12 +599,23 @@ async function fetchFlexxFormsSubmissionDetail(slug, submissionId, formId) {
       ? `/integrations/forms/${encodeURIComponent(formId)}/submissions/${encodeURIComponent(submissionId)}`
       : null,
     `/integrations/form-submissions/${encodeURIComponent(submissionId)}`,
+    formId ? `/integrations/forms/${encodeURIComponent(formId)}/submissions` : null,
   ].filter(Boolean);
 
   for (const path of paths) {
     try {
       const data = await flexxformsFetch(path, { apiKey: ff.apiKey });
-      if (data) return data;
+      if (!data) continue;
+      if (path.endsWith("/submissions") && !path.includes(submissionId)) {
+        const items = data.submissions || data.items || data.results || (Array.isArray(data) ? data : []);
+        const hit = items.find(
+          (row) =>
+            String(row.id || row.submissionId || row.submission_id) === String(submissionId)
+        );
+        if (hit) return hit;
+        continue;
+      }
+      return data;
     } catch (err) {
       if (err.status === 404 || err.status === 405) continue;
     }
@@ -655,7 +666,12 @@ async function reprocessMembershipApplicationWithFetch(slug, applicationId) {
     const enrich = await enrichMembershipSubmissionPayload(slug, payload);
     payload = enrich.payload;
 
-    const { reprocessMembershipApplication } = require("./flexxforms-membership-service");
+    const { reprocessMembershipApplication, assertReliableSubmissionPayload, diagnoseMembershipPayload } =
+      require("./flexxforms-membership-service");
+    assertReliableSubmissionPayload(diagnoseMembershipPayload(payload), {
+      fetchedFromApi: enrich.fetched,
+    });
+
     const result = reprocessMembershipApplication(applicationId, payload);
     return {
       ...result,
@@ -693,7 +709,12 @@ async function handleFormSubmitted(slug, payload) {
         const {
           processMembershipFormSubmission,
           parseFlexxFormsMembershipPayload,
+          assertReliableSubmissionPayload,
+          diagnoseMembershipPayload,
         } = require("./flexxforms-membership-service");
+        assertReliableSubmissionPayload(diagnoseMembershipPayload(payload), {
+          fetchedFromApi: enrich.fetched,
+        });
         const parsed = parseFlexxFormsMembershipPayload(payload);
         db.prepare(
           `UPDATE flexxforms_applications SET applicant_name = ?, applicant_email = ? WHERE id = ?`

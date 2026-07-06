@@ -385,6 +385,22 @@ function pickMembershipField(flat, logicalName) {
   return pickField(flat.nokValues, logicalName);
 }
 
+function isUnreliableSparseSubmission(diagnosis) {
+  if (diagnosis.labelKeys.length > 0) return false;
+  if (diagnosis.parsed.email && diagnosis.populatedFieldCount >= 4) return false;
+  return true;
+}
+
+function assertReliableSubmissionPayload(diagnosis, { fetchedFromApi = false } = {}) {
+  if (fetchedFromApi) return;
+  if (!isUnreliableSparseSubmission(diagnosis)) return;
+  throw new Error(
+    "FlexxForms did not provide labeled form answers in the webhook and PFM could not load the full submission from the FlexxForms API. " +
+      "Applicant data cannot be imported reliably (generic firstName/lastName in the webhook may be next-of-kin, not the applicant). " +
+      "Ask FlexxForms to include all field answers in form.submitted webhooks or document the integrations API path to fetch a submission by id."
+  );
+}
+
 function diagnoseMembershipPayload(payload) {
   const flat = flattenSubmissionValues(payload);
   const parsed = parseFlexxFormsMembershipPayload(payload);
@@ -754,6 +770,9 @@ function reprocessMembershipApplication(applicationId, payloadOverride = null) {
   }
 
   const diagnosis = diagnoseMembershipPayload(payload);
+  assertReliableSubmissionPayload(diagnosis, {
+    fetchedFromApi: Boolean(payload?._pfmEnrichedFromApi),
+  });
   if (!diagnosis.parsed.displayName && !diagnosis.parsed.email) {
     const hint =
       diagnosis.labelKeys.length > 0
@@ -951,6 +970,8 @@ module.exports = {
   parseFlexxFormsMembershipPayload,
   diagnoseMembershipPayload,
   mergeSubmissionPayload,
+  isUnreliableSparseSubmission,
+  assertReliableSubmissionPayload,
   processMembershipFormSubmission,
   reprocessMembershipApplication,
   deleteMembershipApplication,
