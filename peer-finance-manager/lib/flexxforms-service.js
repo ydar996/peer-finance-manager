@@ -19,11 +19,10 @@ const FLEXXFORMS_EMBED_BASE = "https://flexxforms.netlify.app/embed";
 const FLEXXFORMS_PUBLIC_FORM_BASE = "https://flexxforms.netlify.app/p";
 const ASSURANCE_FLEXXFORMS_ADMIN_EMAIL = "assuranceflex@eworkchop.com";
 
-/** Public respondent URL: /p/{formId}?embed=1 (resize postMessage). Not /embed — that shows deal chrome. */
+/** Public respondent URL: /p/{formId} (embed.js uses data-form-path="p"). */
 function buildFlexxFormsEmbedUrl(formId) {
   if (!formId) return null;
-  const params = new URLSearchParams({ embed: "1" });
-  return `${FLEXXFORMS_PUBLIC_FORM_BASE}/${encodeURIComponent(formId)}?${params.toString()}`;
+  return `${FLEXXFORMS_PUBLIC_FORM_BASE}/${encodeURIComponent(formId)}`;
 }
 
 function getApiBase() {

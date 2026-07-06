@@ -986,6 +986,21 @@ body.cp-public {
   font-weight: 600;
 }
 
+.cp-apply-full-window {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.cp-apply-full-window-link {
+  font-weight: 600;
+  color: var(--cp-accent, #0f766e);
+}
+
+.cp-apply-full-window-hint {
+  color: var(--cp-muted);
+}
+
 .cp-apply-embed-host,
 .flexxforms-embed-host {
   width: 100%;
