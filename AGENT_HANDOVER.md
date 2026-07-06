@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 5, 2026 (Public apply on About/Bylaws pages)  
+**Last updated:** July 6, 2026 (FlexxForms submit button clip fix)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -80,6 +80,15 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 5. After cloud-affecting changes, note whether user must **re-upload data** or only **git push**.
 6. **No em dashes** in user-facing app copy — use colons (`:`). See `.cursor/rules/ui-copy-standards.mdc`.
 
+### FlexxForms messages to partner (mandatory)
+
+When the user asks for a message to send **FlexxForms engineers** (or any FlexxForms follow-up you draft for them):
+
+1. Put the **entire** copy-paste message in **exactly one** fenced code block (plain ` ``` `). No splitting across multiple blocks or mixing prose with the message body.
+2. The user must be able to **one-click copy** the full text and paste into email/Slack.
+3. Frame issues as **platform / multi-tenant** requirements for **all** Cooperatives PFM provisions, not only Assurance. Each org has its own `membership_form_id`, `loan_form_id`, and document ids in the registry DB; many are not fully configured yet.
+4. Keep the canonical template in **§ FlexxForms integration** below current; customize incident details only inside the single code block you give the user.
+
 ### Document map (keep all current)
 
 | Document | Audience | Purpose |
@@ -97,6 +106,8 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-06** — **FlexxForms submit button clip fix:** today's `/p/` embed regressed: `scrolling="no"` + resize height that omitted the fixed submit bar hid Submit below the iframe fold. Restored max-height tracking, +120px submit footer padding, scrollable fallback until resize confirms, `/p/{id}?embed=1` (resize only; not `/embed`), taller desktop default (~3000px). **Production:** `git push`.
+- **2026-07-06** — **AGENT_HANDOVER:** mandatory rule: FlexxForms partner messages always in one copy-paste code block; § FlexxForms integration template (multi-tenant, all orgs). Outstanding task #7 broadened beyond Assurance.
 - **2026-07-06** — **FlexxForms public embed (permanent):** dropped `embed.js` for cooperative apply forms. Direct iframe to `/p/{formId}` with no `?embed=1` or `/embed` path (only mode that hides PlacementExpress / "Back to deal"). Resize + completion via postMessage. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms embed fix:** use `data-form-path="p"` (public form URL, no PlacementExpress / "Back to deal" chrome). Mount embed.js once after script load to prevent duplicate forms. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms embed.js (July 2026):** membership and loan apply flows use FlexxForms host `embed.js` (`data-form-id` + auto-resize) instead of static iframes on `/c/{slug}/apply`, legacy `/?apply=`, and member loan apply. `mountFlexxFormsEmbed()` in `flexxforms-embed.js`; success UI on completed event. Webhook unchanged. **Production:** `git push`.
@@ -339,6 +350,61 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 
 ---
 
+## FlexxForms integration (PFM ↔ FlexxForms)
+
+### How PFM embeds application forms (permanent)
+
+| Item | Value |
+|------|--------|
+| Host pages | `/c/{slug}/apply`, legacy `/?apply={slug}`, member loan apply, login membership apply |
+| Embed method | Direct iframe `https://flexxforms.netlify.app/p/{formId}?embed=1` — **no** `embed.js`, **no** `/embed` path |
+| Form ids | Per Cooperative in registry `organizations`: `membership_form_id`, `loan_form_id`, guarantor/borrower master doc ids |
+| Webhook | `POST https://peer-finance-manager.onrender.com/api/flexxforms/webhook` (HMAC, unchanged) |
+| Provision | `POST /platform/workspaces/ensure` on org register; admin assigns ids in **Forms & Documents** |
+
+**Never show on public cooperative apply:** PlacementExpress branding, "Back to deal", or deal/document chrome. That is a FlexxForms platform bug if `/p/{formId}` still shows it.
+
+### Canonical message to FlexxForms (customize incident; give user in one code block)
+
+Use this skeleton when drafting for the user. Replace `[INCIDENT]` and add form ids if helpful. Assurance example id: `8d5e2b33-922e-4044-ad5c-6fe8bb0473d5`.
+
+```
+Subject: Peer Finance Manager — public cooperative form embed (multi-tenant)
+
+Hi FlexxForms team,
+
+Peer Finance Manager (PFM) embeds your forms for many member-owned Cooperatives (multi-tenant). Each Cooperative has its own FlexxForms workspace and form ids (membership, loan, guarantor/borrower documents). We are still onboarding additional Cooperatives; the requirements below apply to every workspace we provision, not only one form.
+
+[INCIDENT: e.g. PlacementExpress / "Back to deal" chrome on /p/{formId}; duplicate embed; submit button no response; address fields not in webhook.]
+
+PFM host (example): https://peer-finance-manager.netlify.app/c/{cooperativeSlug}/apply
+PFM embed (permanent): iframe src = https://flexxforms.netlify.app/p/{membershipFormId}?embed=1
+  — We do NOT use embed.js or /embed/{id} for public cooperative applications (those showed partner/deal chrome).
+  — ?embed=1 on /p/ is required for flexxforms:resize; deal chrome came from /embed?embed=1, not /p?embed=1.
+
+Webhook (unchanged): POST https://peer-finance-manager.onrender.com/api/flexxforms/webhook
+
+Platform requirements (all Cooperatives):
+
+1. GET /p/{formId} with no query params must render a clean public respondent form only: no PlacementExpress header, no "Back to deal", no "Document: …" deal shell.
+2. Membership and loan application forms published for PFM workspaces must be standalone public forms, not PlacementExpress deal documents (unless you provide a dedicated public mode).
+3. If embed.js is recommended for resize/submit: support data-form-path="p" WITHOUT appending ?embed=1, OR add data-embed-mode="public" that never loads deal/partner chrome.
+4. form.submitted webhook must fire for every successful public submit; formSubmissionId in postMessage must match webhook submissionId.
+5. Mobile submit, validation feedback ("Submitting…", visible errors), and address sub-fields (city, state, zip, country) must work inside cross-origin iframes on peer-finance-manager.netlify.app.
+
+Example (Assurance Cooperative, slug assurance):
+  membership_form_id: 8d5e2b33-922e-4044-ad5c-6fe8bb0473d5
+  public test URL: https://flexxforms.netlify.app/p/8d5e2b33-922e-4044-ad5c-6fe8bb0473d5
+
+Please confirm the platform fix applies to all PFM-provisioned workspaces and future orgs, not a one-off patch for Assurance.
+
+Thanks,
+[Your name]
+Peer Finance Manager / Assurance Cooperative
+```
+
+---
+
 ## 4. Outstanding tasks (prioritized)
 
 ### High — operational / product
@@ -351,13 +417,13 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 | 4 | **PC ↔ cloud data sync** | **Bank ledger:** Admin → Import on live site (no WinSCP). **Profiles/manual DB edits:** WinSCP + Manual Deploy. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — Admin → Import → Bank Ledger Import (`POST /api/bank-import/run`). |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
-| 7 | **FlexxForms: unlink membership form from PlacementExpress deal** | PFM now uses `/p/{id}` only (no embed.js). FlexxForms must ensure form `8d5e2b33-922e-4044-ad5c-6fe8bb0473d5` is a standalone published public form, not a deal document; `/p/` must never show "Back to deal" or PlacementExpress header. |
+| 7 | **FlexxForms: public form mode for all PFM workspaces** | Every Cooperative's published membership/loan forms must work as clean `/p/{formId}` public URLs (no PlacementExpress / deal chrome). Applies to Assurance and all orgs we provision or will configure. PFM uses direct `/p/` iframe only. |
 
 ### High — user said they will provide info later
 
 | # | Task | Notes |
 |---|------|-------|
-| 7 | **Member photos** | Admin and member upload supported; most members still on placeholder SVG. |
+| 8 | **Member photos** | Admin and member upload supported; most members still on placeholder SVG. |
 
 ### Medium — operational
 

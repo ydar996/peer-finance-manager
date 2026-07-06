@@ -1,5 +1,7 @@
 (function (global) {
   const FLEXXFORMS_ORIGIN = "https://flexxforms.netlify.app";
+  /** FlexxForms resize height often omits the fixed submit bar; pad so it stays visible. */
+  const SUBMIT_FOOTER_PADDING = 120;
 
   function isFlexxFormsOrigin(origin) {
     if (!origin) return false;
@@ -36,11 +38,17 @@
       return Math.max(1600, Math.round(vh * 4));
     }
     if (vw < 768) return Math.max(2800, Math.round(vh * 3.5));
-    return Math.max(2400, Math.round(vh * 2.6));
+    return Math.max(3000, Math.round(vh * 2.8));
+  }
+
+  function buildPublicFormUrl(formId) {
+    var url = FLEXXFORMS_ORIGIN + "/p/" + encodeURIComponent(formId);
+    /* ?embed=1 on /p/ enables flexxforms:resize; deal chrome came from /embed path, not /p/. */
+    return url + "?embed=1";
   }
 
   /**
-   * Public cooperative application form — iframe src is /p/{formId} with NO ?embed=1.
+   * Public cooperative application form — iframe src is /p/{formId}?embed=1.
    * Never uses embed.js or /embed (those show PlacementExpress / "Back to deal" chrome).
    */
   function mountFlexxFormsEmbed(container, opts) {
@@ -52,6 +60,7 @@
 
     var formTitle = opts.formTitle || "Application form";
     var minHeight = opts.minHeight || defaultFormIframeHeight();
+    var shell = container.closest(".cp-apply-shell, .flexxforms-apply-card");
 
     container.innerHTML = "";
     container.classList.remove("hidden");
@@ -59,9 +68,8 @@
     var iframe = document.createElement("iframe");
     iframe.className = "flexxforms-public-embed-frame";
     iframe.title = formTitle;
-    iframe.src = FLEXXFORMS_ORIGIN + "/p/" + encodeURIComponent(formId);
+    iframe.src = buildPublicFormUrl(formId);
     iframe.setAttribute("allow", "fullscreen");
-    iframe.setAttribute("scrolling", "no");
     iframe.style.width = "100%";
     iframe.style.display = "block";
     iframe.style.border = "0";
@@ -69,7 +77,12 @@
     iframe.style.height = minHeight + "px";
     container.appendChild(iframe);
 
-    bindFlexxFormsEmbedResize(iframe, { padding: 24, minHeight: minHeight });
+    bindFlexxFormsEmbedResize(iframe, {
+      shell: shell,
+      padding: 24,
+      minHeight: minHeight,
+      submitFooterPadding: SUBMIT_FOOTER_PADDING,
+    });
 
     function onLifecycle(event) {
       if (!isFlexxFormsOrigin(event.origin)) return;
@@ -95,19 +108,43 @@
     if (!iframe || iframe.dataset.flexxformsBound === "1") return function () {};
     iframe.dataset.flexxformsBound = "1";
     var padding = (opts && opts.padding) || 24;
-    var minHeight = (opts && opts.minHeight) || 400;
+    var submitFooterPadding = (opts && opts.submitFooterPadding) || SUBMIT_FOOTER_PADDING;
+    var minHeight = (opts && opts.minHeight) || defaultFormIframeHeight();
+    var shell = (opts && opts.shell) || iframe.closest(".cp-apply-shell, .flexxforms-apply-card");
+    var maxSeenHeight = minHeight;
+    var resizeReceived = false;
+    var fallbackTimer = null;
 
-    function applyHeight(height) {
-      var h = Math.max(minHeight, Math.ceil(height));
-      iframe.style.height = h + "px";
-      iframe.style.minHeight = minHeight + "px";
+    function setScrolling(enabled) {
+      iframe.setAttribute("scrolling", enabled ? "auto" : "no");
     }
 
-    function refreshHeight() {
-      applyHeight(Math.max(minHeight, defaultFormIframeHeight()));
+    function applyHeight(height) {
+      maxSeenHeight = Math.max(maxSeenHeight, height);
+      var h = Math.max(minHeight, Math.ceil(maxSeenHeight));
+      iframe.style.height = h + "px";
+      iframe.style.minHeight = minHeight + "px";
+      if (resizeReceived && h >= minHeight + submitFooterPadding) {
+        setScrolling(false);
+      } else {
+        setScrolling(true);
+      }
+    }
+
+    function notifyIframeResize() {
       try {
         iframe.contentWindow?.dispatchEvent(new Event("resize"));
       } catch (_) {}
+    }
+
+    function scheduleFallback() {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      fallbackTimer = setTimeout(function () {
+        if (!resizeReceived) {
+          applyHeight(defaultFormIframeHeight());
+          setScrolling(true);
+        }
+      }, 2500);
     }
 
     function onMessage(event) {
@@ -116,14 +153,22 @@
       var data = event.data;
       if (!data || data.type !== "flexxforms:resize") return;
       if (typeof data.height !== "number" || data.height <= 0) return;
-      applyHeight(data.height + padding);
+      resizeReceived = true;
+      applyHeight(data.height + padding + submitFooterPadding);
     }
 
     var resizeTimer = null;
     function onViewportChange() {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(refreshHeight, 150);
+      resizeTimer = setTimeout(function () {
+        applyHeight(Math.max(maxSeenHeight, defaultFormIframeHeight()));
+        notifyIframeResize();
+      }, 150);
     }
+
+    setScrolling(true);
+    applyHeight(minHeight);
+    scheduleFallback();
 
     window.addEventListener("message", onMessage);
     window.addEventListener("orientationchange", onViewportChange);
@@ -131,7 +176,11 @@
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", onViewportChange);
     }
-    iframe.addEventListener("load", refreshHeight);
+    iframe.addEventListener("load", function () {
+      applyHeight(minHeight);
+      scheduleFallback();
+      notifyIframeResize();
+    });
 
     return function unbind() {
       window.removeEventListener("message", onMessage);
@@ -141,6 +190,8 @@
         window.visualViewport.removeEventListener("resize", onViewportChange);
       }
       clearTimeout(resizeTimer);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      if (shell) shell.classList.remove("is-landscape-focus");
       delete iframe.dataset.flexxformsBound;
     };
   }
