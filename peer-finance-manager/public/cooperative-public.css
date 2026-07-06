@@ -986,6 +986,39 @@ body.cp-public {
   font-weight: 600;
 }
 
+.cp-apply-primary-action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.cp-apply-primary-btn {
+  width: 100%;
+  text-align: center;
+  justify-content: center;
+}
+
+.cp-apply-primary-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--cp-muted);
+}
+
+.cp-apply-embed-label {
+  margin: 12px 0 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cp-muted);
+}
+
+.cp-page-apply-active .cp-back-top {
+  display: none !important;
+}
+
 .cp-apply-full-window {
   margin: 0;
   font-size: 0.84rem;
@@ -1039,7 +1072,8 @@ body.cp-public {
   width: 100%;
   display: block;
   border: 0;
-  min-height: 400px;
+  min-height: 480px;
+  overflow: auto;
 }
 
 .cp-apply-success {
