@@ -972,18 +972,18 @@ body.cp-public {
 
 .cp-apply-sign-tip {
   margin: 0;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.12), rgba(14, 165, 233, 0.08));
-  border: 1px solid rgba(15, 118, 110, 0.22);
-  color: var(--cp-ink-soft);
-  font-size: 0.92rem;
-  line-height: 1.55;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(20, 184, 166, 0.08);
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  color: var(--cp-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .cp-apply-sign-tip strong {
-  color: var(--cp-accent-deep);
-  font-weight: 700;
+  color: var(--cp-ink-soft);
+  font-weight: 600;
 }
 
 .cp-apply-embed-frame {

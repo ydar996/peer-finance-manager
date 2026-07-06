@@ -97,6 +97,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 ## Changelog
 
+- **2026-07-05** — **Apply signing tip sizing:** reduced callout font/padding so it matches FlexxForms field scale. **Production:** `git push`.
 - **2026-07-05** — **Apply page signing tip:** landscape rotation note above membership form on `/c/{slug}/apply`. **Production:** `git push`.
 - **2026-07-05** — **Apply embed landscape fix:** removed broken fullscreen landscape mode (was hiding entire page). Form iframe stays tall in both orientations; page scrolls normally. **Production:** `git push`.
 - **2026-07-05** — **Apply form embed overhaul:** use FlexxForms public form URL `/p/{id}` (removes erroneous "Back to deal" partner chrome from `/embed?embed=1`). Iframe opens at full form height (~2800px mobile) so the form is not clipped; page scrolls as one document. Apply hero hidden. Landscape: entire screen goes to form only. **Production:** `git push`.
