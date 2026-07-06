@@ -177,11 +177,17 @@
         renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref);
         renderHeroActions(page, aboutHref, bylawsHref, applyHref);
 
+        const tocFab = document.getElementById("tocFab");
+        const tocPanel = document.getElementById("tocPanel");
+        const tocClose = document.getElementById("tocClose");
+        const backTop = document.getElementById("backTop");
+        const scrollProgress = document.getElementById("scrollProgress");
+
         if (page === "apply") {
           document.querySelector(".cp-layout").classList.add("cp-layout-apply");
           document.body.classList.add("cp-page-apply-active");
-          document.getElementById("tocFab").style.display = "none";
-          document.getElementById("tocPanel").style.display = "none";
+          if (tocFab) tocFab.style.display = "none";
+          if (tocPanel) tocPanel.style.display = "none";
           if (backTop) backTop.classList.add("hidden");
           loadApplyForm(slug);
         } else {
@@ -199,22 +205,16 @@
             });
         }
 
-        const tocFab = document.getElementById("tocFab");
-        const tocPanel = document.getElementById("tocPanel");
-        const tocClose = document.getElementById("tocClose");
-        const backTop = document.getElementById("backTop");
-        const scrollProgress = document.getElementById("scrollProgress");
-
-        tocFab.addEventListener("click", function () {
+        tocFab?.addEventListener("click", function () {
           const open = tocPanel.classList.toggle("is-open");
           tocFab.setAttribute("aria-expanded", open ? "true" : "false");
         });
-        tocClose.addEventListener("click", function () {
+        tocClose?.addEventListener("click", function () {
           tocPanel.classList.remove("is-open");
           tocFab.setAttribute("aria-expanded", "false");
         });
 
-        backTop.addEventListener("click", function () {
+        backTop?.addEventListener("click", function () {
           window.scrollTo({ top: 0, behavior: "smooth" });
         });
 

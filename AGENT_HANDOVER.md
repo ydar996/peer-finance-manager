@@ -88,6 +88,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 2. The user must be able to **one-click copy** the full text and paste into email/Slack.
 3. Frame issues as **platform / multi-tenant** requirements for **all** Cooperatives PFM provisions, not only Assurance. Each org has its own `membership_form_id`, `loan_form_id`, and document ids in the registry DB; many are not fully configured yet.
 4. Keep the canonical template in **§ FlexxForms integration** below current; customize incident details only inside the single code block you give the user.
+5. **Wait for user retest after deploy** before drafting an escalation. Sequence: deploy → user hard-refreshes and tries again → diagnose (UI, admin applications list, webhook if needed) → then write the note with concrete facts. Do not pre-write partner notes before the user has retested.
 
 ### Document map (keep all current)
 
@@ -106,6 +107,8 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-06** — **Apply page infinite loading fix:** `backTop` was referenced before `const` declaration (TDZ ReferenceError), so apply page script never reached `loadApplyForm()`. **Production:** `git push`.
+- **2026-07-06** — **AGENT_HANDOVER:** FlexxForms partner messages: wait for user post-deploy retest before drafting escalations (rule §0 item 5).
 - **2026-07-06** — **FlexxForms public SDK + primary full-window CTA:** embed.js `data-embed-mode="public"` with postMessage + `FlexxForms.on` handlers; iframe scrolling enabled; taller defaults; **Complete Application (Recommended)** button opens `/p/{id}` directly; hide back-to-top on apply page. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms official embed pattern:** adopt FlexxForms guidance: direct `/p/{formId}` iframe (no query params, no embed.js); `flexxforms:resize` / `flexxforms:completed` / `flexxforms:error` / `flexxforms:submitting` postMessage on apply page; status banner + success hides iframe. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms submit restore:** direct `/p/` iframe omits Submit (FlexxForms platform). Restored `embed.js` with `data-form-path="p"`, tall `data-min-height`, dedupe guard, and **Open Application in Full Window** fallback on apply page. **Production:** `git push`.
