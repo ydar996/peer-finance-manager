@@ -970,6 +970,22 @@ body.cp-public {
   padding-top: 8px;
 }
 
+.cp-apply-sign-tip {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.12), rgba(14, 165, 233, 0.08));
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  color: var(--cp-ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.cp-apply-sign-tip strong {
+  color: var(--cp-accent-deep);
+  font-weight: 700;
+}
+
 .cp-apply-embed-frame {
   width: 100%;
   min-height: 2400px;
