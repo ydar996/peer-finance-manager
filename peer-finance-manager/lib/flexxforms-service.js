@@ -588,7 +588,87 @@ function resolveWebhookOrganization(payload, headers, rawBody) {
   return null;
 }
 
-function handleFormSubmitted(slug, payload) {
+async function fetchFlexxFormsSubmissionDetail(slug, submissionId, formId) {
+  if (!submissionId) return null;
+  const ff = getOrganizationFlexxForms(slug);
+  if (!ff?.apiKey) return null;
+
+  const paths = [
+    `/integrations/submissions/${encodeURIComponent(submissionId)}`,
+    formId
+      ? `/integrations/forms/${encodeURIComponent(formId)}/submissions/${encodeURIComponent(submissionId)}`
+      : null,
+    `/integrations/form-submissions/${encodeURIComponent(submissionId)}`,
+  ].filter(Boolean);
+
+  for (const path of paths) {
+    try {
+      const data = await flexxformsFetch(path, { apiKey: ff.apiKey });
+      if (data) return data;
+    } catch (err) {
+      if (err.status === 404 || err.status === 405) continue;
+    }
+  }
+  return null;
+}
+
+async function enrichMembershipSubmissionPayload(slug, payload) {
+  const {
+    diagnoseMembershipPayload,
+    mergeSubmissionPayload,
+  } = require("./flexxforms-membership-service");
+  const initial = diagnoseMembershipPayload(payload);
+  if (initial.populatedFieldCount >= 4) return { payload, fetched: false, diagnosis: initial };
+
+  const data = payload?.data || payload;
+  const submissionId =
+    data?.id ||
+    data?.submissionId ||
+    data?.submission_id ||
+    payload?.submissionId ||
+    payload?.submission_id ||
+    null;
+  const formId = data?.formId || data?.form_id || payload?.formId || null;
+  const fetched = await fetchFlexxFormsSubmissionDetail(slug, submissionId, formId);
+  if (!fetched) {
+    return { payload, fetched: false, diagnosis: initial };
+  }
+
+  const merged = mergeSubmissionPayload(payload, fetched);
+  const diagnosis = diagnoseMembershipPayload(merged);
+  return { payload: merged, fetched: true, diagnosis };
+}
+
+async function reprocessMembershipApplicationWithFetch(slug, applicationId) {
+  const { runWithOrg } = require("./org-context");
+  return runWithOrg(slug, async () => {
+    const db = getDb();
+    const row = db
+      .prepare(
+        `SELECT id, payload_json AS payloadJson, flexxforms_submission_id AS submissionId, form_id AS formId
+         FROM flexxforms_applications WHERE id = ?`
+      )
+      .get(applicationId);
+    if (!row) throw new Error("Application not found");
+
+    let payload = row.payloadJson ? JSON.parse(row.payloadJson) : {};
+    const enrich = await enrichMembershipSubmissionPayload(slug, payload);
+    payload = enrich.payload;
+
+    const { reprocessMembershipApplication } = require("./flexxforms-membership-service");
+    const result = reprocessMembershipApplication(applicationId, payload);
+    return {
+      ...result,
+      fetchedFromApi: enrich.fetched,
+      diagnosis: result.diagnosis || enrich.diagnosis,
+    };
+  });
+}
+
+async function handleFormSubmitted(slug, payload) {
+  const enrich = await enrichMembershipSubmissionPayload(slug, payload);
+  payload = enrich.payload;
+
   return runWithOrg(slug, () => {
     const db = getDb();
     ensureLoanDocumentSchema(db);
@@ -619,7 +699,13 @@ function handleFormSubmitted(slug, payload) {
           `UPDATE flexxforms_applications SET applicant_name = ?, applicant_email = ? WHERE id = ?`
         ).run(parsed.displayName || null, parsed.email || null, applicationId);
         const result = processMembershipFormSubmission(applicationId, payload);
-        return { ok: true, kind, applicationId, ...result };
+        return {
+          ok: true,
+          kind,
+          applicationId,
+          fetchedFromApi: enrich.fetched,
+          ...result,
+        };
       } catch (err) {
         db.prepare(
           `UPDATE flexxforms_applications SET status = 'error', processing_error = ? WHERE id = ?`
@@ -669,7 +755,7 @@ function handleDocumentCompleted(slug, payload) {
   });
 }
 
-function handleWebhook(rawBody, headers) {
+async function handleWebhook(rawBody, headers) {
   const bodyText = Buffer.isBuffer(rawBody) ? rawBody.toString("utf8") : String(rawBody || "");
   let payload;
   try {
@@ -686,7 +772,7 @@ function handleWebhook(rawBody, headers) {
   const normalized = String(eventType).toLowerCase();
 
   if (normalized.includes("form") && normalized.includes("submit")) {
-    return { organizationSlug: org.slug, ...handleFormSubmitted(org.slug, payload) };
+    return { organizationSlug: org.slug, ...(await handleFormSubmitted(org.slug, payload)) };
   }
   if (
     normalized.includes("document") &&
@@ -700,7 +786,7 @@ function handleWebhook(rawBody, headers) {
 
   // Fallback by payload shape
   if (payload.formId || payload.data?.formId || payload.submission) {
-    return { organizationSlug: org.slug, ...handleFormSubmitted(org.slug, payload) };
+    return { organizationSlug: org.slug, ...(await handleFormSubmitted(org.slug, payload)) };
   }
   if (payload.documentId || payload.data?.documentId || payload.data?.status === "completed") {
     return { organizationSlug: org.slug, ...handleDocumentCompleted(org.slug, payload) };
@@ -736,6 +822,7 @@ module.exports = {
   getLoanDocuments,
   createLoanAgreementDocument,
   handleWebhook,
+  reprocessMembershipApplicationWithFetch,
   listPendingApplications,
   findOrganizationByWebhookSecret,
   approveMembershipApplication: (slug, applicationId, userId) =>

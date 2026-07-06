@@ -112,12 +112,11 @@ function registerFlexxFormsRoutes(app) {
     "/api/flexxforms/applications/:id/reprocess",
     requireAuth,
     requireAdmin,
-    (req, res) => {
+    async (req, res) => {
       try {
         const slug = requestOrgSlug(req);
-        const { reprocessMembershipApplication: reprocess } = require("./flexxforms-membership-service");
-        const { runWithOrg } = require("./org-context");
-        const result = runWithOrg(slug, () => reprocess(Number(req.params.id)));
+        const { reprocessMembershipApplicationWithFetch } = require("./flexxforms-service");
+        const result = await reprocessMembershipApplicationWithFetch(slug, Number(req.params.id));
         res.json({ success: true, ...result });
       } catch (err) {
         res.status(400).json({ error: err.message });

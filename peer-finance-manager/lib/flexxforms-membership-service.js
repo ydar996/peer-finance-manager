@@ -105,12 +105,21 @@ function collectLabeledFields(data, byLabel) {
   const fromFieldList = (fields) => {
     if (!Array.isArray(fields)) return;
     for (const field of fields) {
-      const label = field.label || field.title || field.name || field.question || field.fieldLabel;
+      const label =
+        field.label ||
+        field.title ||
+        field.name ||
+        field.question ||
+        field.fieldLabel ||
+        field.field_label ||
+        field.prompt;
       const value =
         field.value ??
         field.answer ??
         field.response ??
         field.text ??
+        field.stringValue ??
+        field.string_value ??
         (field.values && !Array.isArray(field.values) ? field.values : null);
       add(label, value);
       if (Array.isArray(field.values)) {
@@ -125,13 +134,48 @@ function collectLabeledFields(data, byLabel) {
     }
   };
 
+  const walk = (node, depth = 0) => {
+    if (!node || depth > 18) return;
+    if (Array.isArray(node)) {
+      fromFieldList(node);
+      for (const item of node) walk(item, depth + 1);
+      return;
+    }
+    if (typeof node !== "object") return;
+
+    const label =
+      node.label ||
+      node.title ||
+      node.question ||
+      node.fieldLabel ||
+      node.field_label ||
+      node.name;
+    const value =
+      node.value ??
+      node.answer ??
+      node.response ??
+      node.text ??
+      node.stringValue ??
+      node.string_value;
+    if (label && value != null) add(label, value);
+
+    for (const val of Object.values(node)) {
+      if (val && typeof val === "object") walk(val, depth + 1);
+    }
+  };
+
+  walk(data);
   fromFieldList(data.fields);
   fromFieldList(data.responses);
   fromFieldList(data.answers);
+  fromFieldList(data.fieldResponses);
+  fromFieldList(data.formResponses);
+  fromFieldList(data.submittedFields);
+
   if (data.answers && typeof data.answers === "object" && !Array.isArray(data.answers)) {
     for (const [label, value] of Object.entries(data.answers)) {
       if (value && typeof value === "object" && !Array.isArray(value)) {
-        add(label, value.value ?? value.answer ?? value.text);
+        add(label, value.value ?? value.answer ?? value.text ?? value.response);
       } else {
         add(label, value);
       }
@@ -139,13 +183,75 @@ function collectLabeledFields(data, byLabel) {
   }
 }
 
+function indexFieldDefinitions(node, defs, depth = 0) {
+  if (!node || depth > 18) return;
+  if (Array.isArray(node)) {
+    for (const item of node) indexFieldDefinitions(item, defs, depth + 1);
+    return;
+  }
+  if (typeof node !== "object") return;
+
+  const id = node.id || node.fieldId || node.field_id || node.key || node.uuid;
+  const label =
+    node.label ||
+    node.title ||
+    node.question ||
+    node.fieldLabel ||
+    node.field_label ||
+    node.name;
+  if (id && label) defs.set(String(id), String(label).trim());
+
+  for (const val of Object.values(node)) {
+    if (val && typeof val === "object") indexFieldDefinitions(val, defs, depth + 1);
+  }
+}
+
+function mapIdAnswers(node, defs, byLabel, depth = 0) {
+  if (!node || depth > 18) return;
+  if (Array.isArray(node)) {
+    for (const item of node) mapIdAnswers(item, defs, byLabel, depth + 1);
+    return;
+  }
+  if (typeof node !== "object") return;
+
+  const keys = Object.keys(node);
+  const idLike = (key) => defs.has(key) || /^[0-9a-f-]{8,}$/i.test(key);
+  if (keys.length >= 2 && keys.every(idLike)) {
+    for (const [id, value] of Object.entries(node)) {
+      const label = defs.get(id);
+      if (!label || value == null) continue;
+      if (typeof value === "object" && !Array.isArray(value)) {
+        const text = value.value ?? value.answer ?? value.text ?? value.response;
+        if (text != null) {
+          byLabel[label] = String(text).trim();
+          byLabel[normalizeFieldKey(label)] = String(text).trim();
+        }
+      } else {
+        byLabel[label] = String(value).trim();
+        byLabel[normalizeFieldKey(label)] = String(value).trim();
+      }
+    }
+  }
+
+  for (const val of Object.values(node)) {
+    if (val && typeof val === "object") mapIdAnswers(val, defs, byLabel, depth + 1);
+  }
+}
+
 function flattenSubmissionValues(payload) {
   const applicantValues = {};
   const nokValues = {};
   const byLabel = {};
-  const data = payload?.data || payload?.submission || payload || {};
+  const roots = [payload, payload?.data, payload?.submission, payload?.data?.submission].filter(Boolean);
 
-  collectLabeledFields(data, byLabel);
+  for (const root of roots) {
+    collectLabeledFields(root, byLabel);
+    const defs = new Map();
+    indexFieldDefinitions(root, defs);
+    mapIdAnswers(root, defs, byLabel);
+  }
+
+  const data = payload?.data || payload?.submission || payload || {};
 
   const assign = (key, value, bucket) => {
     if (value == null) return;
@@ -218,25 +324,107 @@ function pickField(values, logicalName) {
   return null;
 }
 
+function pickByLabelFuzzy(byLabel, includeTokens, excludeTokens = []) {
+  const humanKeys = Object.keys(byLabel).filter((key) => key.length > 2 && key === key.trim());
+  for (const key of humanKeys) {
+    const n = normalizeFieldKey(key);
+    if (excludeTokens.some((token) => n.includes(token))) continue;
+    if (includeTokens.every((token) => n.includes(token))) return byLabel[key];
+  }
+  return null;
+}
+
 function pickMembershipField(flat, logicalName) {
   const formLabels = FLEXXFORMS_MEMBERSHIP_FIELD_LABELS[logicalName];
   if (formLabels) {
     const fromLabel = pickByLabels(flat.byLabel, formLabels);
     if (fromLabel) return fromLabel;
   }
+
   const nokFields = new Set([
     "nextOfKinFirstName",
     "nextOfKinLastName",
     "nextOfKinPhone",
     "nextOfKinRelationship",
   ]);
-  const bucket = nokFields.has(logicalName) ? flat.nokValues : flat.applicantValues;
+  const nok = nokFields.has(logicalName);
+
+  const fuzzyMap = {
+    firstName: { include: ["first", "name"], exclude: ["nextofkin", "nok", "kin"] },
+    middleName: { include: ["middle", "name"], exclude: ["nextofkin", "nok", "kin"] },
+    lastName: { include: ["last", "name"], exclude: ["nextofkin", "nok", "kin"] },
+    email: { include: ["email"], exclude: ["nextofkin", "nok", "kin"] },
+    phone: { include: ["phone"], exclude: ["nextofkin", "nok", "kin"] },
+    city: { include: ["city"], exclude: ["nextofkin"] },
+    state: { include: ["state"], exclude: ["nextofkin"] },
+    postalCode: { include: ["zip"], exclude: ["nextofkin"] },
+    nextOfKinFirstName: { include: ["nextofkin", "first"], exclude: [] },
+    nextOfKinLastName: { include: ["nextofkin", "last"], exclude: [] },
+    nextOfKinPhone: { include: ["nextofkin", "phone"], exclude: [] },
+    nextOfKinRelationship: { include: ["nextofkin", "relationship"], exclude: [] },
+  };
+
+  if (nok) {
+    const fuzzy = fuzzyMap[logicalName];
+    if (fuzzy) {
+      const fromFuzzy = pickByLabelFuzzy(flat.byLabel, fuzzy.include, fuzzy.exclude);
+      if (fromFuzzy) return fromFuzzy;
+    }
+  } else {
+    const fuzzy = fuzzyMap[logicalName];
+    if (fuzzy) {
+      const fromFuzzy = pickByLabelFuzzy(flat.byLabel, fuzzy.include, fuzzy.exclude);
+      if (fromFuzzy) return fromFuzzy;
+    }
+  }
+
+  const bucket = nok ? flat.nokValues : flat.applicantValues;
   const fromBucket = pickField(bucket, logicalName);
   if (fromBucket) return fromBucket;
-  if (!nokFields.has(logicalName)) {
-    return pickField(flat.applicantValues, logicalName);
-  }
+  if (!nok) return pickField(flat.applicantValues, logicalName);
   return pickField(flat.nokValues, logicalName);
+}
+
+function diagnoseMembershipPayload(payload) {
+  const flat = flattenSubmissionValues(payload);
+  const parsed = parseFlexxFormsMembershipPayload(payload);
+  const labelKeys = Object.keys(flat.byLabel).filter((key) => key.length > 2 && key === key.trim());
+  const populated = [
+    parsed.firstName,
+    parsed.lastName,
+    parsed.email,
+    parsed.phone,
+    parsed.city,
+    parsed.state,
+  ].filter(Boolean).length;
+  return { parsed, labelKeys, populatedFieldCount: populated, flat };
+}
+
+function mergeSubmissionPayload(webhookPayload, apiPayload) {
+  if (!apiPayload) return webhookPayload;
+  const apiData =
+    apiPayload?.data && typeof apiPayload.data === "object" ? apiPayload.data : apiPayload;
+  const webhookData =
+    webhookPayload?.data && typeof webhookPayload.data === "object"
+      ? webhookPayload.data
+      : webhookPayload;
+
+  return {
+    ...webhookPayload,
+    data: {
+      ...webhookData,
+      ...apiData,
+      fields:
+        apiData.fields ||
+        apiData.responses ||
+        apiData.answers ||
+        webhookData.fields ||
+        webhookData.responses,
+      submission: apiData.submission || apiPayload.submission || apiPayload,
+    },
+    submission: apiPayload.submission || apiPayload,
+    _pfmEnrichedFromApi: true,
+  };
 }
 
 function parseUsDate(value) {
@@ -527,33 +715,54 @@ function approveMembershipApplication(applicationId, approvedByUserId) {
   return { memberId: app.member_id, status: "approved" };
 }
 
-function reprocessMembershipApplication(applicationId) {
+function reprocessMembershipApplication(applicationId, payloadOverride = null) {
   const db = getDb();
   ensureMembershipApplicationSchema(db);
   const row = db
     .prepare(
-      `SELECT id, kind, member_id AS memberId, payload_json AS payloadJson, status
+      `SELECT id, kind, member_id AS memberId, payload_json AS payloadJson, status,
+              flexxforms_submission_id AS submissionId, form_id AS formId
        FROM flexxforms_applications WHERE id = ?`
     )
     .get(applicationId);
   if (!row) throw new Error("Application not found");
   if (row.kind !== "membership") throw new Error("Only membership applications can be reprocessed");
-  if (!row.payloadJson) throw new Error("Application has no stored submission payload");
+  if (!row.payloadJson && !payloadOverride) {
+    throw new Error("Application has no stored submission payload");
+  }
   if (row.status === "approved") {
     throw new Error("Approved applications cannot be reprocessed automatically");
   }
 
-  let payload;
-  try {
-    payload = JSON.parse(row.payloadJson);
-  } catch (_) {
-    throw new Error("Stored submission payload is invalid JSON");
+  let storedPayload = null;
+  if (row.payloadJson) {
+    try {
+      storedPayload = JSON.parse(row.payloadJson);
+    } catch (_) {
+      throw new Error("Stored submission payload is invalid JSON");
+    }
   }
 
-  const parsed = parseFlexxFormsMembershipPayload(payload);
-  if (!parsed.displayName && !parsed.email) {
-    throw new Error("Submission is missing applicant name and email");
+  const payload = payloadOverride || storedPayload;
+  if (!payload) throw new Error("Application has no submission payload to process");
+
+  if (payloadOverride) {
+    db.prepare(`UPDATE flexxforms_applications SET payload_json = ?, updated_at = datetime('now') WHERE id = ?`).run(
+      JSON.stringify(payloadOverride),
+      applicationId
+    );
   }
+
+  const diagnosis = diagnoseMembershipPayload(payload);
+  if (!diagnosis.parsed.displayName && !diagnosis.parsed.email) {
+    const hint =
+      diagnosis.labelKeys.length > 0
+        ? ` Found labels: ${diagnosis.labelKeys.slice(0, 8).join(", ")}.`
+        : " Webhook stored metadata only; full field answers may be missing from FlexxForms.";
+    throw new Error(`Submission is missing applicant name and email.${hint}`);
+  }
+
+  const parsed = diagnosis.parsed;
 
   let memberId = row.memberId || null;
   if (memberId) {
@@ -593,7 +802,19 @@ function reprocessMembershipApplication(applicationId) {
      WHERE id = ?`
   ).run(nextStatus, parsed.displayName, parsed.email || null, applicationId);
 
-  return { ok: true, memberId, status: nextStatus, readiness, reprocessed: true };
+  return {
+    ok: true,
+    memberId,
+    status: nextStatus,
+    readiness,
+    reprocessed: true,
+    diagnosis: {
+      populatedFieldCount: diagnosis.populatedFieldCount,
+      labelKeys: diagnosis.labelKeys,
+      applicantName: parsed.displayName,
+      applicantEmail: parsed.email,
+    },
+  };
 }
 
 function getProspectiveMemberDeleteBlockers(memberId) {
@@ -728,6 +949,8 @@ function listMembershipApplications() {
 module.exports = {
   PENDING_ACCOUNT_STATUS,
   parseFlexxFormsMembershipPayload,
+  diagnoseMembershipPayload,
+  mergeSubmissionPayload,
   processMembershipFormSubmission,
   reprocessMembershipApplication,
   deleteMembershipApplication,

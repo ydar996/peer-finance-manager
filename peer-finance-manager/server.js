@@ -132,10 +132,10 @@ app.post(
 app.post(
   "/api/flexxforms/webhook",
   express.raw({ type: "application/json" }),
-  (req, res) => {
+  async (req, res) => {
     try {
       const { handleWebhook } = require("./lib/flexxforms-service");
-      const result = handleWebhook(req.body, req.headers);
+      const result = await handleWebhook(req.body, req.headers);
       console.log(
         "[flexxforms-webhook]",
         JSON.stringify({

@@ -5651,7 +5651,19 @@ async function reprocessFlexxFormsApplication(applicationId) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Reprocess failed");
-    setFormStatus(status, "Application data refreshed from submission.", true);
+    let message = "Application data refreshed from submission.";
+    if (data.fetchedFromApi) {
+      message += " Full answers loaded from FlexxForms API.";
+    } else if (data.diagnosis?.labelKeys?.length) {
+      message += ` Parsed ${data.diagnosis.populatedFieldCount || 0} core fields from ${data.diagnosis.labelKeys.length} labels.`;
+    } else {
+      message +=
+        " Warning: stored webhook has no field labels. Ask FlexxForms to include full answers in form.submitted webhooks.";
+    }
+    if (data.diagnosis?.applicantName) {
+      message += ` Applicant: ${data.diagnosis.applicantName}.`;
+    }
+    setFormStatus(status, message, true);
     await loadFlexxFormsApplications();
     if (typeof loadMembers === "function") await loadMembers();
   } catch (err) {
