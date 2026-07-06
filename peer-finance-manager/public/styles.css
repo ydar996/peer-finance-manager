@@ -994,16 +994,12 @@ tr.loan-row:hover { background: #f8fafc; }
 .table-wrap.compact table { font-size: 12px; }
 .table-wrap.compact th, .table-wrap.compact td { padding: 8px 10px; }
 .record-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 16px;
 }
-@media (max-width: 1100px) {
-  .record-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 @media (max-width: 640px) {
-  .record-grid { grid-template-columns: minmax(0, 1fr); }
   #appOrgSubtitle,
   .session-user {
     display: none;
@@ -1062,8 +1058,10 @@ tr.loan-row:hover { background: #f8fafc; }
 .record-section.card.record-recent {
   padding: 0;
   margin-bottom: 0;
+  margin-top: 0;
   min-width: 0;
   overflow: visible;
+  width: 100%;
 }
 .record-section summary.record-section-summary {
   font-weight: 600;
