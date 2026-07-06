@@ -288,7 +288,7 @@
                   );
                 }
                 area.innerHTML =
-                  '<div class="cp-apply-shell"><p class="cp-apply-sign-tip"><strong>Signing Tip:</strong> When you reach the signature field, rotate your phone to landscape for the best signing experience.</p><p class="cp-apply-full-window"><a id="cpApplyFullWindow" class="cp-apply-full-window-link" href="#" target="_blank" rel="noopener noreferrer">Open Application in Full Window</a><span class="cp-apply-full-window-hint"> if Submit is not visible below.</span></p><div id="cpApplyEmbedHost" class="cp-apply-embed-host"></div><p id="cpApplySuccess" class="cp-apply-success hidden" role="status">Thank you! Your membership application was received. Our administrators will review it after your membership fee and initial contribution are confirmed.</p><p class="cp-apply-footnote">After you submit, our administrators will review your application and confirm your membership fee and initial contribution.</p></div>';
+                  '<div class="cp-apply-shell"><p class="cp-apply-sign-tip"><strong>Signing Tip:</strong> When you reach the signature field, rotate your phone to landscape for the best signing experience.</p><p class="cp-apply-full-window"><a id="cpApplyFullWindow" class="cp-apply-full-window-link" href="#" target="_blank" rel="noopener noreferrer">Open Application in Full Window</a><span class="cp-apply-full-window-hint"> if the form does not respond after Submit.</span></p><p id="cpApplyStatus" class="cp-apply-status hidden" role="status" aria-live="polite"></p><div id="cpApplyEmbedHost" class="cp-apply-embed-host"></div><p id="cpApplySuccess" class="cp-apply-success hidden" role="status">Thank you! Your membership application was received. Our administrators will review it after your membership fee and initial contribution are confirmed.</p><p class="cp-apply-footnote">After you submit, our administrators will review your application and confirm your membership fee and initial contribution.</p></div>';
                 const fullWindow = document.getElementById("cpApplyFullWindow");
                 if (fullWindow && embedUrl) {
                   fullWindow.href = embedUrl;
@@ -296,17 +296,44 @@
                   fullWindow.href = "https://flexxforms.netlify.app/p/" + encodeURIComponent(formId);
                 }
                 const host = document.getElementById("cpApplyEmbedHost");
+                const statusEl = document.getElementById("cpApplyStatus");
+                function setApplyStatus(message, kind) {
+                  if (!statusEl) return;
+                  if (!message) {
+                    statusEl.textContent = "";
+                    statusEl.className = "cp-apply-status hidden";
+                    return;
+                  }
+                  statusEl.textContent = message;
+                  statusEl.className = "cp-apply-status cp-apply-status-" + (kind || "info");
+                  statusEl.classList.remove("hidden");
+                }
                 if (host && typeof window.mountFlexxFormsEmbed === "function") {
                   window
                     .mountFlexxFormsEmbed(host, {
                       formId: formId,
                       embedUrl: embedUrl,
                       formTitle: "Membership application",
+                      onSubmitting: function () {
+                        setApplyStatus("Submitting your application…", "info");
+                      },
+                      onError: function (data) {
+                        var msg =
+                          (data && (data.message || data.error)) ||
+                          "Please fix the highlighted fields in the form and try again.";
+                        setApplyStatus(msg, "error");
+                      },
                       onCompleted: function () {
+                        setApplyStatus("", "");
                         var success = document.getElementById("cpApplySuccess");
                         var footnote = area.querySelector(".cp-apply-footnote");
+                        var signTip = area.querySelector(".cp-apply-sign-tip");
+                        var fullWindow = area.querySelector(".cp-apply-full-window");
                         if (success) success.classList.remove("hidden");
                         if (footnote) footnote.classList.add("hidden");
+                        if (signTip) signTip.classList.add("hidden");
+                        if (fullWindow) fullWindow.classList.add("hidden");
+                        host.classList.add("hidden");
                         host.scrollIntoView({ behavior: "smooth", block: "start" });
                       },
                     })

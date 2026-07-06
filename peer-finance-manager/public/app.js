@@ -5853,12 +5853,22 @@ $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
         formId,
         embedUrl,
         formTitle: "Membership application",
+        onSubmitting: () => {
+          setFormStatus(status, "Submitting your application…", true);
+        },
+        onError: (data) => {
+          const msg =
+            data?.message || data?.error || "Please fix the highlighted fields and try again.";
+          setFormStatus(status, msg, false);
+        },
         onCompleted: () => {
+          setFormStatus(status, "", true);
           if (success) {
             success.textContent =
               "Thank you! Your application was received. Our administrators will review it after your membership fee and initial contribution are confirmed.";
             success.classList.remove("hidden");
           }
+          host.classList.add("hidden");
           host.scrollIntoView({ behavior: "smooth", block: "start" });
         },
       });

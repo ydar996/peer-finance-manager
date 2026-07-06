@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 6, 2026 (FlexxForms embed.js restore for submit)  
+**Last updated:** July 6, 2026 (FlexxForms official /p/ iframe + postMessage)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -106,6 +106,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-06** — **FlexxForms official embed pattern:** adopt FlexxForms guidance: direct `/p/{formId}` iframe (no query params, no embed.js); `flexxforms:resize` / `flexxforms:completed` / `flexxforms:error` / `flexxforms:submitting` postMessage on apply page; status banner + success hides iframe. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms submit restore:** direct `/p/` iframe omits Submit (FlexxForms platform). Restored `embed.js` with `data-form-path="p"`, tall `data-min-height`, dedupe guard, and **Open Application in Full Window** fallback on apply page. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms submit button clip fix:** today's `/p/` embed regressed: `scrolling="no"` + resize height that omitted the fixed submit bar hid Submit below the iframe fold. Restored max-height tracking, +120px submit footer padding, scrollable fallback until resize confirms, `/p/{id}?embed=1` (resize only; not `/embed`), taller desktop default (~3000px). **Production:** `git push`.
 - **2026-07-06** — **AGENT_HANDOVER:** mandatory rule: FlexxForms partner messages always in one copy-paste code block; § FlexxForms integration template (multi-tenant, all orgs). Outstanding task #7 broadened beyond Assurance.
@@ -358,7 +359,7 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 | Item | Value |
 |------|--------|
 | Host pages | `/c/{slug}/apply`, legacy `/?apply={slug}`, member loan apply, login membership apply |
-| Embed method | FlexxForms `embed.js` with `data-form-path="p"` and `data-min-height` (~3000px desktop). Direct `/p/` iframe alone omits Submit. Full-window fallback link on apply page. |
+| Embed method | Direct iframe `https://flexxforms.netlify.app/p/{formId}` (no query params). Parent `flexxforms:resize` / `flexxforms:completed` / `flexxforms:error` postMessage listeners. No embed.js on apply pages. |
 | Form ids | Per Cooperative in registry `organizations`: `membership_form_id`, `loan_form_id`, guarantor/borrower master doc ids |
 | Webhook | `POST https://peer-finance-manager.onrender.com/api/flexxforms/webhook` (HMAC, unchanged) |
 | Provision | `POST /platform/workspaces/ensure` on org register; admin assigns ids in **Forms & Documents** |
@@ -379,9 +380,9 @@ Peer Finance Manager (PFM) embeds your forms for many member-owned Cooperatives 
 [INCIDENT: e.g. PlacementExpress / "Back to deal" chrome on /p/{formId}; duplicate embed; submit button no response; address fields not in webhook.]
 
 PFM host (example): https://peer-finance-manager.netlify.app/c/{cooperativeSlug}/apply
-PFM embed (permanent): iframe src = https://flexxforms.netlify.app/p/{membershipFormId}?embed=1
-  — We do NOT use embed.js or /embed/{id} for public cooperative applications (those showed partner/deal chrome).
-  — ?embed=1 on /p/ is required for flexxforms:resize; deal chrome came from /embed?embed=1, not /p?embed=1.
+PFM embed (permanent): iframe src = https://flexxforms.netlify.app/p/{membershipFormId}
+  — No query params, no embed.js, no /embed path on public cooperative apply pages.
+  — Parent page listens for flexxforms:resize, flexxforms:completed, flexxforms:error postMessages.
 
 Webhook (unchanged): POST https://peer-finance-manager.onrender.com/api/flexxforms/webhook
 

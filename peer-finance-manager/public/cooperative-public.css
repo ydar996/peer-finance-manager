@@ -1001,6 +1001,26 @@ body.cp-public {
   color: var(--cp-muted);
 }
 
+.cp-apply-status {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.cp-apply-status-info {
+  background: rgba(20, 184, 166, 0.08);
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  color: var(--cp-ink-soft);
+}
+
+.cp-apply-status-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
 .cp-apply-embed-host,
 .flexxforms-embed-host {
   width: 100%;
