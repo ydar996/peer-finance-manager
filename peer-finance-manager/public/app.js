@@ -3219,6 +3219,7 @@ async function loadMyCooperativeReports() {
 }
 
 let activeCooperativeReportView = null;
+let activeCooperativeReportBlobUrl = null;
 
 function initCooperativeReportViewer() {
   $("#cooperativeReportViewerBack")?.addEventListener("click", closeCooperativeReportViewer);
@@ -3230,27 +3231,52 @@ function initCooperativeReportViewer() {
   });
 }
 
-function openCooperativeReportViewer(report) {
+async function openCooperativeReportViewer(report) {
   const viewer = $("#cooperativeReportViewer");
   const frame = $("#cooperativeReportViewerFrame");
   const title = $("#cooperativeReportViewerTitle");
   if (!viewer || !frame || !report?.periodSlug) return;
   activeCooperativeReportView = report;
-  const pdfUrl = `/api/me/cooperative-status-reports/${encodeURIComponent(report.periodSlug)}/view`;
   if (title) {
-    title.textContent = `Cooperative Performance · ${report.periodSlug} · as at ${formatDate(report.asOfDate)}`;
+    title.textContent = `Loading report · ${report.periodSlug}…`;
   }
-  frame.src = pdfUrl;
+  if (activeCooperativeReportBlobUrl) {
+    URL.revokeObjectURL(activeCooperativeReportBlobUrl);
+    activeCooperativeReportBlobUrl = null;
+  }
+  frame.src = "about:blank";
   viewer.classList.remove("hidden");
   document.body.classList.add("cooperative-report-viewer-open");
-  document.getElementById("myCooperativeReportsCard")?.open &&
-    (document.getElementById("myCooperativeReportsCard").open = false);
+  const reportsCard = document.getElementById("myCooperativeReportsCard");
+  if (reportsCard?.open) reportsCard.open = false;
   window.scrollTo({ top: 0, behavior: "smooth" });
+  try {
+    const res = await fetch(
+      `/api/me/cooperative-status-reports/${encodeURIComponent(report.periodSlug)}/view`
+    );
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || "Could not load report");
+    }
+    const blob = await res.blob();
+    activeCooperativeReportBlobUrl = URL.createObjectURL(blob);
+    frame.src = activeCooperativeReportBlobUrl;
+    if (title) {
+      title.textContent = `Cooperative Performance · ${report.periodSlug} · as at ${formatDate(report.asOfDate)}`;
+    }
+  } catch (err) {
+    closeCooperativeReportViewer();
+    alert(err.message);
+  }
 }
 
 function closeCooperativeReportViewer() {
   const viewer = $("#cooperativeReportViewer");
   const frame = $("#cooperativeReportViewerFrame");
+  if (activeCooperativeReportBlobUrl) {
+    URL.revokeObjectURL(activeCooperativeReportBlobUrl);
+    activeCooperativeReportBlobUrl = null;
+  }
   if (frame) frame.src = "about:blank";
   viewer?.classList.add("hidden");
   document.body.classList.remove("cooperative-report-viewer-open");
