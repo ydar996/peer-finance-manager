@@ -3198,10 +3198,11 @@ async function loadMyCooperativeReports() {
     list.innerHTML = reports
       .map(
         (report) => `
-      <li>
+      <li class="cooperative-report-row">
         <button type="button" class="cooperative-report-open" data-period-slug="${escapeHtml(report.periodSlug)}">
-          <span class="cooperative-report-open-title">View PDF Report · ${escapeHtml(report.periodSlug)}</span>
-          <span class="cooperative-report-open-hint">Cooperative Performance · as at ${escapeHtml(formatDate(report.asOfDate))} · Tap to open full report</span>
+          <span class="cooperative-report-open-eyebrow">View PDF Report</span>
+          <span class="cooperative-report-open-title">Cooperative Performance · ${escapeHtml(report.periodSlug)}</span>
+          <span class="cooperative-report-open-hint">As at ${escapeHtml(formatDate(report.asOfDate))} · Tap to open full report</span>
         </button>
       </li>`
       )
@@ -3235,12 +3236,15 @@ function openCooperativeReportViewer(report) {
   const title = $("#cooperativeReportViewerTitle");
   if (!viewer || !frame || !report?.periodSlug) return;
   activeCooperativeReportView = report;
+  const pdfUrl = `/api/me/cooperative-status-reports/${encodeURIComponent(report.periodSlug)}/view`;
   if (title) {
     title.textContent = `Cooperative Performance · ${report.periodSlug} · as at ${formatDate(report.asOfDate)}`;
   }
-  frame.src = `/api/me/cooperative-status-reports/${encodeURIComponent(report.periodSlug)}/view`;
+  frame.src = pdfUrl;
   viewer.classList.remove("hidden");
   document.body.classList.add("cooperative-report-viewer-open");
+  document.getElementById("myCooperativeReportsCard")?.open &&
+    (document.getElementById("myCooperativeReportsCard").open = false);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 

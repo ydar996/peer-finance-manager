@@ -26,4 +26,20 @@ const redirects = [
   .join("\n");
 
 fs.writeFileSync(path.join(publicDir, "_redirects"), `${redirects}\n`, "utf8");
+
+const buildId = process.env.NETLIFY_DEPLOY_ID || String(Date.now());
+const cacheBust = buildId.slice(0, 12);
+for (const htmlName of ["index.html", "cooperative-public.html"]) {
+  const htmlPath = path.join(publicDir, htmlName);
+  if (!fs.existsSync(htmlPath)) continue;
+  let html = fs.readFileSync(htmlPath, "utf8");
+  html = html
+    .replace(/href="styles\.css"/g, `href="styles.css?v=${cacheBust}"`)
+    .replace(/href="cooperative-public\.css"/g, `href="cooperative-public.css?v=${cacheBust}"`)
+    .replace(/src="app\.js"/g, `src="app.js?v=${cacheBust}"`)
+    .replace(/src="flexxforms-embed\.js"/g, `src="flexxforms-embed.js?v=${cacheBust}"`);
+  fs.writeFileSync(htmlPath, html, "utf8");
+}
+
 console.log("Wrote Netlify _redirects", apiBase ? `(API → ${apiBase})` : "(no API proxy yet)");
+console.log(`Cache-busted static assets (v=${cacheBust})`);

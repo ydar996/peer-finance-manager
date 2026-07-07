@@ -585,6 +585,14 @@ th { background: #f8fafc; font-weight: 600; }
 .my-cooperative-reports-body .file-list {
   margin-top: 12px;
 }
+.my-cooperative-reports-body .file-list li.cooperative-report-row {
+  display: block;
+  padding: 0;
+  margin-bottom: 10px;
+  background: transparent;
+  border: none;
+  cursor: default;
+}
 .cooperative-report-open {
   display: flex;
   flex-direction: column;
@@ -592,27 +600,43 @@ th { background: #f8fafc; font-weight: 600; }
   gap: 4px;
   width: 100%;
   text-align: left;
-  background: none;
-  border: none;
-  padding: 0;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 14px 16px;
   cursor: pointer;
   font: inherit;
 }
-.cooperative-report-open-title {
+.cooperative-report-open:hover,
+.cooperative-report-open:focus-visible {
+  background: #e0f2fe;
+  border-color: #0ea5e9;
+  outline: none;
+}
+.cooperative-report-open-eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: #0369a1;
+}
+.cooperative-report-open-title {
+  color: #0f172a;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1.35;
 }
 .cooperative-report-open-hint {
   color: #64748b;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
 }
 .cooperative-report-viewer {
   position: fixed;
   inset: 0;
-  z-index: 300;
+  z-index: 5000;
   background: #f1f5f9;
   display: flex;
   flex-direction: column;
