@@ -1380,7 +1380,10 @@
         <p id="cooperativeReportViewerTitle" class="cooperative-report-viewer-title"></p>
         <button type="button" class="btn primary" id="cooperativeReportViewerDownload">Download Report</button>
       </div>
-      <iframe id="cooperativeReportViewerFrame" class="cooperative-report-viewer-frame" title="Cooperative Performance Report PDF"></iframe>
+      <div class="cooperative-report-viewer-body">
+        <div id="cooperativeReportViewerCanvas" class="cooperative-report-viewer-canvas hidden" aria-label="Cooperative Performance Report PDF"></div>
+        <iframe id="cooperativeReportViewerFrame" class="cooperative-report-viewer-frame" title="Cooperative Performance Report PDF"></iframe>
+      </div>
     </div>
     <script src="flexxforms-embed.js"></script>
     <script src="app.js"></script>

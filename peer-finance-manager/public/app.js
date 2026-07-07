@@ -3221,6 +3221,65 @@ async function loadMyCooperativeReports() {
 let activeCooperativeReportView = null;
 let activeCooperativeReportBlobUrl = null;
 
+const PDF_JS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
+
+function prefersMobilePdfCanvas() {
+  return window.matchMedia("(max-width: 900px), (pointer: coarse)").matches;
+}
+
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-pdfjs="true"]');
+    if (existing) {
+      existing.addEventListener("load", () => resolve(window.pdfjsLib));
+      existing.addEventListener("error", reject);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = `${PDF_JS_CDN}/pdf.min.js`;
+    script.dataset.pdfjs = "true";
+    script.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDF_JS_CDN}/pdf.worker.min.js`;
+      resolve(window.pdfjsLib);
+    };
+    script.onerror = () => reject(new Error("Could not load PDF viewer"));
+    document.head.appendChild(script);
+  });
+}
+
+async function renderCooperativeReportPdfCanvas(blob, container) {
+  const pdfjsLib = await loadPdfJs();
+  const pdf = await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
+  container.innerHTML = "";
+  const width = Math.max(container.clientWidth || window.innerWidth, 280) - 16;
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+    const page = await pdf.getPage(pageNum);
+    const baseViewport = page.getViewport({ scale: 1 });
+    const scale = width / baseViewport.width;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    await page.render({ canvasContext: context, viewport }).promise;
+    container.appendChild(canvas);
+  }
+}
+
+function setCooperativeReportViewerMode(mode) {
+  const frame = $("#cooperativeReportViewerFrame");
+  const canvas = $("#cooperativeReportViewerCanvas");
+  if (mode === "canvas") {
+    frame?.classList.add("hidden");
+    canvas?.classList.remove("hidden");
+  } else {
+    canvas?.classList.add("hidden");
+    if (canvas) canvas.innerHTML = "";
+    frame?.classList.remove("hidden");
+  }
+}
+
 function initCooperativeReportViewer() {
   $("#cooperativeReportViewerBack")?.addEventListener("click", closeCooperativeReportViewer);
   $("#cooperativeReportViewerDownload")?.addEventListener("click", () => {
@@ -3234,6 +3293,7 @@ function initCooperativeReportViewer() {
 async function openCooperativeReportViewer(report) {
   const viewer = $("#cooperativeReportViewer");
   const frame = $("#cooperativeReportViewerFrame");
+  const canvasHost = $("#cooperativeReportViewerCanvas");
   const title = $("#cooperativeReportViewerTitle");
   if (!viewer || !frame || !report?.periodSlug) return;
   activeCooperativeReportView = report;
@@ -3245,6 +3305,7 @@ async function openCooperativeReportViewer(report) {
     activeCooperativeReportBlobUrl = null;
   }
   frame.src = "about:blank";
+  if (canvasHost) canvasHost.innerHTML = "";
   viewer.classList.remove("hidden");
   document.body.classList.add("cooperative-report-viewer-open");
   const reportsCard = document.getElementById("myCooperativeReportsCard");
@@ -3260,7 +3321,13 @@ async function openCooperativeReportViewer(report) {
     }
     const blob = await res.blob();
     activeCooperativeReportBlobUrl = URL.createObjectURL(blob);
-    frame.src = activeCooperativeReportBlobUrl;
+    if (prefersMobilePdfCanvas() && canvasHost) {
+      setCooperativeReportViewerMode("canvas");
+      await renderCooperativeReportPdfCanvas(blob, canvasHost);
+    } else {
+      setCooperativeReportViewerMode("iframe");
+      frame.src = `${activeCooperativeReportBlobUrl}#view=FitH`;
+    }
     if (title) {
       title.textContent = `Cooperative Performance · ${report.periodSlug} · as at ${formatDate(report.asOfDate)}`;
     }
@@ -3273,11 +3340,14 @@ async function openCooperativeReportViewer(report) {
 function closeCooperativeReportViewer() {
   const viewer = $("#cooperativeReportViewer");
   const frame = $("#cooperativeReportViewerFrame");
+  const canvasHost = $("#cooperativeReportViewerCanvas");
   if (activeCooperativeReportBlobUrl) {
     URL.revokeObjectURL(activeCooperativeReportBlobUrl);
     activeCooperativeReportBlobUrl = null;
   }
   if (frame) frame.src = "about:blank";
+  if (canvasHost) canvasHost.innerHTML = "";
+  setCooperativeReportViewerMode("iframe");
   viewer?.classList.add("hidden");
   document.body.classList.remove("cooperative-report-viewer-open");
   activeCooperativeReportView = null;
