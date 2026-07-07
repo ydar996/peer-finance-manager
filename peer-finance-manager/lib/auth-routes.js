@@ -323,14 +323,10 @@ function registerAuthRoutes(app, deps = {}) {
       const { listCooperativeStatusReports } = require("./monthly-status-report-service");
       const reports = listCooperativeStatusReports({ publishedOnly: true });
       const latest = reports[0] || null;
-      const { getCooperativeStatusReportData } = require("./cooperative-status-report");
-      const reportData = latest
-        ? getCooperativeStatusReportData({ asOfDate: latest.asOfDate })
-        : null;
       res.json({
         reports,
         latestReport: latest,
-        performanceOverview: reportData?.performanceOverview || null,
+        performanceOverview: latest?.performanceOverview || null,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -393,17 +389,15 @@ function registerAuthRoutes(app, deps = {}) {
       if (user.role !== ROLES.MEMBER) {
         return res.status(403).json({ error: "Member account required" });
       }
-      const { listCooperativeStatusReports } = require("./monthly-status-report-service");
+      const { listCooperativeStatusReports, getLatestPublishedReportPerformanceOverview } = require("./monthly-status-report-service");
       const published = listCooperativeStatusReports({ publishedOnly: true });
       if (!published.length) {
         return res.json({ summary: null });
       }
       const { getOperationalExpensesSummary } = require("./expense-report-label-service");
-      const { getCooperativeStatusReportData } = require("./cooperative-status-report");
-      const reportData = getCooperativeStatusReportData({ asOfDate: published[0].asOfDate });
       res.json({
         summary: getOperationalExpensesSummary(),
-        performanceOverview: reportData.performanceOverview,
+        performanceOverview: getLatestPublishedReportPerformanceOverview(),
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

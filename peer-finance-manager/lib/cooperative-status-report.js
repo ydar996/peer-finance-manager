@@ -76,6 +76,14 @@ function parseMonthEndDate(year, month) {
   );
 }
 
+/** Report period slugs are YYYY-MM; always use that month-end as the as-of date. */
+function asOfDateForPeriodSlug(periodSlug, fallbackAsOfDate = null) {
+  const m = String(periodSlug || "").match(/^(\d{4})-(\d{2})$/);
+  if (m) return parseMonthEndDate(Number(m[1]), Number(m[2]));
+  if (fallbackAsOfDate) return parseAsOfDate(fallbackAsOfDate);
+  return defaultReportAsOfToday();
+}
+
 function todayDateIso(date = new Date()) {
   return cooperativeTodayIso(date);
 }
@@ -514,6 +522,7 @@ async function generateCooperativeStatusReportPdf(options = {}) {
     outputPath,
     fileName,
     period: data.period,
+    performanceOverview: data.performanceOverview,
     relativePath: path
       .relative(getCoopRoot(), outputPath)
       .split(path.sep)
@@ -527,6 +536,8 @@ module.exports = {
   buildPerformanceOverview,
   generateCooperativeStatusReportPdf,
   parseAsOfDate,
+  parseMonthEndDate,
+  asOfDateForPeriodSlug,
   defaultReportAsOfToday,
   defaultReportMonthEnd,
   resolveReportPeriod,

@@ -10,8 +10,10 @@ const {
 } = require("./cooperative-settings");
 const {
   generateCooperativeStatusReportPdf,
+  getCooperativeStatusReportData,
   resolveReportPeriod,
   parseAsOfDate,
+  asOfDateForPeriodSlug,
   defaultReportAsOfToday,
   defaultReportMonthEnd,
 } = require("./cooperative-status-report");
@@ -41,6 +43,21 @@ function ensureReportsTable(db) {
       is_published INTEGER NOT NULL DEFAULT 0
     );
   `);
+  try {
+    db.exec(`ALTER TABLE cooperative_status_reports ADD COLUMN performance_overview TEXT`);
+  } catch (_) {}
+}
+
+function canonicalReportAsOfDate(periodSlug, storedAsOfDate) {
+  return asOfDateForPeriodSlug(periodSlug, storedAsOfDate).dateIso;
+}
+
+function resolveReportPerformanceOverview(row) {
+  if (!row) return null;
+  if (row.performance_overview) return row.performance_overview;
+  const asOfDate = canonicalReportAsOfDate(row.period_slug, row.as_of_date);
+  const reportData = getCooperativeStatusReportData({ asOfDate });
+  return reportData.performanceOverview || null;
 }
 
 function getCooperativeStatusReportsDir(orgSlug) {
@@ -119,31 +136,49 @@ function listCooperativeStatusReports({ publishedOnly = false } = {}) {
     .all();
   return rows.map((row) => ({
     periodSlug: row.period_slug,
-    asOfDate: row.as_of_date,
+    asOfDate: canonicalReportAsOfDate(row.period_slug, row.as_of_date),
     fileName: row.file_name,
     generatedAt: row.generated_at,
     publishedAt: row.published_at,
     generatedAtLabel: formatInstantAsCooperativeDate(row.generated_at),
     publishedAtLabel: formatInstantAsCooperativeDate(row.published_at),
     isPublished: Boolean(row.is_published),
+    performanceOverview: resolveReportPerformanceOverview(row),
   }));
 }
 
-function saveReportRecord({ period, fileName, outputPath }) {
+function getLatestPublishedReportPerformanceOverview() {
+  const db = getDb();
+  ensureReportsTable(db);
+  const row = db
+    .prepare(
+      `SELECT period_slug, as_of_date, performance_overview
+       FROM cooperative_status_reports
+       WHERE is_published = 1
+       ORDER BY period_slug DESC
+       LIMIT 1`
+    )
+    .get();
+  return resolveReportPerformanceOverview(row);
+}
+
+function saveReportRecord({ period, fileName, outputPath, performanceOverview }) {
   const db = getDb();
   ensureReportsTable(db);
   const generatedAt = nowUtcIso();
+  const asOfDate = asOfDateForPeriodSlug(period.slug, period.dateIso).dateIso;
   db.prepare(
     `INSERT INTO cooperative_status_reports (
-       period_slug, as_of_date, file_name, generated_at, published_at, is_published
-     ) VALUES (?, ?, ?, ?, NULL, 0)
+       period_slug, as_of_date, file_name, generated_at, published_at, is_published, performance_overview
+     ) VALUES (?, ?, ?, ?, NULL, 0, ?)
      ON CONFLICT(period_slug) DO UPDATE SET
        as_of_date = excluded.as_of_date,
        file_name = excluded.file_name,
        generated_at = excluded.generated_at,
        published_at = NULL,
-       is_published = 0`
-  ).run(period.slug, period.dateIso, fileName, generatedAt);
+       is_published = 0,
+       performance_overview = excluded.performance_overview`
+  ).run(period.slug, asOfDate, fileName, generatedAt, performanceOverview || null);
   return getReportRecord(period.slug);
 }
 
@@ -162,7 +197,9 @@ function resolveReportFilePath(record) {
 function getMonthlyStatusReportStatus(options = {}) {
   const period = resolveReportPeriod(options);
   const record = getReportRecord(period.slug);
-  const displayPeriod = record?.as_of_date ? parseAsOfDate(record.as_of_date) : period;
+  const displayPeriod = record?.as_of_date
+    ? parseAsOfDate(canonicalReportAsOfDate(period.slug, record.as_of_date))
+    : period;
   const settings = getMonthlyStatusReportSettings();
   const filePath = resolveReportFilePath(record);
   return {
@@ -195,6 +232,7 @@ async function generateMonthlyStatusReport(options = {}) {
     period: result.period,
     fileName: result.fileName,
     outputPath: result.outputPath,
+    performanceOverview: result.performanceOverview,
   });
 
   const settings = getMonthlyStatusReportSettings();
@@ -352,6 +390,7 @@ module.exports = {
   updateMonthlyStatusReportSettings,
   getMonthlyStatusReportStatus,
   listCooperativeStatusReports,
+  getLatestPublishedReportPerformanceOverview,
   generateMonthlyStatusReport,
   publishMonthlyStatusReport,
   unpublishMonthlyStatusReport,

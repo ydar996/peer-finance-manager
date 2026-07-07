@@ -177,7 +177,8 @@ CREATE TABLE IF NOT EXISTS cooperative_status_reports (
   file_name TEXT NOT NULL,
   generated_at TEXT NOT NULL,
   published_at TEXT,
-  is_published INTEGER NOT NULL DEFAULT 0
+  is_published INTEGER NOT NULL DEFAULT 0,
+  performance_overview TEXT
 );
 
 CREATE TABLE IF NOT EXISTS cooperative_meetings (

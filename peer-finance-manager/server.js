@@ -800,6 +800,8 @@ app.get("/api/books/monthly-status-report/status", requireCooperativeView, (req,
       listCooperativeStatusReports,
     } = require("./lib/monthly-status-report-service");
     const { getCooperativeStatusReportData } = require("./lib/cooperative-status-report");
+    const published = listCooperativeStatusReports({ publishedOnly: true });
+    const latestPublished = published[0] || null;
     const periodOptions =
       req.query.year || req.query.month
         ? {
@@ -807,12 +809,16 @@ app.get("/api/books/monthly-status-report/status", requireCooperativeView, (req,
             month: req.query.month ? Number(req.query.month) : undefined,
             useMonthEnd: true,
           }
-        : { asOfToday: true };
-    const reportData = getCooperativeStatusReportData(periodOptions);
+        : latestPublished
+          ? { asOfDate: latestPublished.asOfDate }
+          : { asOfToday: true };
+    const performanceOverview =
+      latestPublished?.performanceOverview ||
+      getCooperativeStatusReportData(periodOptions).performanceOverview;
     res.json({
       status: {
         ...getMonthlyStatusReportStatus(periodOptions),
-        performanceOverview: reportData.performanceOverview,
+        performanceOverview,
       },
       reports: listCooperativeStatusReports(),
     });
@@ -1010,11 +1016,16 @@ app.put("/api/books/expense-report-labels", requireAdmin, (req, res) => {
 app.get("/api/books/operational-expenses-summary", requireCooperativeView, (req, res) => {
   try {
     const { getOperationalExpensesSummary } = require("./lib/expense-report-label-service");
-    const { getCooperativeStatusReportData } = require("./lib/cooperative-status-report");
-    const reportData = getCooperativeStatusReportData();
+    const {
+      listCooperativeStatusReports,
+      getLatestPublishedReportPerformanceOverview,
+    } = require("./lib/monthly-status-report-service");
+    const published = listCooperativeStatusReports({ publishedOnly: true });
     res.json({
       summary: getOperationalExpensesSummary(),
-      performanceOverview: reportData.performanceOverview,
+      performanceOverview: published.length
+        ? getLatestPublishedReportPerformanceOverview()
+        : null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
