@@ -11,14 +11,25 @@ const {
 const { getDb } = require("../db/database");
 const { capitalizeCooperativeWording } = require("./text-format");
 
+const {
+  htmlToPlainText,
+  plainTextToPublicHtml,
+  normalizeExternalUrl,
+  isValidExternalUrl,
+} = require("./public-plain-text-html");
+
 const SETTINGS = {
   ABOUT_HTML: "public_about_html",
+  ABOUT_PLAIN_TEXT: "public_about_plain_text",
+  ABOUT_EXTERNAL_URL: "public_about_external_url",
   ABOUT_PUBLISHED: "public_about_published",
   BYLAWS_PUBLISHED: "public_bylaws_published",
   BYLAWS_FILENAME: "public_bylaws_filename",
   ABOUT_FILENAME: "public_about_filename",
   ABOUT_MODE: "public_about_mode",
   BYLAWS_HTML: "public_bylaws_html",
+  BYLAWS_PLAIN_TEXT: "public_bylaws_plain_text",
+  BYLAWS_EXTERNAL_URL: "public_bylaws_external_url",
 };
 
 const DEFAULT_BYLAWS_FILENAME = "bylaws.pdf";
@@ -148,7 +159,27 @@ function resolveBylawsPath(slug) {
   return { filePath, filename: safe };
 }
 
+function getStoredPlainText(slug, plainKey, htmlKey) {
+  return runWithOrg(slug, () => {
+    const stored = getCooperativeSetting(plainKey);
+    if (stored) return stored;
+    const html = getCooperativeSetting(htmlKey) || "";
+    return html ? htmlToPlainText(html) : "";
+  });
+}
+
+function getExternalUrl(slug, key) {
+  return runWithOrg(slug, () => normalizeExternalUrl(getCooperativeSetting(key) || ""));
+}
+
+function effectivePublicPageUrl(slug, page, externalUrl) {
+  if (externalUrl) return externalUrl;
+  return `/c/${encodeURIComponent(slug)}/${page}`;
+}
+
 function isAboutPublished(slug) {
+  const externalUrl = getExternalUrl(slug, SETTINGS.ABOUT_EXTERNAL_URL);
+  if (externalUrl) return true;
   if (runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_PUBLISHED)) !== "1") {
     return false;
   }
@@ -156,6 +187,8 @@ function isAboutPublished(slug) {
 }
 
 function isBylawsPublished(slug) {
+  const externalUrl = getExternalUrl(slug, SETTINGS.BYLAWS_EXTERNAL_URL);
+  if (externalUrl) return true;
   if (runWithOrg(slug, () => getCooperativeSetting(SETTINGS.BYLAWS_PUBLISHED)) !== "1") {
     return false;
   }
@@ -177,6 +210,8 @@ function isApplyAvailable(slug) {
 function getPublicSummary(slug) {
   const org = getOrganization(slug);
   if (!org) return null;
+  const aboutExternalUrl = getExternalUrl(slug, SETTINGS.ABOUT_EXTERNAL_URL);
+  const bylawsExternalUrl = getExternalUrl(slug, SETTINGS.BYLAWS_EXTERNAL_URL);
   const aboutPublished = isAboutPublished(slug);
   const bylawsPublished = isBylawsPublished(slug);
   const applyAvailable = isApplyAvailable(slug);
@@ -184,7 +219,11 @@ function getPublicSummary(slug) {
     organization: { slug: org.slug, name: org.name },
     aboutAvailable: aboutPublished,
     bylawsAvailable: bylawsPublished,
+    aboutExternalUrl: aboutExternalUrl || null,
+    bylawsExternalUrl: bylawsExternalUrl || null,
     applyAvailable,
+    publicAboutUrl: effectivePublicPageUrl(slug, "about", aboutExternalUrl),
+    publicBylawsUrl: effectivePublicPageUrl(slug, "bylaws", bylawsExternalUrl),
     publicApplyUrl: (() => {
       try {
         const { getFlexxFormsPublicConfig } = require("./flexxforms-service");
@@ -201,6 +240,15 @@ function getPublicAbout(slug) {
   const org = getOrganization(slug);
   if (!org || !isAboutPublished(slug)) return null;
 
+  const externalUrl = getExternalUrl(slug, SETTINGS.ABOUT_EXTERNAL_URL);
+  if (externalUrl) {
+    return {
+      organization: { slug: org.slug, name: org.name },
+      mode: "external",
+      externalUrl,
+    };
+  }
+
   const rawHtml = runWithOrg(slug, () => getCooperativeSetting(SETTINGS.ABOUT_HTML)) || "";
   if (!rawHtml) return null;
   const html = sanitizePublicAboutHtml(rawHtml, slug);
@@ -214,13 +262,32 @@ function getPublicAbout(slug) {
 function getPublicBylaws(slug) {
   const org = getOrganization(slug);
   if (!org || !isBylawsPublished(slug)) return null;
+
+  const externalUrl = getExternalUrl(slug, SETTINGS.BYLAWS_EXTERNAL_URL);
+  if (externalUrl) {
+    return {
+      organization: { slug: org.slug, name: org.name },
+      mode: "external",
+      externalUrl,
+    };
+  }
+
   const rawHtml = runWithOrg(slug, () => getCooperativeSetting(SETTINGS.BYLAWS_HTML)) || "";
-  if (!rawHtml) return null;
-  const html = sanitizePublicHtml(rawHtml, slug);
+  if (rawHtml) {
+    const html = sanitizePublicHtml(rawHtml, slug);
+    return {
+      organization: { slug: org.slug, name: org.name },
+      mode: "html",
+      html,
+    };
+  }
+
+  const doc = resolveBylawsPath(slug);
+  if (!doc) return null;
   return {
     organization: { slug: org.slug, name: org.name },
-    mode: "html",
-    html,
+    mode: "pdf",
+    downloadUrl: `/api/public/organizations/${encodeURIComponent(slug)}/bylaws/document`,
   };
 }
 
@@ -230,10 +297,19 @@ function getPublicBylawsMeta(slug) {
 
 function getAdminPublicPages(slug) {
   const applyAvailable = isApplyAvailable(slug);
+  const aboutExternalUrl = getExternalUrl(slug, SETTINGS.ABOUT_EXTERNAL_URL);
+  const bylawsExternalUrl = getExternalUrl(slug, SETTINGS.BYLAWS_EXTERNAL_URL);
   return runWithOrg(slug, () => {
     const db = getDb();
     ensureSettingsTable(db);
     const aboutHtml = getCooperativeSetting(SETTINGS.ABOUT_HTML) || "";
+    const aboutPlainText =
+      getCooperativeSetting(SETTINGS.ABOUT_PLAIN_TEXT) ||
+      (aboutHtml ? htmlToPlainText(aboutHtml) : "");
+    const bylawsHtml = getCooperativeSetting(SETTINGS.BYLAWS_HTML) || "";
+    const bylawsPlainText =
+      getCooperativeSetting(SETTINGS.BYLAWS_PLAIN_TEXT) ||
+      (bylawsHtml ? htmlToPlainText(bylawsHtml) : "");
     const aboutPublished = getCooperativeSetting(SETTINGS.ABOUT_PUBLISHED) === "1";
     const bylawsPublished = getCooperativeSetting(SETTINGS.BYLAWS_PUBLISHED) === "1";
     const bylawsFilename =
@@ -245,13 +321,18 @@ function getAdminPublicPages(slug) {
     }));
     return {
       aboutHtml,
+      aboutPlainText,
+      aboutExternalUrl,
       aboutPublished,
+      bylawsHtml,
+      bylawsPlainText,
+      bylawsExternalUrl,
       bylawsPublished,
       bylawsFilename,
       bylawsOnDisk,
       images,
-      publicAboutUrl: `/c/${encodeURIComponent(slug)}/about`,
-      publicBylawsUrl: `/c/${encodeURIComponent(slug)}/bylaws`,
+      publicAboutUrl: effectivePublicPageUrl(slug, "about", aboutExternalUrl),
+      publicBylawsUrl: effectivePublicPageUrl(slug, "bylaws", bylawsExternalUrl),
       applyAvailable,
       publicApplyUrl: (() => {
         try {
@@ -266,15 +347,67 @@ function getAdminPublicPages(slug) {
   });
 }
 
-function saveAboutPage(slug, { html, published }) {
+function saveAboutPage(slug, { plainText, externalUrl, published }) {
   return runWithOrg(slug, () => {
     const db = getDb();
     ensureSettingsTable(db);
-    if (html !== undefined) {
-      setCooperativeSetting(db, SETTINGS.ABOUT_HTML, capitalizeCooperativeWording(String(html)));
+    let effectiveExternalUrl = normalizeExternalUrl(
+      getCooperativeSetting(SETTINGS.ABOUT_EXTERNAL_URL) || ""
+    );
+    if (externalUrl !== undefined) {
+      effectiveExternalUrl = normalizeExternalUrl(externalUrl || "");
+      if (effectiveExternalUrl && !isValidExternalUrl(effectiveExternalUrl)) {
+        throw new Error("About Us website URL must start with http:// or https://");
+      }
+      setCooperativeSetting(db, SETTINGS.ABOUT_EXTERNAL_URL, effectiveExternalUrl);
+    }
+    if (plainText !== undefined && !effectiveExternalUrl) {
+      const text = String(plainText || "").trim();
+      setCooperativeSetting(db, SETTINGS.ABOUT_PLAIN_TEXT, text);
+      setCooperativeSetting(
+        db,
+        SETTINGS.ABOUT_HTML,
+        text ? capitalizeCooperativeWording(plainTextToPublicHtml(text)) : ""
+      );
     }
     if (published !== undefined) {
       setCooperativeSetting(db, SETTINGS.ABOUT_PUBLISHED, published ? "1" : "0");
+    }
+    if (effectiveExternalUrl) {
+      setCooperativeSetting(db, SETTINGS.ABOUT_PUBLISHED, "1");
+    }
+    return getAdminPublicPages(slug);
+  });
+}
+
+function saveBylawsPage(slug, { plainText, externalUrl, published }) {
+  return runWithOrg(slug, () => {
+    const db = getDb();
+    ensureSettingsTable(db);
+    let effectiveExternalUrl = normalizeExternalUrl(
+      getCooperativeSetting(SETTINGS.BYLAWS_EXTERNAL_URL) || ""
+    );
+    if (externalUrl !== undefined) {
+      effectiveExternalUrl = normalizeExternalUrl(externalUrl || "");
+      if (effectiveExternalUrl && !isValidExternalUrl(effectiveExternalUrl)) {
+        throw new Error("Bylaws website URL must start with http:// or https://");
+      }
+      setCooperativeSetting(db, SETTINGS.BYLAWS_EXTERNAL_URL, effectiveExternalUrl);
+    }
+    if (plainText !== undefined && !effectiveExternalUrl) {
+      const text = String(plainText || "").trim();
+      setCooperativeSetting(db, SETTINGS.BYLAWS_PLAIN_TEXT, text);
+      setCooperativeSetting(
+        db,
+        SETTINGS.BYLAWS_HTML,
+        text ? capitalizeCooperativeWording(plainTextToPublicHtml(text)) : ""
+      );
+    }
+    if (published !== undefined) {
+      setCooperativeSetting(db, SETTINGS.BYLAWS_PUBLISHED, published ? "1" : "0");
+    }
+    if (effectiveExternalUrl) {
+      setCooperativeSetting(db, SETTINGS.BYLAWS_PUBLISHED, "1");
     }
     return getAdminPublicPages(slug);
   });
@@ -299,12 +432,7 @@ function saveBylawsUpload(slug, uploadedPath, originalName) {
 }
 
 function setBylawsPublished(slug, published) {
-  return runWithOrg(slug, () => {
-    const db = getDb();
-    ensureSettingsTable(db);
-    setCooperativeSetting(db, SETTINGS.BYLAWS_PUBLISHED, published ? "1" : "0");
-    return getAdminPublicPages(slug);
-  });
+  return saveBylawsPage(slug, { published: !!published });
 }
 
 function saveAboutImageUpload(slug, uploadedPath, originalName) {
@@ -351,12 +479,16 @@ function seedOrgPublicPages(orgSlug) {
     const currentVersion = getCooperativeSetting(seedVersionKey);
     if (currentVersion !== PUBLIC_CONTENT_SEED_VERSION) {
       if (fs.existsSync(aboutSeed)) {
-        setCooperativeSetting(db, SETTINGS.ABOUT_HTML, fs.readFileSync(aboutSeed, "utf8"));
+        const aboutHtml = fs.readFileSync(aboutSeed, "utf8");
+        setCooperativeSetting(db, SETTINGS.ABOUT_HTML, aboutHtml);
+        setCooperativeSetting(db, SETTINGS.ABOUT_PLAIN_TEXT, htmlToPlainText(aboutHtml));
         setCooperativeSetting(db, SETTINGS.ABOUT_MODE, "html");
         changed = true;
       }
       if (fs.existsSync(bylawsSeed)) {
-        setCooperativeSetting(db, SETTINGS.BYLAWS_HTML, fs.readFileSync(bylawsSeed, "utf8"));
+        const bylawsHtml = fs.readFileSync(bylawsSeed, "utf8");
+        setCooperativeSetting(db, SETTINGS.BYLAWS_HTML, bylawsHtml);
+        setCooperativeSetting(db, SETTINGS.BYLAWS_PLAIN_TEXT, htmlToPlainText(bylawsHtml));
         changed = true;
       }
       const bylawsPdfSeed = path.join(seedRoot, DEFAULT_BYLAWS_FILENAME);
@@ -406,6 +538,7 @@ module.exports = {
   getPublicBylawsMeta,
   getAdminPublicPages,
   saveAboutPage,
+  saveBylawsPage,
   saveBylawsUpload,
   setBylawsPublished,
   saveAboutImageUpload,

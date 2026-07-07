@@ -235,11 +235,11 @@ async function refreshPublicOrgLinks(slug) {
       return;
     }
     document.querySelectorAll(".public-about-link").forEach((link) => {
-      link.href = `/c/${encodeURIComponent(normalized)}/about`;
+      link.href = data.publicAboutUrl || `/c/${encodeURIComponent(normalized)}/about`;
       link.classList.toggle("hidden", !data.aboutAvailable);
     });
     document.querySelectorAll(".public-bylaws-link").forEach((link) => {
-      link.href = `/c/${encodeURIComponent(normalized)}/bylaws`;
+      link.href = data.publicBylawsUrl || `/c/${encodeURIComponent(normalized)}/bylaws`;
       link.classList.toggle("hidden", !data.bylawsAvailable);
     });
     document.querySelectorAll(".public-apply-link").forEach((link) => {
@@ -3162,6 +3162,7 @@ async function loadMyCooperativeReports() {
   const list = $("#myCooperativeReportsList");
   const badge = $("#myCooperativeReportsBadge");
   const overviewEl = $("#myPerformanceOverview");
+  const overviewMetaEl = $("#myPerformanceOverviewMeta");
   if (!card || !list) return;
   try {
     const res = await fetch("/api/me/cooperative-status-reports");
@@ -3173,13 +3174,17 @@ async function loadMyCooperativeReports() {
       return;
     }
     card.classList.remove("hidden");
+    const latest = reports[0];
     if (badge) {
-      const latest = reports[0];
       badge.textContent =
         reports.length === 1
           ? latest.periodSlug
           : `${latest.periodSlug} · ${reports.length} reports`;
       badge.className = "badge ok";
+    }
+    if (overviewMetaEl) {
+      overviewMetaEl.textContent = `Summary for latest published report (${latest.periodSlug}): as at ${formatDate(latest.asOfDate)}.`;
+      overviewMetaEl.classList.remove("hidden");
     }
     if (overviewEl) {
       if (data.performanceOverview) {
@@ -3194,41 +3199,84 @@ async function loadMyCooperativeReports() {
       .map(
         (report) => `
       <li>
-        <button type="button" class="btn linkish cooperative-report-download" data-period-slug="${escapeHtml(report.periodSlug)}">
-          Cooperative Performance · ${escapeHtml(report.periodSlug)} · as at ${escapeHtml(formatDate(report.asOfDate))}
+        <button type="button" class="cooperative-report-open" data-period-slug="${escapeHtml(report.periodSlug)}">
+          <span class="cooperative-report-open-title">View PDF Report · ${escapeHtml(report.periodSlug)}</span>
+          <span class="cooperative-report-open-hint">Cooperative Performance · as at ${escapeHtml(formatDate(report.asOfDate))} · Tap to open full report</span>
         </button>
       </li>`
       )
       .join("");
-    list.querySelectorAll(".cooperative-report-download").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        try {
-          setButtonBusy(btn, true, "Downloading…");
-          const res = await fetch(
-            `/api/me/cooperative-status-reports/${encodeURIComponent(btn.dataset.periodSlug)}/file`
-          );
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || "Download failed");
-          }
-          const blob = await res.blob();
-          const disposition = res.headers.get("Content-Disposition") || "";
-          const match = disposition.match(/filename="?([^"]+)"?/i);
-          const fileName = match?.[1] || "Cooperative Performance Report.pdf";
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = fileName;
-          link.click();
-          URL.revokeObjectURL(link.href);
-        } catch (err) {
-          alert(err.message);
-        } finally {
-          setButtonBusy(btn, false);
-        }
+    list.querySelectorAll(".cooperative-report-open").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const report = reports.find((row) => row.periodSlug === btn.dataset.periodSlug);
+        if (report) openCooperativeReportViewer(report);
       });
     });
   } catch {
     card.classList.add("hidden");
+  }
+}
+
+let activeCooperativeReportView = null;
+
+function initCooperativeReportViewer() {
+  $("#cooperativeReportViewerBack")?.addEventListener("click", closeCooperativeReportViewer);
+  $("#cooperativeReportViewerDownload")?.addEventListener("click", () => {
+    downloadCooperativeReport(
+      activeCooperativeReportView,
+      $("#cooperativeReportViewerDownload")
+    );
+  });
+}
+
+function openCooperativeReportViewer(report) {
+  const viewer = $("#cooperativeReportViewer");
+  const frame = $("#cooperativeReportViewerFrame");
+  const title = $("#cooperativeReportViewerTitle");
+  if (!viewer || !frame || !report?.periodSlug) return;
+  activeCooperativeReportView = report;
+  if (title) {
+    title.textContent = `Cooperative Performance · ${report.periodSlug} · as at ${formatDate(report.asOfDate)}`;
+  }
+  frame.src = `/api/me/cooperative-status-reports/${encodeURIComponent(report.periodSlug)}/view`;
+  viewer.classList.remove("hidden");
+  document.body.classList.add("cooperative-report-viewer-open");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function closeCooperativeReportViewer() {
+  const viewer = $("#cooperativeReportViewer");
+  const frame = $("#cooperativeReportViewerFrame");
+  if (frame) frame.src = "about:blank";
+  viewer?.classList.add("hidden");
+  document.body.classList.remove("cooperative-report-viewer-open");
+  activeCooperativeReportView = null;
+}
+
+async function downloadCooperativeReport(report, triggerBtn) {
+  if (!report?.periodSlug) return;
+  try {
+    if (triggerBtn) setButtonBusy(triggerBtn, true, "Downloading…");
+    const res = await fetch(
+      `/api/me/cooperative-status-reports/${encodeURIComponent(report.periodSlug)}/file`
+    );
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || "Download failed");
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const fileName = match?.[1] || report.fileName || "Cooperative Performance Report.pdf";
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (triggerBtn) setButtonBusy(triggerBtn, false);
   }
 }
 
@@ -4263,6 +4311,23 @@ function openRecordSection(sectionId) {
   if (section?.tagName === "DETAILS") section.open = true;
 }
 
+function initRecordSectionCollapseButtons() {
+  document.querySelectorAll("details.record-section").forEach((section) => {
+    const body = section.querySelector(":scope > .profile-disclosure-body");
+    if (!body || body.querySelector(".record-section-collapse")) return;
+    const summary = section.querySelector("summary.record-section-summary");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn record-section-collapse";
+    btn.textContent = "Collapse Section";
+    btn.addEventListener("click", () => {
+      section.open = false;
+      summary?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    body.appendChild(btn);
+  });
+}
+
 function openMemberProfileEditor(memberId) {
   switchTab("record", { skipRecordLoad: true });
   loadRecordTabData().then(() => {
@@ -5102,10 +5167,20 @@ $("#openStripePortal")?.addEventListener("click", openStripeBillingPortal);
 $("#requestCheckPayment")?.addEventListener("click", requestTenantCheckPayment);
 $("#refreshPlatformSubscription")?.addEventListener("click", loadPlatformSubscriptionPanel);
 
+function syncPublicPagesExternalFields() {
+  const aboutUrl = $("#publicAboutExternalUrl")?.value?.trim() || "";
+  const bylawsUrl = $("#publicBylawsExternalUrl")?.value?.trim() || "";
+  $("#publicAboutContentFields")?.classList.toggle("is-disabled", Boolean(aboutUrl));
+  $("#publicBylawsContentFields")?.classList.toggle("is-disabled", Boolean(bylawsUrl));
+}
+
 function renderPublicPagesAdmin(data) {
   const linksEl = $("#publicPagesLinks");
-  const aboutHtml = $("#publicAboutHtml");
+  const aboutPlainText = $("#publicAboutPlainText");
+  const aboutExternalUrl = $("#publicAboutExternalUrl");
   const aboutPublished = $("#publicAboutPublished");
+  const bylawsPlainText = $("#publicBylawsPlainText");
+  const bylawsExternalUrl = $("#publicBylawsExternalUrl");
   const bylawsPublished = $("#publicBylawsPublished");
   const bylawsStatus = $("#publicBylawsFileStatus");
   const imagesList = $("#publicAboutImagesList");
@@ -5116,13 +5191,26 @@ function renderPublicPagesAdmin(data) {
       : "";
     linksEl.innerHTML = `Public links: <a href="${escapeHtml(data.publicAboutUrl)}" target="_blank" rel="noopener">About</a> · <a href="${escapeHtml(data.publicBylawsUrl)}" target="_blank" rel="noopener">Bylaws</a>${applyLink}`;
   }
-  if (aboutHtml && document.activeElement !== aboutHtml) aboutHtml.value = data.aboutHtml || "";
+  if (aboutExternalUrl && document.activeElement !== aboutExternalUrl) {
+    aboutExternalUrl.value = data.aboutExternalUrl || "";
+  }
+  if (bylawsExternalUrl && document.activeElement !== bylawsExternalUrl) {
+    bylawsExternalUrl.value = data.bylawsExternalUrl || "";
+  }
+  if (aboutPlainText && document.activeElement !== aboutPlainText) {
+    aboutPlainText.value = data.aboutPlainText || "";
+  }
+  if (bylawsPlainText && document.activeElement !== bylawsPlainText) {
+    bylawsPlainText.value = data.bylawsPlainText || "";
+  }
   if (aboutPublished) aboutPublished.checked = !!data.aboutPublished;
   if (bylawsPublished) bylawsPublished.checked = !!data.bylawsPublished;
   if (bylawsStatus) {
-    bylawsStatus.textContent = data.bylawsOnDisk
-      ? `Bylaws PDF: ${data.bylawsFilename}`
-      : "Bylaws PDF: not uploaded yet";
+    if (data.bylawsOnDisk) {
+      bylawsStatus.textContent = `Optional PDF on file: ${data.bylawsFilename}. Plain text above is used for the public page when saved.`;
+    } else {
+      bylawsStatus.textContent = "Optional PDF: not uploaded yet.";
+    }
   }
   if (imagesList) {
     if (!data.images?.length) {
@@ -5139,6 +5227,7 @@ function renderPublicPagesAdmin(data) {
         .join("");
     }
   }
+  syncPublicPagesExternalFields();
 }
 
 async function loadPublicPagesPanel() {
@@ -5162,7 +5251,8 @@ async function savePublicAboutPage() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        html: $("#publicAboutHtml")?.value || "",
+        plainText: $("#publicAboutPlainText")?.value || "",
+        externalUrl: $("#publicAboutExternalUrl")?.value?.trim() || "",
         published: $("#publicAboutPublished")?.checked,
       }),
     });
@@ -5182,12 +5272,16 @@ async function savePublicBylawsSettings() {
     const res = await fetch("/api/books/public-pages/bylaws", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ published: $("#publicBylawsPublished")?.checked }),
+      body: JSON.stringify({
+        plainText: $("#publicBylawsPlainText")?.value || "",
+        externalUrl: $("#publicBylawsExternalUrl")?.value?.trim() || "",
+        published: $("#publicBylawsPublished")?.checked,
+      }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to save bylaws settings");
+    if (!res.ok) throw new Error(data.error || "Failed to save bylaws page");
     renderPublicPagesAdmin(data);
-    if (statusEl) setFormStatus(statusEl, "Bylaws settings saved.", true);
+    if (statusEl) setFormStatus(statusEl, "Bylaws page saved.", true);
     if (currentUser?.organizationSlug) refreshPublicOrgLinks(currentUser.organizationSlug);
   } catch (err) {
     if (statusEl) setFormStatus(statusEl, err.message, false);
@@ -5268,6 +5362,10 @@ async function loadPublicAboutPage(slug) {
     const res = await nativeFetch(`/api/public/organizations/${encodeURIComponent(slug)}/about`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "About page not available");
+    if (data.externalUrl) {
+      window.location.replace(data.externalUrl);
+      return;
+    }
     setPublicPageBranding(data.organization?.name || slug, "About Us");
     if (article) article.innerHTML = data.html || "";
     $("#publicPageStatus")?.classList.add("hidden");
@@ -5289,9 +5387,23 @@ async function loadPublicBylawsPage(slug) {
     const res = await nativeFetch(`/api/public/organizations/${encodeURIComponent(slug)}/bylaws`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Bylaws not available");
+    if (data.externalUrl) {
+      window.location.replace(data.externalUrl);
+      return;
+    }
     setPublicPageBranding(data.organization?.name || slug, "Bylaws");
-    if (frame) frame.src = data.downloadUrl;
-    if (download) download.href = data.downloadUrl;
+    if (data.mode === "html") {
+      article?.classList.remove("hidden");
+      bylawsSection?.classList.add("hidden");
+      if (article) article.innerHTML = data.html || "";
+      if (frame) frame.removeAttribute("src");
+    } else {
+      article?.classList.add("hidden");
+      bylawsSection?.classList.remove("hidden");
+      const docUrl = data.downloadUrl;
+      if (frame && docUrl) frame.src = docUrl;
+      if (download && docUrl) download.href = docUrl;
+    }
     if (aboutLink) aboutLink.href = `/c/${encodeURIComponent(slug)}/about`;
     $("#publicPageStatus")?.classList.add("hidden");
   } catch (err) {
@@ -5326,6 +5438,8 @@ async function bootstrapPublicApp() {
 
 $("#savePublicAbout")?.addEventListener("click", savePublicAboutPage);
 $("#savePublicBylawsSettings")?.addEventListener("click", savePublicBylawsSettings);
+$("#publicAboutExternalUrl")?.addEventListener("input", syncPublicPagesExternalFields);
+$("#publicBylawsExternalUrl")?.addEventListener("input", syncPublicPagesExternalFields);
 $("#publicBylawsUpload")?.addEventListener("change", (e) => {
   const file = e.target.files?.[0];
   uploadPublicBylaws(file);
@@ -5962,6 +6076,8 @@ $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
 
 applyAppBranding();
 fillOrgSlugInputs();
+initRecordSectionCollapseButtons();
+initCooperativeReportViewer();
 const applyOrgFromUrl = new URLSearchParams(window.location.search).get("apply");
 if (applyOrgFromUrl && getPortalFromPath() !== "platform" && !isPublicPagePath()) {
   window.location.replace(

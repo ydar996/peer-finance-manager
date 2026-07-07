@@ -487,36 +487,66 @@
         <div id="publicPagesPanel" class="public-pages-admin">
           <p class="hint">These pages are visible without signing in : share the links with prospective members.</p>
           <p class="subtle" id="publicPagesLinks">Public links: :</p>
-          <label class="toggle-row">
-            <input type="checkbox" id="publicAboutPublished" />
-            Publish About Us page
-          </label>
-          <label class="field-row">
-            <span>About page HTML</span>
-            <textarea id="publicAboutHtml" rows="12" placeholder="HTML content for your About page"></textarea>
-          </label>
-          <p class="hint subtle">Use <code>src="about/your-image.png"</code> for images uploaded below.</p>
-          <div class="panel-head-actions">
-            <button type="button" class="btn primary" id="savePublicAbout">Save About Page</button>
-            <label class="btn">
-              Upload About Image
-              <input type="file" id="publicAboutImageUpload" accept="image/*" class="hidden" />
-            </label>
-          </div>
-          <ul class="file-list" id="publicAboutImagesList"></ul>
-          <hr />
-          <label class="toggle-row">
-            <input type="checkbox" id="publicBylawsPublished" />
-            Publish Bylaws page
-          </label>
-          <p class="subtle" id="publicBylawsFileStatus">Bylaws PDF: :</p>
-          <div class="panel-head-actions">
-            <label class="btn primary">
-              Upload Bylaws PDF
-              <input type="file" id="publicBylawsUpload" accept="application/pdf,.pdf" class="hidden" />
-            </label>
-            <button type="button" class="btn" id="savePublicBylawsSettings">Save Bylaws Settings</button>
-          </div>
+
+          <details class="card profile-disclosure record-section public-pages-section">
+            <summary class="record-section-summary">About Us Page</summary>
+            <div class="profile-disclosure-body">
+              <p class="subtle">Paste plain text from a Word document or type directly. Peer Finance Manager formats it into a public About page automatically.</p>
+              <label class="field-row">
+                <span>Existing About Us Website URL (Optional)</span>
+                <input type="url" id="publicAboutExternalUrl" placeholder="https://yourcooperative.org/about" />
+              </label>
+              <p class="subtle public-pages-url-hint">If your Cooperative already publishes About Us on another website, paste that link here and the fields below will be disabled.</p>
+              <div id="publicAboutContentFields" class="public-pages-content-fields">
+                <label class="toggle-row">
+                  <input type="checkbox" id="publicAboutPublished" />
+                  Publish About Us page on Peer Finance Manager
+                </label>
+                <label class="field-row">
+                  <span>About Us Text</span>
+                  <textarea id="publicAboutPlainText" rows="14" placeholder="Paste or type plain text here. Use blank lines between paragraphs. Short lines on their own become section headings. Start list lines with - or 1."></textarea>
+                </label>
+                <p class="hint subtle">Optional photos: upload images below, then reference them in your text as <code>about/your-image.png</code> on its own line.</p>
+                <label class="btn">
+                  Upload About Image
+                  <input type="file" id="publicAboutImageUpload" accept="image/*" class="hidden" />
+                </label>
+                <ul class="file-list" id="publicAboutImagesList"></ul>
+              </div>
+              <div class="panel-head-actions">
+                <button type="button" class="btn primary" id="savePublicAbout">Save About Page</button>
+              </div>
+            </div>
+          </details>
+
+          <details class="card profile-disclosure record-section public-pages-section">
+            <summary class="record-section-summary">Bylaws Page</summary>
+            <div class="profile-disclosure-body">
+              <p class="subtle">Paste plain text bylaws or upload a PDF. You can also link to bylaws already published on another website.</p>
+              <label class="field-row">
+                <span>Existing Bylaws Website URL (Optional)</span>
+                <input type="url" id="publicBylawsExternalUrl" placeholder="https://yourcooperative.org/bylaws" />
+              </label>
+              <p class="subtle public-pages-url-hint">If your Cooperative already publishes bylaws online, paste that link here and the fields below will be disabled.</p>
+              <div id="publicBylawsContentFields" class="public-pages-content-fields">
+                <label class="toggle-row">
+                  <input type="checkbox" id="publicBylawsPublished" />
+                  Publish Bylaws page on Peer Finance Manager
+                </label>
+                <label class="field-row">
+                  <span>Bylaws Text</span>
+                  <textarea id="publicBylawsPlainText" rows="14" placeholder="Paste or type plain text bylaws here. Use blank lines between paragraphs. Short lines on their own become section headings."></textarea>
+                </label>
+                <p class="subtle" id="publicBylawsFileStatus">Bylaws PDF: :</p>
+                <label class="btn">
+                  Upload Bylaws PDF (Optional)
+                  <input type="file" id="publicBylawsUpload" accept="application/pdf,.pdf" class="hidden" />
+                </label>
+              </div>
+              <div class="panel-head-actions">
+                <button type="button" class="btn primary" id="savePublicBylawsSettings">Save Bylaws Page</button>
+              </div>
+
           <p class="status" id="publicPagesStatus"></p>
         </div>
       </section>
@@ -1281,6 +1311,7 @@
           </summary>
           <div class="profile-disclosure-body my-cooperative-reports-body">
             <p class="subtle">Published month-end summaries from your Cooperative administrator.</p>
+            <p id="myPerformanceOverviewMeta" class="subtle hidden"></p>
             <p id="myPerformanceOverview" class="monthly-status-performance-overview hidden"></p>
             <ul class="file-list" id="myCooperativeReportsList"></ul>
           </div>
@@ -1342,6 +1373,14 @@
           </details>
         </div>
       </section>
+    </div>
+    <div id="cooperativeReportViewer" class="cooperative-report-viewer hidden" role="dialog" aria-modal="true" aria-labelledby="cooperativeReportViewerTitle">
+      <div class="cooperative-report-viewer-toolbar">
+        <button type="button" class="btn" id="cooperativeReportViewerBack">Back to Member Portal</button>
+        <p id="cooperativeReportViewerTitle" class="cooperative-report-viewer-title"></p>
+        <button type="button" class="btn primary" id="cooperativeReportViewerDownload">Download Report</button>
+      </div>
+      <iframe id="cooperativeReportViewerFrame" class="cooperative-report-viewer-frame" title="Cooperative Performance Report PDF"></iframe>
     </div>
     <script src="flexxforms-embed.js"></script>
     <script src="app.js"></script>

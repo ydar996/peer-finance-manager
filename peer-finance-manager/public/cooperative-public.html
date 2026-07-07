@@ -168,8 +168,8 @@
         }
 
         const copy = PAGE_COPY[page];
-        const aboutHref = "/c/" + encodeURIComponent(slug) + "/about";
-        const bylawsHref = "/c/" + encodeURIComponent(slug) + "/bylaws";
+        let aboutHref = "/c/" + encodeURIComponent(slug) + "/about";
+        let bylawsHref = "/c/" + encodeURIComponent(slug) + "/bylaws";
         let applyHref = "/c/" + encodeURIComponent(slug) + "/apply";
         const memberSignInHref = "/member?org=" + encodeURIComponent(slug);
 
@@ -202,6 +202,18 @@
           renderHeroActions(page, aboutHref, bylawsHref, applyHref);
         }
 
+        function applyPublicPageUrls(data) {
+          if (data.publicAboutUrl) {
+            aboutHref = data.publicAboutUrl;
+            navAbout.href = aboutHref;
+          }
+          if (data.publicBylawsUrl) {
+            bylawsHref = data.publicBylawsUrl;
+            navBylaws.href = bylawsHref;
+          }
+          applyPublicApplyUrl(data.publicApplyUrl);
+        }
+
         renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref);
         renderHeroActions(page, aboutHref, bylawsHref, applyHref);
 
@@ -215,6 +227,14 @@
           .then(function (res) {
             return res.json().then(function (data) {
               if (!res.ok) throw new Error(data.error || "Content not available");
+              if (data.externalUrl) {
+                window.location.replace(data.externalUrl);
+                return;
+              }
+              if (data.mode === "pdf" && data.downloadUrl) {
+                window.location.replace(data.downloadUrl);
+                return;
+              }
               if (!data.html) throw new Error("This page has no published content yet.");
               renderContent(data.html, applyHref, page);
             });
@@ -253,7 +273,7 @@
               } else {
                 document.title = copy.title;
               }
-              applyPublicApplyUrl(data.publicApplyUrl);
+              applyPublicPageUrls(data);
             });
           })
           .catch(function () {});

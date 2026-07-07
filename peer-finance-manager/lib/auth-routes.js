@@ -322,14 +322,39 @@ function registerAuthRoutes(app, deps = {}) {
       }
       const { listCooperativeStatusReports } = require("./monthly-status-report-service");
       const reports = listCooperativeStatusReports({ publishedOnly: true });
+      const latest = reports[0] || null;
       const { getCooperativeStatusReportData } = require("./cooperative-status-report");
-      const reportData = reports.length ? getCooperativeStatusReportData() : null;
+      const reportData = latest
+        ? getCooperativeStatusReportData({ asOfDate: latest.asOfDate })
+        : null;
       res.json({
         reports,
+        latestReport: latest,
         performanceOverview: reportData?.performanceOverview || null,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/me/cooperative-status-reports/:periodSlug/view", requireAuth, (req, res) => {
+    try {
+      const user = req.user;
+      if (user.role !== ROLES.MEMBER) {
+        return res.status(403).json({ error: "Member account required" });
+      }
+      const { getReportDownloadPath } = require("./monthly-status-report-service");
+      const file = getReportDownloadPath(req.params.periodSlug, { requirePublished: true });
+      res.type("application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${String(file.fileName).replace(/"/g, "")}"`
+      );
+      res.sendFile(file.filePath);
+    } catch (err) {
+      res.status(err.message.includes("not found") || err.message.includes("published") ? 404 : 500).json({
+        error: err.message,
+      });
     }
   });
 
@@ -375,7 +400,7 @@ function registerAuthRoutes(app, deps = {}) {
       }
       const { getOperationalExpensesSummary } = require("./expense-report-label-service");
       const { getCooperativeStatusReportData } = require("./cooperative-status-report");
-      const reportData = getCooperativeStatusReportData();
+      const reportData = getCooperativeStatusReportData({ asOfDate: published[0].asOfDate });
       res.json({
         summary: getOperationalExpensesSummary(),
         performanceOverview: reportData.performanceOverview,

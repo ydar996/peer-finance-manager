@@ -10,6 +10,7 @@ const {
   getPublicBylawsMeta,
   getAdminPublicPages,
   saveAboutPage,
+  saveBylawsPage,
   saveBylawsUpload,
   setBylawsPublished,
   saveAboutImageUpload,
@@ -134,8 +135,8 @@ function registerCooperativePublicRoutes(app, deps = {}) {
   app.put("/api/books/public-pages/about", requireAdmin, restoreOrgContext, (req, res) => {
     try {
       const slug = req.user.organizationSlug;
-      const { html, published } = req.body || {};
-      const result = saveAboutPage(slug, { html, published });
+      const { plainText, externalUrl, published } = req.body || {};
+      const result = saveAboutPage(slug, { plainText, externalUrl, published });
       res.json({ success: true, ...result });
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -145,8 +146,8 @@ function registerCooperativePublicRoutes(app, deps = {}) {
   app.put("/api/books/public-pages/bylaws", requireAdmin, restoreOrgContext, (req, res) => {
     try {
       const slug = req.user.organizationSlug;
-      const { published } = req.body || {};
-      const result = setBylawsPublished(slug, !!published);
+      const { plainText, externalUrl, published } = req.body || {};
+      const result = saveBylawsPage(slug, { plainText, externalUrl, published });
       res.json({ success: true, ...result });
     } catch (err) {
       res.status(400).json({ error: err.message });
