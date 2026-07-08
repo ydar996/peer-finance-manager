@@ -1,12 +1,24 @@
 const nodemailer = require("nodemailer");
 const { trace } = require("./trace-log");
 
-function isEmailConfigured() {
+function isRelayConfigured() {
+  return Boolean(
+    process.env.EMAIL_RELAY_URL &&
+      process.env.EMAIL_RELAY_SECRET &&
+      process.env.SMTP_FROM
+  );
+}
+
+function isSmtpConfigured() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_FROM);
 }
 
+function isEmailConfigured() {
+  return isRelayConfigured() || isSmtpConfigured();
+}
+
 function getSmtpTransport() {
-  if (!isEmailConfigured()) return null;
+  if (!isSmtpConfigured()) return null;
   const port = Number(process.env.SMTP_PORT || 587);
   const secure = process.env.SMTP_SECURE === "true" || port === 465;
   return nodemailer.createTransport({
@@ -26,11 +38,55 @@ function formatFromAddress() {
   return `"${name.replace(/"/g, "")}" <${address}>`;
 }
 
+async function sendViaRelay({ to, subject, text, html }) {
+  const response = await fetch(process.env.EMAIL_RELAY_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-PFM-Relay-Secret": process.env.EMAIL_RELAY_SECRET,
+    },
+    body: JSON.stringify({
+      to,
+      subject,
+      text,
+      html,
+      from: process.env.SMTP_FROM,
+      fromName: process.env.SMTP_FROM_NAME || "Peer Finance Manager",
+    }),
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      (payload && payload.error) ||
+      `Relay HTTP ${response.status}`;
+    throw new Error(message);
+  }
+
+  if (!payload || payload.ok !== true) {
+    throw new Error((payload && payload.error) || "Relay send failed");
+  }
+
+  return { sent: true, to, via: "relay" };
+}
+
 async function sendEmail({ to, subject, text, html }) {
   if (!isEmailConfigured()) {
-    trace.warn("Email skipped — SMTP not configured", { to, subject });
+    trace.warn("Email skipped — not configured", { to, subject });
     return { sent: false, skipped: true, reason: "not_configured" };
   }
+
+  if (isRelayConfigured()) {
+    const result = await sendViaRelay({ to, subject, text, html });
+    return result;
+  }
+
   const transport = getSmtpTransport();
   await transport.sendMail({
     from: formatFromAddress(),
@@ -39,10 +95,12 @@ async function sendEmail({ to, subject, text, html }) {
     text,
     html,
   });
-  return { sent: true, to };
+  return { sent: true, to, via: "smtp" };
 }
 
 module.exports = {
   isEmailConfigured,
+  isRelayConfigured,
+  isSmtpConfigured,
   sendEmail,
 };

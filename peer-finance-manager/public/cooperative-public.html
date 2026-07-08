@@ -102,8 +102,217 @@
       </svg>
     </button>
 
+    <script src="/flexxforms-embed.js"></script>
     <script>
       (function () {
+        const APPLY_RECEIVED_KEY_PREFIX = "pfmApplyReceived:";
+        const APPLY_RETURN_KEY_PREFIX = "pfmApplyReturn:";
+        const APPLY_THANKS =
+          "Thank you! Your application was received. Our administrators will review it after your membership fee and initial contribution are confirmed.";
+
+        function buildApplyHref(slug, fromPage) {
+          const from = fromPage === "bylaws" ? "bylaws" : "about";
+          return (
+            "/c/" +
+            encodeURIComponent(slug) +
+            "/apply?from=" +
+            encodeURIComponent(from)
+          );
+        }
+
+        function normalizeFromPage(value) {
+          return String(value || "").toLowerCase() === "bylaws" ? "bylaws" : "about";
+        }
+
+        function returnPageLabel(fromPage) {
+          return fromPage === "bylaws" ? "Bylaws" : "About Us";
+        }
+
+        function markApplyReceived(slug) {
+          try {
+            sessionStorage.setItem(APPLY_RECEIVED_KEY_PREFIX + slug, "1");
+          } catch (_) {
+            /* ignore */
+          }
+        }
+
+        function consumeApplyReceivedFlash(slug) {
+          try {
+            const key = APPLY_RECEIVED_KEY_PREFIX + slug;
+            if (sessionStorage.getItem(key) !== "1") return;
+            sessionStorage.removeItem(key);
+            const el = document.getElementById("status");
+            if (!el) return;
+            el.textContent = APPLY_THANKS;
+            el.className = "cp-alert cp-apply-success";
+            el.classList.remove("hidden");
+            window.setTimeout(function () {
+              el.classList.add("hidden");
+            }, 12000);
+          } catch (_) {
+            /* ignore */
+          }
+        }
+
+        function setupPublicNav(slug, page, fromPage) {
+          const aboutHref = "/c/" + encodeURIComponent(slug) + "/about";
+          const bylawsHref = "/c/" + encodeURIComponent(slug) + "/bylaws";
+          const applyHref = buildApplyHref(slug, fromPage || page);
+          const memberSignInHref = "/member?org=" + encodeURIComponent(slug);
+
+          const navAbout = document.getElementById("navAbout");
+          const navBylaws = document.getElementById("navBylaws");
+          const navApply = document.getElementById("navApply");
+          navAbout.href = aboutHref;
+          navBylaws.href = bylawsHref;
+          navApply.href = applyHref;
+          navAbout.classList.toggle("active", page === "about");
+          navBylaws.classList.toggle("active", page === "bylaws");
+          navApply.classList.toggle("active", page === "apply");
+          [navAbout, navBylaws, navApply].forEach(function (link) {
+            link.removeAttribute("aria-current");
+          });
+          if (page === "about") navAbout.setAttribute("aria-current", "page");
+          if (page === "bylaws") navBylaws.setAttribute("aria-current", "page");
+          if (page === "apply") navApply.setAttribute("aria-current", "page");
+
+          renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref);
+          return { aboutHref, bylawsHref, applyHref, memberSignInHref };
+        }
+
+        function renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref) {
+          const footer = document.getElementById("footerLinks");
+          if (!footer) return;
+          footer.innerHTML =
+            '<a href="' +
+            aboutHref +
+            '">About Us</a><a href="' +
+            bylawsHref +
+            '">Bylaws</a><a href="' +
+            applyHref +
+            '">Apply for Membership</a><a href="' +
+            memberSignInHref +
+            '">Member Sign In</a>';
+        }
+
+        function showError(message) {
+          const el = document.getElementById("status");
+          el.textContent = message;
+          el.className = "cp-alert";
+          el.classList.remove("hidden");
+        }
+
+        function setApplyStatus(message, kind) {
+          const el = document.getElementById("applyStatus");
+          if (!el) return;
+          if (!message) {
+            el.textContent = "";
+            el.className = "cp-apply-status hidden";
+            return;
+          }
+          el.textContent = message;
+          el.className =
+            "cp-apply-status " + (kind === "error" ? "cp-apply-status-error" : "cp-apply-status-info");
+          el.classList.remove("hidden");
+        }
+
+        function initApplyPage(slug) {
+          const params = new URLSearchParams(window.location.search);
+          const fromPage = normalizeFromPage(params.get("from"));
+          try {
+            sessionStorage.setItem(APPLY_RETURN_KEY_PREFIX + slug, fromPage);
+          } catch (_) {
+            /* ignore */
+          }
+
+          document.body.classList.add("cp-page-apply");
+          document.querySelector(".cp-layout")?.classList.add("cp-layout-apply");
+          document.getElementById("tocFab")?.classList.add("hidden");
+          document.getElementById("hero").classList.remove("hidden");
+
+          const copy = PAGE_COPY.apply;
+          document.getElementById("pageTitle").textContent = copy.title;
+          document.getElementById("heroEyebrow").textContent = copy.eyebrow;
+          document.getElementById("heroLead").textContent =
+            "Complete the membership application below. After you submit, you will return to " +
+            returnPageLabel(fromPage) +
+            ".";
+          document.getElementById("heroMeta").classList.add("hidden");
+          document.getElementById("heroActions").classList.add("hidden");
+          document.title = copy.title;
+
+          setupPublicNav(slug, "apply", fromPage);
+          const returnHref = "/c/" + encodeURIComponent(slug) + "/" + fromPage;
+
+          document.getElementById("contentArea").innerHTML =
+            '<div class="cp-apply-shell">' +
+            '<p class="cp-apply-sign-tip"><strong>Signature tip:</strong> On a phone, rotate to landscape if the signature box feels tight.</p>' +
+            '<p id="applyStatus" class="cp-apply-status hidden" role="status"></p>' +
+            '<div id="applyEmbedHost" class="cp-apply-embed-host"></div>' +
+            '<p class="cp-apply-footnote">If the form does not load, <a class="cp-apply-full-window-link" id="applyFullWindowLink" href="#" target="_blank" rel="noopener noreferrer">open the application in a full window</a>. You can return to <a href="' +
+            returnHref +
+            '">' +
+            returnPageLabel(fromPage) +
+            "</a> when finished.</p>" +
+            "</div>";
+
+          fetch("/api/public/organizations/" + encodeURIComponent(slug))
+            .then(function (res) {
+              return res.json().then(function (data) {
+                if (res.ok && data.organization && data.organization.name) {
+                  document.getElementById("orgName").textContent = data.organization.name;
+                  document.title = data.organization.name + " \u2014 " + copy.title;
+                }
+              });
+            })
+            .catch(function () {});
+
+          fetch("/api/public/organizations/" + encodeURIComponent(slug) + "/flexxforms")
+            .then(function (res) {
+              return res.json().then(function (data) {
+                if (!res.ok) throw new Error(data.error || "Unable to open application form");
+                const formId = data.membershipFormId;
+                const embedUrl = data.membershipEmbedUrl;
+                if (!formId && !embedUrl) {
+                  throw new Error(
+                    "The membership application is not published yet. Please check back soon or contact the Cooperative."
+                  );
+                }
+                const fullWindowLink = document.getElementById("applyFullWindowLink");
+                if (fullWindowLink && embedUrl) {
+                  fullWindowLink.href = embedUrl;
+                }
+                const host = document.getElementById("applyEmbedHost");
+                if (!host || !window.mountFlexxFormsEmbed) {
+                  throw new Error("Application form could not be loaded. Please refresh and try again.");
+                }
+                return window.mountFlexxFormsEmbed(host, {
+                  formId: formId,
+                  embedUrl: embedUrl,
+                  formTitle: "Membership application",
+                  onSubmitting: function () {
+                    setApplyStatus("Submitting your application\u2026", "info");
+                  },
+                  onError: function (payload) {
+                    const msg =
+                      payload?.message ||
+                      payload?.error ||
+                      "Please fix the highlighted fields and try again.";
+                    setApplyStatus(msg, "error");
+                  },
+                  onCompleted: function () {
+                    markApplyReceived(slug);
+                    window.location.replace(returnHref);
+                  },
+                });
+              });
+            })
+            .catch(function (err) {
+              document.getElementById("contentArea").innerHTML = "";
+              showError(err.message);
+            });
+        }
+
         const PAGE_COPY = {
           about: {
             title: "About Us",
@@ -143,34 +352,15 @@
         const page = match[2].toLowerCase();
 
         if (page === "apply") {
-          document.body.classList.add("cp-page-apply");
-          document.getElementById("hero").classList.add("hidden");
-          document.getElementById("contentArea").innerHTML =
-            '<div class="cp-content-loading"><div class="cp-spinner" aria-hidden="true"></div><p>Opening membership application…</p></div>';
-          fetch("/api/public/organizations/" + encodeURIComponent(slug) + "/flexxforms")
-            .then(function (res) {
-              return res.json().then(function (data) {
-                if (!res.ok) throw new Error(data.error || "Unable to open application form");
-                var url = data.membershipEmbedUrl;
-                if (!url) {
-                  throw new Error(
-                    "The membership application is not published yet. Please check back soon or contact the Cooperative."
-                  );
-                }
-                window.location.replace(url);
-              });
-            })
-            .catch(function (err) {
-              document.getElementById("contentArea").innerHTML = "";
-              showError(err.message);
-            });
+          initApplyPage(slug);
           return;
         }
 
         const copy = PAGE_COPY[page];
+        const fromPage = page;
         let aboutHref = "/c/" + encodeURIComponent(slug) + "/about";
         let bylawsHref = "/c/" + encodeURIComponent(slug) + "/bylaws";
-        let applyHref = "/c/" + encodeURIComponent(slug) + "/apply";
+        let applyHref = buildApplyHref(slug, fromPage);
         const memberSignInHref = "/member?org=" + encodeURIComponent(slug);
 
         document.body.classList.add(copy.pageClass);
@@ -179,25 +369,11 @@
         document.getElementById("heroLead").textContent = copy.lead;
         document.getElementById("heroMeta").classList.add("hidden");
 
-        const navAbout = document.getElementById("navAbout");
-        const navBylaws = document.getElementById("navBylaws");
-        const navApply = document.getElementById("navApply");
-        navAbout.href = aboutHref;
-        navBylaws.href = bylawsHref;
-        navApply.href = applyHref;
-        navAbout.classList.toggle("active", page === "about");
-        navBylaws.classList.toggle("active", page === "bylaws");
-        navApply.classList.toggle("active", false);
-        [navAbout, navBylaws, navApply].forEach(function (link) {
-          link.removeAttribute("aria-current");
-        });
-        if (page === "about") navAbout.setAttribute("aria-current", "page");
-        if (page === "bylaws") navBylaws.setAttribute("aria-current", "page");
+        setupPublicNav(slug, page, fromPage);
 
-        function applyPublicApplyUrl(url) {
-          if (!url) return;
-          applyHref = url;
-          navApply.href = applyHref;
+        function refreshApplyLinks() {
+          applyHref = buildApplyHref(slug, fromPage);
+          document.getElementById("navApply").href = applyHref;
           renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref);
           renderHeroActions(page, aboutHref, bylawsHref, applyHref);
         }
@@ -205,16 +381,17 @@
         function applyPublicPageUrls(data) {
           if (data.publicAboutUrl) {
             aboutHref = data.publicAboutUrl;
-            navAbout.href = aboutHref;
+            document.getElementById("navAbout").href = aboutHref;
           }
           if (data.publicBylawsUrl) {
             bylawsHref = data.publicBylawsUrl;
-            navBylaws.href = bylawsHref;
+            document.getElementById("navBylaws").href = bylawsHref;
           }
-          applyPublicApplyUrl(data.publicApplyUrl);
+          if (data.applyAvailable !== false && data.publicApplyUrl) {
+            refreshApplyLinks();
+          }
         }
 
-        renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref);
         renderHeroActions(page, aboutHref, bylawsHref, applyHref);
 
         const tocFab = document.getElementById("tocFab");
@@ -237,6 +414,7 @@
               }
               if (!data.html) throw new Error("This page has no published content yet.");
               renderContent(data.html, applyHref, page);
+              consumeApplyReceivedFlash(slug);
             });
           })
           .catch(function (err) {
@@ -277,21 +455,6 @@
             });
           })
           .catch(function () {});
-
-        function renderFooterLinks(aboutHref, bylawsHref, applyHref, memberSignInHref) {
-          const footer = document.getElementById("footerLinks");
-          if (!footer) return;
-          footer.innerHTML =
-            '<a href="' +
-            aboutHref +
-            '">About Us</a><a href="' +
-            bylawsHref +
-            '">Bylaws</a><a href="' +
-            applyHref +
-            '">Apply for Membership</a><a href="' +
-            memberSignInHref +
-            '">Member Sign In</a>';
-        }
 
         function renderHeroActions(page, aboutHref, bylawsHref, applyHref) {
           const actions = document.getElementById("heroActions");
@@ -492,12 +655,6 @@
           const pct = height > 0 ? Math.min(100, (scrollTop / height) * 100) : 0;
           scrollProgress.style.width = pct + "%";
           backTop.classList.toggle("hidden", scrollTop < 480);
-        }
-
-        function showError(message) {
-          const el = document.getElementById("status");
-          el.textContent = message;
-          el.classList.remove("hidden");
         }
       })();
     </script>

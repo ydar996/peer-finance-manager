@@ -115,7 +115,10 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 - **2026-07-06** — **Member performance report UX:** Overview summary uses **latest published report as-of date** (not today). Report links labeled **View PDF Report** with tap-to-open hint. Full-screen PDF viewer with **Back to Member Portal** and **Download Report**. New `GET /api/me/cooperative-status-reports/:periodSlug/view` (inline PDF). **Production:** `git push` (`bff5e79`).
 - **2026-07-06** — **Manual Record multi-column fields:** Forms inside each expanded Record section use a responsive grid (`auto-fit`, ~200px min) so fields like First/Middle/Last Name sit side by side; member pickers, addresses, and submit buttons stay full width. **Production:** `git push` (`bff5e79`).
 - **2026-07-06** — **Manual Record collapse buttons:** Each Record tab section shows a **Collapse Section** button at the bottom when expanded (summary expands at top). Scrolls back to the section header on collapse. **Production:** `git push` (`bff5e79`).
-- **2026-07-06** — **Manual Record vertical layout:** Record tab sections (Register Member, Update Profile, Registration Fee, bank balances, etc.) stack in a single column instead of a 4-column grid, so expanding one section no longer stretches empty siblings on the same row. Collapsible `<details>` behavior unchanged. **Production:** `git push` (`1ab6c83`).
+- **2026-07-07** — **Membership apply return-to-origin:** `/c/{slug}/apply?from=about|bylaws` embeds FlexxForms on PFM (no redirect off-site). On submit, member returns to origin page; one-time thank-you flash via sessionStorage (clears on refresh). `publicApplyUrl` is `/c/{slug}/apply`. Render serves apply via `cooperative-public.html` (same as Netlify). Files: `cooperative-public.html`, `cooperative-public.css`, `server.js`, `flexxforms-service.js`, `cooperative-public-pages-service.js`, `app.js`. **Production:** `git push`.
+- **2026-07-06** — **Bluehost email relay (no SendGrid):** `email-service.js` supports `EMAIL_RELAY_URL` + `EMAIL_RELAY_SECRET` (HTTPS to PHP on Bluehost); `bluehost-relay/pfm-mail-relay.php`; layman guide **BLUEHOST-EMAIL-RELAY-SETUP.md**. User declined SendGrid paid trial. **Production:** `git push` + upload PHP to Bluehost + Render env.
+- **2026-07-06** — **EMAIL-NOTIFICATIONS-SETUP.md:** Bluehost DNS field mapping for SendGrid (Host Name vs Alias to; `em6813` example).
+- **2026-07-06** — **EMAIL-NOTIFICATIONS-SETUP.md:** added "Where You Left Off" resume section; meeting announcement/reminder rows in auto-email table. Record tab sections (Register Member, Update Profile, Registration Fee, bank balances, etc.) stack in a single column instead of a 4-column grid, so expanding one section no longer stretches empty siblings on the same row. Collapsible `<details>` behavior unchanged. **Production:** `git push` (`1ab6c83`).
 - **2026-07-06** — **FlexxForms `answers[]` parser (partner fix):** FlexxForms now ships labeled `answers[]` on `form.submitted` webhooks and via `GET /api/integrations/forms/{formId}/submissions/{submissionId}`. PFM parses applicant vs next-of-kin by **lowest/second `fieldIndex` on name rows** (not generic `firstName`/`lastName` scan). Reprocess fetches full submission when stored webhook lacks `answers[]`. Legacy label walk remains as fallback. **Production:** `git push` (`e18710e`).
 - **2026-07-06** — **FlexxForms sparse webhook guard:** Post-deploy retest confirmed webhook has no labeled answers and integrations API fetch failed; PFM wrongly imported Mia Testy from generic `firstName`/`lastName`. Reprocess/webhook now **refuse** to create or update profiles when payload is sparse and API fetch fails. Escalation to FlexxForms required for full answers in webhook or working GET submission API. **Production:** `git push`.
 - **2026-07-06** — **FlexxForms webhook field enrichment:** Reprocess appeared to do nothing because stored `form.submitted` webhook often has only submission metadata (generic `firstName`/`lastName` keys), not labeled form answers. **Fix:** Reprocess and new webhooks fetch full submission from FlexxForms integrations API when stored payload has fewer than 4 core fields; deeper label/field-id parsing; clearer admin status message. **Production:** `git push`.
@@ -381,7 +384,7 @@ npm run statements:legacy-server  # Deprecated port 3456 only
 | Item | Value |
 |------|--------|
 | Host pages | `/c/{slug}/apply`, legacy `/?apply={slug}`, member loan apply, login membership apply |
-| Embed method | **No embed on apply.** `/c/{slug}/apply` redirects to `https://flexxforms.netlify.app/p/{formId}`. `publicApplyUrl` and nav links use the FlexxForms URL directly. Webhook unchanged. Loan apply in member portal may still use `mountFlexxFormsEmbed`. |
+| Embed method | `/c/{slug}/apply?from=about\|bylaws` embeds FlexxForms via `mountFlexxFormsEmbed`; on **completed**, redirects to origin page with one-time thank-you flash (not persistent). Full-window FlexxForms link remains as fallback. `publicApplyUrl` = `/c/{slug}/apply`. Webhook unchanged. Member login apply still uses embed on `membershipApplyScreen`. |
 | Form ids | Per Cooperative in registry `organizations`: `membership_form_id`, `loan_form_id`, guarantor/borrower master doc ids |
 | Webhook | `POST https://peer-finance-manager.onrender.com/api/flexxforms/webhook` (HMAC, unchanged) |
 | Provision | `POST /platform/workspaces/ensure` on org register; admin assigns ids in **Forms & Documents** |
@@ -444,12 +447,13 @@ Peer Finance Manager / Assurance Cooperative
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — Admin → Import → Bank Ledger Import (`POST /api/bank-import/run`). |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |
+| 8 | **Finish email notifications (Bluehost relay)** | User declined SendGrid trial. Deploy relay code (`email-service.js`, `bluehost-relay/pfm-mail-relay.php`), upload PHP to `eworkchop.com`, set `EMAIL_RELAY_URL` + secret on Render. Guide: **[BLUEHOST-EMAIL-RELAY-SETUP.md](BLUEHOST-EMAIL-RELAY-SETUP.md)**. Optional: remove SendGrid DNS rows + cancel trial. |
 
 ### High — user said they will provide info later
 
 | # | Task | Notes |
 |---|------|-------|
-| 8 | **Member photos** | Admin and member upload supported; most members still on placeholder SVG. |
+| 9 | **Member photos** | Admin and member upload supported; most members still on placeholder SVG. |
 
 ### Medium — operational
 

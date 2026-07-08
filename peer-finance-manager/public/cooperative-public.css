@@ -963,7 +963,7 @@ body.cp-public {
 }
 
 .cp-page-apply .cp-hero {
-  display: none;
+  display: block;
 }
 
 .cp-page-apply .cp-main {
@@ -1116,6 +1116,12 @@ body.cp-public {
   color: #991b1b;
   margin-bottom: 20px;
   font-size: 0.95rem;
+}
+
+.cp-alert.cp-apply-success {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #047857;
 }
 
 .cp-footer {

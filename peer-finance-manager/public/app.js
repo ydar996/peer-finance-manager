@@ -243,7 +243,9 @@ async function refreshPublicOrgLinks(slug) {
       link.classList.toggle("hidden", !data.bylawsAvailable);
     });
     document.querySelectorAll(".public-apply-link").forEach((link) => {
-      link.href = data.publicApplyUrl || `/c/${encodeURIComponent(normalized)}/apply`;
+      link.href = data.publicApplyUrl
+        ? data.publicApplyUrl + (data.publicApplyUrl.includes("?") ? "" : "?from=about")
+        : `/c/${encodeURIComponent(normalized)}/apply?from=about`;
       link.classList.toggle("hidden", !data.applyAvailable);
     });
     document.querySelectorAll(".public-apply-sep").forEach((el) => {

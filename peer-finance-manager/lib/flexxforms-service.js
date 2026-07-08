@@ -232,7 +232,9 @@ function getFlexxFormsAdminView(slug, { consumeTempPassword = false, sessionUser
     embedBaseUrl: FLEXXFORMS_EMBED_BASE,
     membershipEmbedUrl: buildFlexxFormsEmbedUrl(ff.membershipFormId),
     loanEmbedUrl: buildFlexxFormsEmbedUrl(ff.loanFormId),
-    publicApplyUrl: ff.membershipFormId ? buildFlexxFormsEmbedUrl(ff.membershipFormId) : null,
+    publicApplyUrl: ff.membershipFormId
+      ? `/c/${encodeURIComponent(org.slug)}/apply`
+      : null,
     provisioningConfigured: isProvisioningConfigured(),
   };
 }
