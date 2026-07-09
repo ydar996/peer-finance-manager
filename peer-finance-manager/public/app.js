@@ -4199,16 +4199,34 @@ async function loadBankImportSettings() {
   } catch (_) {}
 }
 
+function updateApplyBankAppendButton() {
+  const btn = $("#applyBankAppend");
+  if (!btn) return;
+  const ready = bankAppendPreviewData?.summary?.ready || 0;
+  if (ready > 0) {
+    btn.textContent = `Add New Transactions (${ready})`;
+    btn.title = `Add ${ready} new transaction(s)`;
+  } else {
+    btn.textContent = "Add New Transactions";
+    btn.title = "Preview the file first. PFM will preview automatically when you click if needed.";
+  }
+}
+
+function resetBankAppendPreview() {
+  bankAppendPreviewData = null;
+  renderBankAppendPreview(null);
+  updateApplyBankAppendButton();
+}
+
 function renderBankAppendPreview(preview) {
   const panel = $("#bankAppendPreview");
-  const applyBtn = $("#applyBankAppend");
   if (!panel) return;
   bankAppendPreviewData = preview;
   const rows = preview?.rows || [];
   if (!rows.length) {
     panel.classList.add("hidden");
     panel.innerHTML = "";
-    if (applyBtn) applyBtn.disabled = true;
+    updateApplyBankAppendButton();
     return;
   }
   panel.classList.remove("hidden");
@@ -4255,7 +4273,7 @@ function renderBankAppendPreview(preview) {
         </tbody>
       </table>
     </div>`;
-  if (applyBtn) applyBtn.disabled = !(summary.ready > 0);
+  updateApplyBankAppendButton();
 }
 
 async function downloadImportTemplate(kind, button) {
@@ -4321,6 +4339,46 @@ async function previewBankAppendImport() {
   }
 }
 
+async function handleApplyBankAppendClick() {
+  const form = $("#bankAppendForm");
+  const status = $("#bankAppendStatus");
+  const file = form?.statement?.files?.[0];
+  if (!form || !file) {
+    if (status) {
+      status.textContent = "Choose a statement or template file first.";
+      status.className = "status err";
+    }
+    return;
+  }
+  if (!bankAppendPreviewData) {
+    if (status) {
+      status.textContent = "Running preview first…";
+      status.className = "status";
+    }
+    await previewBankAppendImport();
+  }
+  const summary = bankAppendPreviewData?.summary || {};
+  const ready = summary.ready || 0;
+  const skipped = summary.skipped || 0;
+  const needsReview = summary.needsReview || 0;
+  if (ready <= 0) {
+    if (status) {
+      if (needsReview > 0) {
+        status.textContent = `${needsReview} row(s) need review before import. Fix Type or Member in the file, or use the Import Template.`;
+        status.className = "status warn";
+      } else if (skipped > 0) {
+        status.textContent = `No new transactions to add. ${skipped} row(s) already in the ledger.`;
+        status.className = "status ok";
+      } else {
+        status.textContent = "No transactions found in this file.";
+        status.className = "status warn";
+      }
+    }
+    return;
+  }
+  await applyBankAppendImport(form);
+}
+
 async function applyBankAppendImport(form) {
   const status = $("#bankAppendStatus");
   const summary = $("#bankAppendSummary");
@@ -4348,6 +4406,7 @@ async function applyBankAppendImport(form) {
     }
     const result = data.result || {};
     renderBankAppendPreview(result);
+    updateApplyBankAppendButton();
     if (status) {
       status.textContent = result.message || "Import complete.";
       status.className = "status ok";
@@ -4511,10 +4570,12 @@ $("#downloadImportTemplateCsv")?.addEventListener("click", (e) => {
 $("#downloadImportTemplateXlsx")?.addEventListener("click", (e) => {
   downloadImportTemplate("xlsx", e.currentTarget);
 });
-$("#bankAppendForm")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  await applyBankAppendImport(e.target);
+$("#bankAppendForm")?.addEventListener("submit", (e) => e.preventDefault());
+$("#bankAppendForm")?.addEventListener("change", (e) => {
+  if (e.target?.name !== "statement") return;
+  resetBankAppendPreview();
 });
+$("#applyBankAppend")?.addEventListener("click", handleApplyBankAppendClick);
 $("#bankAccountSettingsForm")?.addEventListener("submit", saveBankAccountSettings);
 
 async function downloadBankLedgerReference(button) {

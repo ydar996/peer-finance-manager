@@ -305,6 +305,14 @@ th { background: #f8fafc; font-weight: 600; }
   font-size: 14px;
 }
 .btn.primary { background: #0ea5e9; color: #fff; border-color: #0284c7; }
+.btn:disabled,
+.btn.primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #94a3b8;
+  border-color: #94a3b8;
+  color: #fff;
+}
 .btn.link { border: none; background: none; color: #0284c7; padding: 0; }
 .card {
   background: #fff;
