@@ -107,6 +107,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-08** — **Assurance ledger fixed on production (Render):** Local DB rebuilt via `npm run pfm:import-bank` (453 rows, **$15,471.49**). Production **Full Ledger Refresh** via `scripts/push-ledger-to-production.js` — health now shows **453** `bankImportRows`, ending **$15,471.49** as of **2026-06-29** (was 583 rows). Code deploy **`715ba7c`**: auto-sync no longer overwrites `cooperative-bank-ledger-reference.xlsx` (CSV only). **Production:** `git push` (Render auto-deploy ~5–15 min). July activity: **Import New Bank Activity** with `stmt (7).csv` when ready.
 - **2026-07-08** — **Bank ledger reference restored from golden master:** Root cause of reference ≠ master: **4 phantom duplicate rows** (+$603.20 through 6/29) plus **2 July test rows** (+$170.06) in reference only. Duplicates: second **-$16** monthly fee on **2023-04-03** and **2023-10-02**; second **+$317.60** mobile deposit on **2025-01-27** and **2025-02-18** (empty Member). Reference had been overwritten by `queueCooperativeBankLedgerCsvSync` from stale DB + agent hand-appends. **Fix applied locally:** copied `data/master-ledger/cooperative-bank-ledger-master.xlsx` → `cooperative-bank-ledger-reference.xlsx` and rebuilt `.csv` (**453 rows**, ending **$15,471.49**; **0 field diffs** vs master). **Production:** Admin → **Full Ledger Refresh** with restored xlsx (git push not required for data files).
 - **2026-07-08** — **Handover: two-file bank ledger model (§1A corrected):** User confirmed golden **historical bank archive** is `data/master-ledger/cooperative-bank-ledger-master.xlsx` (453 rows, **$15,471.49**, 2023-01-23 through 2026-06-29) — **not** the same as `cooperative-bank-ledger-reference.xlsx` (app import file, corrupted by auto-sync). Built via `build-master-ledger.js` from `pre 2025.xlsx` + `stmt (6).csv`. Agents had conflated the two files in prior responses.
 - **2026-07-08** — **Append import balance check fix:** Preview no longer flags a red **Balance mismatch** when ledger opening already differs from statement **beginning** (pre-period gap). Warning only when opening aligns but **new rows** fail to reach statement **ending**. UI shows statement beginning, pre-period gap note, or success when ending ties. Prior Assurance reconcile (phantom XXXXX rows, bank fees, proxy Zelle, xlsx ending **$15,471.49** on 6/29/2026) is **done** — do not re-diagnose. Bank ledger updates: **Admin → Import** only (no WinSCP). Files: `bank-import-append.js`, `app.js`. **Production:** `git push`.
@@ -242,7 +243,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 | Ending 6/29 | $15,471.49 | **$15,471.49** ✅ |
 | Field diffs vs master | — | **0** ✅ |
 
-**Prior corruption (resolved):** reference had **459 rows**, ending **$16,244.75** — **4 phantom duplicates** (+$603.20 through 6/29) and **2 July test rows** (+$170.06). Cause: `cooperative-bank-ledger-csv.js` auto-sync overwrote import file from stale DB; agents appended July rows by hand. **Local PC files now match master.** Production DB still needs **Full Ledger Refresh** unless already run.
+**Prior corruption (resolved):** reference had **459 rows**, ending **$16,244.75** — **4 phantom duplicates** (+$603.20 through 6/29) and **2 July test rows** (+$170.06). Cause: `cooperative-bank-ledger-csv.js` auto-sync overwrote import file from stale DB; agents appended July rows by hand. **Local PC + production Render DB now match master** (453 / $15,471.49, 2026-07-08).
 
 ### Agent rules (non-negotiable)
 
@@ -521,8 +522,8 @@ Peer Finance Manager / Assurance Cooperative
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
 | 2 | **Cooperative expenses** | Table exists; no UI/import. |
 | 3 | **Profile for Kehinde Agboola** | Olawale George added (WPForms row + local import). Kehinde still has no application row. |
-| 4 | ~~**Restore app import file from golden master**~~ | ✅ **PC done** 2026-07-08 — reference xlsx/csv copied from master (453 / $15,471.49). **Remaining:** Admin → **Full Ledger Refresh** on production if dashboard still wrong. |
-| 4b | **Fix auto-sync clobber** | `queueCooperativeBankLedgerCsvSync` must not overwrite reconciled `cooperative-bank-ledger-reference.xlsx` without backup/explicit user action. |
+| 4 | ~~**Restore app import file from golden master**~~ | ✅ **Done** 2026-07-08 — PC + production Render (453 / $15,471.49). |
+| 4b | ~~**Fix auto-sync clobber**~~ | ✅ **Done** `715ba7c` — `queueCooperativeBankLedgerCsvSync` updates CSV only; never overwrites reference xlsx. |
 | 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh** with golden xlsx. **No WinSCP** for Assurance bank ledger (user workflow since mid-2026). |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
