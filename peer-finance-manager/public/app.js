@@ -4870,6 +4870,41 @@ $("#sortBankLedgerUpload")?.addEventListener("click", (e) => {
   sortBankLedgerUpload(e.currentTarget);
 });
 
+function clearBankImportPreview() {
+  const panel = $("#bankImportPreview");
+  if (panel) {
+    panel.innerHTML = "";
+    panel.classList.add("hidden");
+  }
+}
+
+function renderBankImportPreview(conflicts) {
+  const panel = $("#bankImportPreview");
+  if (!panel) return;
+  if (!conflicts) {
+    clearBankImportPreview();
+    return;
+  }
+  panel.classList.remove("hidden");
+  const warningCount = conflicts.importAudit?.warningCount || 0;
+  const missingCount = conflicts.missingFromImport?.length || 0;
+  const balanceText =
+    conflicts.endingBalance != null ? fmt.format(conflicts.endingBalance) : ":";
+  const dateText = conflicts.lastDate ? ` through ${escapeHtml(conflicts.lastDate)}` : "";
+  const warningLine = warningCount
+    ? `<p class="status warn">${warningCount} ledger warning(s). See Ledger warnings below.</p>`
+    : `<p class="status ok">No ledger warnings flagged.</p>`;
+  const missingLine = missingCount
+    ? `<p class="status warn">${missingCount} manual entr${missingCount === 1 ? "y" : "ies"} in Peer Finance Manager ${missingCount === 1 ? "is" : "are"} not in this file and would be removed on import.</p>`
+    : "";
+  panel.innerHTML = `
+    <strong>Ledger File Preview</strong>
+    <p>${conflicts.importCount || 0} rows · Ending balance ${escapeHtml(balanceText)}${dateText}</p>
+    ${warningLine}
+    ${missingLine}
+    <p class="subtle">Fix issues in your file if needed, then click <strong>Import Bank Ledger</strong>.</p>`;
+}
+
 function clearBankImportConflicts() {
   const panel = $("#bankImportConflicts");
   if (panel) {
@@ -4916,7 +4951,7 @@ function renderBankImportConflicts(conflicts) {
     <div class="panel-head-actions">
       <button type="button" class="btn primary" id="downloadMissingManualRows">Download missing rows CSV</button>
     </div>
-    <p>Open the missing-rows file, copy its transaction rows into <strong>cooperative-bank-ledger-reference.csv</strong> or <strong>cooperative-bank-ledger-reference.xlsx</strong> (same names as <strong>data\</strong> on your PC), then import that file or click <strong>Sort &amp; Download cooperative-bank-ledger-reference.csv</strong>. After import, use the matching download buttons to replace your local copy from live Cooperative Books.</p>`
+    <p>Open the missing-rows file, copy its transaction rows into <strong>cooperative-bank-ledger-reference.csv</strong> or <strong>cooperative-bank-ledger-reference.xlsx</strong> (same names as <strong>data\</strong> on your PC), then import that file or click <strong>Sort &amp; Download Csv Ledger</strong>. After import, use <strong>Download Csv Ledger</strong> or <strong>Download Xlsx Ledger</strong> to replace your local copy from live Cooperative Books.</p>`
     : "";
   panel.innerHTML = warningHtml + missingHtml;
 }
@@ -4960,10 +4995,51 @@ $("#bankImportConflicts")?.addEventListener("click", (e) => {
   }
 });
 
+async function previewBankImport() {
+  const form = $("#bankImportForm");
+  const status = $("#bankImportStatus");
+  const summary = $("#bankImportSummary");
+  const file = form?.statement?.files?.[0];
+  if (!form || !file) {
+    if (status) {
+      status.textContent = "Choose your master ledger file first.";
+      status.className = "status err";
+    }
+    return;
+  }
+  const btn = $("#previewBankImport");
+  setButtonBusy(btn, true, "Previewing…");
+  if (status) {
+    status.textContent = "Analyzing ledger file…";
+    status.className = "status";
+  }
+  if (summary) summary.textContent = "";
+  try {
+    const conflicts = await checkBankImportConflicts(form);
+    renderBankImportPreview(conflicts);
+    const warningCount = conflicts?.importAudit?.warningCount || 0;
+    const missingCount = conflicts?.missingFromImport?.length || 0;
+    if (status) {
+      status.textContent = `Preview ready: ${conflicts?.importCount || 0} rows${warningCount ? `, ${warningCount} warning(s)` : ""}${missingCount ? `, ${missingCount} manual row(s) would be dropped` : ""}.`;
+      status.className = warningCount || missingCount ? "status warn" : "status ok";
+    }
+  } catch (err) {
+    clearBankImportPreview();
+    clearBankImportConflicts();
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  } finally {
+    setButtonBusy(btn, false);
+  }
+}
+
 async function checkBankImportConflicts(form) {
   const statement = form.statement?.files?.[0];
   if (!statement) {
     clearBankImportConflicts();
+    clearBankImportPreview();
     return null;
   }
   const fd = new FormData();
@@ -5000,6 +5076,7 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
     const data = await res.json();
     if (res.status === 409 && data.conflicts?.hasConflicts) {
       renderBankImportConflicts(data.conflicts);
+      renderBankImportPreview(data.conflicts);
       const count = data.conflicts.missingFromImport.length;
       const proceed = confirm(
         `${count} manual transaction${count === 1 ? "" : "s"} in Peer Finance Manager ${count === 1 ? "is" : "are"} not in this file and will be removed.\n\nImport anyway?`
@@ -5008,18 +5085,27 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
         await runBankImport(form, { acknowledgeManualLoss: true });
       } else if (status) {
         status.textContent =
-          "Import cancelled. Download the reference CSV or add the missing manual rows first.";
+          "Import cancelled. Download Csv Ledger or add the missing manual rows first.";
         status.className = "status err";
       }
       return;
     }
     if (!res.ok) throw new Error(data.error || "Bank import failed");
-    clearBankImportConflicts();
+    const warningCount = data.conflicts?.importAudit?.warningCount || 0;
+    const missingCount = data.conflicts?.missingFromImport?.length || 0;
+    if (warningCount || missingCount) {
+      renderBankImportConflicts(data.conflicts);
+      renderBankImportPreview(data.conflicts);
+    } else {
+      clearBankImportConflicts();
+      clearBankImportPreview();
+    }
     const r = data.result || {};
     if (status) {
-      status.textContent =
-        "Bank ledger updated. Download sorted reference CSV to replace your local file.";
-      status.className = "status ok";
+      status.textContent = warningCount
+        ? `Bank ledger updated with ${warningCount} ledger warning(s). See Ledger warnings below.`
+        : "Bank ledger updated.";
+      status.className = warningCount ? "status warn" : "status ok";
     }
     if (summary) {
       summary.textContent = [
@@ -5035,10 +5121,10 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
         r.ledgerEndingBalance != null && Math.abs(r.ledgerEndingBalance - 15471.49) > 0.01
           ? "Warning: expected BoA checking balance is 15,471.49 : verify you uploaded cooperative-bank-ledger-reference.xlsx from AssurCoop/data (453 rows)."
           : null,
-        data.conflicts?.importAudit?.warningCount
-          ? `Warning: ${data.conflicts.importAudit.warningCount} ledger issue(s) were flagged : expand the panel above and fix the file before relying on member balances.`
+        warningCount
+          ? `${warningCount} ledger warning(s) listed below : fix the file and run Full Ledger Refresh again before relying on member balances.`
           : null,
-        "Use Download sorted reference to pull a date-ordered copy matching live books.",
+        "Use Download Csv Ledger or Download Xlsx Ledger to pull a date-ordered copy matching live books.",
       ]
         .filter(Boolean)
         .join(" · ");
@@ -5056,19 +5142,19 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
   }
 }
 
-$("#bankImportForm")?.addEventListener("change", async (e) => {
+$("#previewBankImport")?.addEventListener("click", previewBankImport);
+
+$("#bankImportForm")?.addEventListener("change", (e) => {
   if (e.target?.name !== "statement") return;
-  const form = e.target.form;
-  if (!form) return;
-  try {
-    await checkBankImportConflicts(form);
-  } catch (err) {
-    const status = $("#bankImportStatus");
-    if (status) {
-      status.textContent = err.message;
-      status.className = "status err";
-    }
+  clearBankImportPreview();
+  clearBankImportConflicts();
+  const status = $("#bankImportStatus");
+  const summary = $("#bankImportSummary");
+  if (status) {
+    status.textContent = "";
+    status.className = "status";
   }
+  if (summary) summary.textContent = "";
 });
 
 $("#bankImportForm")?.addEventListener("submit", async (e) => {

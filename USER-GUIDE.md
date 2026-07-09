@@ -125,7 +125,15 @@ Re-uploading the same statement adds nothing (duplicates are skipped automatical
 
 **Other Import sections:** expand **Cooperative Spreadsheet**, **Membership Applications (WPForms CSV)**, or **Loan Repayment Schedule** only when you need bulk loads outside bank activity.
 
-**Full Ledger Refresh (advanced):** replaces all bank-imported rows from a master ledger file. Use only for a full rebuild, not monthly updates. Read **Ledger warnings** before confirming. Download buttons save as **cooperative-bank-ledger-reference.csv** and **cooperative-bank-ledger-reference.xlsx** (same names as your **data\** folder). Either file can be edited and re-imported.
+**Full Ledger Refresh (advanced):** replaces all bank-imported rows from a master ledger file. Use only for a full rebuild, not monthly updates.
+
+1. Expand **Full Ledger Refresh (Advanced)**.
+2. Choose your master ledger file (`.csv` or `.xlsx`).
+3. Hover the **i** next to each button if you are unsure what it does.
+4. Click **Preview** to see row count, ending balance, and any **Ledger warnings** before importing.
+5. Fix issues in your file if needed, then click **Import Bank Ledger**.
+6. After import, warnings (if any) stay visible in **Ledger warnings** below the status line.
+7. **Download Csv Ledger** / **Download Xlsx Ledger** pull from live Cooperative Books (after import). **Sort & Download Csv Ledger** sorts the file you chose locally without importing.
 
 ---
 

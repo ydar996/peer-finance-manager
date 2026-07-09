@@ -101,6 +101,23 @@ function loadImportExportRows({
   return parsedTransactionsToExportRows(transactions);
 }
 
+function computeImportEndingStats(importRows) {
+  if (!importRows?.length) {
+    return { endingBalance: null, lastDate: null };
+  }
+  const sorted = [...importRows].sort((a, b) =>
+    String(a.dateIso || "").localeCompare(String(b.dateIso || ""))
+  );
+  let running = 0;
+  for (const row of sorted) {
+    running += Number(row.amount) || 0;
+  }
+  return {
+    endingBalance: roundAmount(running),
+    lastDate: sorted[sorted.length - 1]?.dateIso || null,
+  };
+}
+
 function formatConflictRow(exportRow, transactionId) {
   return {
     transactionId: transactionId || null,
@@ -161,9 +178,12 @@ function findManualLedgerMissingFromImport({
       statementOriginalName,
       memberNames,
     });
+    const { endingBalance, lastDate } = computeImportEndingStats(importRows);
     return {
       manualCount: 0,
       importCount: importRows.length,
+      endingBalance,
+      lastDate,
       missingFromImport: [],
       hasConflicts: false,
       importAudit,
@@ -190,9 +210,13 @@ function findManualLedgerMissingFromImport({
     }
   }
 
+  const { endingBalance, lastDate } = computeImportEndingStats(importRows);
+
   return {
     manualCount: manualRaw.length,
     importCount: importRows.length,
+    endingBalance,
+    lastDate,
     missingFromImport,
     hasConflicts: missingFromImport.length > 0,
     importAudit,

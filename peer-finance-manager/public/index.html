@@ -1482,15 +1482,32 @@
                 <span>Master ledger file (.csv or .xlsx)</span>
                 <input type="file" name="statement" accept=".csv,.xlsx,.xls" required />
               </label>
-              <div class="panel-head-actions">
-                <button type="submit" class="btn primary">Import Bank Ledger</button>
-                <button type="button" class="btn" id="sortBankLedgerUpload">Sort &amp; Download cooperative-bank-ledger-reference.csv</button>
-                <button type="button" class="btn" id="downloadBankLedgerReference">cooperative-bank-ledger-reference.csv</button>
-                <button type="button" class="btn" id="downloadBankLedgerReferenceXlsx">cooperative-bank-ledger-reference.xlsx</button>
+              <div class="panel-head-actions action-tips-row">
+                <div class="action-with-tip">
+                  <button type="button" class="btn" id="previewBankImport">Preview</button>
+                  <button type="button" class="info-tip" aria-label="About Preview" data-tip="Analyzes the file you chose. Shows row count, ending balance, and ledger warnings. Does not change live Cooperative Books.">i</button>
+                </div>
+                <div class="action-with-tip">
+                  <button type="submit" class="btn primary">Import Bank Ledger</button>
+                  <button type="button" class="info-tip" aria-label="About Import Bank Ledger" data-tip="Replaces all bank-imported rows in Cooperative Books with the file you chose. Full rebuild only: not for monthly bank statements.">i</button>
+                </div>
+                <div class="action-with-tip">
+                  <button type="button" class="btn" id="sortBankLedgerUpload">Sort &amp; Download Csv Ledger</button>
+                  <button type="button" class="info-tip" aria-label="About Sort and Download Csv Ledger" data-tip="Uses the file you chose (not live books). Sorts by date, recalculates running balances, and downloads CSV. Does not import. Use after editing your local ledger file.">i</button>
+                </div>
+                <div class="action-with-tip">
+                  <button type="button" class="btn" id="downloadBankLedgerReference">Download Csv Ledger</button>
+                  <button type="button" class="info-tip" aria-label="About Download Csv Ledger" data-tip="Downloads cooperative-bank-ledger-reference.csv from live Cooperative Books. No file upload needed. Use after import to replace data\cooperative-bank-ledger-reference.csv on your PC.">i</button>
+                </div>
+                <div class="action-with-tip">
+                  <button type="button" class="btn" id="downloadBankLedgerReferenceXlsx">Download Xlsx Ledger</button>
+                  <button type="button" class="info-tip" aria-label="About Download Xlsx Ledger" data-tip="Same as Download Csv Ledger, but saves cooperative-bank-ledger-reference.xlsx. Use to replace data\cooperative-bank-ledger-reference.xlsx on your PC.">i</button>
+                </div>
               </div>
             </form>
-            <p class="hint subtle">Downloads use the same file names as <strong>data\cooperative-bank-ledger-reference.csv</strong> and <strong>data\cooperative-bank-ledger-reference.xlsx</strong> on your PC. Save over the existing file to replace your local ledger. CSV and xlsx share the same columns and are interchangeable for Full Ledger Refresh.</p>
+            <p class="hint subtle">Saved files use the same names as <strong>data\cooperative-bank-ledger-reference.csv</strong> and <strong>.xlsx</strong> on your PC. CSV and xlsx share the same columns and are interchangeable. Hover the <strong>i</strong> next to each button for what it does.</p>
             <p id="bankImportStatus" class="status"></p>
+            <div id="bankImportPreview" class="bank-import-conflicts hidden"></div>
             <div id="bankImportConflicts" class="bank-import-conflicts hidden"></div>
             <p id="bankImportSummary" class="subtle"></p>
           </div>
