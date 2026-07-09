@@ -161,6 +161,21 @@ CREATE TABLE IF NOT EXISTS transactions (
 
 CREATE INDEX IF NOT EXISTS idx_transactions_member ON transactions(member_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_date);
+
+CREATE TABLE IF NOT EXISTS bank_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  account_label TEXT NOT NULL,
+  institution_name TEXT NOT NULL DEFAULT '',
+  currency TEXT NOT NULL DEFAULT 'USD',
+  statement_format TEXT NOT NULL DEFAULT 'auto',
+  is_primary INTEGER NOT NULL DEFAULT 0,
+  active_from TEXT,
+  active_to TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_accounts_primary ON bank_accounts(is_primary);
 CREATE INDEX IF NOT EXISTS idx_loans_borrower ON loans(borrower_id);
 CREATE INDEX IF NOT EXISTS idx_loan_installments_loan ON loan_installments(loan_id);
 

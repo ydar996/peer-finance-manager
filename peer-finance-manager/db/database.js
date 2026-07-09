@@ -12,6 +12,28 @@ const {
 
 const dbByOrg = new Map();
 
+function applyBankImportMigrations(database) {
+  const { ensureBankAccountSchema } = require("../lib/bank-account-service");
+  ensureBankAccountSchema(database);
+
+  const txCols = database.prepare(`PRAGMA table_info(transactions)`).all().map((c) => c.name);
+  if (!txCols.includes("bank_account_id")) {
+    database.exec(`ALTER TABLE transactions ADD COLUMN bank_account_id INTEGER`);
+  }
+  if (!txCols.includes("import_fingerprint")) {
+    database.exec(`ALTER TABLE transactions ADD COLUMN import_fingerprint TEXT`);
+  }
+  database.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_import_fingerprint
+      ON transactions(import_fingerprint)
+      WHERE import_fingerprint IS NOT NULL AND import_fingerprint != '';
+  `);
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_transactions_bank_account
+      ON transactions(bank_account_id);
+  `);
+}
+
 function applyMemberMigrations(database) {
   const cols = database.prepare(`PRAGMA table_info(members)`).all().map((c) => c.name);
   if (!cols.includes("member_number")) {
@@ -95,6 +117,7 @@ function openOrgDatabase(orgSlug) {
   applyAuthMigrations(database);
   applyMemberMigrations(database);
   applyProfileMigrations(database);
+  applyBankImportMigrations(database);
   try {
     const { ensureLoanDocumentSchema } = require("../lib/flexxforms-service");
     ensureLoanDocumentSchema(database);
@@ -108,6 +131,10 @@ function openOrgDatabase(orgSlug) {
   if (slug === ASSURANCE_SLUG) {
     const { ensureAssuranceAdminUser } = require("../lib/auth-service");
     ensureAssuranceAdminUser();
+    const { ensureDefaultBankAccount } = require("../lib/bank-account-service");
+    runWithOrg(slug, () =>
+      ensureDefaultBankAccount({ institutionName: "Bank of America", currency: "USD" })
+    );
   }
 
   trace.info("Organization database ready", { orgSlug: slug, dbPath });

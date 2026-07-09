@@ -1056,7 +1056,10 @@ function switchTab(name, options = {}) {
   if (name === "my-account" && currentUser?.role === "member" && !sameTab) loadMyAccount();
   if (name === "import" && currentUser?.role === "admin" && !sameTab) loadBankImportPanel();
   if (name === "status-report" && !sameTab) loadMonthlyStatusReportPanel();
-  if (name === "meetings" && !sameTab) loadCooperativeMeetingsPanel();
+  if (name === "meetings" && !sameTab) {
+    loadCooperativeMeetingsPanel();
+    if (currentUser?.role === "admin") loadEmailSendAudit();
+  }
   if (name === "public-pages" && currentUser?.role === "admin" && !sameTab) loadPublicPagesPanel();
   if (name === "forms" && currentUser?.role === "admin" && !sameTab) loadFlexxFormsSettings();
   if (name === "subscription" && currentUser?.role === "admin" && !sameTab) loadPlatformSubscriptionPanel();
@@ -3417,6 +3420,11 @@ function fillCooperativeMeetingForm(meeting) {
   $("#cooperativeMeetingAgenda").value = meeting.agenda || "";
   $("#cooperativeMeetingAdminNotes").value = meeting.adminNotes || "";
   $("#resetCooperativeMeetingForm")?.classList.remove("hidden");
+  const schedulePanel = $("#cooperativeMeetingSchedulePanel");
+  if (schedulePanel) {
+    schedulePanel.open = true;
+    schedulePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function readCooperativeMeetingFormPayload() {
@@ -3619,13 +3627,168 @@ async function resendCooperativeMeetingEmail(button) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Email failed");
-    alert(`Announcement email sent to ${data.emailResult?.recipientCount ?? 0} member(s).`);
+    const sent = data.emailResult?.recipientCount ?? 0;
+    const failed = data.emailResult?.failedCount ?? 0;
+    alert(
+      failed
+        ? `Announcement email sent to ${sent} member(s). ${failed} failed. Open Email Send Audit for details.`
+        : `Announcement email sent to ${sent} member(s).`
+    );
+    await loadEmailSendAudit();
   } catch (err) {
     alert(err.message);
   } finally {
     setButtonBusy(button, false);
   }
 }
+
+function formatEmailAuditWhen(iso) {
+  if (!iso) return ":";
+  try {
+    const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch (_) {
+    return iso;
+  }
+}
+
+function statusLabelForDelivery(status) {
+  if (status === "sent") return "Sent";
+  if (status === "failed") return "Failed";
+  if (status === "skipped") return "Skipped";
+  return status || ":";
+}
+
+async function loadEmailSendAudit() {
+  const summaryEl = $("#emailSendAuditSummary");
+  const statusEl = $("#emailSendAuditStatus");
+  const body = $("#emailSendAuditBody");
+  const recipientsBody = $("#emailSendAuditRecipientsBody");
+  if (!body || currentUser?.role !== "admin") return;
+  try {
+    if (statusEl) {
+      statusEl.textContent = "Loading audit…";
+      statusEl.className = "status";
+    }
+    const res = await fetch("/api/books/email-audit?limit=50");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load email audit");
+    const summary = data.summary || {};
+    const batches = data.batches || [];
+    if (summaryEl) {
+      const configured = summary.emailConfigured ? "Configured" : "Not configured";
+      const last = summary.lastBatchAt
+        ? formatEmailAuditWhen(summary.lastBatchAt)
+        : "None yet";
+      summaryEl.textContent =
+        `Email: ${configured}. Eligible recipients: ${summary.recipientCount ?? 0}. ` +
+        `Send batches logged: ${summary.batchCount ?? 0}. Last batch: ${last}.`;
+    }
+    if (!batches.length) {
+      body.innerHTML =
+        `<tr><td colspan="6" class="hint">No email sends logged yet. After you announce a meeting, resend email, or publish a report, batches appear here.</td></tr>`;
+    } else {
+      body.innerHTML = batches
+        .map((batch) => {
+          const failed = Number(batch.detailFailedCount) || 0;
+          const sent = batch.hasRecipientDetails
+            ? Number(batch.detailSentCount) || 0
+            : Number(batch.recipientCount) || 0;
+          const subject = batch.subject || batch.triggerLabel || ":";
+          const detailHint = batch.hasRecipientDetails
+            ? ""
+            : " (count only: sent before detailed audit)";
+          return `<tr>
+            <td>${escapeHtml(formatEmailAuditWhen(batch.sentAt))}</td>
+            <td>${escapeHtml(batch.triggerLabel || batch.triggerType || ":")}</td>
+            <td>${escapeHtml(subject)}${detailHint ? `<div class="subtle">${detailHint}</div>` : ""}</td>
+            <td>${sent}</td>
+            <td>${failed}</td>
+            <td><button type="button" class="btn linkish email-audit-view" data-id="${batch.id}">View Recipients</button></td>
+          </tr>`;
+        })
+        .join("");
+      body.querySelectorAll(".email-audit-view").forEach((btn) => {
+        btn.addEventListener("click", () => loadEmailSendAuditBatch(btn.dataset.id));
+      });
+    }
+    if (recipientsBody) {
+      const recipients = summary.recipients || [];
+      recipientsBody.innerHTML = recipients.length
+        ? recipients
+            .map(
+              (r) =>
+                `<tr><td>${escapeHtml(r.memberName || ":")}</td><td>${escapeHtml(r.email || ":")}</td></tr>`
+            )
+            .join("")
+        : `<tr><td colspan="2" class="hint">No members currently have an email on file.</td></tr>`;
+    }
+    if (statusEl) {
+      statusEl.textContent = "";
+      statusEl.className = "status";
+    }
+  } catch (err) {
+    if (body) {
+      body.innerHTML = `<tr><td colspan="6" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    }
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    }
+  }
+}
+
+async function loadEmailSendAuditBatch(batchId) {
+  const detail = $("#emailSendAuditDetail");
+  const meta = $("#emailSendAuditDetailMeta");
+  const body = $("#emailSendAuditDetailBody");
+  if (!detail || !body) return;
+  try {
+    detail.classList.remove("hidden");
+    if (meta) meta.textContent = "Loading recipients…";
+    body.innerHTML = `<tr><td colspan="4" class="hint">Loading…</td></tr>`;
+    const res = await fetch(`/api/books/email-audit/batches/${encodeURIComponent(batchId)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load recipients");
+    const batch = data.batch || {};
+    const deliveries = data.deliveries || [];
+    if (meta) {
+      meta.textContent = deliveries.length
+        ? `${batch.triggerLabel || "Send"} : ${formatEmailAuditWhen(batch.sentAt)} · ${deliveries.length} recipient row(s)`
+        : `${batch.triggerLabel || "Send"} : ${formatEmailAuditWhen(batch.sentAt)} · No per-recipient rows (this send was logged before detailed audit). Count only: ${batch.recipientCount ?? 0}.`;
+    }
+    body.innerHTML = deliveries.length
+      ? deliveries
+          .map((row) => {
+            const note =
+              row.status === "failed"
+                ? row.errorMessage || "Failed"
+                : row.status === "skipped"
+                  ? row.errorMessage || "Skipped"
+                  : ":";
+            return `<tr>
+              <td>${escapeHtml(row.memberName || ":")}</td>
+              <td>${escapeHtml(row.email || ":")}</td>
+              <td>${escapeHtml(statusLabelForDelivery(row.status))}</td>
+              <td>${escapeHtml(note)}</td>
+            </tr>`;
+          })
+          .join("")
+      : `<tr><td colspan="4" class="hint">No per-recipient details for this batch.</td></tr>`;
+  } catch (err) {
+    if (meta) meta.textContent = err.message;
+    body.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+$("#refreshEmailSendAudit")?.addEventListener("click", loadEmailSendAudit);
 
 async function saveMeetingSettings() {
   const statusEl = $("#cooperativeMeetingsStatus");
@@ -3782,9 +3945,272 @@ $("#scheduleForm").addEventListener("submit", async (e) => {
   }
 });
 
+let bankAppendPreviewData = null;
+
 async function loadBankImportPanel() {
-  /* Import panel is a single-file upload; CD balance is applied server-side when omitted. */
+  await Promise.all([loadBankAppendAccounts(), loadBankImportSettings()]);
 }
+
+async function loadBankAppendAccounts() {
+  const select = $("#bankAppendAccountSelect");
+  if (!select) return;
+  try {
+    const res = await fetch("/api/bank-accounts");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load bank accounts");
+    const accounts = data.accounts || [];
+    select.innerHTML = accounts
+      .map(
+        (a) =>
+          `<option value="${a.id}">${escapeHtml(a.accountLabel)}${a.institutionName ? ` (${escapeHtml(a.institutionName)})` : ""}</option>`
+      )
+      .join("");
+    const primary = accounts.find((a) => a.isPrimary) || accounts[0];
+    if (primary) select.value = String(primary.id);
+  } catch (err) {
+    select.innerHTML = `<option value="">Could not load accounts</option>`;
+  }
+}
+
+async function loadBankImportSettings() {
+  try {
+    const res = await fetch("/api/cooperative/import-settings");
+    const data = await res.json();
+    if (!res.ok) return;
+    const df = $("#cooperativeDateFormat");
+    if (df && data.dateFormat) df.value = data.dateFormat;
+    const accountsRes = await fetch("/api/bank-accounts");
+    const accountsData = await accountsRes.json();
+    const primary =
+      accountsData.accounts?.find((a) => a.isPrimary) || accountsData.accounts?.[0];
+    if (primary) {
+      const inst = $("#bankAccountInstitution");
+      const label = $("#bankAccountLabel");
+      const currency = $("#bankAccountCurrency");
+      if (inst) inst.value = primary.institutionName || "";
+      if (label) label.value = primary.accountLabel || "";
+      if (currency) currency.value = primary.currency || "USD";
+      if (inst) inst.dataset.accountId = String(primary.id);
+    }
+  } catch (_) {}
+}
+
+function renderBankAppendPreview(preview) {
+  const panel = $("#bankAppendPreview");
+  const applyBtn = $("#applyBankAppend");
+  if (!panel) return;
+  bankAppendPreviewData = preview;
+  const rows = preview?.rows || [];
+  if (!rows.length) {
+    panel.classList.add("hidden");
+    panel.innerHTML = "";
+    if (applyBtn) applyBtn.disabled = true;
+    return;
+  }
+  panel.classList.remove("hidden");
+  const summary = preview.summary || {};
+  panel.innerHTML = `
+    <strong>Preview</strong>
+    <p>${summary.ready || 0} ready to add · ${summary.skipped || 0} already in ledger · ${summary.needsReview || 0} need review</p>
+    <div class="table-wrap">
+      <table class="data-table compact">
+        <thead>
+          <tr><th>Status</th><th>Date</th><th>Description</th><th>Amount</th><th>Type</th><th>Member</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map((row) => {
+              const status =
+                row.bucket === "ready"
+                  ? "New"
+                  : row.bucket === "skipped"
+                    ? "Skipped"
+                    : "Review";
+              const issues = (row.issues || []).join("; ");
+              return `<tr>
+                <td>${escapeHtml(status)}</td>
+                <td>${escapeHtml(row.date || "")}</td>
+                <td>${escapeHtml(String(row.description || "").slice(0, 80))}</td>
+                <td>${escapeHtml(fmt.format(row.amount))}</td>
+                <td>${escapeHtml(row.typeLabel || "")}</td>
+                <td>${escapeHtml(row.member || "")}</td>
+                <td class="muted">${escapeHtml(issues)}</td>
+              </tr>`;
+            })
+            .join("")}
+        </tbody>
+      </table>
+    </div>`;
+  if (applyBtn) applyBtn.disabled = !(summary.ready > 0);
+}
+
+async function downloadImportTemplate(kind, button) {
+  setButtonBusy(button, true, "Preparing…");
+  try {
+    const ext = kind === "xlsx" ? "xlsx" : "csv";
+    const res = await fetch(`/api/bank-import/template.${ext}`);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Download failed");
+    }
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `pfm-transaction-import-template.${ext}`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+async function previewBankAppendImport() {
+  const form = $("#bankAppendForm");
+  const status = $("#bankAppendStatus");
+  const summary = $("#bankAppendSummary");
+  const file = form?.statement?.files?.[0];
+  if (!form || !file) {
+    if (status) {
+      status.textContent = "Choose a statement or template file first.";
+      status.className = "status err";
+    }
+    return;
+  }
+  const btn = $("#previewBankAppend");
+  setButtonBusy(btn, true, "Previewing…");
+  if (status) {
+    status.textContent = "Analyzing file…";
+    status.className = "status";
+  }
+  if (summary) summary.textContent = "";
+  try {
+    const fd = new FormData(form);
+    const res = await fetch("/api/bank-import/append/preview", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Preview failed");
+    renderBankAppendPreview(data.preview);
+    const s = data.preview?.summary || {};
+    if (status) {
+      status.textContent = `Preview ready: ${s.ready || 0} new, ${s.skipped || 0} skipped, ${s.needsReview || 0} need review.`;
+      status.className = s.needsReview ? "status warn" : "status ok";
+    }
+  } catch (err) {
+    renderBankAppendPreview(null);
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  } finally {
+    setButtonBusy(btn, false);
+  }
+}
+
+async function applyBankAppendImport(form) {
+  const status = $("#bankAppendStatus");
+  const summary = $("#bankAppendSummary");
+  const file = form?.statement?.files?.[0];
+  if (!file) {
+    if (status) {
+      status.textContent = "Choose a statement or template file first.";
+      status.className = "status err";
+    }
+    return;
+  }
+  const applyBtn = $("#applyBankAppend");
+  setButtonBusy(applyBtn, true, "Importing…");
+  if (status) {
+    status.textContent = "Adding new transactions…";
+    status.className = "status";
+  }
+  try {
+    const fd = new FormData(form);
+    const res = await fetch("/api/bank-import/append/apply", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) {
+      if (data.preview) renderBankAppendPreview(data.preview);
+      throw new Error(data.error || "Import failed");
+    }
+    const result = data.result || {};
+    renderBankAppendPreview(result);
+    if (status) {
+      status.textContent = result.message || "Import complete.";
+      status.className = "status ok";
+    }
+    if (summary && result.ledgerEndingBalance != null) {
+      summary.textContent = `Ledger checking balance after import: ${fmt.format(result.ledgerEndingBalance)}`;
+    }
+    if (activeTab === "books") loadBooks();
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  } finally {
+    setButtonBusy(applyBtn, false);
+  }
+}
+
+async function saveBankAccountSettings(e) {
+  e.preventDefault();
+  const status = $("#bankAccountSettingsStatus");
+  const inst = $("#bankAccountInstitution");
+  const label = $("#bankAccountLabel");
+  const currency = $("#bankAccountCurrency");
+  const dateFormat = $("#cooperativeDateFormat");
+  const accountId = inst?.dataset?.accountId;
+  if (status) {
+    status.textContent = "Saving…";
+    status.className = "status";
+  }
+  try {
+    if (accountId) {
+      const res = await fetch(`/api/bank-accounts/${accountId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          institutionName: inst?.value,
+          accountLabel: label?.value,
+          currency: currency?.value,
+          isPrimary: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not save bank account");
+    }
+    const settingsRes = await fetch("/api/cooperative/import-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dateFormat: dateFormat?.value }),
+    });
+    const settingsData = await settingsRes.json();
+    if (!settingsRes.ok) throw new Error(settingsData.error || "Could not save date format");
+    await loadBankAppendAccounts();
+    if (status) {
+      status.textContent = "Settings saved.";
+      status.className = "status ok";
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+}
+
+$("#previewBankAppend")?.addEventListener("click", previewBankAppendImport);
+$("#downloadImportTemplateCsv")?.addEventListener("click", (e) => {
+  downloadImportTemplate("csv", e.currentTarget);
+});
+$("#downloadImportTemplateXlsx")?.addEventListener("click", (e) => {
+  downloadImportTemplate("xlsx", e.currentTarget);
+});
+$("#bankAppendForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  await applyBankAppendImport(e.target);
+});
+$("#bankAccountSettingsForm")?.addEventListener("submit", saveBankAccountSettings);
 
 async function downloadBankLedgerReference(button) {
   setButtonBusy(button, true, "Preparing…");

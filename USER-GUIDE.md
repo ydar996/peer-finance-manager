@@ -64,9 +64,9 @@ After you submit, the Cooperative receives your application automatically. An ad
 | **Statements** | Generate batch PDF statements |
 | **Loans** | View and manage loans |
 | **Record** | Add members, record contributions, fees, expenses (each form collapsed until expanded) |
-| **Import** | **Bank Ledger Import** on live site (upload `cooperative-bank-ledger-reference.xlsx`); spreadsheet, profiles; optional CLI `npm run pfm:import-bank` on PC. Import shows **Ledger warnings** for proxy Zelle mis-credits before you confirm. |
+| **Import** | **Import New Bank Activity** (append-only bank statement or template; preview before apply). **Full Ledger Refresh** (advanced) for master file replace. Download **Import Template** (CSV/xlsx) for historical catch-up. Spreadsheet, profiles; optional CLI `npm run pfm:import-bank` on PC. Ledger warnings for proxy mis-credits on full refresh. |
 | **Status Report** | Monthly Cooperative status PDF: generate, publish to member portal, download; organization time zone and auto-publish settings (admin) |
-| **Meetings** | Schedule meetings, announce to members (portal + email), cancel, reminder settings (admin) |
+| **Meetings** | Schedule meetings, announce to members (portal + email), cancel, reminder settings (admin). **Email Send Audit** (admin): on-demand history of notification batches with recipient Sent/Failed detail and the current eligible recipient list. |
 | **Public Pages** | Publish About Us HTML and Bylaws PDF for prospective members (admin) |
 | **Forms & Documents** | FlexxForms setup, membership/loan form ids, review and approve membership applications (admin) |
 | **Subscription** | Peer Finance Manager SaaS billing: Stripe or check (admin) |
@@ -81,6 +81,38 @@ After you submit, the Cooperative receives your application automatically. An ad
   2. **Initial contribution** ($100 deposit) — use **Record** to post a deposit for the applicant.
 - When both are recorded, status becomes **Ready for Approval** and **Approve Member** activates the account.
 - **Delete** (test or mistaken submissions): removes the application from the list. If the linked profile is still **Pending Approval** with no deposits, fees, or loans on the ledger, the prospective member profile is removed too. Approved members cannot be deleted here.
+
+### Import bank activity (admin)
+
+Use **Import New Bank Activity** for normal monthly updates. Use **Full Ledger Refresh** only when replacing the entire master ledger.
+
+**Monthly bank statement (recommended):**
+
+1. Open **Import**.
+2. Under **Import New Bank Activity**, choose your **Bank account** (e.g. Main Operating Account).
+3. Upload the bank export (`.csv` or `.xlsx`) — for Assurance, download the statement from your bank as CSV.
+4. Click **Preview**. Check the table:
+   - **New** — will be added (Type and Member must look correct).
+   - **Skipped** — already in the ledger (safe to ignore).
+   - **Review** — fix Type or Member before applying (use **Import Template** or correct the file).
+5. Click **Add New Transactions**.
+6. Confirm balances on **Cooperative Books** and affected members.
+
+Re-uploading the same statement adds nothing (duplicates are skipped automatically).
+
+**Historical catch-up or migration:**
+
+1. Click **Download Import Template (CSV)** or **(Xlsx)**.
+2. Fill rows: **Date**, **Description**, **Amount**, **Type** on every line; **Member** when the type affects a member account.
+3. Upload the completed file through **Import New Bank Activity** → Preview → Add.
+
+**Bank account and date format:**
+
+1. Expand **Bank Account and Import Settings**.
+2. Set **Institution name**, **Account label**, **Currency**, and **Date format** (MM/DD/YYYY for US banks).
+3. Click **Save Settings**.
+
+**Full Ledger Refresh (advanced):** replaces all bank-imported rows from a master ledger file. Use only for a full rebuild, not monthly updates. Read **Ledger warnings** before confirming.
 
 ---
 
@@ -109,7 +141,7 @@ You can still use **PeerFinanceManager.exe** on your PC (double-click in the `As
 | "Invalid username or password" | Check org code `assurance`, username, and password (case-sensitive) |
 | Blank page or login spins | Wait 30 seconds and refresh — server may be waking up |
 | PDF download fails | Wait for admin to confirm Render deploy is Live; try again in a minute |
-| Numbers look wrong online | **Bank ledger:** Admin → Import — upload corrected master xlsx; read **Ledger warnings**. Other data: see [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) |
+| Numbers look wrong online | **Bank activity:** Admin → Import → **Import New Bank Activity** (monthly) or **Full Ledger Refresh** (advanced). Read preview **Review** rows. Other data: see [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) |
 | Birthday or date off by one day | Fixed in latest app code — admin should `git push` to deploy |
 
 ---
@@ -123,4 +155,4 @@ You can still use **PeerFinanceManager.exe** on your PC (double-click in the `As
 
 ---
 
-*Last updated: July 1, 2026. For how to change and publish the app, see [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).*
+*Last updated: July 8, 2026. For how to change and publish the app, see [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).*

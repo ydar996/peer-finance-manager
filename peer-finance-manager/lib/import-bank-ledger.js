@@ -50,14 +50,7 @@ function expenseCategory(description) {
   return "Other";
 }
 
-function ledgerTransactionKey(date, amount, description) {
-  const text = String(description || "");
-  const conf = text.match(/conf#?\s*([a-z0-9]+)/i);
-  if (conf) return `${date}|${Number(amount).toFixed(2)}|${conf[1].toLowerCase()}`;
-  const check = text.match(/check\s*(\d+)/i);
-  if (check) return `${date}|${Number(amount).toFixed(2)}|check${check[1]}`;
-  return `${date}|${Number(amount).toFixed(2)}|${text.slice(0, 48).toLowerCase()}`;
-}
+const { buildImportFingerprint, ledgerTransactionKey } = require("./import-fingerprint");
 
 function findReferenceLedgerPath() {
   const slug = getOrgSlug();

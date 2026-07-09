@@ -124,7 +124,9 @@ Recent expenses and distributions appear on the same screen for quick reference.
 - **Cooperative spreadsheet** : contributions, withdrawals, fees, distributions
 - **Membership applications** (WPForms CSV) : biodata linked to ledger names
 - **Loan repayment schedule** : for a specific loan
-- **Bank ledger workbook** : master Excel/CSV to refresh live books from your authoritative ledger
+- **Import New Bank Activity** (default monthly) : upload bank statement or PFM import template; preview New/Skipped/Review; append-only with fingerprint dedup; bank account and date format per Cooperative
+- **Import Template** (CSV/xlsx) : historical catch-up; required columns Date, Description, Amount, Type; Member when type affects a member account
+- **Full Ledger Refresh** (advanced) : master Excel/CSV replaces all bank-imported rows
   - Conflict warnings if manual entries would be lost
   - Tools to download or sort the reference file before upload
 
@@ -132,7 +134,7 @@ Recent expenses and distributions appear on the same screen for quick reference.
 
 ## Bank Ledger and Reconciliation
 
-The app is designed to work with a **master Cooperative bank ledger** (Excel) aligned to your real bank statement. Imports update live books; the dashboard **bank balance** card reflects checking activity. Pre-import checks help catch balance mismatches and misclassified rows.
+Cooperatives can import **new bank activity** each month without re-uploading the full master file. Append import classifies Type and Member, blocks ambiguous rows in preview, and never duplicates existing transactions. **Full Ledger Refresh** remains for master-file rebuilds. The dashboard **bank balance** card reflects checking activity. Pre-import checks help catch proxy mis-credits and contribution vs loan misclassification.
 
 ---
 

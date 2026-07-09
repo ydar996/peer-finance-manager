@@ -14,7 +14,7 @@ Examples: bank import (`npm run pfm:import-bank`), new deposits, CD balance upda
 
 | What you changed | What to do |
 |------------------|------------|
-| **Bank ledger** (deposits, loan repayments, expenses from workbook/CSV) | **Admin → Import → Bank Ledger Import** on the live site (no WinSCP) |
+| **Bank ledger** (deposits, loan repayments, expenses from workbook/CSV) | **Admin → Import → Import New Bank Activity** (monthly append) or **Full Ledger Refresh** (advanced) |
 | **Other data only** (profiles, manual entries done locally in `data/`) | Follow this guide (WinSCP + Manual Deploy) |
 | **App code only** (screens, labels, features) | `git push` only (Netlify + Render update automatically) |
 | **Both** (code + local DB files) | Do both: WinSCP upload **and** `git push` |

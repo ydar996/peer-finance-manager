@@ -128,4 +128,5 @@ module.exports = {
   listBankImports,
   bankUploadFromMulter,
   runBankImportFromUpload,
+  archiveUploadedBankFiles,
 };

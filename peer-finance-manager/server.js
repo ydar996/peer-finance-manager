@@ -699,6 +699,151 @@ app.post(
   }
 );
 
+app.get("/api/bank-accounts", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { listBankAccounts } = require("./lib/bank-account-service");
+    res.json({ accounts: listBankAccounts() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/bank-accounts", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { createBankAccount } = require("./lib/bank-account-service");
+    const account = createBankAccount(req.body || {});
+    res.json({ account });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.patch("/api/bank-accounts/:id", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { updateBankAccount } = require("./lib/bank-account-service");
+    const account = updateBankAccount(req.params.id, req.body || {});
+    res.json({ account });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/cooperative/import-settings", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const {
+      getCooperativeDateFormat,
+      DATE_FORMAT_OPTIONS,
+    } = require("./lib/cooperative-date-format");
+    const { getCooperativeTimezone, timezoneLabel } = require("./lib/cooperative-time");
+    res.json({
+      dateFormat: getCooperativeDateFormat(),
+      dateFormatOptions: DATE_FORMAT_OPTIONS,
+      timezone: getCooperativeTimezone(),
+      timezoneLabel: timezoneLabel(getCooperativeTimezone()),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch("/api/cooperative/import-settings", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { setCooperativeDateFormat } = require("./lib/cooperative-date-format");
+    const { setCooperativeTimezone } = require("./lib/cooperative-time");
+    if (req.body?.dateFormat != null) {
+      setCooperativeDateFormat(req.body.dateFormat);
+    }
+    if (req.body?.timezone != null) {
+      setCooperativeTimezone(req.body.timezone);
+    }
+    const { getCooperativeDateFormat } = require("./lib/cooperative-date-format");
+    const { getCooperativeTimezone, timezoneLabel } = require("./lib/cooperative-time");
+    res.json({
+      dateFormat: getCooperativeDateFormat(),
+      timezone: getCooperativeTimezone(),
+      timezoneLabel: timezoneLabel(getCooperativeTimezone()),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/bank-import/template.csv", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { buildImportTemplateCsv } = require("./lib/import-template-service");
+    const content = buildImportTemplateCsv();
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="pfm-transaction-import-template.csv"'
+    );
+    res.send(content);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/bank-import/template.xlsx", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { buildImportTemplateXlsxBuffer } = require("./lib/import-template-service");
+    const buffer = buildImportTemplateXlsxBuffer();
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="pfm-transaction-import-template.xlsx"'
+    );
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post(
+  "/api/bank-import/append/preview",
+  requireAdmin,
+  upload.single("statement"),
+  restoreOrgContext,
+  (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "Upload a statement or template file." });
+      const { previewBankStatementAppend } = require("./lib/bank-import-append");
+      const preview = previewBankStatementAppend({
+        filePath: req.file.path,
+        originalName: req.file.originalname,
+        bankAccountId: req.body?.bankAccountId,
+      });
+      res.json({ preview });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
+app.post(
+  "/api/bank-import/append/apply",
+  requireAdmin,
+  upload.single("statement"),
+  restoreOrgContext,
+  (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "Upload a statement or template file." });
+      const { applyBankStatementAppend } = require("./lib/bank-import-append");
+      const result = applyBankStatementAppend({
+        filePath: req.file.path,
+        originalName: req.file.originalname,
+        bankAccountId: req.body?.bankAccountId,
+        allowPartial: req.body?.allowPartial !== "false",
+      });
+      res.json({ success: true, result });
+    } catch (err) {
+      res.status(400).json({ error: err.message, preview: err.preview || null });
+    }
+  }
+);
+
 app.get("/api/bank-imports", requireCooperativeView, (req, res) => {
   try {
     res.json({ imports: listBankImports() });
@@ -966,6 +1111,43 @@ app.post("/api/books/meetings/:id/resend-announcement", requireAdmin, async (req
     res.json({ success: true, emailResult });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/books/email-audit", requireAdmin, (req, res) => {
+  try {
+    const {
+      getEmailAuditSummary,
+      listEmailSendBatches,
+    } = require("./lib/email-audit-service");
+    const limit = Number(req.query.limit) || 50;
+    res.json({
+      summary: getEmailAuditSummary(),
+      batches: listEmailSendBatches(limit),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/books/email-audit/batches/:id", requireAdmin, (req, res) => {
+  try {
+    const {
+      listEmailSendBatches,
+      listEmailDeliveriesForBatch,
+    } = require("./lib/email-audit-service");
+    const batchId = Number(req.params.id);
+    const batches = listEmailSendBatches(200);
+    const batch = batches.find((row) => Number(row.id) === batchId) || null;
+    if (!batch) {
+      return res.status(404).json({ error: "Email send batch not found" });
+    }
+    res.json({
+      batch,
+      deliveries: listEmailDeliveriesForBatch(batchId),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

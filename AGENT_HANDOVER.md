@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 6, 2026 (FlexxForms `answers[]` parser + integrations API fetch)  
+**Last updated:** July 8, 2026 (append-only bank activity import)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -107,6 +107,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-08** — **Append-only bank activity import:** Admin → Import → **Import New Bank Activity** uploads a bank statement or PFM transaction template; preview shows New/Skipped/Review; only new rows are inserted (fingerprint dedup). **Bank accounts** table (institution name, currency); org **date format** setting (MDY/DMY/YMD). Downloadable **Import Template** (CSV/xlsx) with required Date, Description, Amount, Type; Member required for member transactions. Full **Ledger Refresh** remains under Advanced. Tested locally with Assurance July 2026 stmt (Olawale $100, Gbanju $70.06). Docs: `USER-GUIDE.md`, `README.md`, `PEER-FINANCE-MANAGER.md`, `UPLOAD-DATA-TO-PRODUCTION.md`. Files: `bank-import-append.js`, `statement-import-parser.js`, `bank-account-service.js`, `import-template-service.js`, `import-fingerprint.js`, `transaction-import-types.js`, `cooperative-date-format.js`, schema/migrations, `server.js`, `index.html`, `app.js`. **Production:** `git push`.
 - **2026-07-06** — **Public Pages plain-text editor:** Admin **Public Pages** tab uses collapsible **About Us** and **Bylaws** sections (collapsed by default). Cooperatives paste plain text (no HTML); PFM auto-formats public pages. Optional external website URL per section greys out built-in fields when the Cooperative already publishes online. Bylaws supports plain text plus optional PDF upload. **Production:** `git push` (`bff5e79`).
 - **2026-07-06** — **Member report PDF mobile fit:** On phones, report viewer renders PDF pages to width-fit canvases (PDF.js) instead of iframe; full viewport height and scrollable pages. Desktop keeps iframe. **Production:** `git push`.
 - **2026-07-06** — **Member report PDF viewer auth fix:** iframe could not send Bearer token, showed `Login required`. Viewer now fetches PDF via authenticated `fetch`, then displays blob URL in iframe. **Production:** `git push`.
@@ -115,6 +116,8 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 - **2026-07-06** — **Member performance report UX:** Overview summary uses **latest published report as-of date** (not today). Report links labeled **View PDF Report** with tap-to-open hint. Full-screen PDF viewer with **Back to Member Portal** and **Download Report**. New `GET /api/me/cooperative-status-reports/:periodSlug/view` (inline PDF). **Production:** `git push` (`bff5e79`).
 - **2026-07-06** — **Manual Record multi-column fields:** Forms inside each expanded Record section use a responsive grid (`auto-fit`, ~200px min) so fields like First/Middle/Last Name sit side by side; member pickers, addresses, and submit buttons stay full width. **Production:** `git push` (`bff5e79`).
 - **2026-07-06** — **Manual Record collapse buttons:** Each Record tab section shows a **Collapse Section** button at the bottom when expanded (summary expands at top). Scrolls back to the section header on collapse. **Production:** `git push` (`bff5e79`).
+- **2026-07-08** — **Meetings schedule form collapsed by default:** Admin → Meetings → **Schedule a Meeting** is a collapsible section (like Reminder Settings). Expands automatically when **Edit Details** is clicked. Files: `index.html`, `app.js`. **Production:** `git push`.
+- **2026-07-08** — **Admin Email Send Audit:** Cooperative admins can open Meetings → **Email Send Audit** to see send batches (meetings, report publish, month-end), per-recipient Sent/Failed rows, and currently eligible recipients. New table `member_email_delivery_log`; APIs `GET /api/books/email-audit` and `GET /api/books/email-audit/batches/:id`. Older batches remain count-only until the next send. Files: `email-audit-service.js`, meeting/report notification services, `server.js`, `index.html`, `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-07** — **Membership apply return-to-origin:** `/c/{slug}/apply?from=about|bylaws` embeds FlexxForms on PFM; on submit, member returns to origin page; one-time thank-you flash. `publicApplyUrl` = `/c/{slug}/apply`. **Production:** `git push` (`43f3865`).
 - **2026-07-07** — **BLUEHOST-EMAIL-RELAY-SETUP.md:** keystroke-level non-technical send-email walkthrough (mailbox, secret, upload, Render env, test).
 - **2026-07-06** — **Bluehost email relay (no SendGrid):** `email-service.js` supports `EMAIL_RELAY_URL` + `EMAIL_RELAY_SECRET` (HTTPS to PHP on Bluehost); `bluehost-relay/pfm-mail-relay.php`; layman guide **BLUEHOST-EMAIL-RELAY-SETUP.md**. User declined SendGrid paid trial. **Production:** `git push` + upload PHP to Bluehost + Render env.
@@ -444,11 +447,11 @@ Peer Finance Manager / Assurance Cooperative
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
 | 2 | **Cooperative expenses** | Table exists; no UI/import. |
 | 3 | **Profile for Kehinde Agboola** | Olawale George added (WPForms row + local import). Kehinde still has no application row. |
-| 4 | **PC ↔ cloud data sync** | **Bank ledger:** Admin → Import on live site (no WinSCP). **Profiles/manual DB edits:** WinSCP + Manual Deploy. |
-| 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — Admin → Import → Bank Ledger Import (`POST /api/bank-import/run`). |
+| 4 | **PC ↔ cloud data sync** | **Bank activity:** Admin → Import → **Import New Bank Activity** (monthly, no WinSCP). **Full ledger replace** or **profiles/manual DB edits:** WinSCP + Manual Deploy. |
+| 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |
-| 8 | **Finish email notifications (Bluehost relay)** | User declined SendGrid trial. Deploy relay code (`email-service.js`, `bluehost-relay/pfm-mail-relay.php`), upload PHP to `eworkchop.com`, set `EMAIL_RELAY_URL` + secret on Render. Guide: **[BLUEHOST-EMAIL-RELAY-SETUP.md](BLUEHOST-EMAIL-RELAY-SETUP.md)**. Optional: remove SendGrid DNS rows + cancel trial. |
+| 8 | ~~**Finish email notifications (Bluehost relay)**~~ | ✅ Relays live (`emailConfigured: true`; admin confirmed meeting send to 25). Keep **[BLUEHOST-EMAIL-RELAY-SETUP.md](BLUEHOST-EMAIL-RELAY-SETUP.md)** for ops. **Email Send Audit** now available on Meetings tab for on-demand verification. |
 
 ### High — user said they will provide info later
 

@@ -14,7 +14,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 
 // --- EDIT THIS (long random password, e.g. 32+ characters) ---
-const PFM_RELAY_SECRET = 'CHANGE_ME_TO_A_LONG_RANDOM_SECRET';
+const PFM_RELAY_SECRET = '1ihRQ<V-Y#,^mQjuKNEhWMi70qNBBD1egf7W$-f/l$u1me';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

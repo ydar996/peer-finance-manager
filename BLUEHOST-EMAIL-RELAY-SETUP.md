@@ -194,6 +194,15 @@ If **`false`:** check that `SMTP_FROM` and `EMAIL_RELAY_URL` are set on Render, 
 
 **Alternative test:** Cooperative Books → **Monthly Status Report** → **Publish to Members**.
 
+### 4C: Audit from the admin screen (after Email Send Audit is deployed)
+
+1. Admin → **Meetings**
+2. Expand **Email Send Audit**
+3. Click **Refresh Audit**
+4. Click **View Recipients** on the latest batch to see each member email and Sent/Failed status
+
+Older sends (before this feature) may show only a total count, not every recipient name.
+
 ---
 
 ## Part 5: Optional Cleanup (SendGrid)

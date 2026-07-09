@@ -38,18 +38,13 @@ function getOrganizationBrandingForReport() {
   };
 }
 
+const {
+  ensureEmailAuditTables,
+  recordDeliveryBatch,
+} = require("./email-audit-service");
+
 function ensureNotificationLogTable(db) {
-  ensureSettingsTable(db);
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS member_report_email_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      trigger_type TEXT NOT NULL,
-      period_slug TEXT,
-      dedupe_key TEXT NOT NULL UNIQUE,
-      recipient_count INTEGER NOT NULL DEFAULT 0,
-      sent_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
+  ensureEmailAuditTables(db);
 }
 
 function getMemberPortalUrl() {
@@ -102,15 +97,6 @@ function notificationAlreadySent(dedupeKey) {
   );
 }
 
-function recordNotificationSent({ triggerType, periodSlug, dedupeKey, recipientCount }) {
-  const db = getDb();
-  ensureNotificationLogTable(db);
-  db.prepare(
-    `INSERT INTO member_report_email_log (trigger_type, period_slug, dedupe_key, recipient_count)
-     VALUES (?, ?, ?, ?)`
-  ).run(triggerType, periodSlug || null, dedupeKey, recipientCount);
-}
-
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -133,32 +119,74 @@ async function sendReportReminderEmails({ triggerType, dedupeKey, periodSlug, su
     return { sent: false, skipped: true, reason: "no_recipients" };
   }
 
-  let sentCount = 0;
+  const deliveries = [];
   for (const recipient of recipients) {
-    const result = await sendEmail({
-      to: recipient.email,
-      subject,
-      text: textFor(recipient),
-      html: htmlFor(recipient),
-    });
-    if (result.sent) sentCount += 1;
+    try {
+      const result = await sendEmail({
+        to: recipient.email,
+        subject,
+        text: textFor(recipient),
+        html: htmlFor(recipient),
+      });
+      if (result.sent) {
+        deliveries.push({
+          memberId: recipient.memberId,
+          memberName: recipient.memberName,
+          email: recipient.email,
+          subject,
+          status: "sent",
+        });
+      } else {
+        deliveries.push({
+          memberId: recipient.memberId,
+          memberName: recipient.memberName,
+          email: recipient.email,
+          subject,
+          status: "skipped",
+          errorMessage: result.reason || "skipped",
+        });
+      }
+    } catch (err) {
+      deliveries.push({
+        memberId: recipient.memberId,
+        memberName: recipient.memberName,
+        email: recipient.email,
+        subject,
+        status: "failed",
+        errorMessage: err.message || "send failed",
+      });
+      trace.warn("Report reminder email failed for recipient", {
+        triggerType,
+        periodSlug,
+        email: recipient.email,
+        error: err.message,
+      });
+    }
   }
 
-  recordNotificationSent({
+  const summary = recordDeliveryBatch({
     triggerType,
     periodSlug,
     dedupeKey,
-    recipientCount: sentCount,
+    subject,
+    deliveries,
   });
 
   trace.info("Report reminder emails sent", {
     triggerType,
     periodSlug,
     dedupeKey,
-    sentCount,
+    sentCount: summary.sentCount,
+    failedCount: summary.failedCount,
   });
 
-  return { sent: true, recipientCount: sentCount, dedupeKey };
+  return {
+    sent: summary.sentCount > 0,
+    recipientCount: summary.sentCount,
+    failedCount: summary.failedCount,
+    batchId: summary.batchId,
+    dedupeKey,
+  };
 }
 
 async function sendCooperativeReportPublishedEmails(periodSlug) {

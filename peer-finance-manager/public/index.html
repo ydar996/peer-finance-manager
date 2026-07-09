@@ -433,35 +433,40 @@
             <li class="hint">Loading…</li>
           </ul>
           <p id="cooperativeMeetingsStatus" class="status"></p>
-          <p class="subtle">Schedule Cooperative meetings for your organization. Announced meetings appear on every member&apos;s portal and trigger email notifications when SMTP is configured.</p>
-          <form id="cooperativeMeetingForm" class="entry-form cooperative-meeting-form admin-only-report-settings hidden">
-            <input type="hidden" id="cooperativeMeetingId" value="" />
-            <label>Title
-              <input type="text" id="cooperativeMeetingTitle" required maxlength="200" placeholder="Monthly General Meeting" />
-            </label>
-            <label>Date
-              <input type="date" id="cooperativeMeetingDate" required />
-            </label>
-            <label>Time
-              <input type="time" id="cooperativeMeetingTime" required />
-            </label>
-            <label>Location (optional)
-              <input type="text" id="cooperativeMeetingLocation" placeholder="Community center or address" />
-            </label>
-            <label>Virtual link (optional)
-              <input type="url" id="cooperativeMeetingVirtualLink" placeholder="https://zoom.us/..." />
-            </label>
-            <label>Agenda (optional)
-              <textarea id="cooperativeMeetingAgenda" rows="4" placeholder="Welcome, financial review, Q&amp;A…"></textarea>
-            </label>
-            <label>Admin notes (optional, not shown to members)
-              <textarea id="cooperativeMeetingAdminNotes" rows="2"></textarea>
-            </label>
-            <div class="panel-head-actions">
-              <button type="submit" class="btn primary" id="saveCooperativeMeeting">Save Draft</button>
-              <button type="button" class="btn hidden" id="resetCooperativeMeetingForm">New Meeting</button>
+          <details class="card profile-disclosure admin-only-report-settings hidden" id="cooperativeMeetingSchedulePanel">
+            <summary>Schedule a Meeting</summary>
+            <div class="profile-disclosure-body">
+              <p class="subtle">Schedule Cooperative meetings for your organization. Announced meetings appear on every member&apos;s portal and trigger email notifications when SMTP is configured.</p>
+              <form id="cooperativeMeetingForm" class="entry-form cooperative-meeting-form">
+                <input type="hidden" id="cooperativeMeetingId" value="" />
+                <label>Title
+                  <input type="text" id="cooperativeMeetingTitle" required maxlength="200" placeholder="Monthly General Meeting" />
+                </label>
+                <label>Date
+                  <input type="date" id="cooperativeMeetingDate" required />
+                </label>
+                <label>Time
+                  <input type="time" id="cooperativeMeetingTime" required />
+                </label>
+                <label>Location (optional)
+                  <input type="text" id="cooperativeMeetingLocation" placeholder="Community center or address" />
+                </label>
+                <label>Virtual link (optional)
+                  <input type="url" id="cooperativeMeetingVirtualLink" placeholder="https://zoom.us/..." />
+                </label>
+                <label>Agenda (optional)
+                  <textarea id="cooperativeMeetingAgenda" rows="4" placeholder="Welcome, financial review, Q&amp;A…"></textarea>
+                </label>
+                <label>Admin notes (optional, not shown to members)
+                  <textarea id="cooperativeMeetingAdminNotes" rows="2"></textarea>
+                </label>
+                <div class="panel-head-actions">
+                  <button type="submit" class="btn primary" id="saveCooperativeMeeting">Save Draft</button>
+                  <button type="button" class="btn hidden" id="resetCooperativeMeetingForm">New Meeting</button>
+                </div>
+              </form>
             </div>
-          </form>
+          </details>
           <details class="card monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="cooperativeMeetingsSettingsPanel">
             <summary>Meeting Reminder Settings</summary>
             <div class="profile-disclosure-body">
@@ -475,6 +480,72 @@
               </label>
               <p class="hint subtle">Uses your Cooperative time zone from Organization &amp; Report Settings on the Status Report tab. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
               <button type="button" class="btn" id="saveMeetingSettings">Save Reminder Settings</button>
+            </div>
+          </details>
+          <details class="card monthly-status-settings-panel profile-disclosure admin-only-report-settings hidden" id="emailSendAuditPanel">
+            <summary>Email Send Audit</summary>
+            <div class="profile-disclosure-body">
+              <p class="subtle">On-demand check of member notification emails this Cooperative has sent (meetings, published reports, and month-end reminders).</p>
+              <div class="panel-head-actions" style="margin-bottom: 0.75rem;">
+                <button type="button" class="btn" id="refreshEmailSendAudit">Refresh Audit</button>
+              </div>
+              <p id="emailSendAuditSummary" class="subtle">Click Refresh Audit to load the send history.</p>
+              <p id="emailSendAuditStatus" class="status"></p>
+              <div class="table-wrap compact">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>When</th>
+                      <th>Type</th>
+                      <th>Subject</th>
+                      <th>Sent</th>
+                      <th>Failed</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="emailSendAuditBody">
+                    <tr><td colspan="6" class="hint">No audit loaded yet.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div id="emailSendAuditDetail" class="hidden" style="margin-top: 1rem;">
+                <h3 class="section-title" style="margin-top: 0;">Recipients for Selected Send</h3>
+                <p id="emailSendAuditDetailMeta" class="subtle"></p>
+                <div class="table-wrap compact">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Member</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Note</th>
+                      </tr>
+                    </thead>
+                    <tbody id="emailSendAuditDetailBody">
+                      <tr><td colspan="4" class="hint">Select a send above.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <details class="profile-disclosure" style="margin-top: 1rem;">
+                <summary>Members Currently Eligible for Notification Emails</summary>
+                <div class="profile-disclosure-body">
+                  <p class="subtle">These members have an email on file and would be included in the next broadcast.</p>
+                  <div class="table-wrap compact">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Member</th>
+                          <th>Email</th>
+                        </tr>
+                      </thead>
+                      <tbody id="emailSendAuditRecipientsBody">
+                        <tr><td colspan="2" class="hint">Click Refresh Audit to load recipients.</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </details>
             </div>
           </details>
         </div>
@@ -1181,8 +1252,58 @@
         </div>
 
         <div class="card">
-          <h3>Bank Ledger Import</h3>
-          <p class="hint">Upload your master ledger file to refresh live Cooperative Books. After editing locally, upload the whole file again. Use <strong>Download sorted reference CSV</strong> to pull the latest copy from the server.</p>
+          <h3>Import New Bank Activity</h3>
+          <p class="hint">Upload a new bank statement or transaction import template. Only new transactions are added : duplicates are skipped automatically. Review Type and Member before applying.</p>
+          <form id="bankAppendForm" class="entry-form">
+            <label class="field-row">Bank account
+              <select id="bankAppendAccountSelect" name="bankAccountId"></select>
+            </label>
+            <label class="field-row">Statement or template file (.csv or .xlsx)
+              <input type="file" name="statement" accept=".csv,.xlsx,.xls" required />
+            </label>
+            <div class="panel-head-actions">
+              <button type="button" class="btn" id="previewBankAppend">Preview</button>
+              <button type="submit" class="btn primary" id="applyBankAppend" disabled>Add New Transactions</button>
+            </div>
+          </form>
+          <div class="panel-head-actions">
+            <button type="button" class="btn" id="downloadImportTemplateCsv">Download Import Template (CSV)</button>
+            <button type="button" class="btn" id="downloadImportTemplateXlsx">Download Import Template (Xlsx)</button>
+          </div>
+          <p id="bankAppendStatus" class="status"></p>
+          <div id="bankAppendPreview" class="bank-import-conflicts hidden"></div>
+          <p id="bankAppendSummary" class="subtle"></p>
+        </div>
+
+        <details class="card profile-disclosure">
+          <summary>Bank Account and Import Settings</summary>
+          <div class="profile-disclosure-body">
+            <form id="bankAccountSettingsForm" class="entry-form">
+              <label>Institution name
+                <input type="text" id="bankAccountInstitution" placeholder="Your bank name" />
+              </label>
+              <label>Account label
+                <input type="text" id="bankAccountLabel" placeholder="Main Operating Account" />
+              </label>
+              <label>Currency
+                <input type="text" id="bankAccountCurrency" placeholder="USD" maxlength="8" />
+              </label>
+              <label>Date format
+                <select id="cooperativeDateFormat">
+                  <option value="MDY">MM/DD/YYYY</option>
+                  <option value="DMY">DD/MM/YYYY</option>
+                  <option value="YMD">YYYY-MM-DD</option>
+                </select>
+              </label>
+              <button type="submit" class="btn primary">Save Settings</button>
+            </form>
+            <p id="bankAccountSettingsStatus" class="status"></p>
+          </div>
+        </details>
+
+        <div class="card">
+          <h3>Full Ledger Refresh (Advanced)</h3>
+          <p class="hint">Replaces all bank-imported transactions from your master ledger file. For monthly updates, use <strong>Import New Bank Activity</strong> above instead.</p>
           <form id="bankImportForm" class="entry-form">
             <label class="field-row">
               <span>Master ledger file (.csv or .xlsx)</span>
