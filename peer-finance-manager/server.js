@@ -849,11 +849,20 @@ app.post(
     try {
       if (!req.file) return res.status(400).json({ error: "Upload a statement or template file." });
       const { applyBankStatementAppend } = require("./lib/bank-import-append");
+      let rowOverrides = null;
+      if (req.body?.rowOverrides) {
+        try {
+          rowOverrides = JSON.parse(req.body.rowOverrides);
+        } catch (_parseErr) {
+          return res.status(400).json({ error: "rowOverrides must be valid JSON." });
+        }
+      }
       const result = applyBankStatementAppend({
         filePath: req.file.path,
         originalName: req.file.originalname,
         bankAccountId: req.body?.bankAccountId,
         allowPartial: req.body?.allowPartial !== "false",
+        rowOverrides,
       });
       res.json({ success: true, result });
     } catch (err) {

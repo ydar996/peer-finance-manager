@@ -3955,6 +3955,17 @@ $("#scheduleForm").addEventListener("submit", async (e) => {
 });
 
 let bankAppendPreviewData = null;
+const BANK_APPEND_LEDGER_TYPES = [
+  { value: "deposit", label: "Member Deposit", memberRequired: true },
+  { value: "withdrawal", label: "Member Withdrawal", memberRequired: true },
+  { value: "loan_repayment", label: "Loan Repayment", memberRequired: true },
+  { value: "loan_disbursement", label: "Loan Disbursement", memberRequired: true },
+  { value: "distribution", label: "Distribution", memberRequired: true },
+  { value: "expense", label: "Expenses", memberRequired: false },
+  { value: "cd_purchase", label: "Purchase of Certificate of Deposit", memberRequired: false },
+  { value: "cd_liquidation", label: "Liquidation of Certificate of Deposit", memberRequired: false },
+  { value: "investment", label: "Investment", memberRequired: false },
+];
 let bankAccountsCache = [];
 let importMemberNamesCache = [];
 let statementFormatLabels = {
@@ -4212,6 +4223,97 @@ function updateApplyBankAppendButton() {
   }
 }
 
+function bankAppendMemberRequired(ledgerType) {
+  return BANK_APPEND_LEDGER_TYPES.find((t) => t.value === ledgerType)?.memberRequired ?? false;
+}
+
+function validateBankAppendRowClient(row) {
+  const issues = [];
+  if (!row.ledgerType) issues.push("Type is required.");
+  if (bankAppendMemberRequired(row.ledgerType) && !row.member) {
+    issues.push("Member is required for this transaction type.");
+  }
+  return issues;
+}
+
+function rebucketBankAppendPreviewClient() {
+  if (!bankAppendPreviewData?.rows) return;
+  let ready = 0;
+  let needsReview = 0;
+  let skipped = 0;
+  for (const row of bankAppendPreviewData.rows) {
+    if (row.bucket === "skipped") {
+      skipped += 1;
+      continue;
+    }
+    const issues = validateBankAppendRowClient(row);
+    row.issues = issues;
+    row.bucket = issues.length ? "needsReview" : "ready";
+    if (row.bucket === "ready") ready += 1;
+    else needsReview += 1;
+  }
+  const summary = bankAppendPreviewData.summary || {};
+  const readyDelta = bankAppendPreviewData.rows
+    .filter((r) => r.bucket === "ready")
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const ledgerBefore = summary.balanceCheck?.ledgerBefore ?? null;
+  const projectedLedger =
+    ledgerBefore != null ? Math.round((ledgerBefore + readyDelta) * 100) / 100 : null;
+  const statementEnding = summary.balanceCheck?.statementEnding ?? null;
+  const openingAligned = summary.balanceCheck?.openingAligned;
+  const periodCloseMismatch =
+    statementEnding != null &&
+    projectedLedger != null &&
+    Math.abs(projectedLedger - statementEnding) > 0.02;
+  bankAppendPreviewData.summary = {
+    ...summary,
+    ready,
+    needsReview,
+    skipped,
+    balanceCheck: {
+      ...summary.balanceCheck,
+      projectedLedger,
+      periodCloseMismatch,
+      mismatch: openingAligned && periodCloseMismatch,
+    },
+  };
+}
+
+function bankAppendTypeSelectHtml(row) {
+  const options = BANK_APPEND_LEDGER_TYPES.map(
+    (t) =>
+      `<option value="${escapeHtml(t.value)}"${t.value === row.ledgerType ? " selected" : ""}>${escapeHtml(t.label)}</option>`
+  ).join("");
+  return `<select class="bank-append-type" aria-label="Transaction type">${options}</select>`;
+}
+
+function bankAppendMemberSelectHtml(row) {
+  const memberRequired = bankAppendMemberRequired(row.ledgerType);
+  const memberOptions = importMemberNamesCache
+    .map(
+      (name) =>
+        `<option value="${escapeHtml(name)}"${name === row.member ? " selected" : ""}>${escapeHtml(name)}</option>`
+    )
+    .join("");
+  const placeholder = memberRequired ? "Select member" : "None";
+  return `<select class="bank-append-member" aria-label="Member"${memberRequired ? " required" : ""}>
+    <option value="">${placeholder}</option>
+    ${memberOptions}
+  </select>`;
+}
+
+function collectBankAppendRowOverrides() {
+  const overrides = {};
+  for (const row of bankAppendPreviewData?.rows || []) {
+    if (row.bucket === "skipped") continue;
+    overrides[row.index] = {
+      ledgerType: row.ledgerType,
+      member: row.member || "",
+    };
+  }
+  return overrides;
+}
+
 function resetBankAppendPreview() {
   bankAppendPreviewData = null;
   renderBankAppendPreview(null);
@@ -4264,11 +4366,12 @@ function renderBankAppendPreview(preview) {
   }
   panel.innerHTML = `
     <strong>Preview</strong>
-    <p>${summary.ready || 0} ready to add · ${summary.skipped || 0} already in ledger · ${summary.needsReview || 0} need review</p>
+    <p class="subtle">Change <strong>Type</strong> or <strong>Member</strong> on <strong>New</strong> or <strong>Review</strong> rows before you add them. Rows already in the ledger (Skipped) cannot be changed here.</p>
+    <p id="bankAppendPreviewCounts">${summary.ready || 0} ready to add · ${summary.skipped || 0} already in ledger · ${summary.needsReview || 0} need review</p>
     ${formatNote}
     ${balanceNote}
     <div class="table-wrap">
-      <table class="data-table compact">
+      <table class="data-table compact bank-append-preview-table">
         <thead>
           <tr><th>Status</th><th>Date</th><th>Description</th><th>Amount</th><th>Type</th><th>Member</th><th>Notes</th></tr>
         </thead>
@@ -4282,13 +4385,20 @@ function renderBankAppendPreview(preview) {
                     ? "Skipped"
                     : "Review";
               const issues = (row.issues || []).join("; ");
-              return `<tr>
+              const editable = row.bucket !== "skipped";
+              const typeCell = editable
+                ? bankAppendTypeSelectHtml(row)
+                : escapeHtml(row.typeLabel || "");
+              const memberCell = editable
+                ? bankAppendMemberSelectHtml(row)
+                : escapeHtml(row.member || "");
+              return `<tr data-row-index="${row.index}">
                 <td>${escapeHtml(status)}</td>
                 <td>${escapeHtml(row.date || "")}</td>
                 <td>${escapeHtml(String(row.description || "").slice(0, 80))}</td>
                 <td>${escapeHtml(fmt.format(row.amount))}</td>
-                <td>${escapeHtml(row.typeLabel || "")}</td>
-                <td>${escapeHtml(row.member || "")}</td>
+                <td>${typeCell}</td>
+                <td>${memberCell}</td>
                 <td class="muted">${escapeHtml(issues)}</td>
               </tr>`;
             })
@@ -4341,6 +4451,7 @@ async function previewBankAppendImport() {
   }
   if (summary) summary.textContent = "";
   try {
+    await loadBankImportSettings();
     const fd = new FormData(form);
     const res = await fetch("/api/bank-import/append/preview", { method: "POST", body: fd });
     const data = await res.json();
@@ -4387,7 +4498,7 @@ async function handleApplyBankAppendClick() {
   if (ready <= 0) {
     if (status) {
       if (needsReview > 0) {
-        status.textContent = `${needsReview} row(s) need review before import. Fix Type or Member in the file, or use the Import Template.`;
+        status.textContent = `${needsReview} row(s) need review. Set Type and Member in the preview table.`;
         status.className = "status warn";
       } else if (skipped > 0) {
         status.textContent = `No new transactions to add. ${skipped} row(s) already in the ledger.`;
@@ -4421,6 +4532,10 @@ async function applyBankAppendImport(form) {
   }
   try {
     const fd = new FormData(form);
+    const overrides = collectBankAppendRowOverrides();
+    if (Object.keys(overrides).length) {
+      fd.append("rowOverrides", JSON.stringify(overrides));
+    }
     const res = await fetch("/api/bank-import/append/apply", { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok) {
@@ -4587,6 +4702,36 @@ $("#paymentAliasesTableBody")?.addEventListener("click", (e) => {
 $("#addBankAccountForm")?.addEventListener("submit", addBankAccount);
 
 $("#previewBankAppend")?.addEventListener("click", previewBankAppendImport);
+
+$("#bankAppendPreview")?.addEventListener("change", (e) => {
+  if (!bankAppendPreviewData) return;
+  const tr = e.target.closest("tr[data-row-index]");
+  if (!tr) return;
+  const index = Number(tr.dataset.rowIndex);
+  const row = bankAppendPreviewData.rows.find((r) => r.index === index);
+  if (!row || row.bucket === "skipped") return;
+
+  if (e.target.classList.contains("bank-append-type")) {
+    row.ledgerType = e.target.value;
+    row.typeLabel =
+      BANK_APPEND_LEDGER_TYPES.find((t) => t.value === row.ledgerType)?.label || row.ledgerType;
+    row.userOverride = true;
+  }
+  if (e.target.classList.contains("bank-append-member")) {
+    row.member = e.target.value || null;
+    row.userOverride = true;
+  }
+
+  rebucketBankAppendPreviewClient();
+  renderBankAppendPreview(bankAppendPreviewData);
+  const s = bankAppendPreviewData.summary || {};
+  const status = $("#bankAppendStatus");
+  if (status) {
+    status.textContent = `Preview ready: ${s.ready || 0} new, ${s.skipped || 0} skipped, ${s.needsReview || 0} need review.`;
+    status.className = s.needsReview ? "status warn" : "status ok";
+  }
+  updateApplyBankAppendButton();
+});
 $("#downloadImportTemplateCsv")?.addEventListener("click", (e) => {
   downloadImportTemplate("csv", e.currentTarget);
 });

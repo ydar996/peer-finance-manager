@@ -95,9 +95,9 @@ Use **Import New Bank Activity** for normal monthly updates. Use **Full Ledger R
 3. Choose your **Bank account** (e.g. Main Operating Account).
 4. Upload the bank export (`.csv`, `.xlsx`, or `.ofx`/`.qfx`).
 5. Click **Preview**. Check the table:
-   - **New** — will be added (Type and Member must look correct).
-   - **Skipped** — already in the ledger (safe to ignore).
-   - **Review** — fix Type or Member before applying (use **Import Template** or correct the file).
+   - **New** — will be added. Use the **Type** and **Member** dropdowns if auto-classification is wrong.
+   - **Skipped** — already in the ledger (cannot change here; use **Full Ledger Refresh** to correct).
+   - **Review** — set **Type** and **Member** in the preview before applying.
 6. Read **Detected format** and the **balance check** line (statement beginning/ending vs ledger). A red warning means **new rows** do not tie to statement ending. A pre-period gap note means the ledger opening differs from statement beginning before these rows: that is not caused by the rows in this preview.
 7. Click **Add New Transactions**.
 8. Confirm balances on **Cooperative Books** and affected members.

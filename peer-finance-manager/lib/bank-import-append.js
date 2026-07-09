@@ -227,6 +227,85 @@ function previewBankStatementAppend({
   };
 }
 
+function summarizePreviewRows(rows) {
+  return {
+    total: rows.length,
+    ready: rows.filter((r) => r.bucket === "ready").length,
+    skipped: rows.filter((r) => r.bucket === "skipped").length,
+    needsReview: rows.filter((r) => r.bucket === "needsReview").length,
+  };
+}
+
+function rebucketEditablePreviewRows(previewRows, memberNames) {
+  for (const row of previewRows) {
+    if (row.bucket === "skipped") continue;
+    const issues = validateParsedRow(
+      {
+        date: row.date,
+        description: row.description,
+        amount: row.amount,
+        ledgerType: row.ledgerType,
+        member: row.member,
+        typeSource: row.userOverride ? "explicit" : row.typeSource || "inferred",
+        reference: row.reference,
+      },
+      memberNames
+    );
+    row.issues = issues;
+    row.bucket = issues.length ? "needsReview" : "ready";
+  }
+}
+
+function applyRowOverridesToPreview(preview, rowOverrides, memberNames) {
+  if (!preview?.rows?.length || !rowOverrides) return preview;
+
+  for (const row of preview.rows) {
+    if (row.bucket === "skipped") continue;
+    const override = rowOverrides[String(row.index)] ?? rowOverrides[row.index];
+    if (!override) continue;
+    if (override.ledgerType) {
+      row.ledgerType = override.ledgerType;
+      row.typeLabel = typeLabelForLedger(override.ledgerType);
+      row.typeSource = "explicit";
+      row.userOverride = true;
+    }
+    if (override.member !== undefined) {
+      row.member = override.member ? String(override.member).trim() : null;
+    }
+  }
+
+  rebucketEditablePreviewRows(preview.rows, memberNames);
+
+  const counts = summarizePreviewRows(preview.rows);
+  const readyDelta = preview.rows
+    .filter((r) => r.bucket === "ready")
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const ledgerBefore = preview.summary?.balanceCheck?.ledgerBefore ?? null;
+  const projectedLedger =
+    ledgerBefore != null
+      ? Math.round((ledgerBefore + readyDelta) * 100) / 100
+      : null;
+  const statementEnding = preview.summary?.balanceCheck?.statementEnding ?? null;
+  const openingAligned = preview.summary?.balanceCheck?.openingAligned;
+  const periodCloseMismatch =
+    statementEnding != null &&
+    projectedLedger != null &&
+    Math.abs(projectedLedger - statementEnding) > 0.02;
+
+  preview.summary = {
+    ...preview.summary,
+    ...counts,
+    balanceCheck: {
+      ...preview.summary.balanceCheck,
+      projectedLedger,
+      periodCloseMismatch,
+      mismatch: openingAligned && periodCloseMismatch,
+    },
+  };
+
+  return preview;
+}
+
 function insertAppendTransaction({
   db,
   insertTx,
@@ -331,16 +410,25 @@ function applyBankStatementAppend({
   originalName,
   bankAccountId,
   allowPartial = true,
+  rowOverrides = null,
 } = {}) {
-  const preview = previewBankStatementAppend({
+  let preview = previewBankStatementAppend({
     filePath,
     originalName,
     bankAccountId,
   });
 
+  const db = getDb();
+  const members = db.prepare(`SELECT id, name FROM members`).all();
+  const memberNames = members.map((m) => m.name);
+
+  if (rowOverrides && Object.keys(rowOverrides).length) {
+    preview = applyRowOverridesToPreview(preview, rowOverrides, memberNames);
+  }
+
   if (preview.summary.needsReview > 0 && !allowPartial) {
     const err = new Error(
-      `${preview.summary.needsReview} row(s) need review before import. Fix Type/Member or resolve warnings.`
+      `${preview.summary.needsReview} row(s) need review before import. Set Type and Member in the preview table.`
     );
     err.preview = preview;
     throw err;
@@ -356,13 +444,11 @@ function applyBankStatementAppend({
     };
   }
 
-  const db = getDb();
-  const members = db.prepare(`SELECT id, name FROM members`).all();
   const nameToId = Object.fromEntries(members.map((m) => [m.name, m.id]));
   const parsedResult = parseUploadedStatement({
     filePath,
     originalName,
-    memberNames: members.map((m) => m.name),
+    memberNames,
     bankAccountId: preview.bankAccount.id,
   });
   const parsedByIndex = parsedResult.rows || [];
@@ -400,8 +486,13 @@ function applyBankStatementAppend({
 
   const run = db.transaction(() => {
     for (const row of readyRows) {
-      const tx = parsedByIndex[row.index];
-      if (!tx) continue;
+      const parsed = parsedByIndex[row.index];
+      if (!parsed) continue;
+      const tx = {
+        ...parsed,
+        ledgerType: row.ledgerType || parsed.ledgerType,
+        member: row.member != null ? row.member : parsed.member,
+      };
       const ok = insertAppendTransaction({
         db,
         insertTx,
@@ -454,4 +545,6 @@ function applyBankStatementAppend({
 module.exports = {
   previewBankStatementAppend,
   applyBankStatementAppend,
+  applyRowOverridesToPreview,
+  summarizePreviewRows,
 };

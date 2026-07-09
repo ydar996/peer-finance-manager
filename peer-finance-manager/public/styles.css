@@ -1194,7 +1194,13 @@ tr.loan-row:hover { background: #f8fafc; }
 }
 .loan-lot-head .btn.small { flex-shrink: 0; }
 .account-balance { font-size: 24px; font-weight: 700; margin: 0; }
-.table-wrap.compact table { font-size: 12px; }
+.bank-append-preview-table select {
+  width: 100%;
+  min-width: 9rem;
+  max-width: 14rem;
+  font-size: 12px;
+  padding: 4px 6px;
+}
 .table-wrap.compact th, .table-wrap.compact td { padding: 8px 10px; }
 .record-grid {
   display: flex;
