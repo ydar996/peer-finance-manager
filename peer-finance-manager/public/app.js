@@ -4235,10 +4235,33 @@ function renderBankAppendPreview(preview) {
     ? `<p class="subtle">Detected format: ${escapeHtml(statementFormatLabel(summary.resolvedFormat))}</p>`
     : "";
   const bc = summary.balanceCheck;
-  const balanceNote =
-    bc?.statementEnding != null
-      ? `<p class="${bc.mismatch ? "status warn" : "subtle"}">Statement ending ${fmt.format(bc.statementEnding)} · Ledger before ${fmt.format(bc.ledgerBefore ?? 0)} · Projected after import ${fmt.format(bc.projectedLedger ?? 0)}${bc.mismatch ? " · Balance mismatch: review before applying" : ""}</p>`
-      : "";
+  let balanceNote = "";
+  if (bc?.statementEnding != null || bc?.statementBeginning != null) {
+    const parts = [];
+    if (bc.statementBeginning != null) {
+      parts.push(`Statement beginning ${fmt.format(bc.statementBeginning)}`);
+    }
+    if (bc.ledgerBefore != null) {
+      parts.push(`Ledger before import ${fmt.format(bc.ledgerBefore)}`);
+    }
+    if (bc.statementEnding != null) {
+      parts.push(`Statement ending ${fmt.format(bc.statementEnding)}`);
+    }
+    if (bc.projectedLedger != null) {
+      parts.push(`Projected after import ${fmt.format(bc.projectedLedger)}`);
+    }
+    let suffix = "";
+    let tone = "subtle";
+    if (bc.mismatch) {
+      tone = "status warn";
+      suffix = " · New rows do not tie to statement ending: review before applying";
+    } else if (bc.openingAligned === false && bc.periodOpenGap != null) {
+      suffix = ` · Ledger is ${fmt.format(Math.abs(bc.periodOpenGap))} ${bc.periodOpenGap > 0 ? "above" : "below"} statement beginning (pre-period gap, not from new rows above)`;
+    } else if (bc.periodCloseMismatch === false && bc.statementEnding != null) {
+      suffix = " · Statement ending matches projected ledger";
+    }
+    balanceNote = `<p class="${tone}">${parts.join(" · ")}${suffix}</p>`;
+  }
   panel.innerHTML = `
     <strong>Preview</strong>
     <p>${summary.ready || 0} ready to add · ${summary.skipped || 0} already in ledger · ${summary.needsReview || 0} need review</p>

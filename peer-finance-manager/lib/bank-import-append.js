@@ -183,14 +183,30 @@ function previewBankStatementAppend({
     .filter((r) => r.bucket === "ready")
     .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const projectedLedger = Math.round(((ledger?.balance ?? 0) + readyDelta) * 100) / 100;
+  const statementBeginning = parsedResult.statementSummary?.beginning ?? null;
+  const statementEnding = parsedResult.statementSummary?.ending ?? null;
+  const ledgerBefore = ledger?.balance ?? null;
+  const openingAligned =
+    statementBeginning == null ||
+    ledgerBefore == null ||
+    Math.abs(ledgerBefore - statementBeginning) <= 0.02;
+  const periodOpenGap =
+    statementBeginning != null && ledgerBefore != null
+      ? Math.round((ledgerBefore - statementBeginning) * 100) / 100
+      : null;
+  const periodCloseMismatch =
+    statementEnding != null &&
+    projectedLedger != null &&
+    Math.abs(projectedLedger - statementEnding) > 0.02;
   const balanceCheck = {
-    statementEnding: parsedResult.statementSummary?.ending ?? null,
-    ledgerBefore: ledger?.balance ?? null,
+    statementBeginning,
+    statementEnding,
+    ledgerBefore,
     projectedLedger,
-    mismatch:
-      parsedResult.statementSummary?.ending != null &&
-      ledger?.balance != null &&
-      Math.abs(projectedLedger - parsedResult.statementSummary.ending) > 0.02,
+    periodOpenGap,
+    openingAligned,
+    periodCloseMismatch,
+    mismatch: openingAligned && periodCloseMismatch,
   };
 
   const summary = {

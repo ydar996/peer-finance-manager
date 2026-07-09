@@ -98,7 +98,7 @@ Use **Import New Bank Activity** for normal monthly updates. Use **Full Ledger R
    - **New** — will be added (Type and Member must look correct).
    - **Skipped** — already in the ledger (safe to ignore).
    - **Review** — fix Type or Member before applying (use **Import Template** or correct the file).
-6. Read **Detected format** and the **balance check** line (statement ending vs projected ledger). If there is a mismatch warning, verify the file and ledger before you apply.
+6. Read **Detected format** and the **balance check** line (statement beginning/ending vs ledger). A red warning means **new rows** do not tie to statement ending. A pre-period gap note means the ledger opening differs from statement beginning before these rows: that is not caused by the rows in this preview.
 7. Click **Add New Transactions**.
 8. Confirm balances on **Cooperative Books** and affected members.
 
