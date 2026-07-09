@@ -150,11 +150,13 @@ function previewBankStatementAppend({
   const members = db.prepare(`SELECT id, name FROM members`).all();
   const memberNames = members.map((m) => m.name);
 
-  const parsed = parseUploadedStatement({
+  const parsedResult = parseUploadedStatement({
     filePath,
     originalName,
     memberNames,
+    bankAccountId: account.id,
   });
+  const parsed = parsedResult.rows || [];
   if (!parsed.length) {
     throw new Error("No transactions found in the uploaded file.");
   }
@@ -176,12 +178,29 @@ function previewBankStatementAppend({
 
   const { audit } = applyAuditWarnings(previewRows, auditInput, memberNames);
 
+  const ledger = getLedgerEndingBalance();
+  const readyDelta = previewRows
+    .filter((r) => r.bucket === "ready")
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const projectedLedger = Math.round(((ledger?.balance ?? 0) + readyDelta) * 100) / 100;
+  const balanceCheck = {
+    statementEnding: parsedResult.statementSummary?.ending ?? null,
+    ledgerBefore: ledger?.balance ?? null,
+    projectedLedger,
+    mismatch:
+      parsedResult.statementSummary?.ending != null &&
+      ledger?.balance != null &&
+      Math.abs(projectedLedger - parsedResult.statementSummary.ending) > 0.02,
+  };
+
   const summary = {
     total: previewRows.length,
     ready: previewRows.filter((r) => r.bucket === "ready").length,
     skipped: previewRows.filter((r) => r.bucket === "skipped").length,
     needsReview: previewRows.filter((r) => r.bucket === "needsReview").length,
     warningCount: audit.warningCount,
+    resolvedFormat: parsedResult.resolvedFormat,
+    balanceCheck,
   };
 
   return {
@@ -324,11 +343,13 @@ function applyBankStatementAppend({
   const db = getDb();
   const members = db.prepare(`SELECT id, name FROM members`).all();
   const nameToId = Object.fromEntries(members.map((m) => [m.name, m.id]));
-  const parsedByIndex = parseUploadedStatement({
+  const parsedResult = parseUploadedStatement({
     filePath,
     originalName,
     memberNames: members.map((m) => m.name),
+    bankAccountId: preview.bankAccount.id,
   });
+  const parsedByIndex = parsedResult.rows || [];
 
   const archived = archiveUploadedBankFiles({ statementPath: filePath });
   const importId = registerBankImport(

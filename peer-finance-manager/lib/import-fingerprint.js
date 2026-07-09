@@ -10,21 +10,10 @@ function normalizeDescriptionPrefix(description) {
     .slice(0, 48);
 }
 
+const { extractReferenceFromRules } = require("./import-rules-service");
+
 function extractReferenceToken(description, explicitReference) {
-  const ref = String(explicitReference || "").trim();
-  if (ref) return ref.toLowerCase().replace(/\s+/g, "");
-
-  const text = String(description || "");
-  const conf = text.match(/conf#?\s*([a-z0-9]+)/i);
-  if (conf) return conf[1].toLowerCase();
-
-  const check = text.match(/check\s*(\d+)/i);
-  if (check) return `check${check[1]}`;
-
-  const mobile = text.match(/MOBILE\s+\d{2}\/\d{2}\s+(\d+)/i);
-  if (mobile) return `mobile${mobile[1]}`;
-
-  return null;
+  return extractReferenceFromRules(description, explicitReference);
 }
 
 function ledgerTransactionKey(date, amount, description, explicitReference) {

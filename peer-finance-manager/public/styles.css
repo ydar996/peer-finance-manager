@@ -444,6 +444,30 @@ th { background: #f8fafc; font-weight: 600; }
   color: #64748b;
 }
 .profile-disclosure[open] summary::before { content: "▾ "; }
+.import-panel-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  font-weight: 600;
+}
+.import-panel-title {
+  color: #0f172a;
+}
+.import-panel-hint {
+  font-size: 13px;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 1.4;
+}
+.import-panel-section summary::-webkit-details-marker { display: none; }
+.import-panel-section summary::before {
+  content: "▸ ";
+  color: #64748b;
+}
+.import-panel-section[open] summary::before { content: "▾ "; }
 .profile-disclosure-body {
   padding: 0 14px 14px;
 }

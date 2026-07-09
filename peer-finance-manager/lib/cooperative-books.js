@@ -246,6 +246,9 @@ function getCooperativeBooks() {
   const cdSnapshot = getCdBalanceSnapshot();
   const cdTermMetrics = cdSnapshot.termMetrics;
   const checkingSnapshot = getCheckingBalanceSnapshot();
+  const { listBankAccounts, getPrimaryBankAccount } = require("./bank-account-service");
+  const bankAccounts = listBankAccounts();
+  const primaryBank = getPrimaryBankAccount();
 
   const memberCount = db.prepare(`SELECT COUNT(*) AS c FROM members`).get().c;
   const profileCount = db
@@ -279,6 +282,14 @@ function getCooperativeBooks() {
     checkingBalanceAsOf: checkingSnapshot.asOf,
     ledgerCheckingBalance: checkingSnapshot.ledgerBalance,
     ledgerCheckingAsOf: checkingSnapshot.ledgerAsOf,
+    primaryCheckingCurrency: primaryBank?.currency || "USD",
+    bankAccounts: bankAccounts.map((a) => ({
+      id: a.id,
+      accountLabel: a.accountLabel,
+      institutionName: a.institutionName,
+      currency: a.currency,
+      isPrimary: !!a.isPrimary,
+    })),
     cdBalance: cdBalanceSetting != null ? Number(cdBalanceSetting) : null,
     cdBalanceAsOf: cdBalanceAsOf || null,
     cdPurchased: assets.cdPurchased,

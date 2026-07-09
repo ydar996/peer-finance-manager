@@ -168,6 +168,7 @@ CREATE TABLE IF NOT EXISTS bank_accounts (
   institution_name TEXT NOT NULL DEFAULT '',
   currency TEXT NOT NULL DEFAULT 'USD',
   statement_format TEXT NOT NULL DEFAULT 'auto',
+  column_mapping_json TEXT,
   is_primary INTEGER NOT NULL DEFAULT 0,
   active_from TEXT,
   active_to TEXT,

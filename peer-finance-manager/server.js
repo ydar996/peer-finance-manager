@@ -735,11 +735,17 @@ app.get("/api/cooperative/import-settings", requireAdmin, restoreOrgContext, (re
       DATE_FORMAT_OPTIONS,
     } = require("./lib/cooperative-date-format");
     const { getCooperativeTimezone, timezoneLabel } = require("./lib/cooperative-time");
+    const { getImportRules } = require("./lib/import-rules-service");
+    const { listPaymentAliases } = require("./lib/member-payment-alias-service");
+    const { STATEMENT_FORMATS } = require("./lib/import-format-service");
     res.json({
       dateFormat: getCooperativeDateFormat(),
       dateFormatOptions: DATE_FORMAT_OPTIONS,
       timezone: getCooperativeTimezone(),
       timezoneLabel: timezoneLabel(getCooperativeTimezone()),
+      importRules: getImportRules(),
+      paymentAliases: listPaymentAliases(),
+      statementFormats: STATEMENT_FORMATS,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -756,12 +762,24 @@ app.patch("/api/cooperative/import-settings", requireAdmin, restoreOrgContext, (
     if (req.body?.timezone != null) {
       setCooperativeTimezone(req.body.timezone);
     }
+    if (req.body?.importRules != null) {
+      const { setImportRules } = require("./lib/import-rules-service");
+      setImportRules(req.body.importRules);
+    }
+    if (req.body?.paymentAliases != null) {
+      const { replacePaymentAliases } = require("./lib/member-payment-alias-service");
+      replacePaymentAliases(req.body.paymentAliases);
+    }
     const { getCooperativeDateFormat } = require("./lib/cooperative-date-format");
     const { getCooperativeTimezone, timezoneLabel } = require("./lib/cooperative-time");
+    const { getImportRules } = require("./lib/import-rules-service");
+    const { listPaymentAliases } = require("./lib/member-payment-alias-service");
     res.json({
       dateFormat: getCooperativeDateFormat(),
       timezone: getCooperativeTimezone(),
       timezoneLabel: timezoneLabel(getCooperativeTimezone()),
+      importRules: getImportRules(),
+      paymentAliases: listPaymentAliases(),
     });
   } catch (err) {
     res.status(400).json({ error: err.message });

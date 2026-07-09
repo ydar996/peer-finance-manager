@@ -1481,15 +1481,24 @@ async function loadBooks() {
             label: "Current Bank Balance",
             amount: books.checkingBalance ?? books.ledgerCheckingBalance ?? 0,
             note: [
+              books.primaryCheckingCurrency && books.primaryCheckingCurrency !== "USD"
+                ? `Currency ${books.primaryCheckingCurrency}`
+                : null,
               books.checkingBalanceAsOf
                 ? `Statement as of ${books.checkingBalanceAsOf}`
                 : null,
               books.ledgerCheckingBalance != null
                 ? `Ledger ${fmt.format(books.ledgerCheckingBalance)} through ${books.ledgerCheckingAsOf || ":"}`
                 : null,
+              books.bankAccounts?.length
+                ? books.bankAccounts
+                    .filter((a) => a.isPrimary)
+                    .map((a) => a.institutionName || a.accountLabel)
+                    .join(", ") || null
+                : null,
             ]
               .filter(Boolean)
-              .join(" · ") || "Bank of America checking",
+              .join(" · ") || "Primary checking account",
           })
         : "",
       books.cdBalance != null
@@ -3946,29 +3955,213 @@ $("#scheduleForm").addEventListener("submit", async (e) => {
 });
 
 let bankAppendPreviewData = null;
+let bankAccountsCache = [];
+let statementFormatLabels = {
+  auto: "Auto-detect",
+  csv_date_description_amount: "Date, Description, Amount",
+  csv_date_description_credit_debit: "Date, Description, Credit, Debit",
+  csv_summary_then_transactions: "Summary Block Then Transactions",
+  template_explicit: "PFM Import Template",
+  ofx: "OFX/QFX",
+  custom_map: "Custom Column Mapping",
+};
+
+function statementFormatLabel(code) {
+  return statementFormatLabels[code] || code || "Auto-detect";
+}
+
+function toggleColumnMappingPanel(formatValue) {
+  const panel = $("#bankColumnMappingPanel");
+  const fmt = formatValue ?? $("#bankAccountFormat")?.value;
+  if (panel) panel.classList.toggle("hidden", fmt !== "custom_map");
+}
+
+function readColumnMappingFromForm() {
+  return {
+    date: $("#mapColDate")?.value?.trim() || "Date",
+    description: $("#mapColDescription")?.value?.trim() || "Description",
+    amount: $("#mapColAmount")?.value?.trim() || "Amount",
+    credit: $("#mapColCredit")?.value?.trim() || "",
+    debit: $("#mapColDebit")?.value?.trim() || "",
+    type: $("#mapColType")?.value?.trim() || "",
+    member: $("#mapColMember")?.value?.trim() || "",
+    reference: $("#mapColReference")?.value?.trim() || "",
+  };
+}
+
+function fillColumnMappingForm(mapping) {
+  const m = mapping || {};
+  const set = (id, val) => {
+    const el = $(id);
+    if (el) el.value = val || "";
+  };
+  set("#mapColDate", m.date || "Date");
+  set("#mapColDescription", m.description || "Description");
+  set("#mapColAmount", m.amount || "Amount");
+  set("#mapColCredit", m.credit);
+  set("#mapColDebit", m.debit);
+  set("#mapColType", m.type);
+  set("#mapColMember", m.member);
+  set("#mapColReference", m.reference);
+}
+
+function fillImportRulesForm(rules) {
+  if (!rules) return;
+  const contrib = $("#importRuleContributions");
+  const loans = $("#importRuleLoans");
+  const refs = $("#importRuleReferences");
+  if (contrib) contrib.value = (rules.contributionKeywords || []).join(", ");
+  if (loans) loans.value = (rules.loanKeywords || []).join(", ");
+  if (refs) refs.value = (rules.referencePatterns || []).join("\n");
+}
+
+function parseImportRulesFromForm() {
+  const splitCsv = (raw) =>
+    String(raw || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  const refs = String($("#importRuleReferences")?.value || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return {
+    contributionKeywords: splitCsv($("#importRuleContributions")?.value),
+    loanKeywords: splitCsv($("#importRuleLoans")?.value),
+    referencePatterns: refs,
+  };
+}
+
+function fillPaymentAliasesForm(aliases) {
+  const ta = $("#importPaymentAliases");
+  if (!ta) return;
+  ta.value = (aliases || [])
+    .map((a) => `${a.memberName} = ${a.aliasPattern}`)
+    .join("\n");
+}
+
+function parsePaymentAliasesFromForm() {
+  return String($("#importPaymentAliases")?.value || "")
+    .split(/\r?\n/)
+    .map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return null;
+      const eq = trimmed.indexOf("=");
+      if (eq < 0) return null;
+      const memberName = trimmed.slice(0, eq).trim();
+      const aliasPattern = trimmed.slice(eq + 1).trim();
+      if (!memberName || !aliasPattern) return null;
+      return { memberName, aliasPattern };
+    })
+    .filter(Boolean);
+}
+
+function accountIsActive(account) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (account.activeTo && account.activeTo < today) return false;
+  if (account.activeFrom && account.activeFrom > today) return false;
+  return true;
+}
+
+function accountOptionLabel(account) {
+  const inst = account.institutionName ? ` (${account.institutionName})` : "";
+  const status = accountIsActive(account) ? "" : " — inactive";
+  return `${account.accountLabel}${inst}${status}`;
+}
+
+function fillBankAccountEditForm(account) {
+  const inst = $("#bankAccountInstitution");
+  const label = $("#bankAccountLabel");
+  const currency = $("#bankAccountCurrency");
+  const activeFrom = $("#bankAccountActiveFrom");
+  const activeTo = $("#bankAccountActiveTo");
+  const primary = $("#bankAccountPrimary");
+  const format = $("#bankAccountFormat");
+  if (!account) return;
+  if (inst) {
+    inst.value = account.institutionName || "";
+    inst.dataset.accountId = String(account.id);
+  }
+  if (label) label.value = account.accountLabel || "";
+  if (currency) currency.value = account.currency || "USD";
+  if (format) format.value = account.statementFormat || "auto";
+  fillColumnMappingForm(account.columnMapping);
+  toggleColumnMappingPanel(account.statementFormat || "auto");
+  if (activeFrom) activeFrom.value = account.activeFrom || "";
+  if (activeTo) activeTo.value = account.activeTo || "";
+  if (primary) primary.checked = !!account.isPrimary;
+}
+
+function renderBankAccountsTable(accounts) {
+  const body = $("#bankAccountsTableBody");
+  if (!body) return;
+  if (!accounts.length) {
+    body.innerHTML = `<tr><td colspan="6">No bank accounts yet. Use Add Bank Account below.</td></tr>`;
+    return;
+  }
+  body.innerHTML = accounts
+    .map((a) => {
+      const active = accountIsActive(a);
+      return `<tr>
+        <td>${escapeHtml(a.accountLabel)}</td>
+        <td>${escapeHtml(a.institutionName || ":")}</td>
+        <td>${escapeHtml(a.currency || "")}</td>
+        <td>${escapeHtml(statementFormatLabel(a.statementFormat))}</td>
+        <td>${a.isPrimary ? "Yes" : ""}</td>
+        <td>${active ? "Active" : "Inactive"}</td>
+      </tr>`;
+    })
+    .join("");
+}
+
+function populateBankAccountSelects(accounts) {
+  const appendSelect = $("#bankAppendAccountSelect");
+  const editSelect = $("#bankAccountEditSelect");
+  const activeAccounts = accounts.filter(accountIsActive);
+  const appendOptions = (activeAccounts.length ? activeAccounts : accounts)
+    .map((a) => `<option value="${a.id}">${escapeHtml(accountOptionLabel(a))}</option>`)
+    .join("");
+  if (appendSelect) {
+    appendSelect.innerHTML = appendOptions || `<option value="">No accounts</option>`;
+    const primary = activeAccounts.find((a) => a.isPrimary) || activeAccounts[0] || accounts[0];
+    if (primary) appendSelect.value = String(primary.id);
+  }
+  if (editSelect) {
+    editSelect.innerHTML = accounts
+      .map((a) => `<option value="${a.id}">${escapeHtml(accountOptionLabel(a))}</option>`)
+      .join("");
+    const selectedId = $("#bankAccountInstitution")?.dataset?.accountId;
+    const selected =
+      accounts.find((a) => String(a.id) === String(selectedId)) ||
+      accounts.find((a) => a.isPrimary) ||
+      accounts[0];
+    if (selected) {
+      editSelect.value = String(selected.id);
+      fillBankAccountEditForm(selected);
+    }
+  }
+}
+
+async function loadBankAccountsData() {
+  const res = await fetch("/api/bank-accounts");
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Could not load bank accounts");
+  bankAccountsCache = data.accounts || [];
+  renderBankAccountsTable(bankAccountsCache);
+  populateBankAccountSelects(bankAccountsCache);
+  return bankAccountsCache;
+}
 
 async function loadBankImportPanel() {
-  await Promise.all([loadBankAppendAccounts(), loadBankImportSettings()]);
+  await Promise.all([loadBankAccountsData(), loadBankImportSettings()]);
 }
 
 async function loadBankAppendAccounts() {
-  const select = $("#bankAppendAccountSelect");
-  if (!select) return;
   try {
-    const res = await fetch("/api/bank-accounts");
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Could not load bank accounts");
-    const accounts = data.accounts || [];
-    select.innerHTML = accounts
-      .map(
-        (a) =>
-          `<option value="${a.id}">${escapeHtml(a.accountLabel)}${a.institutionName ? ` (${escapeHtml(a.institutionName)})` : ""}</option>`
-      )
-      .join("");
-    const primary = accounts.find((a) => a.isPrimary) || accounts[0];
-    if (primary) select.value = String(primary.id);
+    await loadBankAccountsData();
   } catch (err) {
-    select.innerHTML = `<option value="">Could not load accounts</option>`;
+    const select = $("#bankAppendAccountSelect");
+    if (select) select.innerHTML = `<option value="">Could not load accounts</option>`;
   }
 }
 
@@ -3979,19 +4172,14 @@ async function loadBankImportSettings() {
     if (!res.ok) return;
     const df = $("#cooperativeDateFormat");
     if (df && data.dateFormat) df.value = data.dateFormat;
-    const accountsRes = await fetch("/api/bank-accounts");
-    const accountsData = await accountsRes.json();
-    const primary =
-      accountsData.accounts?.find((a) => a.isPrimary) || accountsData.accounts?.[0];
-    if (primary) {
-      const inst = $("#bankAccountInstitution");
-      const label = $("#bankAccountLabel");
-      const currency = $("#bankAccountCurrency");
-      if (inst) inst.value = primary.institutionName || "";
-      if (label) label.value = primary.accountLabel || "";
-      if (currency) currency.value = primary.currency || "USD";
-      if (inst) inst.dataset.accountId = String(primary.id);
+    if (data.statementFormats) {
+      statementFormatLabels = Object.fromEntries(
+        Object.entries(data.statementFormats).map(([k, v]) => [k, v.label || k])
+      );
     }
+    fillImportRulesForm(data.importRules);
+    fillPaymentAliasesForm(data.paymentAliases);
+    if (!bankAccountsCache.length) await loadBankAccountsData();
   } catch (_) {}
 }
 
@@ -4009,9 +4197,19 @@ function renderBankAppendPreview(preview) {
   }
   panel.classList.remove("hidden");
   const summary = preview.summary || {};
+  const formatNote = summary.resolvedFormat
+    ? `<p class="subtle">Detected format: ${escapeHtml(statementFormatLabel(summary.resolvedFormat))}</p>`
+    : "";
+  const bc = summary.balanceCheck;
+  const balanceNote =
+    bc?.statementEnding != null
+      ? `<p class="${bc.mismatch ? "status warn" : "subtle"}">Statement ending ${fmt.format(bc.statementEnding)} · Ledger before ${fmt.format(bc.ledgerBefore ?? 0)} · Projected after import ${fmt.format(bc.projectedLedger ?? 0)}${bc.mismatch ? " · Balance mismatch: review before applying" : ""}</p>`
+      : "";
   panel.innerHTML = `
     <strong>Preview</strong>
     <p>${summary.ready || 0} ready to add · ${summary.skipped || 0} already in ledger · ${summary.needsReview || 0} need review</p>
+    ${formatNote}
+    ${balanceNote}
     <div class="table-wrap">
       <table class="data-table compact">
         <thead>
@@ -4158,23 +4356,35 @@ async function saveBankAccountSettings(e) {
   const inst = $("#bankAccountInstitution");
   const label = $("#bankAccountLabel");
   const currency = $("#bankAccountCurrency");
+  const activeFrom = $("#bankAccountActiveFrom");
+  const activeTo = $("#bankAccountActiveTo");
+  const primary = $("#bankAccountPrimary");
   const dateFormat = $("#cooperativeDateFormat");
-  const accountId = inst?.dataset?.accountId;
+  const editSelect = $("#bankAccountEditSelect");
+  const accountFormat = $("#bankAccountFormat");
+  const accountId = editSelect?.value || inst?.dataset?.accountId;
   if (status) {
     status.textContent = "Saving…";
     status.className = "status";
   }
   try {
     if (accountId) {
+      const patch = {
+        institutionName: inst?.value,
+        accountLabel: label?.value,
+        currency: currency?.value,
+        statementFormat: accountFormat?.value || "auto",
+        activeFrom: activeFrom?.value || null,
+        activeTo: activeTo?.value || null,
+        isPrimary: !!primary?.checked,
+      };
+      if (accountFormat?.value === "custom_map") {
+        patch.columnMapping = readColumnMappingFromForm();
+      }
       const res = await fetch(`/api/bank-accounts/${accountId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          institutionName: inst?.value,
-          accountLabel: label?.value,
-          currency: currency?.value,
-          isPrimary: true,
-        }),
+        body: JSON.stringify(patch),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not save bank account");
@@ -4182,13 +4392,17 @@ async function saveBankAccountSettings(e) {
     const settingsRes = await fetch("/api/cooperative/import-settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dateFormat: dateFormat?.value }),
+      body: JSON.stringify({
+        dateFormat: dateFormat?.value,
+        importRules: parseImportRulesFromForm(),
+        paymentAliases: parsePaymentAliasesFromForm(),
+      }),
     });
     const settingsData = await settingsRes.json();
     if (!settingsRes.ok) throw new Error(settingsData.error || "Could not save date format");
-    await loadBankAppendAccounts();
+    await loadBankAccountsData();
     if (status) {
-      status.textContent = "Settings saved.";
+      status.textContent = "Account and settings saved.";
       status.className = "status ok";
     }
   } catch (err) {
@@ -4198,6 +4412,62 @@ async function saveBankAccountSettings(e) {
     }
   }
 }
+
+async function addBankAccount(e) {
+  e.preventDefault();
+  const status = $("#addBankAccountStatus");
+  const label = $("#newBankAccountLabel")?.value?.trim();
+  if (!label) {
+    if (status) {
+      status.textContent = "Account label is required.";
+      status.className = "status err";
+    }
+    return;
+  }
+  if (status) {
+    status.textContent = "Adding account…";
+    status.className = "status";
+  }
+  try {
+    const res = await fetch("/api/bank-accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accountLabel: label,
+        institutionName: $("#newBankAccountInstitution")?.value?.trim() || "",
+        currency: $("#newBankAccountCurrency")?.value?.trim() || "USD",
+        statementFormat: $("#newBankAccountFormat")?.value || "auto",
+        activeFrom: $("#newBankAccountActiveFrom")?.value || null,
+        isPrimary: !!$("#newBankAccountPrimary")?.checked,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not add bank account");
+    $("#addBankAccountForm")?.reset();
+    const currency = $("#newBankAccountCurrency");
+    if (currency) currency.value = "USD";
+    await loadBankAccountsData();
+    if (data.account) fillBankAccountEditForm(data.account);
+    if (status) {
+      status.textContent = `Added ${data.account?.accountLabel || "bank account"}.`;
+      status.className = "status ok";
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+}
+
+$("#bankAccountEditSelect")?.addEventListener("change", (e) => {
+  const account = bankAccountsCache.find((a) => String(a.id) === String(e.target.value));
+  fillBankAccountEditForm(account);
+});
+$("#bankAccountFormat")?.addEventListener("change", (e) => {
+  toggleColumnMappingPanel(e.target.value);
+});
+$("#addBankAccountForm")?.addEventListener("submit", addBankAccount);
 
 $("#previewBankAppend")?.addEventListener("click", previewBankAppendImport);
 $("#downloadImportTemplateCsv")?.addEventListener("click", (e) => {

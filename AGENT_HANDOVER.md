@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 8, 2026 (append-only bank activity import)  
+**Last updated:** July 8, 2026 (bank import Phase 2: format profiles, rules, collapsed Import tab)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -107,6 +107,8 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-08** — **Bank import Phase 2 + Import tab UX:** All Import tab sections collapsed by default with explainer hints under each header. **Format-first parsers** per bank account (`auto`, CSV date/desc/amount, credit/debit, summary block, PFM template, OFX/QFX, custom column mapping). **Classification rules** (contribution/loan keywords, reference regex) and **payment name aliases** stored in DB and editable under **Bank Accounts and Import Settings**. Preview shows detected format and **statement ending balance** vs projected ledger. Books card shows primary account currency. New libs: `import-format-service.js`, `import-rules-service.js`, `member-payment-alias-service.js`. Files: `bank-import-append.js`, `statement-import-parser.js`, `bank-account-service.js`, `cooperative-books.js`, `import-fingerprint.js`, `database.js`, `schema.sql`, `server.js`, `index.html`, `app.js`, `styles.css`, `USER-GUIDE.md`. Tested locally: Assurance July stmt dedup (2 skipped), format `csv_summary_then_transactions`, balance check flags mismatch. **Production:** `git push` only.
+- **2026-07-08** — **Bank accounts admin UI:** Import → **Bank Accounts and Import Settings** lists accounts, **Add Bank Account** form, **Edit Selected Account** (institution, label, currency, active dates, primary). Inactive accounts hidden from import dropdown. Files: `index.html`, `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-08** — **Append-only bank activity import:** Admin → Import → **Import New Bank Activity** uploads a bank statement or PFM transaction template; preview shows New/Skipped/Review; only new rows are inserted (fingerprint dedup). **Bank accounts** table (institution name, currency); org **date format** setting (MDY/DMY/YMD). Downloadable **Import Template** (CSV/xlsx) with required Date, Description, Amount, Type; Member required for member transactions. Full **Ledger Refresh** remains under Advanced. Tested locally with Assurance July 2026 stmt (Olawale $100, Gbanju $70.06). Docs: `USER-GUIDE.md`, `README.md`, `PEER-FINANCE-MANAGER.md`, `UPLOAD-DATA-TO-PRODUCTION.md`. Files: `bank-import-append.js`, `statement-import-parser.js`, `bank-account-service.js`, `import-template-service.js`, `import-fingerprint.js`, `transaction-import-types.js`, `cooperative-date-format.js`, schema/migrations, `server.js`, `index.html`, `app.js`. **Production:** `git push`.
 - **2026-07-06** — **Public Pages plain-text editor:** Admin **Public Pages** tab uses collapsible **About Us** and **Bylaws** sections (collapsed by default). Cooperatives paste plain text (no HTML); PFM auto-formats public pages. Optional external website URL per section greys out built-in fields when the Cooperative already publishes online. Bylaws supports plain text plus optional PDF upload. **Production:** `git push` (`bff5e79`).
 - **2026-07-06** — **Member report PDF mobile fit:** On phones, report viewer renders PDF pages to width-fit canvases (PDF.js) instead of iframe; full viewport height and scrollable pages. Desktop keeps iframe. **Production:** `git push`.
@@ -268,7 +270,7 @@ Historically, everything lived in Excel (`Assurance Status` workbooks). This rep
 | ✅ Done | Puppeteer PDF on Render (Chrome installed at build) |
 | ✅ Done | Bank ledger import via `npm run pfm:import-bank` (`import-bank-ledger.js` + `parse-bank-sources.js`) |
 | ✅ Done | Date display fix for `YYYY-MM-DD` values (timezone-safe local parsing) |
-| 🟡 Partial | Bank import UI tab — preview endpoint exists; full import is CLI/script today |
+| ✅ Done | Bank import UI tab — **Import New Bank Activity** (append preview/apply), format profiles, rules, aliases, OFX, balance check |
 | 🟡 Partial | Active loans not fully loaded |
 | ❌ Not done | Expenses UI / import |
 | ❌ Not done | Supabase live sync (optional future) |

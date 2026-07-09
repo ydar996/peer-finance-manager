@@ -64,7 +64,7 @@ After you submit, the Cooperative receives your application automatically. An ad
 | **Statements** | Generate batch PDF statements |
 | **Loans** | View and manage loans |
 | **Record** | Add members, record contributions, fees, expenses (each form collapsed until expanded) |
-| **Import** | **Import New Bank Activity** (append-only bank statement or template; preview before apply). **Full Ledger Refresh** (advanced) for master file replace. Download **Import Template** (CSV/xlsx) for historical catch-up. Spreadsheet, profiles; optional CLI `npm run pfm:import-bank` on PC. Ledger warnings for proxy mis-credits on full refresh. |
+| **Import** | All sections collapsed by default (expand when needed). **Import New Bank Activity** (append-only; CSV/xlsx/OFX; preview with balance check). **Bank Accounts and Import Settings** (format, rules, aliases). **Full Ledger Refresh** (advanced). Spreadsheet, profiles. |
 | **Status Report** | Monthly Cooperative status PDF: generate, publish to member portal, download; organization time zone and auto-publish settings (admin) |
 | **Meetings** | Schedule meetings, announce to members (portal + email), cancel, reminder settings (admin). **Email Send Audit** (admin): on-demand history of notification batches with recipient Sent/Failed detail and the current eligible recipient list. |
 | **Public Pages** | Publish About Us HTML and Bylaws PDF for prospective members (admin) |
@@ -84,33 +84,46 @@ After you submit, the Cooperative receives your application automatically. An ad
 
 ### Import bank activity (admin)
 
+The **Import** tab keeps every section collapsed until you expand it. Each header shows a short hint for what that section does.
+
 Use **Import New Bank Activity** for normal monthly updates. Use **Full Ledger Refresh** only when replacing the entire master ledger.
 
 **Monthly bank statement (recommended):**
 
 1. Open **Import**.
-2. Under **Import New Bank Activity**, choose your **Bank account** (e.g. Main Operating Account).
-3. Upload the bank export (`.csv` or `.xlsx`) — for Assurance, download the statement from your bank as CSV.
-4. Click **Preview**. Check the table:
+2. Expand **Import New Bank Activity**.
+3. Choose your **Bank account** (e.g. Main Operating Account).
+4. Upload the bank export (`.csv`, `.xlsx`, or `.ofx`/`.qfx`).
+5. Click **Preview**. Check the table:
    - **New** — will be added (Type and Member must look correct).
    - **Skipped** — already in the ledger (safe to ignore).
    - **Review** — fix Type or Member before applying (use **Import Template** or correct the file).
-5. Click **Add New Transactions**.
-6. Confirm balances on **Cooperative Books** and affected members.
+6. Read **Detected format** and the **balance check** line (statement ending vs projected ledger). If there is a mismatch warning, verify the file and ledger before you apply.
+7. Click **Add New Transactions**.
+8. Confirm balances on **Cooperative Books** and affected members.
 
 Re-uploading the same statement adds nothing (duplicates are skipped automatically).
 
 **Historical catch-up or migration:**
 
-1. Click **Download Import Template (CSV)** or **(Xlsx)**.
-2. Fill rows: **Date**, **Description**, **Amount**, **Type** on every line; **Member** when the type affects a member account.
-3. Upload the completed file through **Import New Bank Activity** → Preview → Add.
+1. Expand **Import New Bank Activity**.
+2. Click **Download Import Template (CSV)** or **(Xlsx)**.
+3. Fill rows: **Date**, **Description**, **Amount**, **Type** on every line; **Member** when the type affects a member account.
+4. Upload the completed file through **Import New Bank Activity** → Preview → Add.
 
-**Bank account and date format:**
+**Bank account, format, and date settings:**
 
-1. Expand **Bank Account and Import Settings**.
-2. Set **Institution name**, **Account label**, **Currency**, and **Date format** (MM/DD/YYYY for US banks).
-3. Click **Save Settings**.
+1. Expand **Bank Accounts and Import Settings**.
+2. Review the accounts table (label, institution, currency, format, primary, status). Assurance starts with **Main Operating Account** (created automatically).
+3. **First-time setup:** select the account under **Edit Selected Account**, set **Institution name** (e.g. Bank of America), confirm **Account label** and **Currency**, pick **Statement format** (or leave **Auto-detect**), set cooperative **Date format**, then **Save Account and Settings**.
+4. **Statement format:** choose a profile that matches your bank export, or **Custom Column Mapping** and fill column header names (Date, Description, Amount, etc.).
+5. **Classification rules (Cooperative-wide):** edit contribution/loan keywords and reference patterns so deposits and loan payments classify correctly from description text.
+6. **Payment name aliases:** one line per member, `Member Name = REGEX` (e.g. how the name appears on Zelle/bank lines vs the ledger name).
+7. **Add another bank or account:** use **Add Bank Account** (label, institution, currency, format). Check **Set as primary account** if this becomes your main operating account.
+8. **Change banks:** add the new account with an **Active from** date; on the old account set **Active to** to the last day you used it. Imports then go to the new account only.
+9. When importing, pick the matching account in **Import New Bank Activity** before you upload the statement.
+
+**Other Import sections:** expand **Cooperative Spreadsheet**, **Membership Applications (WPForms CSV)**, or **Loan Repayment Schedule** only when you need bulk loads outside bank activity.
 
 **Full Ledger Refresh (advanced):** replaces all bank-imported rows from a master ledger file. Use only for a full rebuild, not monthly updates. Read **Ledger warnings** before confirming.
 
