@@ -434,6 +434,19 @@ function applyBankStatementAppend({
     throw err;
   }
 
+  const bc = preview.summary?.balanceCheck || {};
+  if (
+    bc.statementBeginning != null &&
+    bc.ledgerBefore != null &&
+    bc.openingAligned === false
+  ) {
+    const err = new Error(
+      `Ledger opening balance (${bc.ledgerBefore}) does not match statement beginning (${bc.statementBeginning}). Run Full Ledger Refresh from your golden master ledger before appending new bank activity.`
+    );
+    err.preview = preview;
+    throw err;
+  }
+
   const readyRows = preview.rows.filter((r) => r.bucket === "ready");
   if (!readyRows.length) {
     return {

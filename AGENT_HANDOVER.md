@@ -107,6 +107,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-09** — **Append blocked when opening balance drifts:** Import New Bank Activity now **refuses to apply** when statement beginning does not match live ledger opening (server + UI). Prevents stacking July rows on a corrupted June base. Added `scripts/restore-assurance-ledger-production.js` (Full Ledger Refresh from golden master + optional stmt append). Files: `bank-import-append.js`, `app.js`, `USER-GUIDE.md`. **Production:** `git push` for UI block; run restore script for data fix.
 - **2026-07-09** — **Full Ledger Refresh button tooltips:** Each action (Preview, Import, Sort & Download, Download Csv/Xlsx) has an **i** icon with hover/focus tooltip explaining source (upload vs live books) and whether it imports. Files: `index.html`, `styles.css`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-09** — **Full Ledger Refresh UX:** Download buttons relabeled **Download Csv Ledger**, **Download Xlsx Ledger**, **Sort & Download Csv Ledger**. Added **Preview** (row count, ending balance, ledger warnings before import). Post-import warnings now stay visible in **Ledger warnings** below (removed misleading "expand the panel above"). Files: `bank-import-conflicts.js`, `index.html`, `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-09** — **Reference ledger download file names:** CSV and xlsx downloads now always save as **cooperative-bank-ledger-reference.csv** and **cooperative-bank-ledger-reference.xlsx** (matching `data\` on PC). Buttons show exact file names; browser Save dialog suggests the same name for overwrite. Files: `cooperative-bank-ledger-csv.js`, `server.js`, `index.html`, `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
@@ -527,7 +528,7 @@ Peer Finance Manager / Assurance Cooperative
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
 | 2 | **Cooperative expenses** | Table exists; no UI/import. |
 | 3 | **Profile for Kehinde Agboola** | Olawale George added (WPForms row + local import). Kehinde still has no application row. |
-| 4 | ~~**Restore app import file from golden master**~~ | ✅ **Done** 2026-07-08 — PC + production Render (453 / $15,471.49). |
+| 4 | ~~**Restore app import file from golden master**~~ | ✅ **Done** 2026-07-09 — `restore-assurance-ledger-production.js` on Render: **457 / $16,241.55**. Append block shipped to prevent drift.
 | 4b | ~~**Fix auto-sync clobber**~~ | ✅ **Done** `715ba7c` — `queueCooperativeBankLedgerCsvSync` updates CSV only; never overwrites reference xlsx. |
 | 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh** with golden xlsx. **No WinSCP** for Assurance bank ledger (user workflow since mid-2026). |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |

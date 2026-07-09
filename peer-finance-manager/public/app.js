@@ -4354,7 +4354,10 @@ function renderBankAppendPreview(preview) {
     }
     let suffix = "";
     let tone = "subtle";
-    if (bc.mismatch) {
+    if (!bc.openingAligned && bc.statementBeginning != null && bc.ledgerBefore != null) {
+      tone = "status err";
+      suffix = ` · Blocked: ledger opening ${fmt.format(bc.ledgerBefore)} does not match statement beginning ${fmt.format(bc.statementBeginning)}. Run Full Ledger Refresh from the golden master file before adding new transactions.`;
+    } else if (bc.mismatch) {
       tone = "status warn";
       suffix = " · New rows do not tie to statement ending: review before applying";
     } else if (bc.openingAligned === false && bc.periodOpenGap != null) {
@@ -4492,6 +4495,18 @@ async function handleApplyBankAppendClick() {
     await previewBankAppendImport();
   }
   const summary = bankAppendPreviewData?.summary || {};
+  const bc = summary.balanceCheck || {};
+  if (
+    bc.statementBeginning != null &&
+    bc.ledgerBefore != null &&
+    bc.openingAligned === false
+  ) {
+    if (status) {
+      status.textContent = `Blocked: ledger opening ${fmt.format(bc.ledgerBefore)} does not match statement beginning ${fmt.format(bc.statementBeginning)}. Run Full Ledger Refresh from the golden master file first.`;
+      status.className = "status err";
+    }
+    return;
+  }
   const ready = summary.ready || 0;
   const skipped = summary.skipped || 0;
   const needsReview = summary.needsReview || 0;
