@@ -55,19 +55,24 @@ function setImportRules(rules) {
   const { getDb: dbFn } = require("../db/database");
   const db = dbFn();
   ensureSettingsTable(db);
+  const current = getImportRules();
   const normalized = {
-    referencePatterns: (rules.referencePatterns || DEFAULT_RULES.referencePatterns).map(String),
-    contributionKeywords: (rules.contributionKeywords || DEFAULT_RULES.contributionKeywords).map(
-      String
-    ),
-    loanKeywords: (rules.loanKeywords || DEFAULT_RULES.loanKeywords).map(String),
-    withdrawalKeywords: (rules.withdrawalKeywords || DEFAULT_RULES.withdrawalKeywords).map(
-      String
-    ),
-    expenseKeywords: (rules.expenseKeywords || DEFAULT_RULES.expenseKeywords).map(String),
+    referencePatterns: current.referencePatterns,
+    contributionKeywords: (rules.contributionKeywords ?? current.contributionKeywords).map(String),
+    loanKeywords: (rules.loanKeywords ?? current.loanKeywords).map(String),
+    withdrawalKeywords: (rules.withdrawalKeywords ?? current.withdrawalKeywords).map(String),
+    expenseKeywords: (rules.expenseKeywords ?? current.expenseKeywords).map(String),
   };
   setCooperativeSetting(db, SETTING_IMPORT_RULES, JSON.stringify(normalized));
-  return normalized;
+  return getImportRulesForUi();
+}
+
+function getImportRulesForUi() {
+  const rules = getImportRules();
+  return {
+    contributionKeywords: rules.contributionKeywords,
+    loanKeywords: rules.loanKeywords,
+  };
 }
 
 function textMatchesKeyword(text, keywords) {
@@ -103,6 +108,7 @@ module.exports = {
   SETTING_IMPORT_RULES,
   DEFAULT_RULES,
   getImportRules,
+  getImportRulesForUi,
   setImportRules,
   extractReferenceFromRules,
   classifyDescriptionWithRules,

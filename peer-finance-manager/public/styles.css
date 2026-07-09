@@ -468,6 +468,40 @@ th { background: #f8fafc; font-weight: 600; }
   color: #64748b;
 }
 .import-panel-section[open] summary::before { content: "▾ "; }
+.import-subsection {
+  margin-top: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.import-subsection-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 12px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.import-subsection .import-panel-title {
+  font-size: 14px;
+}
+.import-subsection .import-panel-hint {
+  font-size: 12px;
+}
+.import-subsection summary::-webkit-details-marker { display: none; }
+.import-subsection summary::before {
+  content: "▸ ";
+  color: #64748b;
+}
+.import-subsection[open] summary::before { content: "▾ "; }
+.import-subsection .profile-disclosure-body {
+  padding: 0 12px 12px;
+}
+.import-subsection .import-subsection {
+  background: #fff;
+}
 .profile-disclosure-body {
   padding: 0 14px 14px;
 }

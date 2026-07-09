@@ -735,7 +735,7 @@ app.get("/api/cooperative/import-settings", requireAdmin, restoreOrgContext, (re
       DATE_FORMAT_OPTIONS,
     } = require("./lib/cooperative-date-format");
     const { getCooperativeTimezone, timezoneLabel } = require("./lib/cooperative-time");
-    const { getImportRules } = require("./lib/import-rules-service");
+    const { getImportRulesForUi } = require("./lib/import-rules-service");
     const { listPaymentAliases } = require("./lib/member-payment-alias-service");
     const { STATEMENT_FORMATS } = require("./lib/import-format-service");
     res.json({
@@ -743,7 +743,7 @@ app.get("/api/cooperative/import-settings", requireAdmin, restoreOrgContext, (re
       dateFormatOptions: DATE_FORMAT_OPTIONS,
       timezone: getCooperativeTimezone(),
       timezoneLabel: timezoneLabel(getCooperativeTimezone()),
-      importRules: getImportRules(),
+      importRules: getImportRulesForUi(),
       paymentAliases: listPaymentAliases(),
       statementFormats: STATEMENT_FORMATS,
     });
@@ -772,13 +772,13 @@ app.patch("/api/cooperative/import-settings", requireAdmin, restoreOrgContext, (
     }
     const { getCooperativeDateFormat } = require("./lib/cooperative-date-format");
     const { getCooperativeTimezone, timezoneLabel } = require("./lib/cooperative-time");
-    const { getImportRules } = require("./lib/import-rules-service");
+    const { getImportRulesForUi } = require("./lib/import-rules-service");
     const { listPaymentAliases } = require("./lib/member-payment-alias-service");
     res.json({
       dateFormat: getCooperativeDateFormat(),
       timezone: getCooperativeTimezone(),
       timezoneLabel: timezoneLabel(getCooperativeTimezone()),
-      importRules: getImportRules(),
+      importRules: getImportRulesForUi(),
       paymentAliases: listPaymentAliases(),
     });
   } catch (err) {

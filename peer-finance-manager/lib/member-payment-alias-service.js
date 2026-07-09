@@ -2,24 +2,51 @@ const { getDb } = require("../db/database");
 const { resolveLedgerMemberName, normalizeName } = require("./member-name-match");
 
 const SEED_ALIASES = [
-  { member: "Yomi Salami", pattern: "SAHEED\\s+A?\\s*SALAMI" },
-  { member: "Adedayo Tolani", pattern: "KAMORU\\s+TOLANI|ADEDAYO\\s+TOLANI" },
-  { member: "Lolu Adanri", pattern: "OMOLOLU\\s+ADANRI" },
-  { member: "Yinka Daramola", pattern: "AWOYINKA\\s+DARAMOLA" },
-  { member: "Clement Aribisala", pattern: "CLEMENT\\s+O?\\s*ARIBI" },
-  { member: "Gbanju Aruwayo-Obe", pattern: "GBANJU\\s+(?:P\\s+)?ARUWAYO" },
-  { member: "Oluwatosin Omotuyole", pattern: "OLUWATOSIN\\s+OMOTUYOLE" },
-  { member: "Oluwatosin Ogunbowale", pattern: "OLUWATOSIN\\s+OGUNBOWALE" },
-  { member: "Ejiro Awhotu", pattern: "EJIRO\\s+AWHOTU" },
-  { member: "Noghayin Idele", pattern: "NOGHAYIN\\s+IDELE" },
-  { member: "Oluwabiyi Omotuyole", pattern: "OLUWABIYI\\s+OMOTUYOLE" },
-  { member: "Mutiu Saliu", pattern: "MUTIU\\s+SALIU" },
-  { member: "Kelvin Amede", pattern: "KELVIN\\s+AMEDE" },
-  { member: "Titilope Saliu", pattern: "TITILOPE\\s+SALIU" },
-  { member: "Olawale George", pattern: "OLAWALE\\s+GEORGE" },
-  { member: "Taiwo Embassey", pattern: "TAIWO\\s+EMBASSEY" },
-  { member: "Sonia Udom", pattern: "SONIA\\s+(?:ABRAHAM\\s+)?UDOM" },
+  { member: "Yomi Salami", bankPaymentNames: "SAHEED SALAMI", pattern: "SAHEED\\s+A?\\s*SALAMI" },
+  {
+    member: "Adedayo Tolani",
+    bankPaymentNames: "KAMORU TOLANI, ADEDAYO TOLANI",
+    pattern: "KAMORU\\s+TOLANI|ADEDAYO\\s+TOLANI",
+  },
+  { member: "Lolu Adanri", bankPaymentNames: "OMOLOLU ADANRI", pattern: "OMOLOLU\\s+ADANRI" },
+  { member: "Yinka Daramola", bankPaymentNames: "AWOYINKA DARAMOLA", pattern: "AWOYINKA\\s+DARAMOLA" },
+  { member: "Clement Aribisala", bankPaymentNames: "CLEMENT ARIBI", pattern: "CLEMENT\\s+O?\\s*ARIBI" },
+  { member: "Gbanju Aruwayo-Obe", bankPaymentNames: "GBANJU ARUWAYO", pattern: "GBANJU\\s+(?:P\\s+)?ARUWAYO" },
+  { member: "Oluwatosin Omotuyole", bankPaymentNames: "OLUWATOSIN OMOTUYOLE", pattern: "OLUWATOSIN\\s+OMOTUYOLE" },
+  { member: "Oluwatosin Ogunbowale", bankPaymentNames: "OLUWATOSIN OGUNBOWALE", pattern: "OLUWATOSIN\\s+OGUNBOWALE" },
+  { member: "Ejiro Awhotu", bankPaymentNames: "EJIRO AWHOTU", pattern: "EJIRO\\s+AWHOTU" },
+  { member: "Noghayin Idele", bankPaymentNames: "NOGHAYIN IDELE", pattern: "NOGHAYIN\\s+IDELE" },
+  { member: "Oluwabiyi Omotuyole", bankPaymentNames: "OLUWABIYI OMOTUYOLE", pattern: "OLUWABIYI\\s+OMOTUYOLE" },
+  { member: "Mutiu Saliu", bankPaymentNames: "MUTIU SALIU", pattern: "MUTIU\\s+SALIU" },
+  { member: "Kelvin Amede", bankPaymentNames: "KELVIN AMEDE", pattern: "KELVIN\\s+AMEDE" },
+  { member: "Titilope Saliu", bankPaymentNames: "TITILOPE SALIU", pattern: "TITILOPE\\s+SALIU" },
+  { member: "Olawale George", bankPaymentNames: "OLAWALE GEORGE", pattern: "OLAWALE\\s+GEORGE" },
+  { member: "Taiwo Embassey", bankPaymentNames: "TAIWO EMBASSEY", pattern: "TAIWO\\s+EMBASSEY" },
+  { member: "Sonia Udom", bankPaymentNames: "SONIA UDOM", pattern: "SONIA\\s+(?:ABRAHAM\\s+)?UDOM" },
 ];
+
+function escapeRegexToken(token) {
+  return String(token).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Turn plain bank names (comma-separated) into a flexible match pattern. */
+function bankPaymentNamesToPattern(bankPaymentNames) {
+  const names = String(bankPaymentNames || "")
+    .split(/[,;|]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!names.length) return "";
+  const parts = names.map((name) => {
+    const tokens = name.split(/\s+/).filter(Boolean);
+    return tokens.map(escapeRegexToken).join("\\s+");
+  });
+  return parts.join("|");
+}
+
+function seedDisplayNameForMember(memberName) {
+  const row = SEED_ALIASES.find((s) => s.member === memberName);
+  return row?.bankPaymentNames || "";
+}
 
 function ensurePaymentAliasSchema(db) {
   db.exec(`
@@ -27,12 +54,17 @@ function ensurePaymentAliasSchema(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       member_id INTEGER,
       member_name TEXT NOT NULL,
+      bank_payment_names TEXT,
       alias_pattern TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_payment_aliases_member ON member_payment_aliases(member_id);
   `);
+  const cols = db.prepare(`PRAGMA table_info(member_payment_aliases)`).all().map((c) => c.name);
+  if (!cols.includes("bank_payment_names")) {
+    db.exec(`ALTER TABLE member_payment_aliases ADD COLUMN bank_payment_names TEXT`);
+  }
 }
 
 function seedDefaultAliasesIfEmpty(db) {
@@ -43,12 +75,24 @@ function seedDefaultAliasesIfEmpty(db) {
   const members = db.prepare(`SELECT id, name FROM members`).all();
   const nameToId = Object.fromEntries(members.map((m) => [m.name, m.id]));
   const insert = db.prepare(
-    `INSERT INTO member_payment_aliases (member_id, member_name, alias_pattern) VALUES (?, ?, ?)`
+    `INSERT INTO member_payment_aliases (member_id, member_name, bank_payment_names, alias_pattern) VALUES (?, ?, ?, ?)`
   );
   for (const row of SEED_ALIASES) {
     const memberId = nameToId[row.member] || null;
-    insert.run(memberId, row.member, row.pattern);
+    insert.run(memberId, row.member, row.bankPaymentNames, row.pattern);
   }
+}
+
+function mapPaymentAliasRow(row) {
+  if (!row) return null;
+  const bankPaymentNames =
+    String(row.bankPaymentNames || "").trim() || seedDisplayNameForMember(row.memberName);
+  return {
+    id: row.id,
+    memberId: row.memberId,
+    memberName: row.memberName,
+    bankPaymentNames,
+  };
 }
 
 function listPaymentAliases() {
@@ -56,10 +100,12 @@ function listPaymentAliases() {
   seedDefaultAliasesIfEmpty(db);
   return db
     .prepare(
-      `SELECT id, member_id AS memberId, member_name AS memberName, alias_pattern AS aliasPattern
+      `SELECT id, member_id AS memberId, member_name AS memberName,
+              bank_payment_names AS bankPaymentNames, alias_pattern AS aliasPattern
        FROM member_payment_aliases ORDER BY member_name, id`
     )
-    .all();
+    .all()
+    .map(mapPaymentAliasRow);
 }
 
 function replacePaymentAliases(entries) {
@@ -72,16 +118,26 @@ function replacePaymentAliases(entries) {
   const run = db.transaction(() => {
     db.prepare(`DELETE FROM member_payment_aliases`).run();
     const insert = db.prepare(
-      `INSERT INTO member_payment_aliases (member_id, member_name, alias_pattern) VALUES (?, ?, ?)`
+      `INSERT INTO member_payment_aliases (member_id, member_name, bank_payment_names, alias_pattern)
+       VALUES (?, ?, ?, ?)`
     );
     for (const entry of entries) {
       const memberName = String(entry.memberName || "").trim();
-      const pattern = String(entry.aliasPattern || "").trim();
+      const bankPaymentNames = String(entry.bankPaymentNames || entry.bankPaymentName || "").trim();
+      let pattern = bankPaymentNames ? bankPaymentNamesToPattern(bankPaymentNames) : "";
+      if (!pattern && entry.aliasPattern) {
+        pattern = String(entry.aliasPattern).trim();
+      }
       if (!memberName || !pattern) continue;
       const resolved =
         resolveLedgerMemberName(memberName, memberNames) ||
         (memberNames.includes(memberName) ? memberName : memberName);
-      insert.run(nameToId[resolved] || null, resolved, pattern);
+      insert.run(
+        nameToId[resolved] || null,
+        resolved,
+        bankPaymentNames || seedDisplayNameForMember(resolved) || null,
+        pattern
+      );
     }
   });
   run();
@@ -113,6 +169,7 @@ function resolveMemberFromPaymentAliases(text, memberNames) {
 module.exports = {
   ensurePaymentAliasSchema,
   seedDefaultAliasesIfEmpty,
+  bankPaymentNamesToPattern,
   listPaymentAliases,
   replacePaymentAliases,
   resolveMemberFromPaymentAliases,

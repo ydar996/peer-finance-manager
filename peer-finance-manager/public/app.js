@@ -3956,6 +3956,7 @@ $("#scheduleForm").addEventListener("submit", async (e) => {
 
 let bankAppendPreviewData = null;
 let bankAccountsCache = [];
+let importMemberNamesCache = [];
 let statementFormatLabels = {
   auto: "Auto-detect",
   csv_date_description_amount: "Date, Description, Amount",
@@ -4009,10 +4010,8 @@ function fillImportRulesForm(rules) {
   if (!rules) return;
   const contrib = $("#importRuleContributions");
   const loans = $("#importRuleLoans");
-  const refs = $("#importRuleReferences");
   if (contrib) contrib.value = (rules.contributionKeywords || []).join(", ");
   if (loans) loans.value = (rules.loanKeywords || []).join(", ");
-  if (refs) refs.value = (rules.referencePatterns || []).join("\n");
 }
 
 function parseImportRulesFromForm() {
@@ -4021,39 +4020,51 @@ function parseImportRulesFromForm() {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-  const refs = String($("#importRuleReferences")?.value || "")
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
   return {
     contributionKeywords: splitCsv($("#importRuleContributions")?.value),
     loanKeywords: splitCsv($("#importRuleLoans")?.value),
-    referencePatterns: refs,
   };
 }
 
-function fillPaymentAliasesForm(aliases) {
-  const ta = $("#importPaymentAliases");
-  if (!ta) return;
-  ta.value = (aliases || [])
-    .map((a) => `${a.memberName} = ${a.aliasPattern}`)
-    .join("\n");
+function paymentAliasRowHtml(alias = {}) {
+  const memberName = alias.memberName || "";
+  const bankPaymentNames = alias.bankPaymentNames || "";
+  const memberOptions = importMemberNamesCache
+    .map(
+      (name) =>
+        `<option value="${escapeHtml(name)}"${name === memberName ? " selected" : ""}>${escapeHtml(name)}</option>`
+    )
+    .join("");
+  return `<tr>
+    <td>
+      <select class="payment-alias-member">
+        <option value="">Select member</option>
+        ${memberOptions}
+      </select>
+    </td>
+    <td>
+      <input type="text" class="payment-alias-bank-name" value="${escapeHtml(bankPaymentNames)}" placeholder="e.g. SAHEED SALAMI" />
+    </td>
+    <td><button type="button" class="btn remove-payment-alias-row">Remove</button></td>
+  </tr>`;
+}
+
+function renderPaymentAliasesTable(aliases) {
+  const body = $("#paymentAliasesTableBody");
+  if (!body) return;
+  const rows = aliases?.length ? aliases : [{ memberName: "", bankPaymentNames: "" }];
+  body.innerHTML = rows.map((alias) => paymentAliasRowHtml(alias)).join("");
 }
 
 function parsePaymentAliasesFromForm() {
-  return String($("#importPaymentAliases")?.value || "")
-    .split(/\r?\n/)
-    .map((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return null;
-      const eq = trimmed.indexOf("=");
-      if (eq < 0) return null;
-      const memberName = trimmed.slice(0, eq).trim();
-      const aliasPattern = trimmed.slice(eq + 1).trim();
-      if (!memberName || !aliasPattern) return null;
-      return { memberName, aliasPattern };
-    })
-    .filter(Boolean);
+  const body = $("#paymentAliasesTableBody");
+  if (!body) return [];
+  return [...body.querySelectorAll("tr")]
+    .map((row) => ({
+      memberName: row.querySelector(".payment-alias-member")?.value?.trim() || "",
+      bankPaymentNames: row.querySelector(".payment-alias-bank-name")?.value?.trim() || "",
+    }))
+    .filter((entry) => entry.memberName && entry.bankPaymentNames);
 }
 
 function accountIsActive(account) {
@@ -4167,9 +4178,14 @@ async function loadBankAppendAccounts() {
 
 async function loadBankImportSettings() {
   try {
-    const res = await fetch("/api/cooperative/import-settings");
-    const data = await res.json();
-    if (!res.ok) return;
+    const [settingsRes, membersRes] = await Promise.all([
+      fetch("/api/cooperative/import-settings"),
+      fetch("/api/members"),
+    ]);
+    const data = await settingsRes.json();
+    if (!settingsRes.ok) return;
+    const membersData = membersRes.ok ? await membersRes.json() : { members: [] };
+    importMemberNamesCache = (membersData.members || []).map((m) => m.name).filter(Boolean).sort();
     const df = $("#cooperativeDateFormat");
     if (df && data.dateFormat) df.value = data.dateFormat;
     if (data.statementFormats) {
@@ -4178,7 +4194,7 @@ async function loadBankImportSettings() {
       );
     }
     fillImportRulesForm(data.importRules);
-    fillPaymentAliasesForm(data.paymentAliases);
+    renderPaymentAliasesTable(data.paymentAliases);
     if (!bankAccountsCache.length) await loadBankAccountsData();
   } catch (_) {}
 }
@@ -4400,6 +4416,8 @@ async function saveBankAccountSettings(e) {
     });
     const settingsData = await settingsRes.json();
     if (!settingsRes.ok) throw new Error(settingsData.error || "Could not save date format");
+    fillImportRulesForm(settingsData.importRules);
+    renderPaymentAliasesTable(settingsData.paymentAliases);
     await loadBankAccountsData();
     if (status) {
       status.textContent = "Account and settings saved.";
@@ -4466,6 +4484,23 @@ $("#bankAccountEditSelect")?.addEventListener("change", (e) => {
 });
 $("#bankAccountFormat")?.addEventListener("change", (e) => {
   toggleColumnMappingPanel(e.target.value);
+});
+$("#addPaymentAliasRow")?.addEventListener("click", () => {
+  const body = $("#paymentAliasesTableBody");
+  if (!body) return;
+  body.insertAdjacentHTML("beforeend", paymentAliasRowHtml());
+});
+$("#paymentAliasesTableBody")?.addEventListener("click", (e) => {
+  if (!e.target.classList.contains("remove-payment-alias-row")) return;
+  const row = e.target.closest("tr");
+  const body = $("#paymentAliasesTableBody");
+  if (!row || !body) return;
+  if (body.querySelectorAll("tr").length <= 1) {
+    row.querySelector(".payment-alias-member").value = "";
+    row.querySelector(".payment-alias-bank-name").value = "";
+    return;
+  }
+  row.remove();
 });
 $("#addBankAccountForm")?.addEventListener("submit", addBankAccount);
 

@@ -107,18 +107,18 @@ Re-uploading the same statement adds nothing (duplicates are skipped automatical
 **Historical catch-up or migration:**
 
 1. Expand **Import New Bank Activity**.
-2. Click **Download Import Template (CSV)** or **(Xlsx)**.
+2. Expand **Download Import Template** and click **CSV** or **Xlsx**.
 3. Fill rows: **Date**, **Description**, **Amount**, **Type** on every line; **Member** when the type affects a member account.
 4. Upload the completed file through **Import New Bank Activity** → Preview → Add.
 
 **Bank account, format, and date settings:**
 
 1. Expand **Bank Accounts and Import Settings**.
-2. Review the accounts table (label, institution, currency, format, primary, status). Assurance starts with **Main Operating Account** (created automatically).
+2. Expand **Registered Bank Accounts** to review the table, **Add Bank Account** to create one, or **Edit Selected Account** for changes (nested **Account Details** and **Classification Rules** inside edit).
 3. **First-time setup:** select the account under **Edit Selected Account**, set **Institution name** (e.g. Bank of America), confirm **Account label** and **Currency**, pick **Statement format** (or leave **Auto-detect**), set cooperative **Date format**, then **Save Account and Settings**.
 4. **Statement format:** choose a profile that matches your bank export, or **Custom Column Mapping** and fill column header names (Date, Description, Amount, etc.).
-5. **Classification rules (Cooperative-wide):** edit contribution/loan keywords and reference patterns so deposits and loan payments classify correctly from description text.
-6. **Payment name aliases:** one line per member, `Member Name = REGEX` (e.g. how the name appears on Zelle/bank lines vs the ledger name).
+5. **Classification rules (Cooperative-wide):** under **Classification Rules**, edit contribution and loan keywords (plain phrases, comma-separated).
+6. **Payment name mappings:** map each member to the name as it appears on Zelle or the bank statement (comma-separated if more than one). No regex or code required.
 7. **Add another bank or account:** use **Add Bank Account** (label, institution, currency, format). Check **Set as primary account** if this becomes your main operating account.
 8. **Change banks:** add the new account with an **Active from** date; on the old account set **Active to** to the last day you used it. Imports then go to the new account only.
 9. When importing, pick the matching account in **Import New Bank Activity** before you upload the statement.

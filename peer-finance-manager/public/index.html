@@ -1237,13 +1237,21 @@
                 <button type="submit" class="btn primary" id="applyBankAppend" disabled>Add New Transactions</button>
               </div>
             </form>
-            <div class="panel-head-actions">
-              <button type="button" class="btn" id="downloadImportTemplateCsv">Download Import Template (CSV)</button>
-              <button type="button" class="btn" id="downloadImportTemplateXlsx">Download Import Template (Xlsx)</button>
-            </div>
             <p id="bankAppendStatus" class="status"></p>
             <div id="bankAppendPreview" class="bank-import-conflicts hidden"></div>
             <p id="bankAppendSummary" class="subtle"></p>
+            <details class="import-subsection profile-disclosure">
+              <summary class="import-subsection-summary">
+                <span class="import-panel-title">Download Import Template</span>
+                <span class="import-panel-hint">Blank CSV or xlsx with required Date, Description, Amount, and Type columns.</span>
+              </summary>
+              <div class="profile-disclosure-body">
+                <div class="panel-head-actions">
+                  <button type="button" class="btn" id="downloadImportTemplateCsv">Download Import Template (CSV)</button>
+                  <button type="button" class="btn" id="downloadImportTemplateXlsx">Download Import Template (Xlsx)</button>
+                </div>
+              </div>
+            </details>
           </div>
         </details>
 
@@ -1253,118 +1261,168 @@
             <span class="import-panel-hint">Name your bank(s), set statement format, and configure classification rules.</span>
           </summary>
           <div class="profile-disclosure-body">
-            <div class="table-wrap">
-              <table class="data-table compact" id="bankAccountsTable">
-                <thead>
-                  <tr>
-                    <th>Account</th>
-                    <th>Institution</th>
-                    <th>Currency</th>
-                    <th>Format</th>
-                    <th>Primary</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="bankAccountsTableBody">
-                  <tr><td colspan="6">Loading…</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <form id="addBankAccountForm" class="entry-form">
-              <h4>Add Bank Account</h4>
-              <label>Account label
-                <input type="text" id="newBankAccountLabel" placeholder="Dues Collection Account" required />
-              </label>
-              <label>Institution name
-                <input type="text" id="newBankAccountInstitution" placeholder="Your bank name" />
-              </label>
-              <label>Currency
-                <input type="text" id="newBankAccountCurrency" placeholder="USD" maxlength="8" value="USD" />
-              </label>
-              <label>Statement format
-                <select id="newBankAccountFormat">
-                  <option value="auto">Auto-detect</option>
-                  <option value="csv_date_description_amount">CSV: Date, Description, Amount</option>
-                  <option value="csv_date_description_credit_debit">CSV: Date, Description, Credit, Debit</option>
-                  <option value="csv_summary_then_transactions">CSV: Summary Block Then Transactions</option>
-                  <option value="template_explicit">PFM Import Template (Type Required)</option>
-                  <option value="ofx">OFX/QFX</option>
-                  <option value="custom_map">Custom Column Mapping</option>
-                </select>
-              </label>
-              <label>Active from (optional)
-                <input type="date" id="newBankAccountActiveFrom" />
-              </label>
-              <label><input type="checkbox" id="newBankAccountPrimary" /> Set as primary account</label>
-              <button type="submit" class="btn primary">Add Bank Account</button>
-            </form>
-            <p id="addBankAccountStatus" class="status"></p>
-            <form id="bankAccountSettingsForm" class="entry-form">
-              <h4>Edit Selected Account</h4>
-              <label>Account to edit
-                <select id="bankAccountEditSelect"></select>
-              </label>
-              <label>Institution name
-                <input type="text" id="bankAccountInstitution" placeholder="Your bank name" />
-              </label>
-              <label>Account label
-                <input type="text" id="bankAccountLabel" placeholder="Main Operating Account" />
-              </label>
-              <label>Currency
-                <input type="text" id="bankAccountCurrency" placeholder="USD" maxlength="8" />
-              </label>
-              <label>Statement format
-                <select id="bankAccountFormat">
-                  <option value="auto">Auto-detect</option>
-                  <option value="csv_date_description_amount">CSV: Date, Description, Amount</option>
-                  <option value="csv_date_description_credit_debit">CSV: Date, Description, Credit, Debit</option>
-                  <option value="csv_summary_then_transactions">CSV: Summary Block Then Transactions</option>
-                  <option value="template_explicit">PFM Import Template (Type Required)</option>
-                  <option value="ofx">OFX/QFX</option>
-                  <option value="custom_map">Custom Column Mapping</option>
-                </select>
-              </label>
-              <div id="bankColumnMappingPanel" class="entry-form hidden">
-                <h4>Custom Column Mapping</h4>
-                <label>Date column <input type="text" id="mapColDate" placeholder="Date" /></label>
-                <label>Description column <input type="text" id="mapColDescription" placeholder="Description" /></label>
-                <label>Amount column <input type="text" id="mapColAmount" placeholder="Amount" /></label>
-                <label>Credit column (optional) <input type="text" id="mapColCredit" placeholder="Credit" /></label>
-                <label>Debit column (optional) <input type="text" id="mapColDebit" placeholder="Debit" /></label>
-                <label>Type column (optional) <input type="text" id="mapColType" placeholder="Type" /></label>
-                <label>Member column (optional) <input type="text" id="mapColMember" placeholder="Member" /></label>
-                <label>Reference column (optional) <input type="text" id="mapColReference" placeholder="Reference" /></label>
+            <details class="import-subsection profile-disclosure">
+              <summary class="import-subsection-summary">
+                <span class="import-panel-title">Registered Bank Accounts</span>
+                <span class="import-panel-hint">Overview of labels, institutions, formats, and active status.</span>
+              </summary>
+              <div class="profile-disclosure-body">
+                <div class="table-wrap">
+                  <table class="data-table compact" id="bankAccountsTable">
+                    <thead>
+                      <tr>
+                        <th>Account</th>
+                        <th>Institution</th>
+                        <th>Currency</th>
+                        <th>Format</th>
+                        <th>Primary</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bankAccountsTableBody">
+                      <tr><td colspan="6">Loading…</td></tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <label>Active from (optional)
-                <input type="date" id="bankAccountActiveFrom" />
-              </label>
-              <label>Active to (optional : use when you close or change banks)
-                <input type="date" id="bankAccountActiveTo" />
-              </label>
-              <label><input type="checkbox" id="bankAccountPrimary" /> Primary account</label>
-              <label>Date format (Cooperative-wide)
-                <select id="cooperativeDateFormat">
-                  <option value="MDY">MM/DD/YYYY</option>
-                  <option value="DMY">DD/MM/YYYY</option>
-                  <option value="YMD">YYYY-MM-DD</option>
-                </select>
-              </label>
-              <h4>Classification Rules (Cooperative-wide)</h4>
-              <label>Contribution keywords (comma-separated)
-                <input type="text" id="importRuleContributions" placeholder="monthly contribution, savings contribution" />
-              </label>
-              <label>Loan keywords (comma-separated)
-                <input type="text" id="importRuleLoans" placeholder="loan repayment, loan payment" />
-              </label>
-              <label>Reference patterns (one regex per line)
-                <textarea id="importRuleReferences" rows="3" placeholder="conf#?\s*([a-z0-9]+)"></textarea>
-              </label>
-              <label>Payment name aliases (one per line: Member Name = PATTERN)
-                <textarea id="importPaymentAliases" rows="4" placeholder="Yomi Salami = SAHEED\s+SALAMI"></textarea>
-              </label>
-              <button type="submit" class="btn primary">Save Account and Settings</button>
-            </form>
-            <p id="bankAccountSettingsStatus" class="status"></p>
+            </details>
+            <details class="import-subsection profile-disclosure">
+              <summary class="import-subsection-summary">
+                <span class="import-panel-title">Add Bank Account</span>
+                <span class="import-panel-hint">Create a new account when your Cooperative opens another bank or ledger.</span>
+              </summary>
+              <div class="profile-disclosure-body">
+                <form id="addBankAccountForm" class="entry-form">
+                  <label>Account label
+                    <input type="text" id="newBankAccountLabel" placeholder="Dues Collection Account" required />
+                  </label>
+                  <label>Institution name
+                    <input type="text" id="newBankAccountInstitution" placeholder="Your bank name" />
+                  </label>
+                  <label>Currency
+                    <input type="text" id="newBankAccountCurrency" placeholder="USD" maxlength="8" value="USD" />
+                  </label>
+                  <label>Statement format
+                    <select id="newBankAccountFormat">
+                      <option value="auto">Auto-detect</option>
+                      <option value="csv_date_description_amount">CSV: Date, Description, Amount</option>
+                      <option value="csv_date_description_credit_debit">CSV: Date, Description, Credit, Debit</option>
+                      <option value="csv_summary_then_transactions">CSV: Summary Block Then Transactions</option>
+                      <option value="template_explicit">PFM Import Template (Type Required)</option>
+                      <option value="ofx">OFX/QFX</option>
+                      <option value="custom_map">Custom Column Mapping</option>
+                    </select>
+                  </label>
+                  <label>Active from (optional)
+                    <input type="date" id="newBankAccountActiveFrom" />
+                  </label>
+                  <label><input type="checkbox" id="newBankAccountPrimary" /> Set as primary account</label>
+                  <button type="submit" class="btn primary">Add Bank Account</button>
+                </form>
+                <p id="addBankAccountStatus" class="status"></p>
+              </div>
+            </details>
+            <details class="import-subsection profile-disclosure">
+              <summary class="import-subsection-summary">
+                <span class="import-panel-title">Edit Selected Account</span>
+                <span class="import-panel-hint">Update institution, format, dates, and Cooperative-wide import rules.</span>
+              </summary>
+              <div class="profile-disclosure-body">
+                <form id="bankAccountSettingsForm" class="entry-form">
+                  <label>Account to edit
+                    <select id="bankAccountEditSelect"></select>
+                  </label>
+                  <details class="import-subsection profile-disclosure">
+                    <summary class="import-subsection-summary">
+                      <span class="import-panel-title">Account Details</span>
+                      <span class="import-panel-hint">Institution, label, currency, statement format, and active dates.</span>
+                    </summary>
+                    <div class="profile-disclosure-body">
+                      <label>Institution name
+                        <input type="text" id="bankAccountInstitution" placeholder="Your bank name" />
+                      </label>
+                      <label>Account label
+                        <input type="text" id="bankAccountLabel" placeholder="Main Operating Account" />
+                      </label>
+                      <label>Currency
+                        <input type="text" id="bankAccountCurrency" placeholder="USD" maxlength="8" />
+                      </label>
+                      <label>Statement format
+                        <select id="bankAccountFormat">
+                          <option value="auto">Auto-detect</option>
+                          <option value="csv_date_description_amount">CSV: Date, Description, Amount</option>
+                          <option value="csv_date_description_credit_debit">CSV: Date, Description, Credit, Debit</option>
+                          <option value="csv_summary_then_transactions">CSV: Summary Block Then Transactions</option>
+                          <option value="template_explicit">PFM Import Template (Type Required)</option>
+                          <option value="ofx">OFX/QFX</option>
+                          <option value="custom_map">Custom Column Mapping</option>
+                        </select>
+                      </label>
+                      <div id="bankColumnMappingPanel" class="entry-form hidden">
+                        <h4>Custom Column Mapping</h4>
+                        <label>Date column <input type="text" id="mapColDate" placeholder="Date" /></label>
+                        <label>Description column <input type="text" id="mapColDescription" placeholder="Description" /></label>
+                        <label>Amount column <input type="text" id="mapColAmount" placeholder="Amount" /></label>
+                        <label>Credit column (optional) <input type="text" id="mapColCredit" placeholder="Credit" /></label>
+                        <label>Debit column (optional) <input type="text" id="mapColDebit" placeholder="Debit" /></label>
+                        <label>Type column (optional) <input type="text" id="mapColType" placeholder="Type" /></label>
+                        <label>Member column (optional) <input type="text" id="mapColMember" placeholder="Member" /></label>
+                        <label>Reference column (optional) <input type="text" id="mapColReference" placeholder="Reference" /></label>
+                      </div>
+                      <label>Active from (optional)
+                        <input type="date" id="bankAccountActiveFrom" />
+                      </label>
+                      <label>Active to (optional : use when you close or change banks)
+                        <input type="date" id="bankAccountActiveTo" />
+                      </label>
+                      <label><input type="checkbox" id="bankAccountPrimary" /> Primary account</label>
+                      <label>Date format (Cooperative-wide)
+                        <select id="cooperativeDateFormat">
+                          <option value="MDY">MM/DD/YYYY</option>
+                          <option value="DMY">DD/MM/YYYY</option>
+                          <option value="YMD">YYYY-MM-DD</option>
+                        </select>
+                      </label>
+                    </div>
+                  </details>
+                  <details class="import-subsection profile-disclosure">
+                    <summary class="import-subsection-summary">
+                      <span class="import-panel-title">Classification Rules</span>
+                      <span class="import-panel-hint">Plain-language labels PFM uses to recognize contributions, loans, and member names on bank lines.</span>
+                    </summary>
+                    <div class="profile-disclosure-body">
+                      <label>Contribution keywords (comma-separated)
+                        <input type="text" id="importRuleContributions" placeholder="monthly contribution, savings contribution" />
+                      </label>
+                      <p class="subtle">Words or phrases in a bank description that mean a member contribution.</p>
+                      <label>Loan keywords (comma-separated)
+                        <input type="text" id="importRuleLoans" placeholder="loan repayment, loan payment" />
+                      </label>
+                      <p class="subtle">Words or phrases in a bank description that mean a loan repayment.</p>
+                      <h4>Payment Name Mappings</h4>
+                      <p class="subtle">When Zelle or your bank shows a different name than the member ledger, map it here. Use the name exactly as it appears on the statement. Separate multiple names with commas.</p>
+                      <div class="table-wrap">
+                        <table class="data-table compact" id="paymentAliasesTable">
+                          <thead>
+                            <tr>
+                              <th>Member</th>
+                              <th>Name on Bank Statement</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody id="paymentAliasesTableBody">
+                            <tr><td colspan="3">Loading…</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <button type="button" class="btn" id="addPaymentAliasRow">Add Mapping</button>
+                    </div>
+                  </details>
+                  <button type="submit" class="btn primary">Save Account and Settings</button>
+                </form>
+                <p id="bankAccountSettingsStatus" class="status"></p>
+              </div>
+            </details>
           </div>
         </details>
 
