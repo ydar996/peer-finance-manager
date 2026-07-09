@@ -928,6 +928,32 @@ app.get("/api/bank-ledger/reference/download", requireAdmin, restoreOrgContext, 
   }
 });
 
+app.get("/api/bank-ledger/reference/download.xlsx", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const os = require("os");
+    const {
+      buildReferenceWorkbookFromDb,
+      writeWorkbook,
+      XLSX_BASENAME,
+    } = require("./lib/cooperative-bank-ledger-csv");
+    const { exportRows } = buildReferenceWorkbookFromDb();
+    const tempPath = path.join(os.tmpdir(), `pfm-${Date.now()}-${XLSX_BASENAME}`);
+    writeWorkbook(exportRows, tempPath);
+    res.download(tempPath, XLSX_BASENAME, (err) => {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch (_) {}
+      if (err && !res.headersSent) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/books", requireCooperativeView, (req, res) => {
   try {
     res.json({ books: getCooperativeBooks() });

@@ -171,7 +171,7 @@ function sortedReferenceHeaderLines(note) {
     note || "Cooperative bank ledger reference : sorted by transaction date,,,",
     `Generated on ${today},,,,`,
     ",,,,",
-    "Date,Description,Amount,Running Bal.,Member,Narrative",
+    "#,Date,ISO Date,Member,Description,Amount,Running Balance,Narrative,Ledger Type,Source",
   ];
 }
 
@@ -247,18 +247,22 @@ function writeBankStatementCsv(exportRows, outPath, headerLines) {
     "Description,,Summary Amt.,,",
     `Synced from Peer Finance Manager on ${cooperativeTodayIso()},,,,`,
     ",,,,",
-    "Date,Description,Amount,Running Bal.,Member,Narrative",
+    "#,Date,ISO Date,Member,Description,Amount,Running Balance,Narrative,Ledger Type,Source",
   ];
 
   for (const row of exportRows) {
     lines.push(
       [
+        row.index,
         row.dateUs,
+        row.dateIso,
+        csvEscape(row.memberName || ""),
         csvEscape(row.description),
         formatAmount(row.amount),
         formatRunningBalance(row.runningBalance),
-        csvEscape(row.memberName || ""),
         row.narrative,
+        row.ledgerType,
+        csvEscape(row.source || "bank_import"),
       ].join(",")
     );
   }
@@ -282,6 +286,7 @@ function conflictRowsToExportRows(missingFromImport) {
     runningBalance: 0,
     narrative: row.narrative,
     ledgerType: row.type,
+    source: row.source || "manual",
   }));
   return finalizeExportRows(mapped);
 }
@@ -297,7 +302,7 @@ function buildMissingManualRowsCsvContent(missingFromImport) {
     `Copy the rows below into cooperative-bank-ledger-reference.csv then re-import.,,,`,
     `Generated on ${today},,,,`,
     ",,,,",
-    "Date,Description,Amount,Running Bal.,Member,Narrative",
+    "#,Date,ISO Date,Member,Description,Amount,Running Balance,Narrative,Ledger Type,Source",
   ]);
 }
 
@@ -330,6 +335,11 @@ function writeWorkbook(exportRows, outPath) {
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   XLSX.writeFile(wb, outPath);
+}
+
+function buildReferenceWorkbookFromDb() {
+  const { exportRows, transactionCount } = buildSortedReferenceCsvFromDb();
+  return { exportRows, transactionCount };
 }
 
 function syncCooperativeBankLedgerCsvFiles({ writeXlsx = false } = {}) {
@@ -399,6 +409,7 @@ module.exports = {
   buildMissingManualRowsCsvContent,
   buildSortedReferenceCsvFromDb,
   buildSortedReferenceCsvFromUpload,
+  buildReferenceWorkbookFromDb,
   finalizeExportRows,
   sortExportRowsByDate,
 };

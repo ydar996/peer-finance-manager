@@ -1485,10 +1485,11 @@
               <div class="panel-head-actions">
                 <button type="submit" class="btn primary">Import Bank Ledger</button>
                 <button type="button" class="btn" id="sortBankLedgerUpload">Sort selected file &amp; download</button>
-                <button type="button" class="btn" id="downloadBankLedgerReference">Download sorted reference CSV</button>
+                <button type="button" class="btn" id="downloadBankLedgerReference">Download Reference CSV</button>
+                <button type="button" class="btn" id="downloadBankLedgerReferenceXlsx">Download Reference Xlsx</button>
               </div>
             </form>
-            <p class="hint subtle">CD balance and other settings are kept automatically unless you change them elsewhere. After import, download the sorted reference CSV to replace your local copy in date order.</p>
+            <p class="hint subtle">CSV and xlsx use the same columns (#, Date, ISO Date, Member, Description, Amount, Running Balance, Narrative, Ledger Type, Source). Either file can be edited and re-imported via Full Ledger Refresh.</p>
             <p id="bankImportStatus" class="status"></p>
             <div id="bankImportConflicts" class="bank-import-conflicts hidden"></div>
             <p id="bankImportSummary" class="subtle"></p>

@@ -4746,10 +4746,14 @@ $("#bankAppendForm")?.addEventListener("change", (e) => {
 $("#applyBankAppend")?.addEventListener("click", handleApplyBankAppendClick);
 $("#bankAccountSettingsForm")?.addEventListener("submit", saveBankAccountSettings);
 
-async function downloadBankLedgerReference(button) {
+async function downloadBankLedgerReference(button, format = "csv") {
   setButtonBusy(button, true, "Preparing…");
   try {
-    const res = await fetch("/api/bank-ledger/reference/download");
+    const url =
+      format === "xlsx"
+        ? "/api/bank-ledger/reference/download.xlsx"
+        : "/api/bank-ledger/reference/download";
+    const res = await fetch(url);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Download failed");
@@ -4757,7 +4761,10 @@ async function downloadBankLedgerReference(button) {
     const blob = await res.blob();
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "cooperative-bank-ledger-reference.csv";
+    link.download =
+      format === "xlsx"
+        ? "cooperative-bank-ledger-reference.xlsx"
+        : "cooperative-bank-ledger-reference.csv";
     link.click();
     URL.revokeObjectURL(link.href);
   } catch (err) {
@@ -4807,7 +4814,11 @@ async function sortBankLedgerUpload(button) {
 }
 
 $("#downloadBankLedgerReference")?.addEventListener("click", (e) => {
-  downloadBankLedgerReference(e.currentTarget);
+  downloadBankLedgerReference(e.currentTarget, "csv");
+});
+
+$("#downloadBankLedgerReferenceXlsx")?.addEventListener("click", (e) => {
+  downloadBankLedgerReference(e.currentTarget, "xlsx");
 });
 
 $("#sortBankLedgerUpload")?.addEventListener("click", (e) => {
@@ -4860,7 +4871,7 @@ function renderBankImportConflicts(conflicts) {
     <div class="panel-head-actions">
       <button type="button" class="btn primary" id="downloadMissingManualRows">Download missing rows CSV</button>
     </div>
-    <p>Open the missing-rows file, copy its transaction rows into <strong>cooperative-bank-ledger-reference.csv</strong>, then either import that file or click <strong>Sort selected file &amp; download</strong> to get a date-ordered file. After import, click <strong>Download sorted reference CSV</strong> to replace your local copy from live Cooperative Books.</p>`
+    <p>Open the missing-rows file, copy its transaction rows into <strong>cooperative-bank-ledger-reference.csv</strong> or <strong>.xlsx</strong> (same columns), then import that file or click <strong>Sort selected file &amp; download</strong>. After import, use <strong>Download Reference CSV</strong> or <strong>Download Reference Xlsx</strong> to replace your local copy from live Cooperative Books.</p>`
     : "";
   panel.innerHTML = warningHtml + missingHtml;
 }

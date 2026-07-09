@@ -7,6 +7,7 @@ const {
   parseBankStatementCsv,
   resolveMember,
   NARRATIVE,
+  parseCsvLine,
 } = require(path.join(parserRoot, "lib", "bank-statement-parser"));
 const { resolveLedgerMemberName, resolveDepositMemberFromDescription, resolveProxyBeneficiaryFromDescription } = require("./member-name-match");
 
@@ -313,6 +314,112 @@ function parseReferenceLedgerXlsx(filePath, memberNames) {
   return parsed;
 }
 
+function isReferenceLedgerCsv(filePath) {
+  const raw = fs.readFileSync(filePath, "utf8");
+  const lines = raw.split(/\r?\n/).slice(0, 20);
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const cells = parseCsvLine(line).map((cell) => String(cell || "").trim());
+    if (cells.includes("Ledger Type") || cells.includes("ISO Date")) return true;
+  }
+  return false;
+}
+
+function parseReferenceLedgerCsv(filePath, memberNames) {
+  const raw = fs.readFileSync(filePath, "utf8");
+  const lines = raw.split(/\r?\n/).filter((l) => l.trim());
+  let headerIndex = -1;
+  let headerCols = [];
+
+  for (let i = 0; i < Math.min(lines.length, 25); i++) {
+    const cells = parseCsvLine(lines[i]).map((cell) => String(cell || "").trim());
+    if (cells.includes("Ledger Type") || cells.includes("ISO Date")) {
+      headerIndex = i;
+      headerCols = cells;
+      break;
+    }
+  }
+
+  if (headerIndex < 0) {
+    throw new Error("Could not find cooperative bank ledger header row in CSV.");
+  }
+
+  const col = (name) =>
+    headerCols.findIndex((c) => String(c || "").trim().toLowerCase() === name.toLowerCase());
+
+  const idxIso = col("ISO Date");
+  const idxDate = col("Date");
+  const idxMember = col("Member");
+  const idxDescription = col("Description");
+  const idxAmount = col("Amount");
+  const idxNarrative = col("Narrative");
+  const idxLedgerType = col("Ledger Type");
+  const idxSource = col("Source");
+
+  const parsed = [];
+  for (let i = headerIndex + 1; i < lines.length; i++) {
+    const cells = parseCsvLine(lines[i]);
+    if (!cells.length) continue;
+
+    const date =
+      (idxIso >= 0 ? String(cells[idxIso] || "").slice(0, 10) : "") ||
+      excelDateToIso(idxDate >= 0 ? cells[idxDate] : cells[0]);
+    const description = String(
+      idxDescription >= 0 ? cells[idxDescription] : cells[4] || cells[1] || ""
+    ).trim();
+    const amount = Number(
+      String(idxAmount >= 0 ? cells[idxAmount] : cells[5] || cells[2] || "").replace(/,/g, "")
+    );
+    const ledgerType =
+      (idxLedgerType >= 0 ? String(cells[idxLedgerType] || "").trim() : "") ||
+      narrativeToLedgerType(idxNarrative >= 0 ? cells[idxNarrative] : cells[8] || cells[4]);
+    const narrative = normType(idxNarrative >= 0 ? cells[idxNarrative] : "");
+
+    if (!date || !ledgerType || !Number.isFinite(amount)) continue;
+    if (description.toLowerCase().includes("beginning balance")) continue;
+
+    const memberRef = idxMember >= 0 ? String(cells[idxMember] || "").trim() : "";
+    let member = resolveMemberName(memberRef, description, memberNames);
+    if (!member && ledgerType === "loan_disbursement") {
+      member = resolveLoanDisbursementMember(description, memberNames);
+    }
+    if (!member && ledgerType === "loan_repayment" && /BKOFAMERICA MOBILE/i.test(description)) {
+      member =
+        resolveLedgerMemberName("Oluwabiyi Omotuyole", memberNames) ||
+        "Oluwabiyi Omotuyole";
+    }
+    if (!member && ledgerType === "deposit") {
+      member = resolveMember(description, memberNames);
+    }
+    if (!member && ledgerType === "deposit") {
+      member = resolveDepositMemberFromDescription(description, memberNames);
+    }
+
+    const refinedLedgerType = refineMemberLedgerType({
+      ledgerType,
+      description,
+      amount,
+      member,
+    });
+
+    const source =
+      idxSource >= 0 ? String(cells[idxSource] || "").trim() || "reference_ledger" : "reference_ledger";
+
+    parsed.push({
+      source,
+      date,
+      description,
+      amount,
+      transactionType: narrative || refinedLedgerType,
+      ledgerType: refinedLedgerType,
+      member,
+      depositor: member,
+      repeatKey: null,
+    });
+  }
+  return parsed;
+}
+
 function parseWorkbookXlsx(filePath, memberNames) {
   if (isReferenceLedgerWorkbook(filePath)) {
     return parseReferenceLedgerXlsx(filePath, memberNames);
@@ -337,6 +444,9 @@ function isSpreadsheetFile(filePath, originalName) {
 function parseStatementFile(filePath, memberNames, originalName) {
   if (isSpreadsheetFile(filePath, originalName)) {
     return parseWorkbookXlsx(filePath, memberNames);
+  }
+  if (isReferenceLedgerCsv(filePath)) {
+    return parseReferenceLedgerCsv(filePath, memberNames);
   }
   return parseStmtCsv(filePath, memberNames);
 }
@@ -488,9 +598,12 @@ function loadMergedBankTransactions({
 module.exports = {
   parseAllDepositsXlsx,
   parseReferenceLedgerXlsx,
+  parseReferenceLedgerCsv,
+  isReferenceLedgerCsv,
   parseWorkbookXlsx,
   parseStatementFile,
   isSpreadsheetFile,
+  isReferenceLedgerWorkbook,
   parseStmtCsv,
   mergeBankSources,
   loadMergedBankTransactions,
