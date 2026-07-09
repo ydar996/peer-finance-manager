@@ -1484,12 +1484,12 @@
               </label>
               <div class="panel-head-actions">
                 <button type="submit" class="btn primary">Import Bank Ledger</button>
-                <button type="button" class="btn" id="sortBankLedgerUpload">Sort selected file &amp; download</button>
-                <button type="button" class="btn" id="downloadBankLedgerReference">Download Reference CSV</button>
-                <button type="button" class="btn" id="downloadBankLedgerReferenceXlsx">Download Reference Xlsx</button>
+                <button type="button" class="btn" id="sortBankLedgerUpload">Sort &amp; Download cooperative-bank-ledger-reference.csv</button>
+                <button type="button" class="btn" id="downloadBankLedgerReference">cooperative-bank-ledger-reference.csv</button>
+                <button type="button" class="btn" id="downloadBankLedgerReferenceXlsx">cooperative-bank-ledger-reference.xlsx</button>
               </div>
             </form>
-            <p class="hint subtle">CSV and xlsx use the same columns (#, Date, ISO Date, Member, Description, Amount, Running Balance, Narrative, Ledger Type, Source). Either file can be edited and re-imported via Full Ledger Refresh.</p>
+            <p class="hint subtle">Downloads use the same file names as <strong>data\cooperative-bank-ledger-reference.csv</strong> and <strong>data\cooperative-bank-ledger-reference.xlsx</strong> on your PC. Save over the existing file to replace your local ledger. CSV and xlsx share the same columns and are interchangeable for Full Ledger Refresh.</p>
             <p id="bankImportStatus" class="status"></p>
             <div id="bankImportConflicts" class="bank-import-conflicts hidden"></div>
             <p id="bankImportSummary" class="subtle"></p>

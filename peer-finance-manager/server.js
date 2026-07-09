@@ -909,6 +909,19 @@ app.post(
   }
 );
 
+app.get("/api/bank-ledger/reference/filenames", requireAdmin, restoreOrgContext, (_req, res) => {
+  const {
+    CSV_BASENAME,
+    XLSX_BASENAME,
+    REFERENCE_LEDGER_BASENAME,
+  } = require("./lib/cooperative-bank-ledger-csv");
+  res.json({
+    basename: REFERENCE_LEDGER_BASENAME,
+    csv: CSV_BASENAME,
+    xlsx: XLSX_BASENAME,
+  });
+});
+
 app.get("/api/bank-ledger/reference/download", requireAdmin, restoreOrgContext, (req, res) => {
   try {
     const fs = require("fs");

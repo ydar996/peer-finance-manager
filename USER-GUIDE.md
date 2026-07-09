@@ -125,7 +125,7 @@ Re-uploading the same statement adds nothing (duplicates are skipped automatical
 
 **Other Import sections:** expand **Cooperative Spreadsheet**, **Membership Applications (WPForms CSV)**, or **Loan Repayment Schedule** only when you need bulk loads outside bank activity.
 
-**Full Ledger Refresh (advanced):** replaces all bank-imported rows from a master ledger file. Use only for a full rebuild, not monthly updates. Read **Ledger warnings** before confirming. **Download Reference CSV** and **Download Reference Xlsx** produce the same columns (`#`, Date, ISO Date, Member, Description, Amount, Running Balance, Narrative, Ledger Type, Source): either file can be edited and re-imported.
+**Full Ledger Refresh (advanced):** replaces all bank-imported rows from a master ledger file. Use only for a full rebuild, not monthly updates. Read **Ledger warnings** before confirming. Download buttons save as **cooperative-bank-ledger-reference.csv** and **cooperative-bank-ledger-reference.xlsx** (same names as your **data\** folder). Either file can be edited and re-imported.
 
 ---
 

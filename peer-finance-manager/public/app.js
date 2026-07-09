@@ -4746,8 +4746,63 @@ $("#bankAppendForm")?.addEventListener("change", (e) => {
 $("#applyBankAppend")?.addEventListener("click", handleApplyBankAppendClick);
 $("#bankAccountSettingsForm")?.addEventListener("submit", saveBankAccountSettings);
 
+const REFERENCE_LEDGER_FILENAMES = {
+  csv: "cooperative-bank-ledger-reference.csv",
+  xlsx: "cooperative-bank-ledger-reference.xlsx",
+};
+
+function parseAttachmentFilename(res, fallback) {
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match =
+    disposition.match(/filename\*=UTF-8''([^;]+)/i) ||
+    disposition.match(/filename="([^"]+)"/i) ||
+    disposition.match(/filename=([^;]+)/i);
+  if (!match?.[1]) return fallback;
+  try {
+    return decodeURIComponent(match[1].trim().replace(/"/g, ""));
+  } catch {
+    return match[1].trim().replace(/"/g, "");
+  }
+}
+
+async function saveDownloadBlob(blob, filename) {
+  if (typeof window.showSaveFilePicker === "function") {
+    try {
+      const ext = filename.split(".").pop()?.toLowerCase() || "csv";
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [
+          {
+            description: ext === "xlsx" ? "Excel workbook" : "CSV ledger",
+            accept:
+              ext === "xlsx"
+                ? {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                      [".xlsx"],
+                  }
+                : { "text/csv": [".csv"] },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err) {
+      if (err?.name === "AbortError") return;
+    }
+  }
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
 async function downloadBankLedgerReference(button, format = "csv") {
   setButtonBusy(button, true, "Preparing…");
+  const fallback =
+    format === "xlsx" ? REFERENCE_LEDGER_FILENAMES.xlsx : REFERENCE_LEDGER_FILENAMES.csv;
   try {
     const url =
       format === "xlsx"
@@ -4759,16 +4814,10 @@ async function downloadBankLedgerReference(button, format = "csv") {
       throw new Error(data.error || "Download failed");
     }
     const blob = await res.blob();
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download =
-      format === "xlsx"
-        ? "cooperative-bank-ledger-reference.xlsx"
-        : "cooperative-bank-ledger-reference.csv";
-    link.click();
-    URL.revokeObjectURL(link.href);
+    const filename = parseAttachmentFilename(res, fallback);
+    await saveDownloadBlob(blob, filename);
   } catch (err) {
-    alert(err.message);
+    if (err?.name !== "AbortError") alert(err.message);
   } finally {
     setButtonBusy(button, false);
   }
@@ -4795,19 +4844,15 @@ async function sortBankLedgerUpload(button) {
       throw new Error(data.error || "Sort failed");
     }
     const blob = await res.blob();
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "cooperative-bank-ledger-reference.csv";
-    link.click();
-    URL.revokeObjectURL(link.href);
+    const filename = parseAttachmentFilename(res, REFERENCE_LEDGER_FILENAMES.csv);
+    await saveDownloadBlob(blob, filename);
     const status = $("#bankImportStatus");
     if (status) {
-      status.textContent =
-        "Sorted file downloaded. Replace your local cooperative-bank-ledger-reference.csv with this file.";
+      status.textContent = `Saved ${filename}. Replace data\\${filename} on your PC, then run Full Ledger Refresh.`;
       status.className = "status ok";
     }
   } catch (err) {
-    alert(err.message);
+    if (err?.name !== "AbortError") alert(err.message);
   } finally {
     setButtonBusy(button, false);
   }
@@ -4871,7 +4916,7 @@ function renderBankImportConflicts(conflicts) {
     <div class="panel-head-actions">
       <button type="button" class="btn primary" id="downloadMissingManualRows">Download missing rows CSV</button>
     </div>
-    <p>Open the missing-rows file, copy its transaction rows into <strong>cooperative-bank-ledger-reference.csv</strong> or <strong>.xlsx</strong> (same columns), then import that file or click <strong>Sort selected file &amp; download</strong>. After import, use <strong>Download Reference CSV</strong> or <strong>Download Reference Xlsx</strong> to replace your local copy from live Cooperative Books.</p>`
+    <p>Open the missing-rows file, copy its transaction rows into <strong>cooperative-bank-ledger-reference.csv</strong> or <strong>cooperative-bank-ledger-reference.xlsx</strong> (same names as <strong>data\</strong> on your PC), then import that file or click <strong>Sort &amp; Download cooperative-bank-ledger-reference.csv</strong>. After import, use the matching download buttons to replace your local copy from live Cooperative Books.</p>`
     : "";
   panel.innerHTML = warningHtml + missingHtml;
 }

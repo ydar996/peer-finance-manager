@@ -10,6 +10,7 @@ const { todayIso: cooperativeTodayIso } = require("./cooperative-time");
 
 const CSV_BASENAME = "cooperative-bank-ledger-reference.csv";
 const XLSX_BASENAME = "cooperative-bank-ledger-reference.xlsx";
+const REFERENCE_LEDGER_BASENAME = "cooperative-bank-ledger-reference";
 
 const LEDGER_SOURCES = ["bank_import", "manual"];
 
@@ -393,6 +394,7 @@ function getLedgerEndingBalance(asOfDateIso = null) {
 module.exports = {
   CSV_BASENAME,
   XLSX_BASENAME,
+  REFERENCE_LEDGER_BASENAME,
   MISSING_MANUAL_ROWS_CSV_BASENAME,
   LEDGER_TYPES,
   TYPE_TO_NARRATIVE,
