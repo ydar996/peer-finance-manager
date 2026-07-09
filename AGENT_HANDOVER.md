@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 8, 2026 (bank import Phase 2: format profiles, rules, collapsed Import tab)  
+**Last updated:** July 8, 2026 (Assurance bank ledger canonical record + corruption audit)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -23,7 +23,7 @@ Documentation is the handoff contract between sessions. If it is stale, the next
 
 ### Continuous documentation rule (non-negotiable)
 
-1. **Read this file first** at the start of every session — before relying on chat history or agent transcripts.
+1. **Read this file first** at the start of every session — before relying on chat history or agent transcripts. **Before any bank-ledger or reconcile advice**, read **§1A Assurance bank ledger** (golden state, corruption history, do-not-regress list).
 2. **Document as you go** — in the same session, **in the same turn** when the change lands (before your reply to the user):
    - **§ Changelog** — append a dated bullet the moment you implement a feature, fix, or behavior change.
    - **§ Outstanding tasks** — add, update, mark ✅, or remove tasks the moment their status changes.
@@ -107,6 +107,8 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-08** — **Bank ledger reference restored from golden master:** Root cause of reference ≠ master: **4 phantom duplicate rows** (+$603.20 through 6/29) plus **2 July test rows** (+$170.06) in reference only. Duplicates: second **-$16** monthly fee on **2023-04-03** and **2023-10-02**; second **+$317.60** mobile deposit on **2025-01-27** and **2025-02-18** (empty Member). Reference had been overwritten by `queueCooperativeBankLedgerCsvSync` from stale DB + agent hand-appends. **Fix applied locally:** copied `data/master-ledger/cooperative-bank-ledger-master.xlsx` → `cooperative-bank-ledger-reference.xlsx` and rebuilt `.csv` (**453 rows**, ending **$15,471.49**; **0 field diffs** vs master). **Production:** Admin → **Full Ledger Refresh** with restored xlsx (git push not required for data files).
+- **2026-07-08** — **Handover: two-file bank ledger model (§1A corrected):** User confirmed golden **historical bank archive** is `data/master-ledger/cooperative-bank-ledger-master.xlsx` (453 rows, **$15,471.49**, 2023-01-23 through 2026-06-29) — **not** the same as `cooperative-bank-ledger-reference.xlsx` (app import file, corrupted by auto-sync). Built via `build-master-ledger.js` from `pre 2025.xlsx` + `stmt (6).csv`. Agents had conflated the two files in prior responses.
 - **2026-07-08** — **Append import balance check fix:** Preview no longer flags a red **Balance mismatch** when ledger opening already differs from statement **beginning** (pre-period gap). Warning only when opening aligns but **new rows** fail to reach statement **ending**. UI shows statement beginning, pre-period gap note, or success when ending ties. Prior Assurance reconcile (phantom XXXXX rows, bank fees, proxy Zelle, xlsx ending **$15,471.49** on 6/29/2026) is **done** — do not re-diagnose. Bank ledger updates: **Admin → Import** only (no WinSCP). Files: `bank-import-append.js`, `app.js`. **Production:** `git push`.
 - **2026-07-08** — **Agent note (Assurance ledger sync):** Do **not** tell user to WinSCP-upload for bank ledger. Established path since **2026-06-28** / **2026-07-01**: monthly **Import New Bank Activity** on live admin; full rebuild via **Full Ledger Refresh**. Proxy Zelle + xlsx corrections already shipped (`git push` + admin import). **Add New Transactions** button was `disabled` after preview when 0 new rows (or before Preview) but still looked active. Now always clickable: auto-runs Preview if needed, shows clear status (`No new transactions to add`, `need review`, etc.), labels count when ready (`Add New Transactions (2)`), resets on file change. Disabled buttons styled gray. Files: `app.js`, `index.html`, `styles.css`. **Production:** `git push`. Removed regex **Reference patterns** from admin UI (stays server-side). **Payment name mappings** table: Member + **Name on Bank Statement** (plain text); backend builds match patterns. Contribution/loan keywords remain editable comma-separated labels. Files: `member-payment-alias-service.js`, `import-rules-service.js`, `server.js`, `index.html`, `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-08** — **Import tab nested subsections:** **Bank Accounts and Import Settings** collapses **Registered Bank Accounts**, **Add Bank Account**, and **Edit Selected Account** (nested **Account Details** and **Classification Rules**). **Import New Bank Activity** nests **Download Import Template**. Files: `index.html`, `styles.css`. **Production:** `git push`.
@@ -203,6 +205,69 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 - **2026-06-18** — Mobile My Account: **Description** column hidden by default on small screens; **Show Descriptions** / **Hide Descriptions** toggle on member portal. **Production:** `git push` only (verify committed).
 - **2026-06-13** — Cloud deploy: Render API + Netlify UI; multi-org auth; member portal with running balances and monthly PDFs; Puppeteer Chrome install on Render for PDFs; data upload via WinSCP to `/var/data`.
 - **2026-06** — Multi-organization registry, per-org SQLite, separate login portals (`/member`, `/staff`, `/admin`), manual Record tab, member credential provisioning.
+- **2026-06-30** — **Assurance bank ledger golden reconcile (RESOLVED):** `build-master-ledger.js` merged `pre 2025.xlsx` + `stmt (6).csv` into **`data/master-ledger/cooperative-bank-ledger-master.xlsx`** — **453 rows**, last date **2026-06-29**, ending **$15,471.49** (matches BoA). User asked to **keep this single historical archive** separate from the app import file. June 2026: **13 transactions, $2,254.12**. Also refreshed `cooperative-bank-ledger-reference.xlsx` for import (later corrupted by auto-sync — see §1A).
+
+---
+
+## 1A. Assurance bank ledger — canonical record (mandatory read)
+
+**Purpose:** Stop agents from re-opening resolved reconcile work, conflating two different files, or blaming the user. Read this **before** any balance-mismatch diagnosis, WinSCP advice, or “re-upload your xlsx” guidance.
+
+### Two different files (do not conflate)
+
+| File | Role | Status |
+|------|------|--------|
+| **`data/master-ledger/cooperative-bank-ledger-master.xlsx`** | **Historical bank archive** — single reconciled copy of all BoA transactions the user asked to keep after the 6/30/2026 exercise. **Read-only reference.** | ✅ **Golden** (verified 2026-07-08) |
+| **`data/cooperative-bank-ledger-reference.xlsx`** / `.csv` | **App import file** — uploaded via Admin → **Full Ledger Refresh** to rebuild production DB. Also auto-synced from DB (dangerous). | ✅ **Restored** (453 rows, **$15,471.49**, matches master 2026-07-08) |
+
+### Golden historical archive (RESOLVED — do not re-diagnose)
+
+| Field | Value |
+|-------|--------|
+| **Path (PC)** | `C:\Users\yinka\Documents\AssurCoop\data\master-ledger\cooperative-bank-ledger-master.xlsx` |
+| **Row count** | **453** |
+| **Date range** | **2023-01-23** through **2026-06-29** |
+| **Ending checking balance** | **$15,471.49** (matches BoA) |
+| **Sources merged** | `C:\Users\yinka\Downloads\pre 2025.xlsx` (pre-2025 history) + `stmt (6).csv` (Jan 2025 through 6/29/2026) |
+| **How it was built** | `peer-finance-manager/scripts/build-master-ledger.js` |
+| **June 2026 activity** | **13 rows, $2,254.12** — matches June bank stmt exactly |
+
+**Resolved items (closed — never cite as open gaps):** phantom `XXXXX` duplicate NFCU rows (~$400); duplicate monthly bank fees; proxy Zelle mis-credits (Ejiro/Titilope); pre-2025 bank charges incorporated; June stmt tie-out to **$15,471.49**.
+
+### App import file state (restored 2026-07-08 — aligned with master)
+
+| Field | Golden master | `cooperative-bank-ledger-reference.xlsx` (current) |
+|-------|---------------|-----------------------------------------------------|
+| Rows | 453 | **453** ✅ |
+| Ending 6/29 | $15,471.49 | **$15,471.49** ✅ |
+| Field diffs vs master | — | **0** ✅ |
+
+**Prior corruption (resolved):** reference had **459 rows**, ending **$16,244.75** — **4 phantom duplicates** (+$603.20 through 6/29) and **2 July test rows** (+$170.06). Cause: `cooperative-bank-ledger-csv.js` auto-sync overwrote import file from stale DB; agents appended July rows by hand. **Local PC files now match master.** Production DB still needs **Full Ledger Refresh** unless already run.
+
+### Agent rules (non-negotiable)
+
+| Do | Do not |
+|----|--------|
+| Treat **`master-ledger/cooperative-bank-ledger-master.xlsx`** as the reconciled historical archive | Call `cooperative-bank-ledger-reference.xlsx` the “historical bank records file” |
+| Copy **from master → reference** when restoring import file | Overwrite master from DB auto-sync or agent edits |
+| Verify master: **453 rows**, ending **$15,471.49**, last **2026-06-29** | Re-diagnose phantom XXXXX or “$603 gap” as new work |
+| Apply to production: copy master to reference, then **Full Ledger Refresh** | Tell user to WinSCP-upload for Assurance bank ledger |
+| Document every ledger touch in **§ Changelog same turn** | Blame user for dashboard drift |
+
+### Restore procedure
+
+1. **Do not edit** `data/master-ledger/cooperative-bank-ledger-master.xlsx` (golden archive).
+2. Copy it over the import file (or run `build-master-ledger.js` to regenerate master, then copy).
+3. Admin → Import → **Full Ledger Refresh** → upload the restored reference xlsx.
+4. Confirm **453 rows** and **Ledger ending balance 15,471.49**.
+5. July monthly activity: **Import New Bank Activity** only (append).
+
+```powershell
+# Regenerate master if needed (does not touch golden copy if you copy output manually):
+cd peer-finance-manager
+node scripts/build-master-ledger.js "C:\Users\yinka\Downloads\pre 2025.xlsx" "C:\Users\yinka\Downloads\stmt (6).csv"
+# Golden copy already at: data\master-ledger\cooperative-bank-ledger-master.xlsx
+```
 
 ---
 
@@ -287,8 +352,12 @@ Historically, everything lived in Excel (`Assurance Status` workbooks). This rep
 | `Assurance Status 5 2026.xlsx` | May 2026 sheet with bank-filled deposits |
 | `Assurance Status 2 2026.xlsx` | February 2026 only (older) |
 | `wpforms-5-...csv` | 22 membership applications |
-| `data/bank-statement-2026.csv` | BoA export merged for ledger import (not in git by default) |
-| `All deposits.xlsx` | Historical bank deposits merged with CSV for import |
+| `data/master-ledger/cooperative-bank-ledger-master.xlsx` | **Historical bank archive (golden)** — all reconciled BoA transactions 2023-01-23 through 2026-06-29, ending **$15,471.49**, **453 rows**. Built `build-master-ledger.js` from `pre 2025.xlsx` + `stmt (6).csv`. **User-kept reference; do not overwrite.** See §1A. |
+| `data/cooperative-bank-ledger-reference.xlsx` | **App import file** for Full Ledger Refresh (Member/Narrative labels). Restored from master 2026-07-08 (453 / $15,471.49). Re-copy from master if auto-sync clobbers again. |
+| `data/cooperative-bank-ledger-reference.csv` | CSV twin of import file |
+| `C:\Users\yinka\Downloads\pre 2025.xlsx` | Pre-2025 BoA history source used in 6/30 reconcile |
+| `C:\Users\yinka\Downloads\stmt (6).csv` | BoA Jan 2025 through 6/29/2026 source used in 6/30 reconcile |
+| `data/bank-statement-2026.csv` | Partial 2026 BoA slice (older workflow; not full history) |
 
 ### Members (24 on ledger)
 
@@ -452,7 +521,9 @@ Peer Finance Manager / Assurance Cooperative
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
 | 2 | **Cooperative expenses** | Table exists; no UI/import. |
 | 3 | **Profile for Kehinde Agboola** | Olawale George added (WPForms row + local import). Kehinde still has no application row. |
-| 4 | **PC ↔ cloud data sync** | **Bank ledger (monthly):** Admin → Import → **Import New Bank Activity** only — **no WinSCP** (user workflow since mid-2026). **Full ledger rebuild:** Admin → **Full Ledger Refresh** with `cooperative-bank-ledger-reference.xlsx` if production DB diverges. WinSCP optional legacy path for non-ledger profile edits only; user is **not** using WinSCP for Assurance bank updates. |
+| 4 | ~~**Restore app import file from golden master**~~ | ✅ **PC done** 2026-07-08 — reference xlsx/csv copied from master (453 / $15,471.49). **Remaining:** Admin → **Full Ledger Refresh** on production if dashboard still wrong. |
+| 4b | **Fix auto-sync clobber** | `queueCooperativeBankLedgerCsvSync` must not overwrite reconciled `cooperative-bank-ledger-reference.xlsx` without backup/explicit user action. |
+| 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh** with golden xlsx. **No WinSCP** for Assurance bank ledger (user workflow since mid-2026). |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |
@@ -515,6 +586,10 @@ Peer Finance Manager / Assurance Cooperative
 
 13. **Documentation** — `.cursor/rules/continuous-documentation.mdc` is `alwaysApply: true`. Update docs in the **same turn** as every change. Read `AGENT_HANDOVER.md` first every session. The user must never need to ask for doc updates.
 
+14. **Assurance bank ledger auto-sync** — `cooperative-bank-ledger-csv.js` can **overwrite** `data/cooperative-bank-ledger-reference.xlsx` from DB. If DB is stale, golden reconcile is destroyed. See **§1A**. Never advise reconcile without reading §1A.
+
+15. **Dashboard Current Bank Balance** — Uses `checking_balance` setting if set, else **ledger sum** from DB (`getLedgerEndingBalance`). Preview balance-check fix (`cd5e05d`) only changes Import **warning text**; it does **not** fix DB or xlsx. Production drift = incomplete Full Ledger Refresh or post-reconcile corruption.
+
 ---
 
 ## 6. Verification checklist (after changes)
@@ -551,11 +626,11 @@ npm start   # → http://localhost:3457 (Assurance Cooperative Manager)
 
 ## 8. Suggested next session plan
 
-1. After deploy: **Admin → Import** corrected `cooperative-bank-ledger-reference.xlsx`; confirm **Ledger warnings** panel is empty
-2. Import loan records + schedules when user provides data
-3. Generalize month-from-bank script for June onward
-4. Add Olawale / Kehinde profiles if applications supplied
-5. Optional: single “monthly close” command — bank reconcile → update workbook → generate PDFs → refresh ledger → WinSCP upload
+1. **Restore golden ledger** per §1A (`rebuild-ledger-from-bank.js` + verify **453 / $15,471.49**) → Admin → **Full Ledger Refresh**
+2. Fix **auto-sync clobber** in `cooperative-bank-ledger-csv.js` before more ledger edits
+3. July monthly: **Import New Bank Activity** with `stmt (7).csv` (append only, after step 1)
+4. Import loan records + schedules when user provides data
+5. Profile for Kehinde Agboola if application supplied
 
 ---
 
@@ -585,6 +660,9 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 | Date formatting (PDF) | `formatDisplayDate` in `loan-statement-generator.js` |
 | Member self-service | `peer-finance-manager/lib/member-self-service.js` |
 | Bank ledger import | `peer-finance-manager/lib/import-bank-ledger.js` |
+| Master ledger auto-sync (danger) | `peer-finance-manager/lib/cooperative-bank-ledger-csv.js` — see §1A |
+| Golden rebuild script | `peer-finance-manager/scripts/rebuild-ledger-from-bank.js` |
+| Ledger vs stmt audit | `peer-finance-manager/scripts/audit-bank-ledger-discrepancy.js` |
 | CD dashboard | `peer-finance-manager/lib/cooperative-books.js`, `cd-balance-service.js` |
 | DB tables | `peer-finance-manager/db/schema.sql` |
 

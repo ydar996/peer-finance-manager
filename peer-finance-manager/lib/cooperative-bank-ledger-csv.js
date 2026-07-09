@@ -332,7 +332,7 @@ function writeWorkbook(exportRows, outPath) {
   XLSX.writeFile(wb, outPath);
 }
 
-function syncCooperativeBankLedgerCsvFiles() {
+function syncCooperativeBankLedgerCsvFiles({ writeXlsx = false } = {}) {
   const { exportRows, transactionCount } = buildSortedReferenceCsvFromDb();
   const csvPath = getCooperativeBankLedgerCsvPath();
   const xlsxPath = getCooperativeBankLedgerXlsxPath();
@@ -340,11 +340,13 @@ function syncCooperativeBankLedgerCsvFiles() {
   writeBankStatementCsv(exportRows, csvPath, sortedReferenceHeaderLines(
     "Synced from Peer Finance Manager : sorted by transaction date,,,"
   ));
-  writeWorkbook(exportRows, xlsxPath);
+  if (writeXlsx) {
+    writeWorkbook(exportRows, xlsxPath);
+  }
 
   return {
     csvPath,
-    xlsxPath,
+    xlsxPath: writeXlsx ? xlsxPath : null,
     transactionCount,
   };
 }
