@@ -62,7 +62,7 @@ After you submit, the Cooperative receives your application automatically. An ad
 | **Members & Accounts** | Member list, balances, full profiles; select a member to **Upload Photo** (admin) |
 | **Statements** | Generate batch PDF statements |
 | **Loans** | View and manage loans |
-| **Record** | Add members, record contributions, fees, expenses (each form collapsed until expanded) |
+| **Record** | Add members, record contributions, fees, expenses (each form collapsed until expanded). **Register New Member** and **Update Member Profile** include **Gender** (Male, Female, Decline to Specify). |
 | **Import** | All sections collapsed by default (expand when needed). **Import New Bank Activity** (append-only; CSV/xlsx/OFX; preview with balance check). **Bank Accounts and Import Settings** (format, rules, aliases). **Full Ledger Refresh** (advanced). Spreadsheet, profiles. |
 | **Status Report** | Monthly Cooperative status PDF: generate, publish to member portal, download; organization time zone and auto-publish settings (admin) |
 | **Meetings** | Schedule meetings, announce to members (portal + email), cancel, reminder settings (admin). **Email Send Audit** (admin): on-demand history of notification batches with recipient Sent/Failed detail and the current eligible recipient list. |
