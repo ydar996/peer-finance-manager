@@ -109,8 +109,8 @@ Use **Import New Bank Activity** for normal monthly updates. Use **Full Ledger R
    - **New** — will be added. Use the **Type** and **Member** dropdowns if auto-classification is wrong.
    - **Skipped** — already in the ledger (cannot change here; use **Full Ledger Refresh** to correct).
    - **Review** — set **Type** and **Member** in the preview before applying.
-6. Read **Detected format** and the **balance check** line (statement beginning/ending vs ledger). A red warning means **new rows** do not tie to statement ending. A pre-period gap note means the ledger opening differs from statement beginning before these rows: that is not caused by the rows in this preview.
-7. Click **Add New Transactions**.
+6. Read **Detected format** and the **balance check** line (statement beginning/ending vs ledger). A red **Blocked** message means the import cannot apply until projected ledger matches statement ending, or until you run **Full Ledger Refresh** if the base ledger is wrong. A pre-period gap note means the ledger opening differs from statement beginning before these rows: that is not caused by the rows in this preview.
+7. Click **Add New Transactions** (disabled when blocked).
 8. Confirm balances on **Cooperative Books** and affected members.
 
 Re-uploading the same statement adds nothing (duplicates are skipped automatically).
@@ -129,7 +129,7 @@ Re-uploading the same statement adds nothing (duplicates are skipped automatical
 3. **First-time setup:** select the account under **Edit Selected Account**, set **Institution name** (e.g. Bank of America), confirm **Account label** and **Currency**, pick **Statement format** (or leave **Auto-detect**), set cooperative **Date format**, then **Save Account and Settings**.
 4. **Statement format:** choose a profile that matches your bank export, or **Custom Column Mapping** and fill column header names (Date, Description, Amount, etc.).
 5. **Classification rules (Cooperative-wide):** under **Classification Rules**, edit contribution and loan keywords (plain phrases, comma-separated).
-6. **Payment name mappings:** map each member to the name as it appears on Zelle or the bank statement (comma-separated if more than one). No regex or code required.
+6. **Payment name mappings:** map each member to the name as it appears on Zelle or the bank statement (comma-separated if more than one). Set **Default Type** when the bank line does not say contribution or loan (example: SAHEED SALAMI → Yomi Salami, Default Type **Loan Repayment**). Leave Default Type as **Auto-detect** when keywords on the statement are enough.
 7. **Add another bank or account:** use **Add Bank Account** (label, institution, currency, format). Check **Set as primary account** if this becomes your main operating account.
 8. **Change banks:** add the new account with an **Active from** date; on the old account set **Active to** to the last day you used it. Imports then go to the new account only.
 9. When importing, pick the matching account in **Import New Bank Activity** before you upload the statement.
@@ -148,6 +148,10 @@ Re-uploading the same statement adds nothing (duplicates are skipped automatical
 
 **If append is blocked (opening balance mismatch):** the live ledger does not match your statement beginning. Do **not** force the import. Run **Full Ledger Refresh** with your cooperative's master ledger file, confirm the row count and ending balance match your records, then append the monthly statement again.
 
+**If append is blocked (ending balance mismatch):** the new rows in preview would not bring the ledger to the statement ending balance. Use the **Type** and **Member** dropdowns on **New** or **Review** rows to fix classification, then preview again. If the base ledger is wrong, run **Full Ledger Refresh** first.
+
+**Regression check (developers):** `npm run test:bank-append` verifies append preview tie-out against a statement file.
+
 **Ops script (any tenant on production):**
 
 ```powershell
@@ -163,7 +167,7 @@ cd peer-finance-manager
 node scripts/restore-assurance-ledger-production.js
 ```
 
-Expect **457 rows** and **$16,241.55** through **2026-07-08**. Do **not** append `stmt (8).csv` via Import New Bank Activity (Saheed $500 would become Member Deposit and the balance drifts).
+Expect **457 rows** and **$16,241.55** through **2026-07-08**. July is already in the ledger; do **not** re-upload `stmt (8).csv` to fix drift (rows show as Skipped). For **August 2026+**, use **Import New Bank Activity** with only the new statement.
 
 ---
 

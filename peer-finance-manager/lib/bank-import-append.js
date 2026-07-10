@@ -447,6 +447,19 @@ function applyBankStatementAppend({
     throw err;
   }
 
+  if (
+    bc.statementEnding != null &&
+    bc.projectedLedger != null &&
+    bc.openingAligned !== false &&
+    bc.periodCloseMismatch
+  ) {
+    const err = new Error(
+      `After import, ledger would be ${bc.projectedLedger} but statement ending is ${bc.statementEnding}. Fix Type/Member on preview rows or run Full Ledger Refresh if the base ledger is wrong.`
+    );
+    err.preview = preview;
+    throw err;
+  }
+
   const readyRows = preview.rows.filter((r) => r.bucket === "ready");
   if (!readyRows.length) {
     return {

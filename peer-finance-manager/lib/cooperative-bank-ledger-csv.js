@@ -362,7 +362,21 @@ function syncCooperativeBankLedgerCsvFiles({ writeXlsx = false } = {}) {
   };
 }
 
+/** CSV export sync: on by default in cloud (PFM_DATA_DIR). Off on local dev unless PFM_LEDGER_CSV_SYNC=1. */
+function ledgerCsvAutoSyncEnabled() {
+  if (process.env.PFM_LEDGER_CSV_SYNC === "0") return false;
+  if (process.env.PFM_LEDGER_CSV_SYNC === "1") return true;
+  return Boolean(process.env.PFM_DATA_DIR);
+}
+
 function queueCooperativeBankLedgerCsvSync(reason) {
+  if (!ledgerCsvAutoSyncEnabled()) {
+    trace.info("Cooperative bank ledger CSV sync skipped", {
+      reason,
+      hint: "Set PFM_LEDGER_CSV_SYNC=1 to export CSV from DB on local dev",
+    });
+    return;
+  }
   setImmediate(() => {
     try {
       const result = syncCooperativeBankLedgerCsvFiles();
@@ -402,6 +416,7 @@ module.exports = {
   getCooperativeBankLedgerXlsxPath,
   syncCooperativeBankLedgerCsvFiles,
   queueCooperativeBankLedgerCsvSync,
+  ledgerCsvAutoSyncEnabled,
   loadLedgerRowsFromDb,
   buildExportRows,
   getLedgerEndingBalance,

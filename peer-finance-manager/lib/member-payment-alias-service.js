@@ -2,7 +2,12 @@ const { getDb } = require("../db/database");
 const { resolveLedgerMemberName, normalizeName } = require("./member-name-match");
 
 const SEED_ALIASES = [
-  { member: "Yomi Salami", bankPaymentNames: "SAHEED SALAMI", pattern: "SAHEED\\s+A?\\s*SALAMI" },
+  {
+    member: "Yomi Salami",
+    bankPaymentNames: "SAHEED SALAMI",
+    pattern: "SAHEED\\s+A?\\s*SALAMI",
+    defaultLedgerType: "loan_repayment",
+  },
   {
     member: "Adedayo Tolani",
     bankPaymentNames: "KAMORU TOLANI, ADEDAYO TOLANI",
@@ -65,22 +70,64 @@ function ensurePaymentAliasSchema(db) {
   if (!cols.includes("bank_payment_names")) {
     db.exec(`ALTER TABLE member_payment_aliases ADD COLUMN bank_payment_names TEXT`);
   }
+  if (!cols.includes("default_ledger_type")) {
+    db.exec(`ALTER TABLE member_payment_aliases ADD COLUMN default_ledger_type TEXT`);
+  }
+}
+
+function ensureAliasDefaultTypes(db) {
+  ensurePaymentAliasSchema(db);
+  for (const row of SEED_ALIASES) {
+    if (!row.defaultLedgerType) continue;
+    db.prepare(
+      `UPDATE member_payment_aliases
+       SET default_ledger_type = ?
+       WHERE member_name = ? AND (default_ledger_type IS NULL OR default_ledger_type = '')`
+    ).run(row.defaultLedgerType, row.member);
+  }
 }
 
 function seedDefaultAliasesIfEmpty(db) {
   ensurePaymentAliasSchema(db);
   const count = db.prepare(`SELECT COUNT(*) AS c FROM member_payment_aliases`).get().c;
-  if (count > 0) return;
-
-  const members = db.prepare(`SELECT id, name FROM members`).all();
-  const nameToId = Object.fromEntries(members.map((m) => [m.name, m.id]));
-  const insert = db.prepare(
-    `INSERT INTO member_payment_aliases (member_id, member_name, bank_payment_names, alias_pattern) VALUES (?, ?, ?, ?)`
-  );
-  for (const row of SEED_ALIASES) {
-    const memberId = nameToId[row.member] || null;
-    insert.run(memberId, row.member, row.bankPaymentNames, row.pattern);
+  if (count === 0) {
+    const members = db.prepare(`SELECT id, name FROM members`).all();
+    const nameToId = Object.fromEntries(members.map((m) => [m.name, m.id]));
+    const insert = db.prepare(
+      `INSERT INTO member_payment_aliases
+        (member_id, member_name, bank_payment_names, alias_pattern, default_ledger_type)
+       VALUES (?, ?, ?, ?, ?)`
+    );
+    for (const row of SEED_ALIASES) {
+      const memberId = nameToId[row.member] || null;
+      insert.run(
+        memberId,
+        row.member,
+        row.bankPaymentNames,
+        row.pattern,
+        row.defaultLedgerType || null
+      );
+    }
   }
+  ensureAliasDefaultTypes(db);
+}
+
+const VALID_DEFAULT_LEDGER_TYPES = new Set([
+  "deposit",
+  "withdrawal",
+  "loan_repayment",
+  "loan_disbursement",
+  "distribution",
+  "expense",
+  "cd_purchase",
+  "cd_liquidation",
+  "investment",
+]);
+
+function normalizeDefaultLedgerType(value) {
+  const key = String(value || "").trim().toLowerCase();
+  if (!key) return null;
+  return VALID_DEFAULT_LEDGER_TYPES.has(key) ? key : null;
 }
 
 function mapPaymentAliasRow(row) {
@@ -92,6 +139,7 @@ function mapPaymentAliasRow(row) {
     memberId: row.memberId,
     memberName: row.memberName,
     bankPaymentNames,
+    defaultLedgerType: normalizeDefaultLedgerType(row.defaultLedgerType) || null,
   };
 }
 
@@ -101,7 +149,8 @@ function listPaymentAliases() {
   return db
     .prepare(
       `SELECT id, member_id AS memberId, member_name AS memberName,
-              bank_payment_names AS bankPaymentNames, alias_pattern AS aliasPattern
+              bank_payment_names AS bankPaymentNames, alias_pattern AS aliasPattern,
+              default_ledger_type AS defaultLedgerType
        FROM member_payment_aliases ORDER BY member_name, id`
     )
     .all()
@@ -118,8 +167,9 @@ function replacePaymentAliases(entries) {
   const run = db.transaction(() => {
     db.prepare(`DELETE FROM member_payment_aliases`).run();
     const insert = db.prepare(
-      `INSERT INTO member_payment_aliases (member_id, member_name, bank_payment_names, alias_pattern)
-       VALUES (?, ?, ?, ?)`
+      `INSERT INTO member_payment_aliases
+        (member_id, member_name, bank_payment_names, alias_pattern, default_ledger_type)
+       VALUES (?, ?, ?, ?, ?)`
     );
     for (const entry of entries) {
       const memberName = String(entry.memberName || "").trim();
@@ -136,7 +186,8 @@ function replacePaymentAliases(entries) {
         nameToId[resolved] || null,
         resolved,
         bankPaymentNames || seedDisplayNameForMember(resolved) || null,
-        pattern
+        pattern,
+        normalizeDefaultLedgerType(entry.defaultLedgerType)
       );
     }
   });
@@ -144,11 +195,16 @@ function replacePaymentAliases(entries) {
   return listPaymentAliases();
 }
 
-function resolveMemberFromPaymentAliases(text, memberNames) {
+function resolvePaymentAliasMatch(text, memberNames) {
   const db = getDb();
   seedDefaultAliasesIfEmpty(db);
+  ensureAliasDefaultTypes(db);
   const aliases = db
-    .prepare(`SELECT member_name AS memberName, alias_pattern AS aliasPattern FROM member_payment_aliases`)
+    .prepare(
+      `SELECT member_name AS memberName, alias_pattern AS aliasPattern,
+              default_ledger_type AS defaultLedgerType
+       FROM member_payment_aliases`
+    )
     .all();
   const hay = String(text || "");
   for (const row of aliases) {
@@ -156,14 +212,21 @@ function resolveMemberFromPaymentAliases(text, memberNames) {
       const re = new RegExp(row.aliasPattern, "i");
       if (!re.test(hay)) continue;
       const resolved = resolveLedgerMemberName(row.memberName, memberNames) || row.memberName;
-      if (memberNames.includes(resolved)) return resolved;
+      if (memberNames.includes(resolved)) {
+        return { member: resolved, defaultLedgerType: row.defaultLedgerType || null };
+      }
       const parts = normalizeName(resolved).split(" ").filter(Boolean);
       if (parts.length >= 2 && parts.every((p) => normalizeName(hay).includes(p))) {
-        return resolved;
+        return { member: resolved, defaultLedgerType: row.defaultLedgerType || null };
       }
     } catch (_) {}
   }
   return null;
+}
+
+function resolveMemberFromPaymentAliases(text, memberNames) {
+  const match = resolvePaymentAliasMatch(text, memberNames);
+  return match?.member || null;
 }
 
 module.exports = {
@@ -173,4 +236,8 @@ module.exports = {
   listPaymentAliases,
   replacePaymentAliases,
   resolveMemberFromPaymentAliases,
+  resolvePaymentAliasMatch,
+  ensureAliasDefaultTypes,
+  VALID_DEFAULT_LEDGER_TYPES,
+  normalizeDefaultLedgerType,
 };

@@ -4,7 +4,7 @@ const XLSX = require("xlsx");
 const { parseCooperativeDate } = require("./cooperative-date-format");
 const { parseTypeLabel } = require("./transaction-import-types");
 const { resolveLedgerMemberName } = require("./member-name-match");
-const { resolveMemberFromPaymentAliases } = require("./member-payment-alias-service");
+const { resolveMemberFromPaymentAliases, resolvePaymentAliasMatch } = require("./member-payment-alias-service");
 const {
   extractReferenceFromRules,
   classifyDescriptionWithRules,
@@ -115,7 +115,8 @@ function classifyRow({ description, amount, member, memberNames, rules }) {
   }
   if (!ledgerType) return { ledgerType: null, member: member || null };
 
-  let resolvedMember = member || resolveMemberFromPaymentAliases(description, memberNames);
+  const aliasMatch = resolvePaymentAliasMatch(description, memberNames);
+  let resolvedMember = member || aliasMatch?.member || resolveMemberFromPaymentAliases(description, memberNames);
   if (!resolvedMember && ledgerType === "deposit") {
     const { getCoopRoot, getAppRoot, isPackaged } = require("./paths");
     const parserRoot = isPackaged() ? getAppRoot() : getCoopRoot();
@@ -124,6 +125,9 @@ function classifyRow({ description, amount, member, memberNames, rules }) {
   }
   if (!resolvedMember) {
     resolvedMember = resolveMemberFromPaymentAliases(description, memberNames);
+  }
+  if (aliasMatch?.defaultLedgerType && !ruleType) {
+    ledgerType = aliasMatch.defaultLedgerType;
   }
 
   const refinedLedgerType = refineMemberLedgerType({

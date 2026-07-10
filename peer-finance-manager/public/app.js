@@ -4270,12 +4270,20 @@ function parseImportRulesFromForm() {
 function paymentAliasRowHtml(alias = {}) {
   const memberName = alias.memberName || "";
   const bankPaymentNames = alias.bankPaymentNames || "";
+  const defaultLedgerType = alias.defaultLedgerType || "";
   const memberOptions = importMemberNamesCache
     .map(
       (name) =>
         `<option value="${escapeHtml(name)}"${name === memberName ? " selected" : ""}>${escapeHtml(name)}</option>`
     )
     .join("");
+  const typeOptions = [
+    `<option value="">Auto-detect</option>`,
+    ...BANK_APPEND_LEDGER_TYPES.map(
+      (t) =>
+        `<option value="${t.value}"${t.value === defaultLedgerType ? " selected" : ""}>${escapeHtml(t.label)}</option>`
+    ),
+  ].join("");
   return `<tr>
     <td>
       <select class="payment-alias-member">
@@ -4286,6 +4294,9 @@ function paymentAliasRowHtml(alias = {}) {
     <td>
       <input type="text" class="payment-alias-bank-name" value="${escapeHtml(bankPaymentNames)}" placeholder="e.g. SAHEED SALAMI" />
     </td>
+    <td>
+      <select class="payment-alias-default-type">${typeOptions}</select>
+    </td>
     <td><button type="button" class="btn remove-payment-alias-row">Remove</button></td>
   </tr>`;
 }
@@ -4293,7 +4304,7 @@ function paymentAliasRowHtml(alias = {}) {
 function renderPaymentAliasesTable(aliases) {
   const body = $("#paymentAliasesTableBody");
   if (!body) return;
-  const rows = aliases?.length ? aliases : [{ memberName: "", bankPaymentNames: "" }];
+  const rows = aliases?.length ? aliases : [{ memberName: "", bankPaymentNames: "", defaultLedgerType: "" }];
   body.innerHTML = rows.map((alias) => paymentAliasRowHtml(alias)).join("");
 }
 
@@ -4304,6 +4315,7 @@ function parsePaymentAliasesFromForm() {
     .map((row) => ({
       memberName: row.querySelector(".payment-alias-member")?.value?.trim() || "",
       bankPaymentNames: row.querySelector(".payment-alias-bank-name")?.value?.trim() || "",
+      defaultLedgerType: row.querySelector(".payment-alias-default-type")?.value?.trim() || "",
     }))
     .filter((entry) => entry.memberName && entry.bankPaymentNames);
 }
@@ -4443,13 +4455,35 @@ async function loadBankImportSettings() {
 function updateApplyBankAppendButton() {
   const btn = $("#applyBankAppend");
   if (!btn) return;
-  const ready = bankAppendPreviewData?.summary?.ready || 0;
-  if (ready > 0) {
+  const summary = bankAppendPreviewData?.summary || {};
+  const bc = summary.balanceCheck || {};
+  const ready = summary.ready || 0;
+  const blockedOpening =
+    bc.statementBeginning != null &&
+    bc.ledgerBefore != null &&
+    bc.openingAligned === false;
+  const blockedEnding =
+    bc.statementEnding != null &&
+    bc.projectedLedger != null &&
+    bc.openingAligned !== false &&
+    bc.mismatch;
+  const blocked = blockedOpening || blockedEnding || (summary.needsReview || 0) > 0;
+  if (ready > 0 && !blocked) {
     btn.textContent = `Add New Transactions (${ready})`;
     btn.title = `Add ${ready} new transaction(s)`;
+    btn.disabled = false;
   } else {
     btn.textContent = "Add New Transactions";
-    btn.title = "Preview the file first. PFM will preview automatically when you click if needed.";
+    btn.disabled = blocked || ready === 0;
+    if (blockedOpening) {
+      btn.title = "Blocked: ledger opening does not match statement beginning.";
+    } else if (blockedEnding) {
+      btn.title = "Blocked: projected ledger does not match statement ending.";
+    } else if ((summary.needsReview || 0) > 0) {
+      btn.title = "Set Type and Member on Review rows first.";
+    } else {
+      btn.title = "Preview the file first. PFM will preview automatically when you click if needed.";
+    }
   }
 }
 
@@ -4507,9 +4541,8 @@ function rebucketBankAppendPreviewClient() {
       mismatch: openingAligned && periodCloseMismatch,
     },
   };
+  updateApplyBankAppendButton();
 }
-
-function bankAppendTypeSelectHtml(row) {
   const options = BANK_APPEND_LEDGER_TYPES.map(
     (t) =>
       `<option value="${escapeHtml(t.value)}"${t.value === row.ledgerType ? " selected" : ""}>${escapeHtml(t.label)}</option>`
@@ -4588,8 +4621,8 @@ function renderBankAppendPreview(preview) {
       tone = "status err";
       suffix = ` · Blocked: ledger opening ${fmt.format(bc.ledgerBefore)} does not match statement beginning ${fmt.format(bc.statementBeginning)}. Run Full Ledger Refresh with your master ledger file before adding new transactions.`;
     } else if (bc.mismatch) {
-      tone = "status warn";
-      suffix = " · New rows do not tie to statement ending: review before applying";
+      tone = "status err";
+      suffix = " · Blocked: new rows do not tie to statement ending. Fix Type/Member on preview rows or run Full Ledger Refresh if the base ledger is wrong.";
     } else if (bc.openingAligned === false && bc.periodOpenGap != null) {
       suffix = ` · Ledger is ${fmt.format(Math.abs(bc.periodOpenGap))} ${bc.periodOpenGap > 0 ? "above" : "below"} statement beginning (pre-period gap, not from new rows above)`;
     } else if (bc.periodCloseMismatch === false && bc.statementEnding != null) {
@@ -4733,6 +4766,18 @@ async function handleApplyBankAppendClick() {
   ) {
     if (status) {
       status.textContent = `Blocked: ledger opening ${fmt.format(bc.ledgerBefore)} does not match statement beginning ${fmt.format(bc.statementBeginning)}. Run Full Ledger Refresh with your master ledger file first.`;
+      status.className = "status err";
+    }
+    return;
+  }
+  if (
+    bc.statementEnding != null &&
+    bc.projectedLedger != null &&
+    bc.openingAligned !== false &&
+    bc.mismatch
+  ) {
+    if (status) {
+      status.textContent = `Blocked: projected ledger ${fmt.format(bc.projectedLedger)} does not match statement ending ${fmt.format(bc.statementEnding)}. Fix Type/Member in preview or run Full Ledger Refresh if the base is wrong.`;
       status.className = "status err";
     }
     return;

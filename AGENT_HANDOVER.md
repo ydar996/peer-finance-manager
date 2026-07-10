@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 8, 2026 (Assurance bank ledger canonical record + corruption audit)  
+**Last updated:** July 9, 2026 (§1B bank ledger product mode + append fail-closed)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -23,7 +23,7 @@ Documentation is the handoff contract between sessions. If it is stale, the next
 
 ### Continuous documentation rule (non-negotiable)
 
-1. **Read this file first** at the start of every session — before relying on chat history or agent transcripts. **Before any bank-ledger or reconcile advice**, read **§1A Assurance bank ledger** (golden state, corruption history, do-not-regress list).
+1. **Read this file first** at the start of every session — before relying on chat history or agent transcripts. **Before any bank-ledger or reconcile advice**, read **§1A Assurance bank ledger** (golden state, corruption history, do-not-regress list) and **§1B Bank ledger product mode** (all-tenant append contract).
 2. **Document as you go** — in the same session, **in the same turn** when the change lands (before your reply to the user):
    - **§ Changelog** — append a dated bullet the moment you implement a feature, fix, or behavior change.
    - **§ Outstanding tasks** — add, update, mark ✅, or remove tasks the moment their status changes.
@@ -107,6 +107,8 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-09** — **Bank ledger product mode (all tenants):** §1B documents fail-closed append contract, source-of-truth model, and agent rules. **Payment name mappings** admin table adds **Default Type** column (tenant self-service; persisted in `default_ledger_type`). **CSV auto-sync** runs on cloud (`PFM_DATA_DIR`) only; local dev off unless `PFM_LEDGER_CSV_SYNC=1` (prevents stale DB overwriting reference CSV). **Apply button** disabled when opening/ending blocked or Review rows remain. Regression: `npm run test:bank-append`. Files: `member-payment-alias-service.js`, `cooperative-bank-ledger-csv.js`, `app.js`, `index.html`, `test-bank-append-balance.js`, `package.json`, `AGENT_HANDOVER.md`, `USER-GUIDE.md`. **Production:** `git push`.
+- **2026-07-09** — **Append safety: block ending mismatch + Saheed loan alias:** Import New Bank Activity now **refuses to apply** when projected ledger ≠ statement **ending** (server `bank-import-append.js` + UI `app.js`), not only when opening drifts. Payment alias **SAHEED SALAMI → Yomi Salami** seeds `default_ledger_type: loan_repayment` so July-style payments classify correctly on future appends (`member-payment-alias-service.js`, `import-format-service.js`). **Production:** `git push`; balance already **$16,241.55** from restore script.
 - **2026-07-09** — **Assurance ledger restored to stmt ending ($16,241.55):** Production was **$16,177.55** (drift from bad append/sync). Re-ran golden master + July `stmt (8).csv` → **457 rows**, **$16,241.55** through **2026-07-08**. `build-assurance-reference-with-july.js` now parses stmt file + Saheed override; `restore-assurance-ledger-production.js` is one command (build + Full Ledger Refresh + ending check). Local DB synced. **Production:** data restore via script (no git required for balance); script/doc changes need `git push`.
 - **2026-07-09** — **Repo sync:** Committed and pushed remaining local work (ledger audit/reconcile scripts, `build-assurance-reference-with-july.js`, assurance restore wrapper, bylaws seed) so `main` matches workspace. **Production:** `git push` (`bdcc85f` + follow-up).
 - **2026-07-09** — **Pending applicants hidden + ledger reclassify/split (all tenants):** Members & Accounts lists only **active** members (`pending_approval` profiles stay under Forms & Documents → Membership Applications). Admin **Category** dropdown + **Split** on Contributions and Loan Repayment rows; adjustments persist in `ledger_adjustments` / `ledger_adjustment_lines` and re-apply on every Full Ledger Refresh. APIs: `POST /api/ledger-adjustments/reclassify`, `POST /api/ledger-adjustments/split`. Removed production test applicant **Testy Testy** via `remove-pending-applicant-production.js`. Files: `ledger-adjustment-service.js`, `import-bank-ledger.js`, `member-profile-service.js`, `balance-service.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `schema.sql`, `database.js`, `USER-GUIDE.md`. **Production:** `git push` (code); Testy already deleted on live DB via API script.
@@ -257,7 +259,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ### Permanent restore (Assurance only — one command)
 
-**Do not** append `stmt (8).csv` via Import New Bank Activity (mis-classifies Saheed as Member Deposit and drifts balance).
+**July is already in the ledger.** Do **not** re-upload `stmt (8).csv` via Import New Bank Activity to fix drift (rows show as Skipped; cannot reclassify). Use **Permanent restore** below if dashboard ≠ **$16,241.55**.
 
 ```powershell
 cd peer-finance-manager
@@ -290,13 +292,65 @@ node scripts/build-master-ledger.js "C:\Users\yinka\Downloads\pre 2025.xlsx" "C:
 | Do | Do not |
 |----|--------|
 | Treat **`master-ledger/cooperative-bank-ledger-master.xlsx`** as the reconciled historical archive | Call `cooperative-bank-ledger-reference.xlsx` the “historical bank records file” |
-| Run **`restore-assurance-ledger-production.js`** when dashboard ≠ stmt ending | Append `stmt (8).csv` alone (Saheed mis-classified; balance drifts) |
+| Run **`restore-assurance-ledger-production.js`** when dashboard ≠ stmt ending | Append `stmt (8).csv` alone after July is already in ledger (rows skip; mis-classification if any row is New) |
 | Verify: **457 rows**, ending **$16,241.55**, last **2026-07-08** | Re-diagnose from scratch when §1A already has the answer |
+| **August+:** append only the **new** monthly stmt; fix Type/Member in preview if needed | Re-upload old stmts to "fix" skipped/wrong rows (use Full Ledger Refresh) |
 | Document every ledger touch in **§ Changelog same turn** | Blame user for dashboard drift |
 
 ---
 
-## 1. Background — what this project is for
+## 1B. Bank ledger product mode (all tenants — mandatory read)
+
+**Purpose:** Assurance-specific rescue scripts (§1A) are **recovery only**. Every Cooperative must be able to trust **Import New Bank Activity** without agent intervention.
+
+### Source of truth
+
+| Layer | Role |
+|-------|------|
+| **Production DB** (`transactions` table) | **Authoritative** for dashboard balance, member accounts, statements |
+| **Master ledger file** (uploaded via Full Ledger Refresh) | **Rebuild input** for initial load or full correction |
+| **Monthly bank statement** (append upload) | **Delta input** for new activity only |
+| **`cooperative-bank-ledger-reference.xlsx`** | **Export/download** of live books; **not** a second ledger to edit by hand |
+
+### Append contract (fail-closed — every tenant)
+
+1. **Opening block:** refuse apply when statement **beginning** ≠ live ledger balance before new rows.
+2. **Ending block:** refuse apply when **projected ledger** after new rows ≠ statement **ending**.
+3. **Preview corrections:** admin sets **Type** and **Member** on New/Review rows before apply.
+4. **Payment name mappings:** each row can set **Default Type** when bank text has no contribution/loan keyword (e.g. Zelle payer name only).
+5. **Skipped rows:** re-uploading the same statement does not change existing rows; use **Full Ledger Refresh** or **Books → Category** reclassify for corrections.
+
+### Auto-sync (local vs cloud)
+
+- **Cloud (Render, `PFM_DATA_DIR` set):** after import/append/manual entry, CSV export sync runs from DB (xlsx never auto-overwritten).
+- **Local dev:** CSV auto-sync **off** by default so a stale local DB cannot overwrite `data/cooperative-bank-ledger-reference.csv`. Opt in: `PFM_LEDGER_CSV_SYNC=1`.
+
+### Regression test (any org)
+
+```powershell
+npm run test:bank-append
+# Or: node peer-finance-manager/scripts/test-bank-append-balance.js --org <slug> --stmt <path.csv>
+```
+
+Asserts alias classification, opening/ending tie-out on preview, and idempotent re-upload when all rows skipped.
+
+### Ops recovery (when append is blocked)
+
+```powershell
+node peer-finance-manager/scripts/restore-ledger-production.js --org <slug> --ledger <master.xlsx>
+```
+
+Assurance wrapper: `restore-assurance-ledger-production.js` (§1A).
+
+### Agent rules (product mode)
+
+| Do | Do not |
+|----|--------|
+| Ship fixes in **generic** libs (`bank-import-append.js`, aliases, UI) | Add Assurance-only UI thresholds or hardcoded balances |
+| Run `npm run test:bank-append` after append/balance changes | Claim "fixed" after data restore only |
+| Document §1B + changelog same turn | Tell tenants to WinSCP-upload bank ledger |
+
+---
 
 The cooperative collects monthly member contributions (minimum ₦50), charges a ₦100 annual registration/admin fee, pays periodic **distributions** (profit/interest), and offers **loans** to members under specific rules. The treasurer (user: Yinka) needs to:
 
@@ -546,9 +600,10 @@ Peer Finance Manager / Assurance Cooperative
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
 | 2 | **Cooperative expenses** | Table exists; no UI/import. |
 | 3 | **Profile for Kehinde Agboola** | Olawale George added (WPForms row + local import). Kehinde still has no application row. |
-| 4 | ~~**Restore app import file from golden master**~~ | ✅ **Done** 2026-07-09 — `restore-assurance-ledger-production.js` on Render: **457 / $16,241.55**. Append block shipped to prevent drift.
-| 4b | ~~**Fix auto-sync clobber**~~ | ✅ **Done** `715ba7c` — `queueCooperativeBankLedgerCsvSync` updates CSV only; never overwrites reference xlsx. |
-| 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh** with that tenant's master ledger. Ops: `restore-ledger-production.js --org <slug>`. Assurance wrapper: `restore-assurance-ledger-production.js`. |
+| 4 | ~~**Restore app import file from golden master**~~ | ✅ **Done** 2026-07-09 — Render **457 / $16,241.55**. |
+| 4b | ~~**Fix auto-sync clobber**~~ | ✅ **Done** — xlsx never auto-overwritten; CSV sync cloud-only (§1B). |
+| 4d | ~~**Bank append product mode (all tenants)**~~ | ✅ **Done** 2026-07-09 — opening + ending blocks, Default Type on payment aliases, apply button disabled when blocked, `npm run test:bank-append`. See §1B. **Deploy:** `git push`. |
+| 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh**. Ops: `restore-ledger-production.js --org <slug>`. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |
@@ -611,7 +666,7 @@ Peer Finance Manager / Assurance Cooperative
 
 13. **Documentation** — `.cursor/rules/continuous-documentation.mdc` is `alwaysApply: true`. Update docs in the **same turn** as every change. Read `AGENT_HANDOVER.md` first every session. The user must never need to ask for doc updates.
 
-14. **Assurance bank ledger auto-sync** — `cooperative-bank-ledger-csv.js` can **overwrite** `data/cooperative-bank-ledger-reference.xlsx` from DB. If DB is stale, golden reconcile is destroyed. See **§1A**. Never advise reconcile without reading §1A.
+14. **Assurance bank ledger auto-sync** — On **cloud**, CSV export syncs from DB after imports (xlsx is never auto-overwritten). On **local PC**, CSV sync is **off** unless `PFM_LEDGER_CSV_SYNC=1` so a stale dev DB cannot overwrite `cooperative-bank-ledger-reference.csv`. See **§1B**.
 
 15. **Dashboard Current Bank Balance** — Uses `checking_balance` setting if set, else **ledger sum** from DB (`getLedgerEndingBalance`). Preview balance-check fix (`cd5e05d`) only changes Import **warning text**; it does **not** fix DB or xlsx. Production drift = incomplete Full Ledger Refresh or post-reconcile corruption.
 
