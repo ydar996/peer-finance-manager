@@ -963,11 +963,75 @@ body.cp-public {
 }
 
 .cp-page-apply .cp-hero {
-  display: block;
+  display: none !important;
+}
+
+.cp-page-apply .cp-topbar-inner {
+  padding: 10px 16px;
+}
+
+.cp-page-apply .cp-mark-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.cp-page-apply .cp-org-tag {
+  display: none;
 }
 
 .cp-page-apply .cp-main {
   padding-top: 8px;
+  padding-bottom: 16px;
+}
+
+.cp-page-apply-active .cp-apply-embed-host {
+  min-height: min(70vh, 720px);
+}
+
+/* Landscape signing: hide chrome so the signature pad gets the screen */
+@media (orientation: landscape) and (max-height: 520px) {
+  body.cp-page-apply.cp-landscape-signing .cp-topbar,
+  body.cp-page-apply.cp-landscape-signing .cp-footer,
+  body.cp-page-apply.cp-landscape-signing .cp-progress,
+  body.cp-page-apply.cp-landscape-signing .cp-apply-sign-tip,
+  body.cp-page-apply.cp-landscape-signing .cp-apply-footnote {
+    display: none !important;
+  }
+
+  body.cp-page-apply.cp-landscape-signing {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  body.cp-page-apply.cp-landscape-signing .cp-main {
+    max-width: none;
+    padding: 6px 8px 8px;
+    margin: 0;
+  }
+
+  body.cp-page-apply.cp-landscape-signing .cp-layout {
+    margin: 0;
+  }
+
+  body.cp-page-apply.cp-landscape-signing .cp-content-card {
+    border: 0;
+    border-radius: 10px;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  body.cp-page-apply.cp-landscape-signing .cp-apply-embed-host {
+    min-height: calc(100vh - 16px);
+    min-height: calc(100dvh - 16px);
+    border-radius: 10px;
+  }
+
+  body.cp-page-apply.cp-landscape-signing .cp-apply-embed-host iframe,
+  body.cp-page-apply.cp-landscape-signing .flexxforms-embed-host iframe {
+    min-height: calc(100vh - 16px) !important;
+    min-height: calc(100dvh - 16px) !important;
+  }
 }
 
 .cp-apply-sign-tip {

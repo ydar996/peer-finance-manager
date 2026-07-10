@@ -1,214 +1,522 @@
-# Peer Finance Manager — User Guide (Simple)
+# Peer Finance Manager — Complete User Guide
 
-**For:** Assurance Investment and Cooperative Inc. — administrators, staff, and members.
+**Simple language · Every feature · Every Cooperative**
 
-**Live website:** https://peer-finance-manager.netlify.app  
-**Organization code:** `assurance`
+This guide explains how to use Peer Finance Manager (PFM) without technical jargon. It applies to **every Cooperative** on the platform. Your data stays in your organization's private account.
 
----
-
-## For members — view your account
-
-1. Open: **https://peer-finance-manager.netlify.app/member**
-2. Enter:
-   - **Organization Code:** `assurance`
-   - **Username:** *(from the credentials file your Cooperative sent — not always your email)*
-   - **Password:** *(temporary password from the Cooperative)*
-3. Click **Sign In**. If nothing happens, hard-refresh (**Ctrl+Shift+R**).
-
-**What you can see on My Account:**
-
-- **My Profile** — expand **Membership Biodata** to review your details (read-only; contact the Cooperative to change other fields)
-- **Emergency Contact** — expand to view or update your emergency contact (optional)
-- **Profile Photo** — optional upload or update (members can change a photo the Cooperative already added)
-- Contributions account balance and transaction history with running balance
-- Loan account (if you have a loan): expand **Loan Account** to see each loan; **Actual Repayments** show a running **Balance** after each payment; paid loans are collapsed by default
-- Download **monthly statement PDF**
-- **Cooperative Status Reports** — when the administrator publishes the month-end Cooperative summary, it appears here for download (PDF)
-- **Cooperative Meetings** — when the administrator announces a meeting, date, time, location, and agenda appear here (and by email if configured)
-
-**On a phone:** the header hides the long Cooperative subtitle and your name/role line; use the **power icon** (top right) to sign out. There is no **My Account** tab — you land directly on your profile and balances after sign-in. Transaction tables hide the **Description** column by default so dates and amounts fit better. Tap **Show Descriptions** at the top of My Account if you need the full detail. Tap **Hide Descriptions** to collapse again. Swipe sideways on a table if you need to see every column. Each transaction stays on one line.
-
-**First visit may be slow** (up to 30 seconds) if the server was idle — wait and try again.
-
-### Apply for membership (public)
-
-Prospective members can learn about the Cooperative and apply without signing in:
-
-1. **About Us:** **https://peer-finance-manager.netlify.app/c/assurance/about**
-2. **Bylaws:** **https://peer-finance-manager.netlify.app/c/assurance/bylaws**
-3. **Apply for Membership:** opens `/c/{slug}/apply?from=about` or `?from=bylaws` depending on which page you started from. The form loads on the Cooperative site; after you submit, you return to that page. A short thank-you message appears once and does not stay after you refresh.
-
-Each page includes **Apply for Membership** buttons that open the online application. After a successful submit, your application flows to administrators automatically via the FlexxForms webhook.
-
-Legacy deep link (still works): **https://peer-finance-manager.netlify.app/?apply=assurance** redirects to the apply page.
-
-After you submit, the Cooperative receives your application automatically. An administrator will review it after your **membership fee** and **initial contribution** are confirmed.
+**Live app:** https://peer-finance-manager.netlify.app  
+**Example organization code:** `assurance` (Assurance Investment and Cooperative Inc.)
 
 ---
 
-## For administrators — full control
+## Table of Contents
 
-1. Open: **https://peer-finance-manager.netlify.app/admin**
-2. Enter:
-   - **Organization Code:** `assurance`
-   - **Email:** `yinka@eworkchop.com`
-   - **Password:** *(your admin password)*
-3. Click **Sign In**. If nothing happens, hard-refresh (**Ctrl+Shift+R**).
+1. [Who Signs In Where](#1-who-signs-in-where)
+2. [Words We Use](#2-words-we-use)
+3. [Members — My Account](#3-members--my-account)
+4. [Prospective Members — Apply Without Signing In](#4-prospective-members--apply-without-signing-in)
+5. [Staff — Read-Only Access](#5-staff--read-only-access)
+6. [Administrators — Overview](#6-administrators--overview)
+7. [Cooperative Books Tab](#7-cooperative-books-tab)
+8. [Members & Accounts Tab](#8-members--accounts-tab)
+9. [Record Tab — Enter Transactions by Hand](#9-record-tab--enter-transactions-by-hand)
+10. [Import Tab — Bank Statements and Bulk Data](#10-import-tab--bank-statements-and-bulk-data)
+11. [Statements Tab — Member PDFs](#11-statements-tab--member-pdfs)
+12. [Loans Tab](#12-loans-tab)
+13. [Monthly Status Report Tab](#13-monthly-status-report-tab)
+14. [Meetings Tab](#14-meetings-tab)
+15. [Public Pages Tab](#15-public-pages-tab)
+16. [Forms & Documents Tab](#16-forms--documents-tab)
+17. [Users Tab — Logins and Passwords](#17-users-tab--logins-and-passwords)
+18. [Subscription Tab](#18-subscription-tab)
+19. [Common Monthly Workflows](#19-common-monthly-workflows)
+20. [Fix a Misclassified Bank Entry](#20-fix-a-misclassified-bank-entry)
+21. [When Numbers Look Wrong](#21-when-numbers-look-wrong)
+22. [Common Problems](#22-common-problems)
+23. [Offline App on Your PC](#23-offline-app-on-your-pc)
+24. [Getting Help](#24-getting-help)
 
-| Tab | What it does |
-|-----|----------------|
-| **Cooperative Books** | Income, expenses, member contributions, loans summary; CD balance and **Expected CD Interest**. Click a card for detail. |
-| **Members & Accounts** | Member list, balances, full profiles; select a member to **Upload Photo** (admin) |
-| **Statements** | Generate batch PDF statements |
-| **Loans** | View and manage loans |
-| **Record** | Add members, record contributions, fees, expenses (each form collapsed until expanded). **Register New Member** and **Update Member Profile** include **Gender** (Male, Female, Decline to Specify). |
-| **Import** | All sections collapsed by default (expand when needed). **Import New Bank Activity** (append-only; CSV/xlsx/OFX; preview with balance check). **Bank Accounts and Import Settings** (format, rules, aliases). **Full Ledger Refresh** (advanced). Spreadsheet, profiles. |
-| **Status Report** | Monthly Cooperative status PDF: generate, publish to member portal, download; organization time zone and auto-publish settings (admin) |
-| **Meetings** | Schedule meetings, announce to members (portal + email), cancel, reminder settings (admin). **Email Send Audit** (admin): on-demand history of notification batches with recipient Sent/Failed detail and the current eligible recipient list. |
-| **Public Pages** | Publish About Us HTML and Bylaws PDF for prospective members (admin) |
-| **Forms & Documents** | FlexxForms setup, membership/loan form ids, review and approve membership applications (admin) |
-| **Subscription** | Peer Finance Manager SaaS billing: Stripe or check (admin) |
-| **Users** | Member login accounts and credentials |
+---
 
-**Forms & Documents** tab (admin):
+## 1. Who Signs In Where
 
-- **Public membership application link** — share **https://peer-finance-manager.netlify.app/c/assurance/apply** (shown in **Forms & Documents** and linked from About Us and Bylaws). Applicants return to the page they started from after submit.
-- **Membership Applications** — each FlexxForms submission creates a **Pending Approval** profile automatically. Those applicants do **not** appear on **Members & Accounts** until an admin approves them (after membership fee, initial deposit, and **Approve Member**).
-- Before you click **Approve Member**, record on that profile:
-  1. **Membership fee** ($100) — use **Record** or existing fee workflow.
-  2. **Initial contribution** ($100 deposit) — use **Record** to post a deposit for the applicant.
-- When both are recorded, status becomes **Ready for Approval** and **Approve Member** activates the account.
-- **Delete** (test or mistaken submissions): removes the application from the list. If the linked profile is still **Pending Approval** with no deposits, fees, or loans on the ledger, the prospective member profile is removed too. Approved members cannot be deleted here.
+| Role | URL | What you enter |
+|------|-----|----------------|
+| **Member** | `/member` | Organization code, **username**, password |
+| **Staff** | `/staff` | Organization code, email, password |
+| **Administrator** | `/admin` | Organization code, email, password |
+| **New Cooperative** | `/register` | Register a new organization on the platform |
 
-### Reclassify or split bank transactions (admin)
+**Tip:** If Sign In seems to do nothing, hard-refresh the page (**Ctrl+Shift+R** on Windows). The first visit after idle can take up to 30 seconds while the server wakes up.
 
-On **Members & Accounts**, open a member and expand **Contributions Account** or **Loan Account** history. Each deposit, contribution, or loan repayment row has a **Category** dropdown (admin only).
+Members and staff **cannot** use each other's login page. Each Cooperative has its own organization code (for example `assurance`).
 
-- **Reclassify:** change the dropdown (e.g. Member Deposit → Loan Repayment). Confirm the prompt. The Cooperative rebuilds the ledger from the server reference file plus saved adjustments; balances update immediately.
-- **Split:** click **Split** on a single inflow (e.g. $560.20 = $460.20 loan + $100 contribution). Enter lines that total the original amount. Save.
+---
 
-After either action, download **Download Csv Ledger** or **Download Xlsx Ledger** from the green prompt (or Import → Full Ledger Refresh) and replace your local `cooperative-bank-ledger-reference` file so a future **Full Ledger Refresh** stays aligned.
+## 2. Words We Use
 
-Adjustments are stored per Cooperative and survive **Full Ledger Refresh** from master ledger uploads.
+| Term | Plain meaning |
+|------|----------------|
+| **Cooperative** | Your member-owned organization (the group using PFM). |
+| **Contributions Account** | A member's savings/contribution balance (deposits, withdrawals, distributions, fees). |
+| **Loan Account** | Money a member borrowed and is paying back (separate from Contributions). |
+| **Cooperative Books** | The treasurer's view of all income, expenses, bank balance, and member totals. |
+| **Ledger** | The official list of all money movements in your Cooperative. |
+| **Full Ledger Refresh** | Replace all bank-imported rows from a master file. **Advanced** — not for normal months. |
+| **Import New Bank Activity** | Add **only new** rows from a bank statement. **Normal monthly workflow.** |
+| **Skipped** | A bank line already in the ledger; PFM will not add it again. |
+| **New** | A bank line not yet in the ledger; PFM will add it when you click **Add New Transactions**. |
+| **Review** | PFM needs you to set **Type** and **Member** before it can add the row. |
+| **Category** | How a member transaction is classified (Member Deposit, Loan Repayment, etc.). |
+| **Reclassify** | Change the Category of one existing row. |
+| **Split** | Divide one payment into two or more parts (e.g. part loan, part contribution). |
+| **Master ledger file** | Your reconciled historical spreadsheet through a past date (used for Full Ledger Refresh). |
+| **Pending Approval** | A membership applicant not yet active on **Members & Accounts**. |
 
-### Import bank activity (admin)
+---
 
-The **Import** tab keeps every section collapsed until you expand it. Each header shows a short hint for what that section does.
+## 3. Members — My Account
 
-**Every Cooperative tenant** uses the same **Import New Bank Activity** workflow: your data stays in your organization's isolated database. Use it for normal monthly updates. Use **Full Ledger Refresh** only when replacing the entire master ledger.
+### Sign in
 
-**Monthly bank statement (recommended — all tenants):**
+1. Open **https://peer-finance-manager.netlify.app/member**
+2. Enter your **Organization Code**, **Username**, and **Password** (from credentials your Cooperative sent).
+3. Click **Sign In**.
 
-Upload a **cumulative** export from the **period start through today** (not only new days since your last upload). PFM skips rows already in the ledger and adds only **New** ones. This is the normal workflow for interim balance updates through month-end (for example, several uploads in the same month before the next month starts).
+First-time users must change the temporary password when prompted.
 
-1. Open **Import**.
-2. Expand **Import New Bank Activity**.
-3. Choose your **Bank account** (e.g. Main Operating Account).
-4. Upload the bank export (`.csv`, `.xlsx`, or `.ofx`/`.qfx`).
-5. Click **Preview**. Check the table:
-   - **New** — will be added. Use the **Type** and **Member** dropdowns if auto-classification is wrong.
-   - **Skipped** — already in the ledger (cannot change here; use **Full Ledger Refresh** to correct).
-   - **Review** — set **Type** and **Member** in the preview before applying.
-6. Read **Detected format** and the **balance check** line (statement beginning/ending vs ledger). A red **Blocked** message means the import cannot apply until new rows tie to statement ending, or until you run **Full Ledger Refresh** if the ledger is below statement beginning (missing history). A green note when the ledger is above statement beginning means duplicates will be Skipped and only New rows apply.
-7. Click **Add New Transactions** (disabled when blocked).
-8. Confirm balances on **Cooperative Books** and affected members.
+### What you can do
 
-Re-uploading the same cumulative statement adds nothing new (duplicates are skipped automatically). Upload again anytime new bank activity appears in the file.
+| Section | What it shows |
+|---------|----------------|
+| **My Profile** | Your biodata (mostly read-only; contact the Cooperative to change other fields). |
+| **Emergency Contact** | View or update your emergency contact. |
+| **Profile Photo** | Upload or change your photo. |
+| **Contributions Account** | Balance and transaction history with running balance. |
+| **Loan Account** | Each loan you have; expand to see repayments and balance after each payment. Paid loans are collapsed by default. |
+| **Monthly statement PDF** | Download your contributions statement. |
+| **Cooperative Status Reports** | Month-end Cooperative summary PDF when the administrator publishes it. |
+| **Cooperative Meetings** | Meeting date, time, location, and agenda when announced (email too, if configured). |
 
-**Historical catch-up or migration:**
+### On a phone
 
-1. Expand **Import New Bank Activity**.
-2. Expand **Download Import Template** and click **CSV** or **Xlsx**.
-3. Fill rows: **Date**, **Description**, **Amount**, **Type** on every line; **Member** when the type affects a member account.
-4. Upload the completed file through **Import New Bank Activity** → Preview → Add.
+- Use the **power icon** (top right) to sign out.
+- Transaction tables hide **Description** by default. Tap **Show Descriptions** if you need full detail.
+- Swipe sideways on wide tables if needed.
 
-**Bank account, format, and date settings:**
+---
 
-1. Expand **Bank Accounts and Import Settings**.
-2. Expand **Registered Bank Accounts** to review the table, **Add Bank Account** to create one, or **Edit Selected Account** for changes (nested **Account Details** and **Classification Rules** inside edit).
-3. **First-time setup:** select the account under **Edit Selected Account**, set **Institution name** (e.g. Bank of America), confirm **Account label** and **Currency**, pick **Statement format** (or leave **Auto-detect**), set cooperative **Date format**, then **Save Account and Settings**.
-4. **Statement format:** choose a profile that matches your bank export, or **Custom Column Mapping** and fill column header names (Date, Description, Amount, etc.).
-5. **Classification rules (Cooperative-wide):** under **Classification Rules**, edit contribution and loan keywords (plain phrases, comma-separated).
-6. **Payment name mappings:** map each member to the name as it appears on Zelle or the bank statement (comma-separated if more than one). Set **Default Type** when the bank line does not say contribution or loan (for example, a Zelle payer name with no keyword). Leave Default Type as **Auto-detect** when keywords on the statement are enough.
-7. **Add another bank or account:** use **Add Bank Account** (label, institution, currency, format). Check **Set as primary account** if this becomes your main operating account.
-8. **Change banks:** add the new account with an **Active from** date; on the old account set **Active to** to the last day you used it. Imports then go to the new account only.
-9. When importing, pick the matching account in **Import New Bank Activity** before you upload the statement.
+## 4. Prospective Members — Apply Without Signing In
 
-**Other Import sections:** expand **Cooperative Spreadsheet**, **Membership Applications (WPForms CSV)**, or **Loan Repayment Schedule** only when you need bulk loads outside bank activity.
+Your Cooperative can share public pages (no login):
 
-**Full Ledger Refresh (advanced):** replaces all bank-imported rows from a master ledger file. Use only for a full rebuild, not monthly updates.
+| Page | Typical URL |
+|------|-------------|
+| **About Us** | `/c/{your-org-code}/about` |
+| **Bylaws** | `/c/{your-org-code}/bylaws` |
+| **Apply for Membership** | Linked from About Us or Bylaws |
+
+On a phone, rotate to **landscape** for a wider signature area. The page header and footer hide automatically while you sign.
+
+After you submit an application, it goes to administrators automatically.
+
+---
+
+## 5. Staff — Read-Only Access
+
+1. Open **https://peer-finance-manager.netlify.app/staff**
+2. Sign in with organization code, staff email, and password.
+3. You can **view** Cooperative data. You **cannot** change anything.
+
+---
+
+## 6. Administrators — Overview
+
+### Sign in
+
+1. Open **https://peer-finance-manager.netlify.app/admin**
+2. Enter organization code, admin email, and password.
+3. Click **Sign In**.
+
+### Admin tabs at a glance
+
+| Tab | Use it for |
+|-----|------------|
+| **Cooperative Books** | Dashboard: income, expenses, bank balance, member totals. Click any card for detail. |
+| **Members & Accounts** | Member list, profiles, balances, photos, reclassify/split transactions. |
+| **Statements** | Generate monthly PDF statements for all members. |
+| **Loans** | Loan portfolio, repayments, loan PDFs, loan agreements. |
+| **Record** | Register members, post contributions, fees, loans, expenses by hand. |
+| **Import** | Bank statements, bulk spreadsheets, Full Ledger Refresh (advanced). |
+| **Status Report** | Month-end Cooperative performance PDF; publish to members. |
+| **Meetings** | Schedule meetings; email and portal announcements. |
+| **Public Pages** | Publish About Us and Bylaws for prospective members. |
+| **Forms & Documents** | FlexxForms setup; review and approve membership applications. |
+| **Subscription** | PFM platform billing (Stripe or check). |
+| **Users** | Member logins, staff accounts, download credentials. |
+
+Most sections use **expandable panels** (click the header to open). You only open what you need.
+
+---
+
+## 7. Cooperative Books Tab
+
+The home dashboard for treasurers.
+
+### Summary cards
+
+Click any card to see a detailed table. Common cards:
+
+| Card | Meaning |
+|------|---------|
+| **Ledger Checking Balance** | Bank balance from imported/manual ledger activity. |
+| **Member Contributions Accounts (Total)** | Sum of all member contribution balances. |
+| **Member Contributions & Withdrawals** | Contributions minus withdrawals (excludes distributions and fees). |
+| **Registration Income** | Membership fees collected. |
+| **Cooperative Expenses** | Operating costs. |
+| **Distributions Paid** | Profit/interest paid to members. |
+| **Cooperative Net Income** | Income minus expenses. |
+| **Loans Outstanding** | Principal still owed on active loans. |
+| **CD Account / Expected CD Interest** | Certificate of deposit balance and interest (if used). |
+
+Click **Refresh** to reload after imports or manual entries.
+
+---
+
+## 8. Members & Accounts Tab
+
+### Find a member
+
+- Search by **name** or **member number** (e.g. AIC-001).
+- Click a row to open their profile on the right.
+
+### Member profile sections
+
+| Section | Contents |
+|---------|----------|
+| **Membership Biodata** | Name, contact, address, joined date, etc. |
+| **Contributions Account** | Balance and transaction history. |
+| **Loan Account** | Active and paid loans with repayment history. |
+| **Upload Photo** | Admin can add or change profile photo. |
+
+**Pending Approval** applicants do **not** appear here until approved (see [Forms & Documents](#16-forms--documents-tab)).
+
+### Register a new member from here
+
+Click **Register Member** (shortcut to the **Record** tab).
+
+---
+
+## 9. Record Tab — Enter Transactions by Hand
+
+Use **Record** for one-off entries. Use **Import** when you have a bank file or spreadsheet.
+
+Each form is collapsed until you expand it.
+
+| Section | When to use it |
+|---------|----------------|
+| **Register New Member** | Add a member to the ledger; optional biodata and $100 registration fee. Includes **Gender** (Male, Female, Decline to Specify). |
+| **Update Member Profile** | Change phone, email, address, gender, emergency contact, etc. |
+| **Registration Fee** | Post the one-time $100 fee for an existing member. |
+| **Current Bank Balance** | Update checking balance from a bank statement (reference point). |
+| **CD Account Balance** | Update CD balance from a bank statement. |
+| **Member Contributions Account** | Post a **Contribution** or **Withdrawal** for one member. |
+| **Member Distribution** | Credit one member with profit/interest (distribution). |
+| **Bulk Distribution (Excel)** | Upload a sheet with member names and amounts for a batch distribution. |
+| **New Loan** | Create a loan (borrower, two guarantors, principal, rate, term). |
+| **Loan Repayment** | Record a payment against a specific loan. |
+| **Cooperative Expense** | Record an operating expense (category, description, amount, date). |
+| **Recent Expenses / Recent Distributions** | Quick view of latest entries. |
+
+Every form has its own **Save** or **Record** button. Changes apply immediately when you submit.
+
+---
+
+## 10. Import Tab — Bank Statements and Bulk Data
+
+### A. Import New Bank Activity (normal monthly workflow)
+
+**Use this every month** (and anytime you want interim balance updates).
+
+Upload a **cumulative** bank export: **period start through today**. PFM skips rows already imported and adds only **New** ones.
+
+1. Open **Import** → expand **Import New Bank Activity**.
+2. Choose **Bank account**.
+3. Upload `.csv`, `.xlsx`, or `.ofx`/`.qfx`.
+4. Click **Preview**.
+5. Review the table:
+
+| Status | Meaning |
+|--------|---------|
+| **New** | Will be added. Fix **Type** and **Member** dropdowns if wrong. |
+| **Skipped** | Already in the ledger. Safe to ignore on re-upload. |
+| **Review** | Set **Type** and **Member** before applying. |
+
+6. Read the **balance check** line:
+   - **Red Blocked:** fix the issue before applying (see [When Numbers Look Wrong](#21-when-numbers-look-wrong)).
+   - **Green note** (ledger above statement beginning): normal for re-uploads; duplicates will be Skipped.
+7. Click **Add New Transactions**.
+8. Check **Cooperative Books** and affected members.
+
+**Re-upload the same file anytime.** Duplicates are never added twice.
+
+### B. Bank Accounts and Import Settings (first-time setup)
+
+Expand **Bank Accounts and Import Settings**:
+
+1. **Registered Bank Accounts** — see your accounts.
+2. **Add Bank Account** — label, institution, currency, statement format.
+3. **Edit Selected Account** — institution, format, active dates, and:
+   - **Classification Rules** — keywords PFM uses to recognize contributions and loans on bank lines.
+   - **Payment Name Mappings** — map Zelle/bank names to members. Set **Default Type** when the bank line has no keyword (e.g. payer name only → Loan Repayment).
+
+Pick the correct bank account before each import.
+
+### C. Other import sections (use when needed)
+
+| Section | Purpose |
+|---------|---------|
+| **Download Import Template** | Blank CSV/xlsx for manual transaction lists. |
+| **Cooperative Spreadsheet** | Bulk load contributions, withdrawals, fees, distributions. |
+| **Membership Applications (WPForms CSV)** | Import biodata and payment names from a CSV export. |
+| **Loan Repayment Schedule** | Upload installment schedule for a specific loan. |
+| **Full Ledger Refresh (Advanced)** | Rebuild **all** bank-imported rows from a master ledger file. **Not for monthly use.** |
+
+### D. Full Ledger Refresh (advanced only)
+
+Use when the **base ledger is wrong** or you are rebuilding from your master historical file.
 
 1. Expand **Full Ledger Refresh (Advanced)**.
-2. Choose your master ledger file (`.csv` or `.xlsx`).
-3. Hover the **i** next to each button if you are unsure what it does.
-4. Click **Preview** to see row count, ending balance, and any **Ledger warnings** before importing.
-5. Fix issues in your file if needed, then click **Import Bank Ledger**.
-6. After import, warnings (if any) stay visible in **Ledger warnings** below the status line.
-7. **Download Csv Ledger** / **Download Xlsx Ledger** pull from live Cooperative Books (after import). **Sort & Download Csv Ledger** sorts the file you chose locally without importing.
+2. Choose master ledger `.csv` or `.xlsx`.
+3. Click **Preview** — check row count and ending balance.
+4. Click **Import Bank Ledger**.
+5. Optionally **Download Csv Ledger** / **Download Xlsx Ledger** from live books.
 
-**If append is blocked (ledger below statement beginning):** the live ledger is missing history before this statement period. Do **not** force the import. Run **Full Ledger Refresh** with your cooperative's master ledger file, confirm the row count and ending balance match your records, then upload the cumulative statement again.
+**Standard two-step reset** (any Cooperative):
 
-**If append is blocked (ending balance mismatch):** the **New** rows in preview would not bring the ledger to the statement ending balance. Use the **Type** and **Member** dropdowns on **New** or **Review** rows to fix classification, then preview again. If the base ledger is wrong, run **Full Ledger Refresh** first.
+1. **Full Ledger Refresh** with master file (historical through your last reconciled date).
+2. **Import New Bank Activity** with the current month's cumulative bank export.
 
-**Regression check (developers):** `npm run test:bank-append` runs tenant-agnostic unit checks. Optional live preview: `node peer-finance-manager/scripts/test-bank-append-balance.js --org <slug> --stmt <path.csv>`.
-
-**Ops script (any tenant on production):**
-
-```powershell
-node peer-finance-manager/scripts/restore-ledger-production.js --org <slug> --ledger <path-to-master.xlsx> [--stmt <path-to-statement.csv>]
-```
-
-**Example: Assurance tenant (ops reference only):**
-
-Golden master through **6/29/2026** lives in `data\master-ledger\cooperative-bank-ledger-master.xlsx`. July activity comes from `Downloads\stmt (8).csv`. **One command** rebuilds reference and refreshes production:
-
-```powershell
-cd peer-finance-manager
-node scripts/restore-assurance-ledger-production.js
-```
-
-Expect **457 rows** and **$16,241.55** through **2026-07-08** after restore. Ongoing updates use the same **cumulative statement** workflow as every other tenant (period start through current date; Skipped duplicates; only New rows apply).
+No special scripts required: both steps are in the admin UI.
 
 ---
 
-## For staff — read-only access
+## 11. Statements Tab — Member PDFs
 
-1. Open: **https://peer-finance-manager.netlify.app/staff**
-2. Sign in with your staff email and password.
-3. You can **view** Cooperative data — you cannot make changes.
+Generate monthly **Contributions Account** PDF statements for all members.
 
----
+1. Open **Statements**.
+2. Under **Monthly Workbook**, select your Assurance Status-style workbook (`.xlsx`).
+3. Optional: choose or upload a **Distribution/Interest** file for the period.
+4. Click **Generate PDF Statements**.
+5. PDFs save under `statements/YYYY-MM/` on the server.
 
-## On your computer (offline app)
-
-You can still use **PeerFinanceManager.exe** on your PC (double-click in the `AssurCoop` folder).
-
-- Works without internet
-- Good for admin work at your desk
-- **Does not auto-sync** with the live website — see [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) if you need cloud data updated
+**Loan statements:** use **Statement** on the **Loans** tab or on the member's **Loan Account** profile (one PDF per loan).
 
 ---
 
-## Common problems
+## 12. Loans Tab
+
+View the full **Loan Portfolio**:
+
+| Column | Meaning |
+|--------|---------|
+| **Principal / Repaid / Outstanding** | Loan amounts and progress. |
+| **Repayments** | Open repayment history. |
+| **Statement** | Generate loan PDF. |
+| **Agreements** | Create guarantor or borrower agreements (FlexxForms). |
+
+Create new loans on the **Record** tab → **New Loan**.
+
+Record repayments on **Record** → **Loan Repayment**, or via bank import when classified as **Loan Repayment**.
+
+---
+
+## 13. Monthly Status Report Tab
+
+Cooperative-wide performance PDF for members.
+
+| Action | What it does |
+|--------|--------------|
+| **Generate Report** | Build PDF from current ledger. |
+| **Publish to Members** | Makes it visible on member portals. |
+| **Download PDF** | Save a copy locally. |
+| **Unpublish** | Remove from member view. |
+
+**Organization & Report Settings** (admin):
+
+- Cooperative **time zone** (default Pacific).
+- **Auto-generate** and **auto-publish** at month-end (on by default).
+- Optional organization website on the cover.
+
+**Operational Expense Labels:** assign report labels to expense lines so the PDF groups them cleanly.
+
+---
+
+## 14. Meetings Tab
+
+| Action | Steps |
+|--------|-------|
+| **Schedule a meeting** | Expand **Schedule a Meeting** → title, date, time, location, agenda → **Save Draft** → announce when ready. |
+| **Member view** | Announced meetings appear on every member's portal. |
+| **Email reminders** | Configure under **Meeting Reminder Settings** (requires email setup). |
+| **Email Send Audit** | **Refresh Audit** to see which notification emails were sent or failed. |
+
+---
+
+## 15. Public Pages Tab
+
+Publish content for **prospective members** (no login required).
+
+| Section | Options |
+|---------|---------|
+| **About Us Page** | Paste plain text (PFM formats it), upload images, or link to an external About URL. Toggle **Publish**. Click **Save About Page**. |
+| **Bylaws Page** | Paste text, upload PDF, or link to external bylaws URL. Toggle **Publish**. Click **Save Bylaws Page**. |
+
+Public links appear at the top of this tab to copy and share.
+
+---
+
+## 16. Forms & Documents Tab
+
+### FlexxForms integration
+
+- **Open FlexxForms** to build membership and loan forms.
+- Assign **Membership Form Id**, **Loan Form Id**, and agreement document ids.
+- Click **Save Form & Document Ids**.
+
+### Membership applications workflow
+
+1. Applicant submits via public **Apply for Membership** link.
+2. Application appears under **Membership Applications** as **Pending Approval**.
+3. Applicant does **not** appear on **Members & Accounts** yet.
+4. Before **Approve Member**, record on their profile:
+   - **Membership fee** ($100) — **Record** tab or fee workflow.
+   - **Initial contribution** ($100 deposit) — **Record** → **Member Contributions Account**.
+5. When both are recorded, status becomes **Ready for Approval**.
+6. Click **Approve Member** to activate the account.
+
+**Delete** removes a test or mistaken application (only if still Pending Approval with no ledger activity).
+
+---
+
+## 17. Users Tab — Logins and Passwords
+
+| Task | How |
+|------|-----|
+| **Create staff or member login** | **Create Account** form (role, email, password; link member for member role). |
+| **Provision all members at once** | **Generate Member Credentials** → **Download Credentials CSV**. |
+| **Portal URLs** | Listed under **Sign-In Pages** (/member, /staff, /admin). |
+
+Members sign in with **username** (not always email). Staff and admins use **email**.
+
+Temporary passwords must be changed on first member sign-in.
+
+---
+
+## 18. Subscription Tab
+
+Manage your Cooperative's **Peer Finance Manager** platform subscription (Stripe or check payment). Admin only.
+
+---
+
+## 19. Common Monthly Workflows
+
+### Treasurer month-end checklist
+
+1. **Import New Bank Activity** — cumulative statement through today.
+2. Fix any **Review** rows in preview; confirm balance check is green.
+3. Click **Add New Transactions**.
+4. Open **Cooperative Books** → confirm **Ledger Checking Balance** matches your bank.
+5. Spot-check a few members on **Members & Accounts**.
+6. **Generate PDF Statements** (Statements tab).
+7. **Generate** and **Publish** Monthly Status Report (optional: auto-publish is on by default).
+8. Announce next **Meeting** if needed.
+
+### Approve a new member
+
+1. Confirm application in **Forms & Documents**.
+2. **Record** registration fee and initial contribution.
+3. **Approve Member**.
+4. **Users** → ensure they have login credentials (or **Generate Member Credentials**).
+
+### Disburse a loan
+
+1. **Record** → **New Loan** (borrower, guarantors, terms).
+2. Record disbursement via bank import or manual entry.
+3. **Loans** tab → create agreements if needed.
+
+---
+
+## 20. Fix a Misclassified Bank Entry
+
+On **Members & Accounts**, open the member → expand **Contributions Account** or **Loan Account**.
+
+There is **no Save Changes button on the table**.
+
+### Reclassify (move whole entry to another category)
+
+1. Change the **Category** dropdown (e.g. Member Deposit → **Loan Repayment**).
+2. Click **OK** on the confirm dialog (or **Cancel** to undo).
+3. Balances update immediately. The row moves to the correct account section.
+
+### Split (part contribution, part loan)
+
+1. Click **Split** on the row.
+2. In the **Split Transaction** dialog, set **Category**, **Member**, and **Amount** on each line.
+3. Lines must **total the original amount**.
+4. Click **Save Split**.
+
+### After reclassify or split
+
+A green **Ledger Updated** banner offers **Download Csv Ledger** / **Download Xlsx Ledger**. Download if you keep a local reference file for Full Ledger Refresh.
+
+**Not adjustable here:** rows showing **:** in Category (non-member ledger types).
+
+---
+
+## 21. When Numbers Look Wrong
+
+| Situation | What to do |
+|-----------|------------|
+| **Bank balance wrong after import** | Check preview **Review** rows. Re-upload cumulative stmt; Skipped rows are fine. |
+| **Import blocked (ledger below statement beginning)** | Ledger is missing history. **Full Ledger Refresh** with master file, then import stmt again. |
+| **Import blocked (ending mismatch)** | Fix **Type**/**Member** on **New** rows in preview, or fix base ledger first. |
+| **One member's row wrong** | [Reclassify or split](#20-fix-a-misclassified-bank-entry) on their profile. |
+| **Whole ledger corrupted** | **Full Ledger Refresh** (master) + **Import New Bank Activity** (current month stmt). |
+
+---
+
+## 22. Common Problems
 
 | Problem | What to try |
 |---------|-------------|
-| "Invalid username or password" | Check org code `assurance`, username, and password (case-sensitive) |
-| Blank page or login spins | Wait 30 seconds and refresh — server may be waking up |
-| PDF download fails | Wait for admin to confirm Render deploy is Live; try again in a minute |
-| Numbers look wrong online | **Bank activity:** Admin → Import → **Import New Bank Activity** (monthly) or **Full Ledger Refresh** (advanced). Read preview **Review** rows. Other data: see [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) |
-| Birthday or date off by one day | Fixed in latest app code — admin should `git push` to deploy |
+| Invalid username or password | Check organization code, username/email, and password (case-sensitive). |
+| Blank page or login spins | Wait 30 seconds; hard-refresh (**Ctrl+Shift+R**). |
+| PDF download fails | Wait one minute after a deploy; try again. |
+| Birthday or date off by one day | Ensure latest app version is deployed. |
+| Applicant not on Members list | They are **Pending Approval** until you approve them. |
+| Dropdown change did nothing | You may have clicked **Cancel** on the reclassify confirm dialog. |
 
 ---
 
-## Who to contact
+## 23. Offline App on Your PC
 
-**Technical / admin issues:** Yinka Daramola — `yinka@eworkchop.com`
+**PeerFinanceManager.exe** in the AssurCoop folder works without internet for desk work.
 
-**Member credentials list (admin only):**  
-`data/organizations/assurance/exports/member-credentials-2026-06-13.csv`
+It does **not** auto-sync with the live website. See [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) for publishing changes.
 
 ---
 
-*Last updated: July 8, 2026. For how to change and publish the app, see [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).*
+## 24. Getting Help
+
+| Need | Contact |
+|------|---------|
+| **Technical / admin issues** | Your Cooperative administrator (e.g. Yinka Daramola — `yinka@eworkchop.com` for Assurance). |
+| **Deploy and publish app changes** | [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) |
+| **Upload data to production server** | [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) |
+| **Email notifications setup** | [EMAIL-NOTIFICATIONS-SETUP.md](./EMAIL-NOTIFICATIONS-SETUP.md) or [BLUEHOST-EMAIL-RELAY-SETUP.md](./BLUEHOST-EMAIL-RELAY-SETUP.md) |
+
+---
+
+*Last updated: July 10, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*

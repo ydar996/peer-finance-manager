@@ -216,6 +216,15 @@
           el.classList.remove("hidden");
         }
 
+        function syncApplySigningLayout() {
+          const landscapeShort =
+            window.matchMedia("(orientation: landscape) and (max-height: 520px)").matches;
+          document.body.classList.toggle("cp-landscape-signing", landscapeShort);
+        }
+
+        window.addEventListener("orientationchange", syncApplySigningLayout);
+        window.addEventListener("resize", syncApplySigningLayout);
+
         function initApplyPage(slug) {
           const params = new URLSearchParams(window.location.search);
           const fromPage = normalizeFromPage(params.get("from"));
@@ -228,7 +237,7 @@
           document.body.classList.add("cp-page-apply");
           document.querySelector(".cp-layout")?.classList.add("cp-layout-apply");
           document.getElementById("tocFab")?.classList.add("hidden");
-          document.getElementById("hero").classList.remove("hidden");
+          document.getElementById("hero")?.classList.add("hidden");
 
           const copy = PAGE_COPY.apply;
           document.getElementById("pageTitle").textContent = copy.title;
@@ -246,7 +255,7 @@
 
           document.getElementById("contentArea").innerHTML =
             '<div class="cp-apply-shell">' +
-            '<p class="cp-apply-sign-tip"><strong>Signature tip:</strong> On a phone, rotate to landscape if the signature box feels tight.</p>' +
+            '<p class="cp-apply-sign-tip"><strong>Signature tip:</strong> Rotate to landscape for a wider signature area. The page header hides automatically while you sign.</p>' +
             '<p id="applyStatus" class="cp-apply-status hidden" role="status"></p>' +
             '<div id="applyEmbedHost" class="cp-apply-embed-host"></div>' +
             '<p class="cp-apply-footnote">If the form does not load, <a class="cp-apply-full-window-link" id="applyFullWindowLink" href="#" target="_blank" rel="noopener noreferrer">open the application in a full window</a>. You can return to <a href="' +
@@ -304,6 +313,9 @@
                     markApplyReceived(slug);
                     window.location.replace(returnHref);
                   },
+                }).then(function () {
+                  document.body.classList.add("cp-page-apply-active");
+                  syncApplySigningLayout();
                 });
               });
             })
@@ -352,6 +364,7 @@
         const page = match[2].toLowerCase();
 
         if (page === "apply") {
+          syncApplySigningLayout();
           initApplyPage(slug);
           return;
         }

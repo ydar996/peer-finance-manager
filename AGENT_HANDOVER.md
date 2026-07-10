@@ -94,7 +94,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 | Document | Audience | Purpose |
 |----------|----------|---------|
-| [USER-GUIDE.md](./USER-GUIDE.md) | Yinka, staff, members | Simple how-to use the live app |
+| [USER-GUIDE.md](./USER-GUIDE.md) | All users (members, staff, admins) | Complete simple-language guide: every tab, workflow, glossary |
 | [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) | Yinka | How to change code and publish safely |
 | [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) | Yinka | WinSCP: copy `data/` folder to live server |
 | [UI-COPY-STANDARDS.md](./UI-COPY-STANDARDS.md) | Agents/devs | No em dashes, Title Case, wording rules |
@@ -107,6 +107,10 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-10** — **Apply page mobile landscape signing:** On `/c/{slug}/apply`, hide hero banner; compact topbar; in landscape on short screens hide sticky header/footer so FlexxForms signature pad gets full viewport. Files: `cooperative-public.html`, `cooperative-public.css`, `USER-GUIDE.md`. **Production:** `git push`.
+- **2026-07-10** — **Complete USER-GUIDE rewrite:** Full user-friendly guide covering all portals, tabs, workflows, glossary, monthly checklist, reclassify/split, bank import, and troubleshooting. Multi-tenant language; Assurance as example only. Replaces partial guide. Files: `USER-GUIDE.md`.
+- **2026-07-10** — **USER-GUIDE: reclassify/split save workflow:** Expanded § Reclassify or split bank transactions: no table Save button; reclassify saves via confirm on dropdown change; split saves via **Save Split** in modal; post-action download prompt. Files: `USER-GUIDE.md`.
+- **2026-07-10** — **Production restored via standard UI workflow (no Assurance wrapper):** Corrupted cloud DB (**$16,113.55** / 465 rows) reset with **Full Ledger Refresh** from `data/master-ledger/cooperative-bank-ledger-master.xlsx` (453 rows, **$15,471.49** through 6/29), then **Import New Bank Activity** with `stmt (8).csv` (4 New rows, Saheed → Loan Repayment/Yomi Salami, ending **$16,241.55** through 7/8). Confirms master + append is the normal product path; Assurance-specific build/restore wrappers are optional ops shortcuts only. **Data fix on Render** (no git).
 - **2026-07-09** — **Multi-tenant append docs + regression:** Clarified §1B tenant isolation (no slug/balance checks in product code). `test-bank-append-balance.js` uses generic unit amounts; live preview opt-in via `--org`/`--stmt` (not Assurance-default). USER-GUIDE leads with all-tenant cumulative upload workflow; Assurance moved to ops example only. Files: `bank-import-append.js`, `test-bank-append-balance.js`, `AGENT_HANDOVER.md`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-09** — **Idempotent cumulative bank append (permanent):** Re-uploading a statement from **period start through today** is the normal workflow for interim July (and any month) balance updates. Append blocks only when ledger is **below** statement beginning (missing history), not when ledger is **above** beginning because prior rows are already imported. Duplicates fingerprint to **Skipped**; only **New** rows apply. Ending block applies only when **ready** rows would not tie to statement ending. UI shows green pre-period gap note instead of red block. Regression expanded: `computeAppendBalanceCheck` unit cases + live preview. Files: `bank-import-append.js`, `app.js`, `index.html`, `test-bank-append-balance.js`, `AGENT_HANDOVER.md` §1B, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-09** — **Member gender dropdown + profile save fix:** Register New Member and Update Member Profile use **Gender** dropdown (Male, Female, Decline to Specify). Fixed spurious **email already exists** on gender-only saves: portal email sync skipped when email unchanged; no duplicate check when login email already matches (admin/member email collision). Files: `auth-service.js`, `member-service.js`, `text-format.js`, `index.html`, `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
@@ -263,28 +267,26 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 | **July stmt** | `C:\Users\yinka\Downloads\stmt (8).csv` — beginning **$15,471.49**, credits **$770.06** |
 | **Saheed 7/8 $500** | **Loan Repayment** → **Yomi Salami** (override; stmt text has no "loan") |
 
-### Permanent restore (Assurance only — one command)
+### Standard restore (admin UI — no special scripts)
 
-**July is already in the ledger.** Do **not** re-upload `stmt (8).csv` via Import New Bank Activity to fix drift (rows show as Skipped; cannot reclassify). Use **Permanent restore** below if dashboard ≠ **$16,241.55**.
+When dashboard ≠ **$16,241.55** or ledger is below statement beginning:
 
-```powershell
-cd peer-finance-manager
-node scripts/restore-assurance-ledger-production.js
-```
+1. **Full Ledger Refresh (Advanced):** upload `data/master-ledger/cooperative-bank-ledger-master.xlsx` → Preview → Import Bank Ledger. Expect **453 rows**, **$15,471.49** through **6/29/2026**.
+2. **Import New Bank Activity:** upload `stmt (8).csv` (or latest cumulative July export) → Preview (4 **New**) → Add New Transactions. Expect **457 rows**, **$16,241.55** through **7/8/2026**. Saheed $500 → **Loan Repayment** / Yomi Salami (payment alias Default Type).
 
-This runs:
+**Rest of July / any month:** re-upload cumulative stmt (period start → today); duplicates **Skipped**, only **New** rows apply (§1B).
 
-1. `build-assurance-reference-with-july.js` — copies **golden master** + parses **July rows from stmt (8).csv** with Saheed override → `data\cooperative-bank-ledger-reference.xlsx`
-2. `restore-ledger-production.js` — **Full Ledger Refresh** on Render; verifies ending **$16,241.55**
+Ops/API equivalent (same two steps): `restore-ledger-production.js --org assurance --ledger <master.xlsx> --stmt <july.csv>`
 
-Override stmt path: `set PFM_STMT_FILE=C:\Users\yinka\Downloads\stmt (8).csv`
+### Ops shortcut (optional — agents only)
+
+`restore-assurance-ledger-production.js` pre-merges master + July into one reference xlsx then Full Ledger Refresh. **Not required** when payment aliases and append safety are deployed (2026-07-09+).
 
 ### Restore procedure (historical base only)
 
 1. **Do not edit** `data/master-ledger/cooperative-bank-ledger-master.xlsx` (golden archive).
-2. For **July+** activity, use **Permanent restore** above — not append-only import alone.
+2. For **July+** activity after a bad base, use **standard restore** above (Full Ledger Refresh master, then Import New Bank Activity).
 3. Confirm dashboard **Ledger Checking Balance: $16,241.55** as of **2026-07-08**.
-4. **Rest of July / any month:** upload cumulative stmt from period start through today as often as needed; duplicates **Skipped**, only **New** rows apply (§1B).
 
 ```powershell
 # Regenerate master if needed (does not touch golden copy if you copy output manually):
@@ -298,7 +300,7 @@ node scripts/build-master-ledger.js "C:\Users\yinka\Downloads\pre 2025.xlsx" "C:
 | Do | Do not |
 |----|--------|
 | Treat **`master-ledger/cooperative-bank-ledger-master.xlsx`** as the reconciled historical archive | Call `cooperative-bank-ledger-reference.xlsx` the “historical bank records file” |
-| Run **`restore-assurance-ledger-production.js`** when dashboard ≠ stmt ending or ledger is below statement beginning | Append alone to fix a corrupted base (use Full Ledger Refresh / restore first) |
+| Use **Full Ledger Refresh** (master xlsx) then **Import New Bank Activity** (stmt) when base is wrong | Tell admins to run Assurance-only wrapper scripts for normal resets |
 | Verify: **457 rows**, ending **$16,241.55**, last **2026-07-08** (baseline through 7/8) | Re-diagnose from scratch when §1A already has the answer |
 | **July interim + all months:** cumulative stmt upload (period start → today); fix Type/Member in preview if needed | Re-upload to "fix" skipped/wrong rows (use Full Ledger Refresh or Books → Category) |
 | Document every ledger touch in **§ Changelog same turn** | Blame user for dashboard drift |
