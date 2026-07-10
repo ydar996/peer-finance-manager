@@ -135,7 +135,13 @@ Re-uploading the same statement adds nothing (duplicates are skipped automatical
 6. After import, warnings (if any) stay visible in **Ledger warnings** below the status line.
 7. **Download Csv Ledger** / **Download Xlsx Ledger** pull from live Cooperative Books (after import). **Sort & Download Csv Ledger** sorts the file you chose locally without importing.
 
-**If append is blocked (opening balance mismatch):** the live ledger does not match your statement beginning. Do **not** force the import. Expand **Full Ledger Refresh**, upload a copy of `data\master-ledger\cooperative-bank-ledger-master.xlsx`, confirm **453 rows** and **$15,471.49** through **2026-06-29**, then append the monthly statement again.
+**If append is blocked (opening balance mismatch):** the live ledger does not match your statement beginning. Do **not** force the import. Run **Full Ledger Refresh** with your cooperative's master ledger file, confirm the row count and ending balance match your records, then append the monthly statement again.
+
+**Ops script (any tenant on production):**
+
+```powershell
+node peer-finance-manager/scripts/restore-ledger-production.js --org <slug> --ledger <path-to-master.xlsx> [--stmt <path-to-statement.csv>]
+```
 
 ---
 

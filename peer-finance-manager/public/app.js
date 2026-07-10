@@ -4356,7 +4356,7 @@ function renderBankAppendPreview(preview) {
     let tone = "subtle";
     if (!bc.openingAligned && bc.statementBeginning != null && bc.ledgerBefore != null) {
       tone = "status err";
-      suffix = ` · Blocked: ledger opening ${fmt.format(bc.ledgerBefore)} does not match statement beginning ${fmt.format(bc.statementBeginning)}. Run Full Ledger Refresh from the golden master file before adding new transactions.`;
+      suffix = ` · Blocked: ledger opening ${fmt.format(bc.ledgerBefore)} does not match statement beginning ${fmt.format(bc.statementBeginning)}. Run Full Ledger Refresh with your master ledger file before adding new transactions.`;
     } else if (bc.mismatch) {
       tone = "status warn";
       suffix = " · New rows do not tie to statement ending: review before applying";
@@ -4502,7 +4502,7 @@ async function handleApplyBankAppendClick() {
     bc.openingAligned === false
   ) {
     if (status) {
-      status.textContent = `Blocked: ledger opening ${fmt.format(bc.ledgerBefore)} does not match statement beginning ${fmt.format(bc.statementBeginning)}. Run Full Ledger Refresh from the golden master file first.`;
+      status.textContent = `Blocked: ledger opening ${fmt.format(bc.ledgerBefore)} does not match statement beginning ${fmt.format(bc.statementBeginning)}. Run Full Ledger Refresh with your master ledger file first.`;
       status.className = "status err";
     }
     return;
@@ -5133,9 +5133,6 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
         `${r.expenses || 0} expenses`,
         r.skippedNoMember ? `${r.skippedNoMember} skipped (member not matched)` : null,
         r.cdBalance != null ? `CD balance set to ${Number(r.cdBalance).toFixed(2)}` : null,
-        r.ledgerEndingBalance != null && Math.abs(r.ledgerEndingBalance - 15471.49) > 0.01
-          ? "Warning: expected BoA checking balance is 15,471.49 : verify you uploaded cooperative-bank-ledger-reference.xlsx from AssurCoop/data (453 rows)."
-          : null,
         warningCount
           ? `${warningCount} ledger warning(s) listed below : fix the file and run Full Ledger Refresh again before relying on member balances.`
           : null,

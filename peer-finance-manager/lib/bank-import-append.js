@@ -441,7 +441,7 @@ function applyBankStatementAppend({
     bc.openingAligned === false
   ) {
     const err = new Error(
-      `Ledger opening balance (${bc.ledgerBefore}) does not match statement beginning (${bc.statementBeginning}). Run Full Ledger Refresh from your golden master ledger before appending new bank activity.`
+      `Ledger opening balance (${bc.ledgerBefore}) does not match statement beginning (${bc.statementBeginning}). Run Full Ledger Refresh with your cooperative master ledger file before appending new bank activity.`
     );
     err.preview = preview;
     throw err;
