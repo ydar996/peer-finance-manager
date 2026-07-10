@@ -123,6 +123,24 @@ function formatAddressLine(value) {
     .join(" ");
 }
 
+function normalizeGender(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const key = raw.toLowerCase();
+  if (key === "male" || key === "m") return "Male";
+  if (key === "female" || key === "f") return "Female";
+  if (
+    key === "decline to specify" ||
+    key === "decline" ||
+    key === "prefer not to say" ||
+    key === "prefer not to specify"
+  ) {
+    return "Decline to Specify";
+  }
+  if (raw === "Male" || raw === "Female" || raw === "Decline to Specify") return raw;
+  return formatTitleField(raw);
+}
+
 function normalizeProfileFields(fields = {}) {
   const first = formatNamePart(fields.first_name);
   const middle = formatNamePart(fields.middle_name);
@@ -137,7 +155,7 @@ function normalizeProfileFields(fields = {}) {
     middle_name: middle,
     last_name: last,
     display_name: display,
-    gender: formatTitleField(fields.gender),
+    gender: normalizeGender(fields.gender),
     address_line1: formatAddressLine(fields.address_line1),
     address_line2: formatAddressLine(fields.address_line2),
     city: formatTitleField(fields.city),
@@ -170,6 +188,7 @@ module.exports = {
   formatState,
   formatCountry,
   formatTitleField,
+  normalizeGender,
   formatAddressLine,
   normalizeProfileFields,
   formatMemberProfileForDisplay,

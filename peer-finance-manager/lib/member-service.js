@@ -252,7 +252,13 @@ function updateMemberProfile(memberId, payload = {}) {
 
   upsertMemberProfile(db, memberId, profileFields);
 
-  if (payload.email !== undefined) {
+  const priorEmail = existingProfile?.email
+    ? String(existingProfile.email).trim().toLowerCase()
+    : null;
+  const newEmail = profileFields.email
+    ? String(profileFields.email).trim().toLowerCase()
+    : null;
+  if (newEmail && newEmail !== priorEmail) {
     syncMemberPortalLoginEmail(db, memberId, profileFields.email);
   }
 

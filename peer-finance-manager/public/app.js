@@ -5743,6 +5743,21 @@ document.addEventListener("click", (e) => {
   }
 });
 
+const MEMBER_GENDER_VALUES = ["Male", "Female", "Decline to Specify"];
+
+function setGenderSelectValue(form, value) {
+  const sel = form?.querySelector?.('[name="gender"]');
+  if (!sel || sel.tagName !== "SELECT") return;
+  const v = value ?? "";
+  if (v && !MEMBER_GENDER_VALUES.includes(v) && ![...sel.options].some((o) => o.value === v)) {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  }
+  sel.value = v;
+}
+
 async function loadProfileIntoUpdateForm(memberId) {
   const requestId = ++profileFormRequestId;
   const form = $("#updateProfileForm");
@@ -5767,7 +5782,7 @@ async function loadProfileIntoUpdateForm(memberId) {
     set("firstName", p.first_name);
     set("middleName", p.middle_name);
     set("lastName", p.last_name);
-    set("gender", p.gender);
+    setGenderSelectValue(form, p.gender);
     set("dateOfBirth", p.date_of_birth);
     set("email", p.email);
     set("phone", p.phone);

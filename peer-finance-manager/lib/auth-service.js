@@ -490,6 +490,9 @@ function syncMemberPortalLoginEmail(db, memberId, profileEmail) {
   const email = normalizeEmail(profileEmail);
   if (!email || !email.includes("@")) return user.email;
 
+  const current = normalizeEmail(user.email);
+  if (email === current) return current;
+
   const taken = db
     .prepare(`SELECT id FROM users WHERE lower(email) = lower(?) AND id != ?`)
     .get(email, user.id);
