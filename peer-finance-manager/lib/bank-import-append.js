@@ -86,6 +86,50 @@ function rowLegacyKey(row) {
   return ledgerTransactionKey(row.date, row.amount, row.description, row.reference);
 }
 
+function computeAppendBalanceCheck({
+  ledgerBefore,
+  statementBeginning,
+  statementEnding,
+  projectedLedger,
+  readyCount,
+  skippedCount,
+}) {
+  const openingAligned =
+    statementBeginning == null ||
+    ledgerBefore == null ||
+    Math.abs(ledgerBefore - statementBeginning) <= 0.02;
+  const periodOpenGap =
+    statementBeginning != null && ledgerBefore != null
+      ? Math.round((ledgerBefore - statementBeginning) * 100) / 100
+      : null;
+  const ledgerShort =
+    statementBeginning != null &&
+    ledgerBefore != null &&
+    ledgerBefore < statementBeginning - 0.02;
+  const periodCloseMismatch =
+    statementEnding != null &&
+    projectedLedger != null &&
+    Math.abs(projectedLedger - statementEnding) > 0.02;
+  const hasNewRows = readyCount > 0;
+  return {
+    statementBeginning,
+    statementEnding,
+    ledgerBefore,
+    projectedLedger,
+    periodOpenGap,
+    openingAligned,
+    ledgerShort,
+    periodCloseMismatch,
+    openingBlock: ledgerShort,
+    mismatch: hasNewRows && periodCloseMismatch,
+    idempotentReplay: !hasNewRows && skippedCount > 0,
+    ledgerMatchesStatementEnding:
+      statementEnding != null &&
+      ledgerBefore != null &&
+      Math.abs(ledgerBefore - statementEnding) <= 0.02,
+  };
+}
+
 function buildPreviewRow(row, index, memberNames, bankAccountId, existing) {
   const fingerprint = rowFingerprint(bankAccountId, row);
   const legacy = rowLegacyKey(row);
@@ -183,31 +227,16 @@ function previewBankStatementAppend({
     .filter((r) => r.bucket === "ready")
     .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const projectedLedger = Math.round(((ledger?.balance ?? 0) + readyDelta) * 100) / 100;
-  const statementBeginning = parsedResult.statementSummary?.beginning ?? null;
-  const statementEnding = parsedResult.statementSummary?.ending ?? null;
-  const ledgerBefore = ledger?.balance ?? null;
-  const openingAligned =
-    statementBeginning == null ||
-    ledgerBefore == null ||
-    Math.abs(ledgerBefore - statementBeginning) <= 0.02;
-  const periodOpenGap =
-    statementBeginning != null && ledgerBefore != null
-      ? Math.round((ledgerBefore - statementBeginning) * 100) / 100
-      : null;
-  const periodCloseMismatch =
-    statementEnding != null &&
-    projectedLedger != null &&
-    Math.abs(projectedLedger - statementEnding) > 0.02;
-  const balanceCheck = {
-    statementBeginning,
-    statementEnding,
-    ledgerBefore,
+  const readyCount = previewRows.filter((r) => r.bucket === "ready").length;
+  const skippedCount = previewRows.filter((r) => r.bucket === "skipped").length;
+  const balanceCheck = computeAppendBalanceCheck({
+    ledgerBefore: ledger?.balance ?? null,
+    statementBeginning: parsedResult.statementSummary?.beginning ?? null,
+    statementEnding: parsedResult.statementSummary?.ending ?? null,
     projectedLedger,
-    periodOpenGap,
-    openingAligned,
-    periodCloseMismatch,
-    mismatch: openingAligned && periodCloseMismatch,
-  };
+    readyCount,
+    skippedCount,
+  });
 
   const summary = {
     total: previewRows.length,
@@ -285,22 +314,19 @@ function applyRowOverridesToPreview(preview, rowOverrides, memberNames) {
     ledgerBefore != null
       ? Math.round((ledgerBefore + readyDelta) * 100) / 100
       : null;
-  const statementEnding = preview.summary?.balanceCheck?.statementEnding ?? null;
-  const openingAligned = preview.summary?.balanceCheck?.openingAligned;
-  const periodCloseMismatch =
-    statementEnding != null &&
-    projectedLedger != null &&
-    Math.abs(projectedLedger - statementEnding) > 0.02;
+  const balanceCheck = computeAppendBalanceCheck({
+    ledgerBefore,
+    statementBeginning: preview.summary?.balanceCheck?.statementBeginning ?? null,
+    statementEnding: preview.summary?.balanceCheck?.statementEnding ?? null,
+    projectedLedger,
+    readyCount: counts.ready,
+    skippedCount: counts.skipped,
+  });
 
   preview.summary = {
     ...preview.summary,
     ...counts,
-    balanceCheck: {
-      ...preview.summary.balanceCheck,
-      projectedLedger,
-      periodCloseMismatch,
-      mismatch: openingAligned && periodCloseMismatch,
-    },
+    balanceCheck,
   };
 
   return preview;
@@ -435,24 +461,15 @@ function applyBankStatementAppend({
   }
 
   const bc = preview.summary?.balanceCheck || {};
-  if (
-    bc.statementBeginning != null &&
-    bc.ledgerBefore != null &&
-    bc.openingAligned === false
-  ) {
+  if (bc.openingBlock || bc.ledgerShort) {
     const err = new Error(
-      `Ledger opening balance (${bc.ledgerBefore}) does not match statement beginning (${bc.statementBeginning}). Run Full Ledger Refresh with your cooperative master ledger file before appending new bank activity.`
+      `Ledger balance (${bc.ledgerBefore}) is below the statement beginning (${bc.statementBeginning}). The ledger is missing history. Run Full Ledger Refresh with your cooperative master ledger file, then upload the statement again.`
     );
     err.preview = preview;
     throw err;
   }
 
-  if (
-    bc.statementEnding != null &&
-    bc.projectedLedger != null &&
-    bc.openingAligned !== false &&
-    bc.periodCloseMismatch
-  ) {
+  if (bc.mismatch) {
     const err = new Error(
       `After import, ledger would be ${bc.projectedLedger} but statement ending is ${bc.statementEnding}. Fix Type/Member on preview rows or run Full Ledger Refresh if the base ledger is wrong.`
     );
@@ -553,6 +570,20 @@ function applyBankStatementAppend({
 
   const ledger = getLedgerEndingBalance();
 
+  let message =
+    counts.inserted > 0
+      ? `Added ${counts.inserted} new transaction(s). ${preview.summary.skipped} already in ledger.`
+      : "No new transactions were added.";
+
+  if (
+    counts.inserted > 0 &&
+    bc.statementEnding != null &&
+    ledger?.balance != null &&
+    Math.abs(ledger.balance - bc.statementEnding) > 0.02
+  ) {
+    message += ` Warning: ledger balance ${ledger.balance} does not match statement ending ${bc.statementEnding}.`;
+  }
+
   return {
     ...preview,
     applied: counts.inserted > 0,
@@ -561,10 +592,7 @@ function applyBankStatementAppend({
     insertedRows,
     archived,
     ledgerEndingBalance: ledger?.balance ?? null,
-    message:
-      counts.inserted > 0
-        ? `Added ${counts.inserted} new transaction(s). ${preview.summary.skipped} already in ledger.`
-        : "No new transactions were added.",
+    message,
   };
 }
 
@@ -573,4 +601,5 @@ module.exports = {
   applyBankStatementAppend,
   applyRowOverridesToPreview,
   summarizePreviewRows,
+  computeAppendBalanceCheck,
 };

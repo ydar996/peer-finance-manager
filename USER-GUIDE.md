@@ -100,6 +100,8 @@ Use **Import New Bank Activity** for normal monthly updates. Use **Full Ledger R
 
 **Monthly bank statement (recommended):**
 
+Upload a **cumulative** export from the **period start through today** (not only new days since your last upload). PFM skips rows already in the ledger and adds only **New** ones. This is the normal workflow for interim balance updates through month-end (for example, several July uploads before August).
+
 1. Open **Import**.
 2. Expand **Import New Bank Activity**.
 3. Choose your **Bank account** (e.g. Main Operating Account).
@@ -108,11 +110,11 @@ Use **Import New Bank Activity** for normal monthly updates. Use **Full Ledger R
    - **New** — will be added. Use the **Type** and **Member** dropdowns if auto-classification is wrong.
    - **Skipped** — already in the ledger (cannot change here; use **Full Ledger Refresh** to correct).
    - **Review** — set **Type** and **Member** in the preview before applying.
-6. Read **Detected format** and the **balance check** line (statement beginning/ending vs ledger). A red **Blocked** message means the import cannot apply until projected ledger matches statement ending, or until you run **Full Ledger Refresh** if the base ledger is wrong. A pre-period gap note means the ledger opening differs from statement beginning before these rows: that is not caused by the rows in this preview.
+6. Read **Detected format** and the **balance check** line (statement beginning/ending vs ledger). A red **Blocked** message means the import cannot apply until new rows tie to statement ending, or until you run **Full Ledger Refresh** if the ledger is below statement beginning (missing history). A green note when the ledger is above statement beginning means duplicates will be Skipped and only New rows apply.
 7. Click **Add New Transactions** (disabled when blocked).
 8. Confirm balances on **Cooperative Books** and affected members.
 
-Re-uploading the same statement adds nothing (duplicates are skipped automatically).
+Re-uploading the same cumulative statement adds nothing new (duplicates are skipped automatically). Upload again anytime new bank activity appears in the file.
 
 **Historical catch-up or migration:**
 
@@ -145,9 +147,9 @@ Re-uploading the same statement adds nothing (duplicates are skipped automatical
 6. After import, warnings (if any) stay visible in **Ledger warnings** below the status line.
 7. **Download Csv Ledger** / **Download Xlsx Ledger** pull from live Cooperative Books (after import). **Sort & Download Csv Ledger** sorts the file you chose locally without importing.
 
-**If append is blocked (opening balance mismatch):** the live ledger does not match your statement beginning. Do **not** force the import. Run **Full Ledger Refresh** with your cooperative's master ledger file, confirm the row count and ending balance match your records, then append the monthly statement again.
+**If append is blocked (ledger below statement beginning):** the live ledger is missing history before this statement period. Do **not** force the import. Run **Full Ledger Refresh** with your cooperative's master ledger file, confirm the row count and ending balance match your records, then upload the cumulative statement again.
 
-**If append is blocked (ending balance mismatch):** the new rows in preview would not bring the ledger to the statement ending balance. Use the **Type** and **Member** dropdowns on **New** or **Review** rows to fix classification, then preview again. If the base ledger is wrong, run **Full Ledger Refresh** first.
+**If append is blocked (ending balance mismatch):** the **New** rows in preview would not bring the ledger to the statement ending balance. Use the **Type** and **Member** dropdowns on **New** or **Review** rows to fix classification, then preview again. If the base ledger is wrong, run **Full Ledger Refresh** first.
 
 **Regression check (developers):** `npm run test:bank-append` verifies append preview tie-out against a statement file.
 
@@ -166,7 +168,7 @@ cd peer-finance-manager
 node scripts/restore-assurance-ledger-production.js
 ```
 
-Expect **457 rows** and **$16,241.55** through **2026-07-08**. July is already in the ledger; do **not** re-upload `stmt (8).csv` to fix drift (rows show as Skipped). For **August 2026+**, use **Import New Bank Activity** with only the new statement.
+Expect **457 rows** and **$16,241.55** through **2026-07-08** after restore. For the **rest of July 2026**, use **Import New Bank Activity** with a cumulative BoA export from **7/1 through the current date** as often as needed. Rows already imported show **Skipped**; only new activity is added. **August 2026+:** same cumulative pattern each month.
 
 ---
 
