@@ -107,6 +107,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-09** — **Multi-tenant append docs + regression:** Clarified §1B tenant isolation (no slug/balance checks in product code). `test-bank-append-balance.js` uses generic unit amounts; live preview opt-in via `--org`/`--stmt` (not Assurance-default). USER-GUIDE leads with all-tenant cumulative upload workflow; Assurance moved to ops example only. Files: `bank-import-append.js`, `test-bank-append-balance.js`, `AGENT_HANDOVER.md`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-09** — **Idempotent cumulative bank append (permanent):** Re-uploading a statement from **period start through today** is the normal workflow for interim July (and any month) balance updates. Append blocks only when ledger is **below** statement beginning (missing history), not when ledger is **above** beginning because prior rows are already imported. Duplicates fingerprint to **Skipped**; only **New** rows apply. Ending block applies only when **ready** rows would not tie to statement ending. UI shows green pre-period gap note instead of red block. Regression expanded: `computeAppendBalanceCheck` unit cases + live preview. Files: `bank-import-append.js`, `app.js`, `index.html`, `test-bank-append-balance.js`, `AGENT_HANDOVER.md` §1B, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-09** — **Member gender dropdown + profile save fix:** Register New Member and Update Member Profile use **Gender** dropdown (Male, Female, Decline to Specify). Fixed spurious **email already exists** on gender-only saves: portal email sync skipped when email unchanged; no duplicate check when login email already matches (admin/member email collision). Files: `auth-service.js`, `member-service.js`, `text-format.js`, `index.html`, `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-09** — **Assurance production balance restored again ($16,241.55):** Dashboard showed **$16,113.55** / **465 rows** (drift after corrupted append). Re-ran `restore-assurance-ledger-production.js`; production verified **457 rows**, **$16,241.55** through **2026-07-08**. **Do not** re-upload July `stmt (8).csv`. Data fix via script (no git).
@@ -306,7 +307,16 @@ node scripts/build-master-ledger.js "C:\Users\yinka\Downloads\pre 2025.xlsx" "C:
 
 ## 1B. Bank ledger product mode (all tenants — mandatory read)
 
-**Purpose:** Assurance-specific rescue scripts (§1A) are **recovery only**. Every Cooperative must be able to trust **Import New Bank Activity** without agent intervention.
+**Purpose:** Tenant-specific rescue scripts (e.g. Assurance §1A) are **recovery only**. **Every** independent Cooperative admin must be able to trust **Import New Bank Activity** without agent intervention. Append logic lives only in generic libs (`bank-import-append.js`, `import-fingerprint.js`, shared admin UI). **No** tenant slug, balance, or row-count checks in product code.
+
+### Tenant isolation
+
+| Property | Behavior |
+|----------|----------|
+| Database | One isolated `peerfinance.db` per org (`runWithOrg` / session org slug) |
+| Dedup fingerprints | Per `bank_account_id` within that org's DB |
+| Payment aliases / rules | Per-org settings in admin UI |
+| Regression test | Unit checks are tenant-agnostic; optional `--org <slug> --stmt <file>` live preview |
 
 ### Source of truth
 
@@ -320,7 +330,7 @@ node scripts/build-master-ledger.js "C:\Users\yinka\Downloads\pre 2025.xlsx" "C:
 ### Append contract (fail-closed — every tenant)
 
 1. **Ledger-short block:** refuse apply only when live ledger balance **before** new rows is **below** statement **beginning** (missing history). Run **Full Ledger Refresh** first.
-2. **Cumulative re-upload (allowed):** when the ledger is **above** statement beginning because rows from the same period are already imported (normal for July interim uploads through month-end), append is **not** blocked. Re-upload the statement from **period start through today** as often as needed. Rows already in the ledger show **Skipped**; only **New** rows apply.
+2. **Cumulative re-upload (allowed — every tenant):** when the ledger is **above** statement beginning because rows from the same period are already imported (normal for in-month interim uploads), append is **not** blocked. Re-upload the statement from **period start through today** as often as needed. Rows already in the ledger show **Skipped**; only **New** rows apply.
 3. **Ending block:** refuse apply when **ready** rows exist and **projected ledger** after new rows ≠ statement **ending**.
 4. **Preview corrections:** admin sets **Type** and **Member** on New/Review rows before apply.
 5. **Payment name mappings:** each row can set **Default Type** when bank text has no contribution/loan keyword (e.g. Zelle payer name only).
@@ -335,7 +345,8 @@ node scripts/build-master-ledger.js "C:\Users\yinka\Downloads\pre 2025.xlsx" "C:
 
 ```powershell
 npm run test:bank-append
-# Or: node peer-finance-manager/scripts/test-bank-append-balance.js --org <slug> --stmt <path.csv>
+# Optional live preview for any org:
+node peer-finance-manager/scripts/test-bank-append-balance.js --org <slug> --stmt <path.csv>
 ```
 
 Asserts alias classification, cumulative re-upload (ledger above statement beginning), ending tie-out when new rows exist, and idempotent re-upload when all rows skipped.

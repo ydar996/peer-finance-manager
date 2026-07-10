@@ -96,11 +96,11 @@ Adjustments are stored per Cooperative and survive **Full Ledger Refresh** from 
 
 The **Import** tab keeps every section collapsed until you expand it. Each header shows a short hint for what that section does.
 
-Use **Import New Bank Activity** for normal monthly updates. Use **Full Ledger Refresh** only when replacing the entire master ledger.
+**Every Cooperative tenant** uses the same **Import New Bank Activity** workflow: your data stays in your organization's isolated database. Use it for normal monthly updates. Use **Full Ledger Refresh** only when replacing the entire master ledger.
 
-**Monthly bank statement (recommended):**
+**Monthly bank statement (recommended — all tenants):**
 
-Upload a **cumulative** export from the **period start through today** (not only new days since your last upload). PFM skips rows already in the ledger and adds only **New** ones. This is the normal workflow for interim balance updates through month-end (for example, several July uploads before August).
+Upload a **cumulative** export from the **period start through today** (not only new days since your last upload). PFM skips rows already in the ledger and adds only **New** ones. This is the normal workflow for interim balance updates through month-end (for example, several uploads in the same month before the next month starts).
 
 1. Open **Import**.
 2. Expand **Import New Bank Activity**.
@@ -130,7 +130,7 @@ Re-uploading the same cumulative statement adds nothing new (duplicates are skip
 3. **First-time setup:** select the account under **Edit Selected Account**, set **Institution name** (e.g. Bank of America), confirm **Account label** and **Currency**, pick **Statement format** (or leave **Auto-detect**), set cooperative **Date format**, then **Save Account and Settings**.
 4. **Statement format:** choose a profile that matches your bank export, or **Custom Column Mapping** and fill column header names (Date, Description, Amount, etc.).
 5. **Classification rules (Cooperative-wide):** under **Classification Rules**, edit contribution and loan keywords (plain phrases, comma-separated).
-6. **Payment name mappings:** map each member to the name as it appears on Zelle or the bank statement (comma-separated if more than one). Set **Default Type** when the bank line does not say contribution or loan (example: SAHEED SALAMI → Yomi Salami, Default Type **Loan Repayment**). Leave Default Type as **Auto-detect** when keywords on the statement are enough.
+6. **Payment name mappings:** map each member to the name as it appears on Zelle or the bank statement (comma-separated if more than one). Set **Default Type** when the bank line does not say contribution or loan (for example, a Zelle payer name with no keyword). Leave Default Type as **Auto-detect** when keywords on the statement are enough.
 7. **Add another bank or account:** use **Add Bank Account** (label, institution, currency, format). Check **Set as primary account** if this becomes your main operating account.
 8. **Change banks:** add the new account with an **Active from** date; on the old account set **Active to** to the last day you used it. Imports then go to the new account only.
 9. When importing, pick the matching account in **Import New Bank Activity** before you upload the statement.
@@ -151,7 +151,7 @@ Re-uploading the same cumulative statement adds nothing new (duplicates are skip
 
 **If append is blocked (ending balance mismatch):** the **New** rows in preview would not bring the ledger to the statement ending balance. Use the **Type** and **Member** dropdowns on **New** or **Review** rows to fix classification, then preview again. If the base ledger is wrong, run **Full Ledger Refresh** first.
 
-**Regression check (developers):** `npm run test:bank-append` verifies append preview tie-out against a statement file.
+**Regression check (developers):** `npm run test:bank-append` runs tenant-agnostic unit checks. Optional live preview: `node peer-finance-manager/scripts/test-bank-append-balance.js --org <slug> --stmt <path.csv>`.
 
 **Ops script (any tenant on production):**
 
@@ -159,7 +159,7 @@ Re-uploading the same cumulative statement adds nothing new (duplicates are skip
 node peer-finance-manager/scripts/restore-ledger-production.js --org <slug> --ledger <path-to-master.xlsx> [--stmt <path-to-statement.csv>]
 ```
 
-**Assurance (canonical — use when dashboard must match bank stmt):**
+**Example: Assurance tenant (ops reference only):**
 
 Golden master through **6/29/2026** lives in `data\master-ledger\cooperative-bank-ledger-master.xlsx`. July activity comes from `Downloads\stmt (8).csv`. **One command** rebuilds reference and refreshes production:
 
@@ -168,7 +168,7 @@ cd peer-finance-manager
 node scripts/restore-assurance-ledger-production.js
 ```
 
-Expect **457 rows** and **$16,241.55** through **2026-07-08** after restore. For the **rest of July 2026**, use **Import New Bank Activity** with a cumulative BoA export from **7/1 through the current date** as often as needed. Rows already imported show **Skipped**; only new activity is added. **August 2026+:** same cumulative pattern each month.
+Expect **457 rows** and **$16,241.55** through **2026-07-08** after restore. Ongoing updates use the same **cumulative statement** workflow as every other tenant (period start through current date; Skipped duplicates; only New rows apply).
 
 ---
 

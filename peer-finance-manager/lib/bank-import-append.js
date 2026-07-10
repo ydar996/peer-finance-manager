@@ -94,6 +94,9 @@ function computeAppendBalanceCheck({
   readyCount,
   skippedCount,
 }) {
+  // All-tenant append contract: block only when ledger is short of statement beginning,
+  // or when New rows would not tie to statement ending. Pre-period gap (ledger above
+  // statement beginning) is normal for cumulative re-uploads within the same month.
   const openingAligned =
     statementBeginning == null ||
     ledgerBefore == null ||

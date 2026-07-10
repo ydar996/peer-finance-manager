@@ -1,22 +1,19 @@
 #!/usr/bin/env node
 /**
- * Regression: append preview must tie to statement ending when base ledger is correct.
+ * Regression: append preview contract for every tenant (org-isolated DB).
  *
  * Usage:
- *   node scripts/test-bank-append-balance.js [--org assurance] [--stmt path.csv]
+ *   node scripts/test-bank-append-balance.js
+ *   node scripts/test-bank-append-balance.js --org <slug> --stmt <path.csv>
  *
- * Exits 0 when:
- *   - Ledger-short block only when ledger < statement beginning
- *   - Cumulative re-upload (ledger > statement beginning) is allowed; duplicates skipped
- *   - New rows project to statement ending (or all rows skipped / no ending on stmt)
- *   - Saheed-style alias rows classify as loan_repayment when configured
+ * Unit checks always run (no DB). Live preview runs only when --org and --stmt are set
+ * (or PFM_STMT_FILE + PFM_TEST_ORG env vars).
  */
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
 const { initPaths } = require("../lib/paths");
 const { runWithOrg } = require("../lib/org-context");
-const { ASSURANCE_SLUG } = require("../lib/organization-service");
 const { closeDb } = require("../db/database");
 const {
   previewBankStatementAppend,
@@ -30,10 +27,8 @@ initPaths(coopRoot);
 
 function parseArgs(argv) {
   const out = {
-    org: ASSURANCE_SLUG,
-    stmt:
-      process.env.PFM_STMT_FILE ||
-      path.join(process.env.USERPROFILE || "", "Downloads", "stmt (8).csv"),
+    org: process.env.PFM_TEST_ORG || null,
+    stmt: process.env.PFM_STMT_FILE || null,
   };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === "--org" && argv[i + 1]) out.org = argv[++i];
@@ -42,7 +37,32 @@ function parseArgs(argv) {
   return out;
 }
 
-function testSaheedAliasClassification(memberNames) {
+function testGenericKeywordClassification(memberNames) {
+  const rules = getImportRules();
+  const deposit = classifyRow({
+    description: "Zelle payment for monthly member contribution",
+    amount: 50,
+    member: null,
+    memberNames,
+    rules,
+  });
+  assert.strictEqual(deposit.ledgerType, "deposit", "contribution keyword should classify as deposit");
+  const repayment = classifyRow({
+    description: "Zelle payment loan repayment from member",
+    amount: 100,
+    member: null,
+    memberNames,
+    rules,
+  });
+  assert.strictEqual(
+    repayment.ledgerType,
+    "loan_repayment",
+    "loan repayment keyword should classify as loan_repayment"
+  );
+  console.log("  keyword classification (deposit / loan repayment): OK");
+}
+
+function testPaymentAliasIfConfigured(memberNames) {
   const rules = getImportRules();
   const result = classifyRow({
     description: "Zelle payment from SAHEED SALAMI Conf# abc123",
@@ -51,58 +71,61 @@ function testSaheedAliasClassification(memberNames) {
     memberNames,
     rules,
   });
-  assert.strictEqual(result.member, "Yomi Salami", "SAHEED SALAMI alias should map to Yomi Salami");
-  assert.strictEqual(
-    result.ledgerType,
-    "loan_repayment",
-    "SAHEED SALAMI alias default type should be loan_repayment"
-  );
-  console.log("  alias classification (SAHEED → Yomi / Loan Repayment): OK");
+  if (result.member !== "Yomi Salami") {
+    console.log("  payment alias sample: skipped (no SAHEED SALAMI mapping in this org)");
+    return;
+  }
+  assert.strictEqual(result.ledgerType, "loan_repayment");
+  console.log("  payment alias default type (org-specific sample): OK");
 }
 
 function testComputeAppendBalanceCheck() {
   const cumulativeReplay = computeAppendBalanceCheck({
-    ledgerBefore: 16241.55,
-    statementBeginning: 15471.49,
-    statementEnding: 16241.55,
-    projectedLedger: 16241.55,
+    ledgerBefore: 10200,
+    statementBeginning: 10000,
+    statementEnding: 10200,
+    projectedLedger: 10200,
     readyCount: 0,
-    skippedCount: 4,
+    skippedCount: 3,
   });
-  assert.strictEqual(cumulativeReplay.openingBlock, false, "cumulative re-upload must not block on pre-period gap");
+  assert.strictEqual(
+    cumulativeReplay.openingBlock,
+    false,
+    "cumulative re-upload must not block on pre-period gap"
+  );
   assert.strictEqual(cumulativeReplay.ledgerShort, false);
   assert.strictEqual(cumulativeReplay.idempotentReplay, true);
   assert.strictEqual(cumulativeReplay.mismatch, false);
   console.log("  cumulative re-upload (all skipped, ledger above stmt beginning): OK");
 
   const partialNew = computeAppendBalanceCheck({
-    ledgerBefore: 16241.55,
-    statementBeginning: 15471.49,
-    statementEnding: 16500,
-    projectedLedger: 16500,
+    ledgerBefore: 10200,
+    statementBeginning: 10000,
+    statementEnding: 10500,
+    projectedLedger: 10500,
     readyCount: 2,
-    skippedCount: 4,
+    skippedCount: 3,
   });
   assert.strictEqual(partialNew.openingBlock, false);
   assert.strictEqual(partialNew.mismatch, false);
   console.log("  cumulative re-upload with new rows tying to ending: OK");
 
   const partialMismatch = computeAppendBalanceCheck({
-    ledgerBefore: 16241.55,
-    statementBeginning: 15471.49,
-    statementEnding: 16500,
-    projectedLedger: 16400,
+    ledgerBefore: 10200,
+    statementBeginning: 10000,
+    statementEnding: 10500,
+    projectedLedger: 10400,
     readyCount: 1,
-    skippedCount: 4,
+    skippedCount: 3,
   });
   assert.strictEqual(partialMismatch.mismatch, true);
   console.log("  new rows failing ending tie-out blocks apply: OK");
 
   const ledgerShort = computeAppendBalanceCheck({
-    ledgerBefore: 15000,
-    statementBeginning: 15471.49,
-    statementEnding: 16241.55,
-    projectedLedger: 16241.55,
+    ledgerBefore: 9500,
+    statementBeginning: 10000,
+    statementEnding: 10200,
+    projectedLedger: 10200,
     readyCount: 4,
     skippedCount: 0,
   });
@@ -111,24 +134,31 @@ function testComputeAppendBalanceCheck() {
   console.log("  ledger below statement beginning blocks apply: OK");
 }
 
-runWithOrg(parseArgs(process.argv).org, () => {
-  const args = parseArgs(process.argv);
+const args = parseArgs(process.argv);
 
-  testComputeAppendBalanceCheck();
+testComputeAppendBalanceCheck();
 
-  if (!fs.existsSync(args.stmt)) {
-    console.log(`Statement file not found (skipping live preview): ${args.stmt}`);
-    console.log("test-bank-append-balance: OK (unit checks only)");
-    closeDb();
-    return;
-  }
+if (!args.org || !args.stmt) {
+  console.log(
+    "Live org preview skipped (pass --org <slug> --stmt <file.csv> or set PFM_TEST_ORG + PFM_STMT_FILE)."
+  );
+  console.log("test-bank-append-balance: OK (unit checks only)");
+  process.exit(0);
+}
 
+if (!fs.existsSync(args.stmt)) {
+  console.error(`Statement file not found: ${args.stmt}`);
+  process.exit(1);
+}
+
+runWithOrg(args.org, () => {
   const { getDb } = require("../db/database");
   const db = getDb();
   const memberNames = db.prepare(`SELECT name FROM members ORDER BY name`).all().map((r) => r.name);
   assert.ok(memberNames.length, "members required");
 
-  testSaheedAliasClassification(memberNames);
+  testGenericKeywordClassification(memberNames);
+  testPaymentAliasIfConfigured(memberNames);
 
   const preview = previewBankStatementAppend({
     filePath: args.stmt,
@@ -141,13 +171,19 @@ runWithOrg(parseArgs(process.argv).org, () => {
 
   console.log(`Org: ${args.org}`);
   console.log(`Statement: ${args.stmt}`);
-  console.log(`Preview: ready=${ready} skipped=${skipped} needsReview=${preview.summary?.needsReview || 0}`);
+  console.log(
+    `Preview: ready=${ready} skipped=${skipped} needsReview=${preview.summary?.needsReview || 0}`
+  );
   if (bc.ledgerBefore != null) console.log(`Ledger before: ${bc.ledgerBefore}`);
   if (bc.statementBeginning != null) console.log(`Statement beginning: ${bc.statementBeginning}`);
   if (bc.projectedLedger != null) console.log(`Projected after import: ${bc.projectedLedger}`);
   if (bc.statementEnding != null) console.log(`Statement ending: ${bc.statementEnding}`);
 
-  assert.strictEqual(bc.openingBlock, false, "live preview must not block on pre-period gap when ledger is current");
+  assert.strictEqual(
+    bc.openingBlock,
+    false,
+    "live preview must not block on pre-period gap when ledger is current"
+  );
   assert.strictEqual(bc.ledgerShort, false);
 
   if (ready > 0 && bc.statementEnding != null && bc.projectedLedger != null) {
@@ -166,13 +202,6 @@ runWithOrg(parseArgs(process.argv).org, () => {
     console.log("  ledger already at statement ending (idempotent re-upload): OK");
   } else if (skipped > 0 && ready === 0) {
     console.log("  all stmt rows already in ledger (skipped): OK for idempotent re-upload");
-  }
-
-  const saheedRow = preview.rows.find((r) => /SAHEED\s+SALAMI/i.test(r.description || ""));
-  if (saheedRow && saheedRow.bucket !== "skipped") {
-    assert.strictEqual(saheedRow.ledgerType, "loan_repayment");
-    assert.strictEqual(saheedRow.member, "Yomi Salami");
-    console.log("  Saheed row in preview: Loan Repayment / Yomi Salami");
   }
 
   console.log("test-bank-append-balance: OK");

@@ -4679,7 +4679,7 @@ function renderBankAppendPreview(preview) {
   }
   panel.innerHTML = `
     <strong>Preview</strong>
-    <p class="subtle">Change <strong>Type</strong> or <strong>Member</strong> on <strong>New</strong> or <strong>Review</strong> rows before you add them. Rows already in the ledger (Skipped) cannot be changed here.</p>
+    <p class="subtle">Change <strong>Type</strong> or <strong>Member</strong> on <strong>New</strong> or <strong>Review</strong> rows before you add them. Rows already in the ledger (Skipped) cannot be changed here. Upload a cumulative statement from period start through today anytime: duplicates are Skipped for every Cooperative.</p>
     <p id="bankAppendPreviewCounts">${summary.ready || 0} ready to add · ${summary.skipped || 0} already in ledger · ${summary.needsReview || 0} need review</p>
     ${formatNote}
     ${balanceNote}
