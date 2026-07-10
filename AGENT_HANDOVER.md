@@ -107,6 +107,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-09** — **Assurance ledger restored to stmt ending ($16,241.55):** Production was **$16,177.55** (drift from bad append/sync). Re-ran golden master + July `stmt (8).csv` → **457 rows**, **$16,241.55** through **2026-07-08**. `build-assurance-reference-with-july.js` now parses stmt file + Saheed override; `restore-assurance-ledger-production.js` is one command (build + Full Ledger Refresh + ending check). Local DB synced. **Production:** data restore via script (no git required for balance); script/doc changes need `git push`.
 - **2026-07-09** — **Repo sync:** Committed and pushed remaining local work (ledger audit/reconcile scripts, `build-assurance-reference-with-july.js`, assurance restore wrapper, bylaws seed) so `main` matches workspace. **Production:** `git push` (`bdcc85f` + follow-up).
 - **2026-07-09** — **Pending applicants hidden + ledger reclassify/split (all tenants):** Members & Accounts lists only **active** members (`pending_approval` profiles stay under Forms & Documents → Membership Applications). Admin **Category** dropdown + **Split** on Contributions and Loan Repayment rows; adjustments persist in `ledger_adjustments` / `ledger_adjustment_lines` and re-apply on every Full Ledger Refresh. APIs: `POST /api/ledger-adjustments/reclassify`, `POST /api/ledger-adjustments/split`. Removed production test applicant **Testy Testy** via `remove-pending-applicant-production.js`. Files: `ledger-adjustment-service.js`, `import-bank-ledger.js`, `member-profile-service.js`, `balance-service.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `schema.sql`, `database.js`, `USER-GUIDE.md`. **Production:** `git push` (code); Testy already deleted on live DB via API script.
 - **2026-07-09** — **Saheed July classification preserved on restore:** `restore-assurance-ledger-production.js` no longer appends `stmt (8).csv` (that re-classified Saheed $500 as Member Deposit). New `build-assurance-reference-with-july.js` writes `cooperative-bank-ledger-reference.xlsx` with July rows and Saheed as **Loan Repayment**. Full Ledger Refresh uses that file only. Files: `build-assurance-reference-with-july.js`, `restore-assurance-ledger-production.js`, `USER-GUIDE.md`. **Production:** run build + restore scripts (data); `git push` for script changes.
@@ -245,33 +246,37 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 **Resolved items (closed — never cite as open gaps):** phantom `XXXXX` duplicate NFCU rows (~$400); duplicate monthly bank fees; proxy Zelle mis-credits (Ejiro/Titilope); pre-2025 bank charges incorporated; June stmt tie-out to **$15,471.49**.
 
-### App import file state (restored 2026-07-08 — aligned with master)
+### App import file state (July 2026 — canonical)
 
-| Field | Golden master | `cooperative-bank-ledger-reference.xlsx` (current) |
-|-------|---------------|-----------------------------------------------------|
-| Rows | 453 | **453** ✅ |
-| Ending 6/29 | $15,471.49 | **$15,471.49** ✅ |
-| Field diffs vs master | — | **0** ✅ |
+| Field | Value |
+|-------|--------|
+| **Rows** | **457** (453 master through **2026-06-29** + **4** July 2026) |
+| **Ending checking balance** | **$16,241.55** through **2026-07-08** (matches `stmt (8).csv`) |
+| **July stmt** | `C:\Users\yinka\Downloads\stmt (8).csv` — beginning **$15,471.49**, credits **$770.06** |
+| **Saheed 7/8 $500** | **Loan Repayment** → **Yomi Salami** (override; stmt text has no "loan") |
 
-**Prior corruption (resolved):** reference had **459 rows**, ending **$16,244.75** — **4 phantom duplicates** (+$603.20 through 6/29) and **2 July test rows** (+$170.06). Cause: `cooperative-bank-ledger-csv.js` auto-sync overwrote import file from stale DB; agents appended July rows by hand. **Local PC + production Render DB now match master** (453 / $15,471.49, 2026-07-08).
+### Permanent restore (Assurance only — one command)
 
-### Agent rules (non-negotiable)
+**Do not** append `stmt (8).csv` via Import New Bank Activity (mis-classifies Saheed as Member Deposit and drifts balance).
 
-| Do | Do not |
-|----|--------|
-| Treat **`master-ledger/cooperative-bank-ledger-master.xlsx`** as the reconciled historical archive | Call `cooperative-bank-ledger-reference.xlsx` the “historical bank records file” |
-| Copy **from master → reference** when restoring import file | Overwrite master from DB auto-sync or agent edits |
-| Verify master: **453 rows**, ending **$15,471.49**, last **2026-06-29** | Re-diagnose phantom XXXXX or “$603 gap” as new work |
-| Apply to production: copy master to reference, then **Full Ledger Refresh** | Tell user to WinSCP-upload for Assurance bank ledger |
-| Document every ledger touch in **§ Changelog same turn** | Blame user for dashboard drift |
+```powershell
+cd peer-finance-manager
+node scripts/restore-assurance-ledger-production.js
+```
 
-### Restore procedure
+This runs:
+
+1. `build-assurance-reference-with-july.js` — copies **golden master** + parses **July rows from stmt (8).csv** with Saheed override → `data\cooperative-bank-ledger-reference.xlsx`
+2. `restore-ledger-production.js` — **Full Ledger Refresh** on Render; verifies ending **$16,241.55**
+
+Override stmt path: `set PFM_STMT_FILE=C:\Users\yinka\Downloads\stmt (8).csv`
+
+### Restore procedure (historical base only)
 
 1. **Do not edit** `data/master-ledger/cooperative-bank-ledger-master.xlsx` (golden archive).
-2. Copy it over the import file (or run `build-master-ledger.js` to regenerate master, then copy).
-3. Admin → Import → **Full Ledger Refresh** → upload the restored reference xlsx.
-4. Confirm **453 rows** and **Ledger ending balance 15,471.49**.
-5. July monthly activity: **Import New Bank Activity** only (append).
+2. For **July+** activity, use **Permanent restore** above — not append-only import alone.
+3. Confirm dashboard **Ledger Checking Balance: $16,241.55** as of **2026-07-08**.
+4. **Future months:** append only **new** stmt rows after reference is correct; if base drifts, re-run permanent restore.
 
 ```powershell
 # Regenerate master if needed (does not touch golden copy if you copy output manually):
@@ -279,6 +284,15 @@ cd peer-finance-manager
 node scripts/build-master-ledger.js "C:\Users\yinka\Downloads\pre 2025.xlsx" "C:\Users\yinka\Downloads\stmt (6).csv"
 # Golden copy already at: data\master-ledger\cooperative-bank-ledger-master.xlsx
 ```
+
+### Agent rules (non-negotiable)
+
+| Do | Do not |
+|----|--------|
+| Treat **`master-ledger/cooperative-bank-ledger-master.xlsx`** as the reconciled historical archive | Call `cooperative-bank-ledger-reference.xlsx` the “historical bank records file” |
+| Run **`restore-assurance-ledger-production.js`** when dashboard ≠ stmt ending | Append `stmt (8).csv` alone (Saheed mis-classified; balance drifts) |
+| Verify: **457 rows**, ending **$16,241.55**, last **2026-07-08** | Re-diagnose from scratch when §1A already has the answer |
+| Document every ledger touch in **§ Changelog same turn** | Blame user for dashboard drift |
 
 ---
 

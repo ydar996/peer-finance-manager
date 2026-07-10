@@ -152,6 +152,19 @@ async function main() {
   console.log("  Rows:", r.totalBankRows);
   console.log("  Ending:", r.ledgerEndingBalance, "through", r.ledgerEndingAsOf);
 
+  const expectEnding = process.env.PFM_EXPECT_ENDING
+    ? Number(process.env.PFM_EXPECT_ENDING)
+    : null;
+  if (expectEnding != null && Number.isFinite(expectEnding)) {
+    const actual = Number(r.ledgerEndingBalance);
+    if (Math.abs(actual - expectEnding) > 0.02) {
+      throw new Error(
+        `Ledger ending ${actual} does not match expected ${expectEnding.toFixed(2)}`
+      );
+    }
+    console.log("  Expected ending verified:", expectEnding.toFixed(2));
+  }
+
   if (stmt) {
     if (!fs.existsSync(stmt)) {
       throw new Error(`Statement file not found: ${stmt}`);

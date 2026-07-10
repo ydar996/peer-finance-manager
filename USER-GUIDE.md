@@ -154,14 +154,16 @@ Re-uploading the same statement adds nothing (duplicates are skipped automatical
 node peer-finance-manager/scripts/restore-ledger-production.js --org <slug> --ledger <path-to-master.xlsx> [--stmt <path-to-statement.csv>]
 ```
 
-**Assurance:** do not use `--stmt` if you already corrected types in your reference file. Build reference with July (Saheed $500 = Loan Repayment):
+**Assurance (canonical — use when dashboard must match bank stmt):**
+
+Golden master through **6/29/2026** lives in `data\master-ledger\cooperative-bank-ledger-master.xlsx`. July activity comes from `Downloads\stmt (8).csv`. **One command** rebuilds reference and refreshes production:
 
 ```powershell
-node peer-finance-manager/scripts/build-assurance-reference-with-july.js
-node peer-finance-manager/scripts/restore-assurance-ledger-production.js
+cd peer-finance-manager
+node scripts/restore-assurance-ledger-production.js
 ```
 
-Edit `data\cooperative-bank-ledger-reference.xlsx` before restore if you need to change Narrative or Ledger Type. Import New Bank Activity alone cannot fix a row already in the ledger (it shows as Skipped).
+Expect **457 rows** and **$16,241.55** through **2026-07-08**. Do **not** append `stmt (8).csv` via Import New Bank Activity (Saheed $500 would become Member Deposit and the balance drifts).
 
 ---
 
