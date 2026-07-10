@@ -24,6 +24,8 @@ const MEMBER_LEDGER_TYPES = new Set([
   TRANSACTION_TYPES.WITHDRAWAL,
   TRANSACTION_TYPES.LOAN_REPAYMENT,
   TRANSACTION_TYPES.LOAN_DISBURSEMENT,
+  TRANSACTION_TYPES.DISTRIBUTION,
+  TRANSACTION_TYPES.MEMBERSHIP_FEE,
 ]);
 
 function mapLedgerType(ledgerType) {
@@ -32,6 +34,8 @@ function mapLedgerType(ledgerType) {
     withdrawal: TRANSACTION_TYPES.WITHDRAWAL,
     loan_repayment: TRANSACTION_TYPES.LOAN_REPAYMENT,
     loan_disbursement: TRANSACTION_TYPES.LOAN_DISBURSEMENT,
+    distribution: TRANSACTION_TYPES.DISTRIBUTION,
+    membership_fee: TRANSACTION_TYPES.MEMBERSHIP_FEE,
     expense: TRANSACTION_TYPES.EXPENSE,
     cd_purchase: TRANSACTION_TYPES.CD_PURCHASE,
     cd_liquidation: TRANSACTION_TYPES.CD_LIQUIDATION,
@@ -169,7 +173,95 @@ function insertBankLedgerTransaction({
   if (type === TRANSACTION_TYPES.WITHDRAWAL) counts.withdrawals += 1;
   if (type === TRANSACTION_TYPES.LOAN_REPAYMENT) counts.loanRepayments += 1;
   if (type === TRANSACTION_TYPES.LOAN_DISBURSEMENT) counts.loanDisbursements += 1;
+  if (type === TRANSACTION_TYPES.DISTRIBUTION) counts.distributions = (counts.distributions || 0) + 1;
+  if (type === TRANSACTION_TYPES.MEMBERSHIP_FEE) counts.membershipFees = (counts.membershipFees || 0) + 1;
   return true;
+}
+
+function importBankLedgerCore({
+  bankTxs,
+  importLabel,
+  cdBalance,
+  replaceSpreadsheetDeposits = true,
+}) {
+  const db = getDb();
+  ensureSettingsTable(db);
+
+  const members = db.prepare(`SELECT id, name FROM members`).all();
+  const nameToId = Object.fromEntries(members.map((m) => [m.name, m.id]));
+
+  const importId = registerBankImport(importLabel);
+
+  const insertTx = db.prepare(
+    `INSERT INTO transactions
+      (member_id, type, amount, transaction_date, period_year, period_month,
+       description, reference, bank_import_id, source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'bank_import')`
+  );
+  const insertExpense = db.prepare(
+    `INSERT INTO expenses (description, amount, expense_date, category)
+     VALUES (?, ?, ?, ?)`
+  );
+
+  const counts = {
+    deposits: 0,
+    withdrawals: 0,
+    loanRepayments: 0,
+    loanDisbursements: 0,
+    distributions: 0,
+    membershipFees: 0,
+    expenses: 0,
+    cdPurchases: 0,
+    cdLiquidations: 0,
+    investments: 0,
+    skippedNoMember: 0,
+    unassignedDeposits: 0,
+  };
+
+  const run = db.transaction(() => {
+    if (replaceSpreadsheetDeposits) {
+      db.prepare(
+        `DELETE FROM transactions
+         WHERE source = 'spreadsheet' AND type IN ('deposit', 'withdrawal')`
+      ).run();
+    }
+
+    db.prepare(`DELETE FROM transactions WHERE source = 'bank_import'`).run();
+    const manualPlaceholders = LEDGER_TYPES.map(() => "?").join(", ");
+    db.prepare(
+      `DELETE FROM transactions WHERE source = 'manual' AND type IN (${manualPlaceholders})`
+    ).run(...LEDGER_TYPES);
+    db.prepare(`DELETE FROM expenses`).run();
+    db.prepare(`DELETE FROM transactions WHERE type = 'expense'`).run();
+
+    for (const tx of bankTxs) {
+      insertBankLedgerTransaction({
+        db,
+        insertTx,
+        insertExpense,
+        tx,
+        nameToId,
+        importId,
+        counts,
+      });
+    }
+
+    if (cdBalance != null && cdBalance !== "") {
+      setCooperativeSetting(db, "cd_balance", cdBalance);
+      setCooperativeSetting(db, "cd_balance_as_of", cooperativeTodayIso());
+    }
+  });
+
+  run();
+
+  db.prepare(`UPDATE bank_imports SET status = 'applied' WHERE id = ?`).run(importId);
+
+  return {
+    importId,
+    totalBankRows: bankTxs.length,
+    ...counts,
+    cdBalance: cdBalance != null ? Number(cdBalance) : null,
+  };
 }
 
 function syncMissingBankLedgerRows({ referencePath } = {}) {
@@ -292,95 +384,49 @@ function importBankLedger({
 
   const members = db.prepare(`SELECT id, name FROM members`).all();
   const memberNames = members.map((m) => m.name);
-  const nameToId = Object.fromEntries(members.map((m) => [m.name, m.id]));
 
   if (!xlsxPath && !csvPath) {
     throw new Error("Upload your master ledger file (cooperative-bank-ledger-reference.csv).");
   }
 
-  const bankTxs = loadMergedBankTransactions({
+  let bankTxs = loadMergedBankTransactions({
     xlsxPath: xlsxPath || null,
     csvPath: csvPath || null,
     memberNames,
     xlsxOriginalName: xlsxOriginalName || null,
     csvOriginalName: csvOriginalName || null,
   });
-  const importId = registerBankImport(
-    [xlsxPath, csvPath].filter(Boolean).map((p) => p.split(/[/\\]/).pop()).join(" + ")
-  );
+  const { applyAdjustmentsToBankTransactions } = require("./ledger-adjustment-service");
+  bankTxs = applyAdjustmentsToBankTransactions(bankTxs);
 
-  const insertTx = db.prepare(
-    `INSERT INTO transactions
-      (member_id, type, amount, transaction_date, period_year, period_month,
-       description, reference, bank_import_id, source)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'bank_import')`
-  );
-  const insertExpense = db.prepare(
-    `INSERT INTO expenses (description, amount, expense_date, category)
-     VALUES (?, ?, ?, ?)`
-  );
-
-  const counts = {
-    deposits: 0,
-    withdrawals: 0,
-    loanRepayments: 0,
-    loanDisbursements: 0,
-    expenses: 0,
-    cdPurchases: 0,
-    cdLiquidations: 0,
-    investments: 0,
-    skippedNoMember: 0,
-    unassignedDeposits: 0,
-  };
-
-  const run = db.transaction(() => {
-    if (replaceSpreadsheetDeposits) {
-      db.prepare(
-        `DELETE FROM transactions
-         WHERE source = 'spreadsheet' AND type IN ('deposit', 'withdrawal')`
-      ).run();
-    }
-
-    db.prepare(`DELETE FROM transactions WHERE source = 'bank_import'`).run();
-    const manualPlaceholders = LEDGER_TYPES.map(() => "?").join(", ");
-    db.prepare(
-      `DELETE FROM transactions WHERE source = 'manual' AND type IN (${manualPlaceholders})`
-    ).run(...LEDGER_TYPES);
-    db.prepare(`DELETE FROM expenses`).run();
-    db.prepare(`DELETE FROM transactions WHERE type = 'expense'`).run();
-
-    for (const tx of bankTxs) {
-      insertBankLedgerTransaction({
-        db,
-        insertTx,
-        insertExpense,
-        tx,
-        nameToId,
-        importId,
-        counts,
-      });
-    }
-
-    if (cdBalance != null && cdBalance !== "") {
-      setCooperativeSetting(db, "cd_balance", cdBalance);
-      setCooperativeSetting(db, "cd_balance_as_of", cooperativeTodayIso());
-    }
+  return importBankLedgerCore({
+    bankTxs,
+    importLabel: [xlsxPath, csvPath]
+      .filter(Boolean)
+      .map((p) => p.split(/[/\\]/).pop())
+      .join(" + "),
+    cdBalance,
+    replaceSpreadsheetDeposits,
   });
+}
 
-  run();
-
-  db.prepare(`UPDATE bank_imports SET status = 'applied' WHERE id = ?`).run(importId);
-
-  return {
-    importId,
-    totalBankRows: bankTxs.length,
-    ...counts,
-    cdBalance: cdBalance != null ? Number(cdBalance) : null,
-  };
+function importBankLedgerFromTransactions({
+  bankTxs,
+  sourceLabel = "adjustment-rebuild",
+  cdBalance,
+  replaceSpreadsheetDeposits = true,
+}) {
+  return importBankLedgerCore({
+    bankTxs,
+    importLabel: sourceLabel,
+    cdBalance,
+    replaceSpreadsheetDeposits,
+  });
 }
 
 module.exports = {
   importBankLedger,
+  importBankLedgerFromTransactions,
   syncMissingBankLedgerRows,
   findReferenceLedgerPath,
   getCooperativeSetting,

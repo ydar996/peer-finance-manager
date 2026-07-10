@@ -1712,3 +1712,61 @@ tr.loan-row:hover { background: #f8fafc; }
 .member-public-links a.hidden {
   display: none;
 }
+
+.ledger-tx-controls {
+  min-width: 11rem;
+  vertical-align: top;
+}
+.ledger-tx-controls .ledger-tx-type {
+  display: block;
+  width: 100%;
+  margin-bottom: 6px;
+}
+.ledger-tx-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.ledger-adjustment-prompt-wrap {
+  margin: 12px 0 16px;
+}
+.ledger-adjustment-prompt {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+}
+.ledger-split-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+}
+.ledger-split-modal-card {
+  width: min(640px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+}
+.ledger-split-line {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.ledger-split-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}

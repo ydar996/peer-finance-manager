@@ -1698,6 +1698,18 @@
         <iframe id="cooperativeReportViewerFrame" class="cooperative-report-viewer-frame" title="Cooperative Performance Report PDF"></iframe>
       </div>
     </div>
+    <div id="ledgerSplitModal" class="ledger-split-modal hidden" role="dialog" aria-modal="true" aria-labelledby="ledgerSplitModalTitle">
+      <div class="ledger-split-modal-card">
+        <h3 id="ledgerSplitModalTitle">Split Transaction</h3>
+        <p class="subtle">Divide one bank inflow into separate contribution and loan repayment amounts. Lines must total the original amount.</p>
+        <div id="ledgerSplitModalBody"></div>
+        <p id="ledgerSplitModalStatus" class="status"></p>
+        <div class="ledger-split-modal-actions">
+          <button type="button" class="btn" id="ledgerSplitCancel">Cancel</button>
+          <button type="button" class="btn primary" id="ledgerSplitSave">Save Split</button>
+        </div>
+      </div>
+    </div>
     <script src="flexxforms-embed.js"></script>
     <script src="app.js"></script>
   </body>

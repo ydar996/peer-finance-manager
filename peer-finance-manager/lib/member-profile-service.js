@@ -4,6 +4,18 @@ const { attachDepositRunningBalances } = require("./balance-service");
 const { getMemberLoanLots, hasBankLoanLedger } = require("./loan-ledger-service");
 const { TRANSACTION_TYPES } = require("./constants");
 const { formatPersonName, formatMemberProfileForDisplay } = require("./text-format");
+const { PENDING_ACCOUNT_STATUS } = require("./flexxforms-membership-service");
+const { ledgerTransactionKey } = require("./import-fingerprint");
+
+const ACTIVE_MEMBER_FILTER =
+  "(mp.cooperative_account_status IS NULL OR mp.cooperative_account_status != ?)";
+
+function attachLedgerKeys(transactions) {
+  return (transactions || []).map((tx) => ({
+    ...tx,
+    ledger_key: ledgerTransactionKey(tx.transaction_date, tx.amount, tx.description),
+  }));
+}
 
 function listMembersWithProfiles() {
   const db = getDb();
@@ -16,9 +28,10 @@ function listMembersWithProfiles() {
               mp.cooperative_account_status, mp.city, mp.state
        FROM members m
        LEFT JOIN member_profiles mp ON mp.member_id = m.id
+       WHERE ${ACTIVE_MEMBER_FILTER}
        ORDER BY m.name`
     )
-    .all();
+    .all(PENDING_ACCOUNT_STATUS);
 
   return rows.map((m) => {
     const accounts = getMemberAccountSummary(m.id);
@@ -96,8 +109,8 @@ function getMemberProfile(memberId) {
     paid_loans: accounts.paidLoans || 0,
     loans: accounts.loans,
     loan_lots: loanLots,
-    deposit_transactions: depositTransactions,
-    loan_transactions: loanTransactions,
+    deposit_transactions: attachLedgerKeys(depositTransactions),
+    loan_transactions: attachLedgerKeys(loanTransactions),
     account_balance: accounts.depositAccountBalance,
   };
 }

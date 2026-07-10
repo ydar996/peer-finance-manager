@@ -967,6 +967,51 @@ app.get("/api/bank-ledger/reference/download.xlsx", requireAdmin, restoreOrgCont
   }
 });
 
+app.get("/api/ledger-adjustments", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { listLedgerAdjustments } = require("./lib/ledger-adjustment-service");
+    res.json({ adjustments: listLedgerAdjustments() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/ledger-adjustments/reclassify", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { saveReclassifyAdjustment } = require("./lib/ledger-adjustment-service");
+    const result = saveReclassifyAdjustment({
+      transactionDate: req.body.transactionDate,
+      amount: req.body.amount,
+      description: req.body.description,
+      ledgerType: req.body.ledgerType,
+      memberId: req.body.memberId,
+      memberName: req.body.memberName,
+      userId: req.user?.id,
+      notes: req.body.notes,
+    });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/ledger-adjustments/split", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { saveSplitAdjustment } = require("./lib/ledger-adjustment-service");
+    const result = saveSplitAdjustment({
+      transactionDate: req.body.transactionDate,
+      amount: req.body.amount,
+      description: req.body.description,
+      lines: req.body.lines,
+      userId: req.user?.id,
+      notes: req.body.notes,
+    });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.get("/api/books", requireCooperativeView, (req, res) => {
   try {
     res.json({ books: getCooperativeBooks() });

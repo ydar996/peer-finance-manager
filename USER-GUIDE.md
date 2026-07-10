@@ -75,12 +75,23 @@ After you submit, the Cooperative receives your application automatically. An ad
 **Forms & Documents** tab (admin):
 
 - **Public membership application link** — share **https://peer-finance-manager.netlify.app/c/assurance/apply** (shown in **Forms & Documents** and linked from About Us and Bylaws). Applicants return to the page they started from after submit.
-- **Membership Applications** — each FlexxForms submission creates a **Pending Approval** member profile automatically.
+- **Membership Applications** — each FlexxForms submission creates a **Pending Approval** profile automatically. Those applicants do **not** appear on **Members & Accounts** until an admin approves them (after membership fee, initial deposit, and **Approve Member**).
 - Before you click **Approve Member**, record on that profile:
   1. **Membership fee** ($100) — use **Record** or existing fee workflow.
   2. **Initial contribution** ($100 deposit) — use **Record** to post a deposit for the applicant.
 - When both are recorded, status becomes **Ready for Approval** and **Approve Member** activates the account.
 - **Delete** (test or mistaken submissions): removes the application from the list. If the linked profile is still **Pending Approval** with no deposits, fees, or loans on the ledger, the prospective member profile is removed too. Approved members cannot be deleted here.
+
+### Reclassify or split bank transactions (admin)
+
+On **Members & Accounts**, open a member and expand **Contributions Account** or **Loan Account** history. Each deposit, contribution, or loan repayment row has a **Category** dropdown (admin only).
+
+- **Reclassify:** change the dropdown (e.g. Member Deposit → Loan Repayment). Confirm the prompt. The Cooperative rebuilds the ledger from the server reference file plus saved adjustments; balances update immediately.
+- **Split:** click **Split** on a single inflow (e.g. $560.20 = $460.20 loan + $100 contribution). Enter lines that total the original amount. Save.
+
+After either action, download **Download Csv Ledger** or **Download Xlsx Ledger** from the green prompt (or Import → Full Ledger Refresh) and replace your local `cooperative-bank-ledger-reference` file so a future **Full Ledger Refresh** stays aligned.
+
+Adjustments are stored per Cooperative and survive **Full Ledger Refresh** from master ledger uploads.
 
 ### Import bank activity (admin)
 
@@ -142,6 +153,15 @@ Re-uploading the same statement adds nothing (duplicates are skipped automatical
 ```powershell
 node peer-finance-manager/scripts/restore-ledger-production.js --org <slug> --ledger <path-to-master.xlsx> [--stmt <path-to-statement.csv>]
 ```
+
+**Assurance:** do not use `--stmt` if you already corrected types in your reference file. Build reference with July (Saheed $500 = Loan Repayment):
+
+```powershell
+node peer-finance-manager/scripts/build-assurance-reference-with-july.js
+node peer-finance-manager/scripts/restore-assurance-ledger-production.js
+```
+
+Edit `data\cooperative-bank-ledger-reference.xlsx` before restore if you need to change Narrative or Ledger Type. Import New Bank Activity alone cannot fix a row already in the ledger (it shows as Skipped).
 
 ---
 

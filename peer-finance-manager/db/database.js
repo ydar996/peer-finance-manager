@@ -119,6 +119,10 @@ function openOrgDatabase(orgSlug) {
   applyProfileMigrations(database);
   applyBankImportMigrations(database);
   try {
+    const { ensureLedgerAdjustmentSchema } = require("../lib/ledger-adjustment-service");
+    ensureLedgerAdjustmentSchema(database);
+  } catch (_) {}
+  try {
     const { seedDefaultAliasesIfEmpty } = require("../lib/member-payment-alias-service");
     seedDefaultAliasesIfEmpty(database);
   } catch (_) {}

@@ -162,6 +162,31 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE INDEX IF NOT EXISTS idx_transactions_member ON transactions(member_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transaction_date);
 
+CREATE TABLE IF NOT EXISTS ledger_adjustments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ledger_key TEXT NOT NULL UNIQUE,
+  transaction_date TEXT NOT NULL,
+  original_amount REAL NOT NULL,
+  description TEXT,
+  adjustment_kind TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  created_by_user_id INTEGER,
+  notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS ledger_adjustment_lines (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  adjustment_id INTEGER NOT NULL,
+  line_order INTEGER NOT NULL,
+  ledger_type TEXT NOT NULL,
+  member_name TEXT,
+  amount REAL NOT NULL,
+  description_note TEXT,
+  FOREIGN KEY (adjustment_id) REFERENCES ledger_adjustments(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_ledger_adjustments_date ON ledger_adjustments(transaction_date);
+
 CREATE TABLE IF NOT EXISTS bank_accounts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   account_label TEXT NOT NULL,

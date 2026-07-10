@@ -1948,6 +1948,217 @@ function formatTxType(type) {
   return labels[type] || String(type || "").replace(/_/g, " ");
 }
 
+const LEDGER_RECLASSIFY_TYPES = [
+  { value: "deposit", label: "Member Deposit" },
+  { value: "loan_repayment", label: "Loan Repayment" },
+  { value: "membership_fee", label: "Registration Fee" },
+  { value: "withdrawal", label: "Member Withdrawal" },
+  { value: "distribution", label: "Distribution" },
+];
+
+const LEDGER_ADJUSTABLE_TYPES = new Set(LEDGER_RECLASSIFY_TYPES.map((t) => t.value));
+
+function adminCanEditLedgerRows() {
+  return currentUser?.role === "admin";
+}
+
+function ledgerReclassifyOptionsHtml(currentType) {
+  return LEDGER_RECLASSIFY_TYPES.map(
+    (t) =>
+      `<option value="${escapeHtml(t.value)}"${t.value === currentType ? " selected" : ""}>${escapeHtml(t.label)}</option>`
+  ).join("");
+}
+
+function ledgerTxControlCellHtml(tx, memberId) {
+  if (!adminCanEditLedgerRows()) return "";
+  if (!LEDGER_ADJUSTABLE_TYPES.has(tx.type)) {
+    return '<td class="subtle">:</td>';
+  }
+  const amount = Number(tx.amount) || 0;
+  return `<td class="ledger-tx-controls">
+    <label class="subtle ledger-tx-label">Category</label>
+    <select class="ledger-tx-type"
+      data-tx-date="${escapeHtml(tx.transaction_date)}"
+      data-tx-amount="${amount}"
+      data-tx-description="${escapeHtml(tx.description || "")}"
+      data-tx-type="${escapeHtml(tx.type)}"
+      data-member-id="${memberId || ""}"
+      aria-label="Reclassify transaction category">
+      ${ledgerReclassifyOptionsHtml(tx.type)}
+    </select>
+    <button type="button" class="btn ledger-tx-split-btn"
+      data-tx-date="${escapeHtml(tx.transaction_date)}"
+      data-tx-amount="${amount}"
+      data-tx-description="${escapeHtml(tx.description || "")}"
+      data-tx-type="${escapeHtml(tx.type)}"
+      data-member-id="${memberId || ""}">Split</button>
+  </td>`;
+}
+
+function ledgerAdjustmentDownloadPromptHtml(result) {
+  const balance =
+    result?.afterBalance != null
+      ? fmt.format(result.afterBalance)
+      : result?.beforeBalance != null
+        ? fmt.format(result.beforeBalance)
+        : null;
+  return `
+    <div class="ledger-adjustment-prompt status ok">
+      <p><strong>Ledger Updated.</strong> Balances were recomputed from your reference ledger plus saved adjustments.</p>
+      ${balance ? `<p>Ending bank balance: <strong>${balance}</strong></p>` : ""}
+      <p>Download the updated reference file and replace your local <strong>cooperative-bank-ledger-reference.csv</strong> or <strong>.xlsx</strong> so future Full Ledger Refresh stays aligned.</p>
+      <p>
+        <button type="button" class="btn" id="ledgerAdjDownloadCsv">Download Csv Ledger</button>
+        <button type="button" class="btn" id="ledgerAdjDownloadXlsx">Download Xlsx Ledger</button>
+      </p>
+    </div>`;
+}
+
+function showLedgerAdjustmentPrompt(result) {
+  const host = $("#ledgerAdjustmentPrompt");
+  if (!host) return;
+  host.innerHTML = ledgerAdjustmentDownloadPromptHtml(result);
+  host.classList.remove("hidden");
+}
+
+async function submitLedgerReclassify(selectEl) {
+  const memberId = Number(selectEl.dataset.memberId) || null;
+  const newType = selectEl.value;
+  const oldType = selectEl.dataset.txType;
+  if (newType === oldType) return;
+  if (
+    !confirm(
+      `Reclassify this ${formatTxType(oldType)} entry as ${formatTxType(newType)}?\n\nThe Cooperative ledger will rebuild and balances will update.`
+    )
+  ) {
+    selectEl.value = oldType;
+    return;
+  }
+  selectEl.disabled = true;
+  try {
+    const res = await fetch("/api/ledger-adjustments/reclassify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        transactionDate: selectEl.dataset.txDate,
+        amount: Number(selectEl.dataset.txAmount),
+        description: selectEl.dataset.txDescription,
+        ledgerType: newType,
+        memberId,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Reclassification failed");
+    showLedgerAdjustmentPrompt(data);
+    if (memberId) await showProfile(memberId);
+    loadMembers();
+  } catch (err) {
+    alert(err.message);
+    selectEl.value = oldType;
+  } finally {
+    selectEl.disabled = false;
+  }
+}
+
+let ledgerSplitContext = null;
+
+function openLedgerSplitModal(ctx) {
+  ledgerSplitContext = ctx;
+  const modal = $("#ledgerSplitModal");
+  const body = $("#ledgerSplitModalBody");
+  const status = $("#ledgerSplitModalStatus");
+  if (!modal || !body) return;
+  const total = Math.abs(Number(ctx.amount) || 0);
+  body.innerHTML = `
+    <p class="subtle">Original amount: <strong>${fmt.format(total)}</strong> on ${escapeHtml(formatDate(ctx.date))}</p>
+    <p class="subtle">${escapeHtml(ctx.description || "")}</p>
+    <div class="ledger-split-lines" id="ledgerSplitLines">
+      ${ledgerSplitLineHtml({ ledgerType: ctx.type, amount: total, memberId: ctx.memberId }, 0)}
+      ${ledgerSplitLineHtml({ ledgerType: "deposit", amount: "", memberId: ctx.memberId }, 1)}
+    </div>
+    <button type="button" class="btn" id="ledgerSplitAddLine">Add Line</button>`;
+  if (status) {
+    status.textContent = "";
+    status.className = "status";
+  }
+  modal.classList.remove("hidden");
+}
+
+function ledgerSplitMemberOptions(selectedMemberId) {
+  const names = membersListCache.map((m) => ({
+    id: m.id,
+    label: m.display_name || m.name,
+    ledgerName: m.name,
+  }));
+  return names
+    .map(
+      (m) =>
+        `<option value="${m.id}"${Number(selectedMemberId) === m.id ? " selected" : ""}>${escapeHtml(m.label)}</option>`
+    )
+    .join("");
+}
+
+function ledgerSplitLineHtml(line, index) {
+  return `<div class="ledger-split-line" data-line-index="${index}">
+    <label>Line ${index + 1}
+      <select class="ledger-split-type">${ledgerReclassifyOptionsHtml(line.ledgerType || "deposit")}</select>
+    </label>
+    <label>Member
+      <select class="ledger-split-member">
+        <option value="">Select Member</option>
+        ${ledgerSplitMemberOptions(line.memberId)}
+      </select>
+    </label>
+    <label>Amount
+      <input type="number" class="ledger-split-amount" min="0.01" step="0.01" value="${line.amount ?? ""}" />
+    </label>
+    <label>Note (optional)
+      <input type="text" class="ledger-split-note" value="${escapeHtml(line.descriptionNote || "")}" />
+    </label>
+  </div>`;
+}
+
+function collectLedgerSplitLines() {
+  const lines = [];
+  document.querySelectorAll("#ledgerSplitLines .ledger-split-line").forEach((row) => {
+    lines.push({
+      ledgerType: row.querySelector(".ledger-split-type")?.value,
+      memberId: Number(row.querySelector(".ledger-split-member")?.value) || null,
+      amount: Number(row.querySelector(".ledger-split-amount")?.value),
+      descriptionNote: row.querySelector(".ledger-split-note")?.value?.trim() || null,
+    });
+  });
+  return lines;
+}
+
+async function submitLedgerSplit() {
+  const ctx = ledgerSplitContext;
+  const status = $("#ledgerSplitModalStatus");
+  if (!ctx) return;
+  const lines = collectLedgerSplitLines();
+  if (status) setFormStatus(status, "Saving split…", true);
+  try {
+    const res = await fetch("/api/ledger-adjustments/split", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        transactionDate: ctx.date,
+        amount: Number(ctx.amount),
+        description: ctx.description,
+        lines,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Split failed");
+    $("#ledgerSplitModal")?.classList.add("hidden");
+    showLedgerAdjustmentPrompt(data);
+    if (ctx.memberId) await showProfile(ctx.memberId);
+    loadMembers();
+  } catch (err) {
+    if (status) setFormStatus(status, err.message, false);
+  }
+}
+
 const MONTH_LABELS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -2029,10 +2240,12 @@ function sortRepaymentsChronological(repayments) {
   });
 }
 
-function loanRepaymentRowsWithBalance(lot) {
+function loanRepaymentRowsWithBalance(lot, loanTransactions) {
+  const txById = new Map((loanTransactions || []).map((tx) => [Number(tx.id), tx]));
   let cumulative = 0;
   const rows = sortRepaymentsChronological(lot.repayments).map((payment) => {
     cumulative = Math.round((cumulative + (Number(payment.amount) || 0)) * 100) / 100;
+    const sourceTx = payment.transactionId ? txById.get(Number(payment.transactionId)) : null;
     return {
       date: payment.date,
       amount: Number(payment.amount) || 0,
@@ -2041,6 +2254,9 @@ function loanRepaymentRowsWithBalance(lot) {
           ? payment.balanceAfter
           : principalOutstandingAfterCollectedClient(lot, cumulative),
       description: payment.description || "",
+      transactionId: payment.transactionId,
+      type: sourceTx?.type || "loan_repayment",
+      transaction_date: sourceTx?.transaction_date || payment.date,
     };
   });
   return [...rows].reverse();
@@ -2083,34 +2299,42 @@ function computeInterestFromScheduleClient(collected, installments) {
   return { principalRepaid: Math.round(principalRepaid * 100) / 100 };
 }
 
-function loanRepaymentTableHtml(lot) {
-  const rows = loanRepaymentRowsWithBalance(lot);
+function loanRepaymentTableHtml(lot, memberId, loanTransactions) {
+  const rows = loanRepaymentRowsWithBalance(lot, loanTransactions);
+  const adminCols = adminCanEditLedgerRows();
   if (!rows.length) {
     return `
     <div class="table-wrap compact">
       <table>
-        <thead><tr><th>Date</th><th>Amount</th><th>Balance</th><th>Description</th></tr></thead>
-        <tbody><tr><td colspan="4" class="subtle">No Repayments</td></tr></tbody>
+        <thead><tr><th>Date</th><th>Amount</th><th>Balance</th><th>Description</th>${adminCols ? "<th>Category</th>" : ""}</tr></thead>
+        <tbody><tr><td colspan="${adminCols ? 5 : 4}" class="subtle">No Repayments</td></tr></tbody>
       </table>
     </div>`;
   }
   const body = rows
-    .map(
-      (row) => `
+    .map((row) => {
+      const tx = {
+        type: row.type,
+        transaction_date: row.transaction_date,
+        amount: row.amount,
+        description: row.description,
+      };
+      return `
         <tr>
           <td>${formatDate(row.date)}</td>
           <td class="money">${fmt.format(row.amount)}</td>
           <td class="money">${fmt.format(row.balance)}</td>
           <td>${escapeHtml(row.description)}</td>
-        </tr>`
-    )
+          ${ledgerTxControlCellHtml(tx, memberId)}
+        </tr>`;
+    })
     .join("");
   return `
     <h5 class="loan-repayments-title">Actual Repayments</h5>
     <p class="subtle loan-repayments-hint">Most recent payment first. Balance is principal still owed after each payment.</p>
     <div class="table-wrap compact">
       <table>
-        <thead><tr><th>Date</th><th>Amount</th><th>Balance</th><th>Description</th></tr></thead>
+        <thead><tr><th>Date</th><th>Amount</th><th>Balance</th><th>Description</th>${adminCols ? "<th>Category</th>" : ""}</tr></thead>
         <tbody>${body}</tbody>
       </table>
     </div>`;
@@ -2166,9 +2390,11 @@ function accountActivityTableRows(rows, { memberPortal = false, formatDates = fa
     .join("");
 }
 
-function depositTxTableRows(transactions) {
+function depositTxTableRows(transactions, memberId) {
+  const adminCols = adminCanEditLedgerRows();
+  const colSpan = adminCols ? 6 : 5;
   if (!transactions?.length) {
-    return '<tr><td colspan="5" class="subtle">No Transactions</td></tr>';
+    return `<tr><td colspan="${colSpan}" class="subtle">No Transactions</td></tr>`;
   }
   return transactions
     .map(
@@ -2179,9 +2405,24 @@ function depositTxTableRows(transactions) {
       <td class="money">${fmt.format(t.amount)}</td>
       <td class="money">${fmt.format(t.balance_after ?? 0)}</td>
       <td>${escapeHtml(t.description || "")}</td>
+      ${ledgerTxControlCellHtml(t, memberId)}
     </tr>`
     )
     .join("");
+}
+
+function depositActivityPanelHtml(p, memberId) {
+  const txCount = p.deposit_transactions?.length || 0;
+  const adminCols = adminCanEditLedgerRows();
+  return `
+    <h4 class="section-title">Contributions Account Activity</h4>
+    <p class="subtle">Balance ${fmt.format(p.deposit_account_balance || 0)} · ${txCount} transaction${txCount === 1 ? "" : "s"} on record</p>
+    <div class="table-wrap compact">
+      <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th>${adminCols ? "<th>Category</th>" : ""}</tr></thead>
+        <tbody>${depositTxTableRows(p.deposit_transactions, memberId)}</tbody>
+      </table>
+    </div>`;
 }
 
 function txTableRows(transactions) {
@@ -2201,19 +2442,6 @@ function txTableRows(transactions) {
     .join("");
 }
 
-function depositActivityPanelHtml(p) {
-  const txCount = p.deposit_transactions?.length || 0;
-  return `
-    <h4 class="section-title">Contributions Account Activity</h4>
-    <p class="subtle">Balance ${fmt.format(p.deposit_account_balance || 0)} · ${txCount} transaction${txCount === 1 ? "" : "s"} on record</p>
-    <div class="table-wrap compact">
-      <table>
-        <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th></tr></thead>
-        <tbody>${depositTxTableRows(p.deposit_transactions)}</tbody>
-      </table>
-    </div>`;
-}
-
 function loanActivityPanelHtml(p, memberId) {
   const hasLots = p.loan_lots?.length > 0;
   return `
@@ -2221,7 +2449,7 @@ function loanActivityPanelHtml(p, memberId) {
     <p class="subtle">Outstanding ${fmt.format(p.loan_account_balance || 0)} · ${loanAccountSubtitle(p)}</p>
     ${
       hasLots
-        ? loanLotsSectionHtml(p.loan_lots, p.member_id || memberId)
+        ? loanLotsSectionHtml(p.loan_lots, p.member_id || memberId, p.loan_transactions)
         : `<div class="table-wrap compact">
       <table>
         <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Description</th></tr></thead>
@@ -2377,7 +2605,7 @@ function loanLotSummaryLine(lot) {
   return `Disbursed ${formatDate(lot.disbursementDate)} · Principal ${fmt.format(lot.principal)} · Repaid ${fmt.format(lot.collected)} · Interest earned ${fmt.format(lot.interestIncome || 0)}${lot.scheduledTotalInterest != null ? ` of ${fmt.format(lot.scheduledTotalInterest)} scheduled` : ""} · Outstanding ${fmt.format(lot.outstanding)}`;
 }
 
-function loanLotCardHtml(lot, memberId) {
+function loanLotCardHtml(lot, memberId, loanTransactions) {
   const isPaid = lot.status === "paid";
   const noteLine = lot.principalNote
     ? `<p class="subtle">${escapeHtml(lot.principalNote)}</p>`
@@ -2397,16 +2625,16 @@ function loanLotCardHtml(lot, memberId) {
           ${noteLine}
           ${lot.disbursementDescription ? `<p class="subtle">Disbursement: ${escapeHtml(lot.disbursementDescription)}</p>` : ""}
           ${loanScheduleHtml(lot)}
-          ${loanRepaymentTableHtml(lot)}
+          ${loanRepaymentTableHtml(lot, memberId, loanTransactions)}
         </div>
       </details>`;
 }
 
-function loanLotsSectionHtml(lots, memberId) {
+function loanLotsSectionHtml(lots, memberId, loanTransactions) {
   if (!lots?.length) {
     return '<p class="subtle">No Loan Activity Recorded.</p>';
   }
-  return lots.map((lot) => loanLotCardHtml(lot, memberId)).join("");
+  return lots.map((lot) => loanLotCardHtml(lot, memberId, loanTransactions)).join("");
 }
 
 async function showProfile(memberId) {
@@ -2455,6 +2683,8 @@ async function showProfile(memberId) {
         </div>
       </div>
 
+      <div id="ledgerAdjustmentPrompt" class="ledger-adjustment-prompt-wrap hidden"></div>
+
       <div class="account-cards">
         <button type="button" class="account-card deposit" data-account-panel="deposit" aria-expanded="false">
           <h4>Contributions Account</h4>
@@ -2472,7 +2702,7 @@ async function showProfile(memberId) {
       </div>
 
       <div id="memberAccountDetail" class="account-detail-wrap hidden">
-        <div data-account-panel-body="deposit">${depositActivityPanelHtml(p)}</div>
+        <div data-account-panel-body="deposit">${depositActivityPanelHtml(p, memberId)}</div>
         <div data-account-panel-body="loan" class="hidden">${loanActivityPanelHtml(p, memberId)}</div>
       </div>
 
@@ -7287,6 +7517,47 @@ $("#loadMembershipApplyBtn")?.addEventListener("click", async () => {
     setFormStatus(status, "", true);
   } catch (err) {
     setFormStatus(status, err.message, false);
+  }
+});
+
+document.addEventListener("change", (e) => {
+  if (e.target?.classList?.contains("ledger-tx-type")) {
+    submitLedgerReclassify(e.target);
+  }
+});
+
+document.addEventListener("click", (e) => {
+  const splitBtn = e.target?.closest?.(".ledger-tx-split-btn");
+  if (splitBtn) {
+    openLedgerSplitModal({
+      date: splitBtn.dataset.txDate,
+      amount: Number(splitBtn.dataset.txAmount),
+      description: splitBtn.dataset.txDescription,
+      type: splitBtn.dataset.txType,
+      memberId: Number(splitBtn.dataset.memberId) || null,
+    });
+    return;
+  }
+  if (e.target?.id === "ledgerSplitAddLine") {
+    const host = $("#ledgerSplitLines");
+    const count = host?.querySelectorAll(".ledger-split-line").length || 0;
+    host?.insertAdjacentHTML("beforeend", ledgerSplitLineHtml({ ledgerType: "deposit" }, count));
+    return;
+  }
+  if (e.target?.id === "ledgerSplitCancel") {
+    $("#ledgerSplitModal")?.classList.add("hidden");
+    return;
+  }
+  if (e.target?.id === "ledgerSplitSave") {
+    submitLedgerSplit();
+    return;
+  }
+  if (e.target?.id === "ledgerAdjDownloadCsv") {
+    downloadBankLedgerReference(e.target, "csv");
+    return;
+  }
+  if (e.target?.id === "ledgerAdjDownloadXlsx") {
+    downloadBankLedgerReference(e.target, "xlsx");
   }
 });
 
