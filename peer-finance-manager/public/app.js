@@ -4543,6 +4543,8 @@ function rebucketBankAppendPreviewClient() {
   };
   updateApplyBankAppendButton();
 }
+
+function bankAppendTypeSelectHtml(row) {
   const options = BANK_APPEND_LEDGER_TYPES.map(
     (t) =>
       `<option value="${escapeHtml(t.value)}"${t.value === row.ledgerType ? " selected" : ""}>${escapeHtml(t.label)}</option>`
@@ -7606,7 +7608,41 @@ document.addEventListener("click", (e) => {
   }
 });
 
+function initLoginFromUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const org = params.get("organizationSlug") || params.get("org");
+  const identifier = params.get("identifier") || params.get("username") || params.get("email");
+  const hadSensitive = params.has("password");
+  if (org) rememberOrgSlug(org.trim().toLowerCase());
+  if (org || identifier || hadSensitive) {
+    const portal = getPortalFromPath();
+    const form = document.querySelector(`.login-form[data-portal="${portal}"]`);
+    if (form) {
+      if (org) {
+        const orgInput = form.querySelector('[name="organizationSlug"]');
+        if (orgInput) orgInput.value = org.trim().toLowerCase();
+      }
+      if (identifier) {
+        const idInput = form.querySelector('[name="identifier"]');
+        if (idInput) idInput.value = identifier;
+      }
+    }
+    if (hadSensitive || org || identifier) {
+      params.delete("password");
+      params.delete("organizationSlug");
+      params.delete("org");
+      params.delete("identifier");
+      params.delete("username");
+      params.delete("email");
+      const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+      window.history.replaceState({}, "", next);
+    }
+    fillOrgSlugInputs(org?.trim().toLowerCase() || preferredOrgSlug());
+  }
+}
+
 applyAppBranding();
+initLoginFromUrlParams();
 fillOrgSlugInputs();
 initRecordSectionCollapseButtons();
 initCooperativeReportViewer();
