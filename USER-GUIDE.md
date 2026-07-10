@@ -11,10 +11,10 @@
 
 1. Open: **https://peer-finance-manager.netlify.app/member**
 2. Enter:
-   - **Organization code:** `assurance`
-   - **Username:** *(sent to you by the Cooperative)*
-   - **Password:** *(sent to you — temporary)*
-3. Click **Sign In**
+   - **Organization Code:** `assurance`
+   - **Username:** *(from the credentials file your Cooperative sent — not always your email)*
+   - **Password:** *(temporary password from the Cooperative)*
+3. Click **Sign In**. If nothing happens, hard-refresh (**Ctrl+Shift+R**).
 
 **What you can see on My Account:**
 
@@ -51,11 +51,10 @@ After you submit, the Cooperative receives your application automatically. An ad
 
 1. Open: **https://peer-finance-manager.netlify.app/admin**
 2. Enter:
-   - **Organization code:** `assurance`
+   - **Organization Code:** `assurance`
    - **Email:** `yinka@eworkchop.com`
    - **Password:** *(your admin password)*
-
-**Main tabs:**
+3. Click **Sign In**. If nothing happens, hard-refresh (**Ctrl+Shift+R**).
 
 | Tab | What it does |
 |-----|----------------|

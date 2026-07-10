@@ -7644,17 +7644,35 @@ function initLoginFromUrlParams() {
 applyAppBranding();
 initLoginFromUrlParams();
 fillOrgSlugInputs();
-initRecordSectionCollapseButtons();
-initCooperativeReportViewer();
-const applyOrgFromUrl = new URLSearchParams(window.location.search).get("apply");
-if (applyOrgFromUrl && getPortalFromPath() !== "platform" && !isPublicPagePath()) {
-  window.location.replace(
-    `/c/${encodeURIComponent(applyOrgFromUrl.trim().toLowerCase())}/apply`
-  );
-} else if (getPortalFromPath() === "platform") {
-  bootstrapPlatformApp();
-} else if (isPublicPagePath()) {
-  bootstrapPublicApp();
-} else {
-  bootstrapApp();
+
+function bootApplication() {
+  const portal = getPortalFromPath();
+  if (!sessionToken && portal !== "register" && !isPublicPagePath()) {
+    showLoginForPortal(portal);
+  }
+  try {
+    initRecordSectionCollapseButtons();
+    initCooperativeReportViewer();
+    const applyOrgFromUrl = new URLSearchParams(window.location.search).get("apply");
+    if (applyOrgFromUrl && portal !== "platform" && !isPublicPagePath()) {
+      window.location.replace(
+        `/c/${encodeURIComponent(applyOrgFromUrl.trim().toLowerCase())}/apply`
+      );
+      return;
+    }
+    if (portal === "platform") {
+      bootstrapPlatformApp();
+    } else if (isPublicPagePath()) {
+      bootstrapPublicApp();
+    } else {
+      bootstrapApp();
+    }
+  } catch (err) {
+    console.error("PFM boot failed:", err);
+    if (!isPublicPagePath() && portal !== "platform") {
+      showLoginForPortal(portal, err.message || "Unable to start the application.");
+    }
+  }
 }
+
+bootApplication();

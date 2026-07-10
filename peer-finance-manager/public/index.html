@@ -13,7 +13,7 @@
         <p class="subtle org-cooperative-name hidden"></p>
         <h1>Member Portal</h1>
         <p class="subtle org-subtitle">Sign In to View Your Contributions and Loan Accounts</p>
-        <form id="loginFormMember" class="entry-form login-form" data-portal="member">
+        <form id="loginFormMember" class="entry-form login-form" data-portal="member" method="post" action="#">
           <label>Organization Code
             <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. assurance" autocomplete="organization" />
           </label>
@@ -62,7 +62,7 @@
         <p class="subtle org-cooperative-name hidden"></p>
         <h1>Staff Sign In</h1>
         <p class="subtle org-subtitle">Read-Only Cooperative Management Access</p>
-        <form id="loginFormStaff" class="entry-form login-form" data-portal="staff">
+        <form id="loginFormStaff" class="entry-form login-form" data-portal="staff" method="post" action="#">
           <label>Organization Code
             <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. assurance" autocomplete="organization" />
           </label>
@@ -84,7 +84,7 @@
         <p class="subtle org-cooperative-name hidden"></p>
         <h1>Administrator Sign In</h1>
         <p class="subtle org-subtitle">Full Cooperative Management Access</p>
-        <form id="loginFormAdmin" class="entry-form login-form" data-portal="admin">
+        <form id="loginFormAdmin" class="entry-form login-form" data-portal="admin" method="post" action="#">
           <label>Organization Code
             <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. assurance" autocomplete="organization" />
           </label>
@@ -113,7 +113,7 @@
         <p class="brand org-brand">Peer Finance Manager</p>
         <h1>Platform Administration</h1>
         <p class="subtle org-subtitle">Oversee All Cooperatives and Subscriptions</p>
-        <form id="loginFormPlatform" class="entry-form login-form" data-portal="platform">
+        <form id="loginFormPlatform" class="entry-form login-form" data-portal="platform" method="post" action="#">
           <label>Email
             <input type="email" name="identifier" required autocomplete="username" />
           </label>
