@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 9, 2026 (§1B idempotent cumulative bank append)  
+**Last updated:** July 11, 2026 (Bank Reconcile Status — all tenants)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -107,6 +107,9 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-11** — **Bank Reconcile Status (all tenants):** After successful **Import New Bank Activity** or **Full Ledger Refresh**, PFM stores a per-tenant reconcile anchor (statement as-of, ending balance, `bank_import` row count, verified timestamp). **Cooperative Books** shows **Reconciled** / **Out of Sync** / **Not Verified**; `/api/health` includes `ledger.bankReconcile` for ops probes. Drift detection: live row count or balance at anchor date differs from anchor. Regression: `npm run test:bank-reconcile`. Files: `bank-reconcile-service.js`, `import-bank-ledger.js`, `bank-import-append.js`, `cooperative-books.js`, `server.js`, `app.js`, `styles.css`, `test-bank-reconcile-status.js`, `package.json`, `USER-GUIDE.md`. **Production:** `git push`; existing tenants show **Not Verified** until next successful import (no data migration).
+- **2026-07-11** — **Member ledger reclassify/split (all tenants):** **Bank Ledger Rows** panel on Loan Account lists every adjustable row with **Category** + **Split** (same as Contributions Account). Loan rows without lots get controls too. **Loan Disbursement** added to reclassify dropdown. Split uses full bank amount. Files: `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
+- **2026-07-11** — **Schedule-based loan payoff + Coop Admin split only (all tenants):** Loan repayments apply to **principal + scheduled interest** when workbook matches disbursement. Paid loans book **full scheduled interest**. **Split/Reclassify** use full bank deposit; **Amount** column shows **$600** (not an internal slice). Nov 6 row stays one `loan_repayment` until **Coop Admin** saves **Split** in UI. **Loan Repayment Bank Deposits** panel; surplus label **Surplus Pending Split**. `getCoopRoot()` fix; `test-loan-schedule-payoff.js`. Do not use `fix-march-2026-reconciliation.js` for Yomi Nov split. Files: `loan-ledger-service.js`, `loan-details-reference.js`, `paths.js`, `app.js`, `SAHEED-LOAN1-COOP-ADMIN-FIX.md`. **Production:** `git push`.
 - **2026-07-10** — **Apply page mobile landscape signing:** On `/c/{slug}/apply`, hide hero banner; compact topbar; in landscape on short screens hide sticky header/footer so FlexxForms signature pad gets full viewport. Files: `cooperative-public.html`, `cooperative-public.css`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-10** — **Complete USER-GUIDE rewrite:** Full user-friendly guide covering all portals, tabs, workflows, glossary, monthly checklist, reclassify/split, bank import, and troubleshooting. Multi-tenant language; Assurance as example only. Replaces partial guide. Files: `USER-GUIDE.md`.
 - **2026-07-10** — **USER-GUIDE: reclassify/split save workflow:** Expanded § Reclassify or split bank transactions: no table Save button; reclassify saves via confirm on dropdown change; split saves via **Save Split** in modal; post-action download prompt. Files: `USER-GUIDE.md`.
@@ -352,6 +355,21 @@ node peer-finance-manager/scripts/test-bank-append-balance.js --org <slug> --stm
 ```
 
 Asserts alias classification, cumulative re-upload (ledger above statement beginning), ending tie-out when new rows exist, and idempotent re-upload when all rows skipped.
+
+### Bank Reconcile Status (every tenant)
+
+**Purpose:** Catch ledger drift **without** Assurance-only row counts or agent scripts. Each tenant's DB stores the last **verified** bank state after a successful import.
+
+| When anchor is saved | `full_refresh` after **Full Ledger Refresh**; `append` after **Import New Bank Activity** when statement ending ties ledger (including idempotent re-upload with 0 new rows). |
+| Stored in `cooperative_settings` | `bank_reconcile_balance`, `bank_reconcile_as_of`, `bank_reconcile_bank_import_rows`, `bank_reconcile_verified_at`, `bank_reconcile_source`, `bank_reconcile_label` |
+| **Reconciled** | Live `bank_import` row count = anchor count **and** ledger balance through anchor as-of = anchor balance (±$0.02). |
+| **Out of Sync** | Row count or balance at anchor date drifted since last verified import (phantom rows, bad append, manual DB edit, stale restore). |
+| **Not Verified** | No anchor yet (new tenant or pre-feature DB). Clears on next successful import. |
+| Dashboard | Cooperative Books card **Bank Reconcile Status** (amber when out of sync). |
+| Ops | `GET /api/health` → `ledger.bankReconcile` (Assurance probe today; pattern is per-org in books API). |
+| Regression | `npm run test:bank-reconcile` |
+
+**Agent rule:** If status is **Out of Sync**, do **not** claim the ledger is correct. Use standard admin workflow (Full Ledger Refresh + append) or documented restore script; successful import refreshes the anchor.
 
 ### Ops recovery (when append is blocked)
 
@@ -622,7 +640,9 @@ Peer Finance Manager / Assurance Cooperative
 | 4 | ~~**Restore app import file from golden master**~~ | ✅ **Done** 2026-07-09 — Render **457 / $16,241.55**. |
 | 4b | ~~**Fix auto-sync clobber**~~ | ✅ **Done** — xlsx never auto-overwritten; CSV sync cloud-only (§1B). |
 | 4d | ~~**Bank append product mode (all tenants)**~~ | ✅ **Done** 2026-07-09 — opening + ending blocks, Default Type on payment aliases, apply button disabled when blocked, `npm run test:bank-append`. See §1B. **Deploy:** `git push`. |
+| 4f | ~~**Bank Reconcile Status (all tenants)**~~ | ✅ **Done** 2026-07-11 — anchor on successful import; Cooperative Books card + `/api/health`; `npm run test:bank-reconcile`. **Deploy:** `git push`; re-import once per tenant to set anchor. |
 | 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh**. Ops: `restore-ledger-production.js --org <slug>`. |
+| 4e | **Yomi Salami Nov 2025 split (Saheed bank alias)** | **Coop Admin only:** **Split** 11/6 **$600** in UI when ready. System has not saved a split. See [SAHEED-LOAN1-COOP-ADMIN-FIX.md](./SAHEED-LOAN1-COOP-ADMIN-FIX.md). |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
 | 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |

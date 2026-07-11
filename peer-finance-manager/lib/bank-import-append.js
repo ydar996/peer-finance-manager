@@ -482,11 +482,22 @@ function applyBankStatementAppend({
 
   const readyRows = preview.rows.filter((r) => r.bucket === "ready");
   if (!readyRows.length) {
+    const ledgerIdle = getLedgerEndingBalance();
+    const { captureBankReconcileAfterAppend, getBankReconcileStatus } = require(
+      "./bank-reconcile-service"
+    );
+    captureBankReconcileAfterAppend({
+      preview,
+      ledgerEndingBalance: ledgerIdle?.balance ?? null,
+      ledgerEndingAsOf: ledgerIdle?.asOf ?? null,
+      originalName,
+    });
     return {
       ...preview,
       applied: false,
       inserted: 0,
       message: "No new transactions to import.",
+      bankReconcile: getBankReconcileStatus(),
     };
   }
 
@@ -587,6 +598,16 @@ function applyBankStatementAppend({
     message += ` Warning: ledger balance ${ledger.balance} does not match statement ending ${bc.statementEnding}.`;
   }
 
+  const { captureBankReconcileAfterAppend, getBankReconcileStatus } = require(
+    "./bank-reconcile-service"
+  );
+  captureBankReconcileAfterAppend({
+    preview,
+    ledgerEndingBalance: ledger?.balance ?? null,
+    ledgerEndingAsOf: ledger?.asOf ?? null,
+    originalName,
+  });
+
   return {
     ...preview,
     applied: counts.inserted > 0,
@@ -596,6 +617,7 @@ function applyBankStatementAppend({
     archived,
     ledgerEndingBalance: ledger?.balance ?? null,
     message,
+    bankReconcile: getBankReconcileStatus(),
   };
 }
 

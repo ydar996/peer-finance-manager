@@ -17,11 +17,23 @@ function applyPaymentToLot(lot, amount, tx, note) {
   });
 }
 
+function lotCollectionTarget(lot, memberName, references) {
+  if (memberName && references?.length) {
+    const reference = matchLotToReference(lot, memberName, references);
+    if (reference?.scheduledTotalPayable > 0.005) {
+      return reference.scheduledTotalPayable;
+    }
+  }
+  return lot.principal;
+}
+
 /**
  * Build separate loan lots per member.
  * Repayments apply to the newest disbursed loan that is still open as of payment date.
+ * When an agreed schedule exists, payoff includes scheduled interest (principal + interest).
  */
-function buildLoanLotsFromTransactions(transactions) {
+function buildLoanLotsFromTransactions(transactions, { memberName } = {}) {
+  const references = memberName ? getLoanDetailsReference().loans : [];
   const lots = [];
   let paymentBuffer = 0;
 
@@ -40,9 +52,10 @@ function buildLoanLotsFromTransactions(transactions) {
       lots.push(lot);
       if (lots.length > 1) {
         const prior = lots[lots.length - 2];
-        const shortfall = prior.principal - prior.collected;
+        const target = lotCollectionTarget(prior, memberName, references);
+        const shortfall = target - prior.collected;
         if (shortfall > 0.005 && shortfall < 500) {
-          prior.collected = prior.principal;
+          prior.collected = target;
         }
       }
       continue;
@@ -57,13 +70,14 @@ function buildLoanLotsFromTransactions(transactions) {
         .find(
           (l) =>
             l.disbursementDate <= tx.transaction_date &&
-            l.collected < l.principal - 0.005
+            l.collected < lotCollectionTarget(l, memberName, references) - 0.005
         );
       if (!openLot) {
         paymentBuffer += remaining;
         break;
       }
-      const need = openLot.principal - openLot.collected;
+      const need =
+        lotCollectionTarget(openLot, memberName, references) - openLot.collected;
       const applied = Math.min(remaining, need);
       applyPaymentToLot(openLot, applied, tx);
       remaining -= applied;
@@ -81,7 +95,8 @@ function getPortfolioInterestShare() {
   const members = getMembersWithLoanActivity();
   const allLots = members.flatMap((member) => {
     const txs = getMemberLoanTransactions(member.member_id);
-    return buildLoanLotsFromTransactions(txs).lots;
+    const borrower = member.display_name || member.name;
+    return buildLoanLotsFromTransactions(txs, { memberName: borrower }).lots;
   });
 
   cachedPortfolioInterestShare = portfolioInterestShareFromPaidLots(allLots);
@@ -179,6 +194,12 @@ function round2(value) {
 function principalOutstandingAfterCollected(lot, collected) {
   const principal = Number(lot.principal) || 0;
   const paid = Number(collected) || 0;
+  if (
+    lot.scheduledTotalPayable != null &&
+    paid >= lot.scheduledTotalPayable - 0.005
+  ) {
+    return 0;
+  }
   if (paid >= principal - 0.005) return 0;
   if (lot.schedule?.length) {
     const { principalRepaid } = computeInterestFromSchedule(paid, lot.schedule);
@@ -288,7 +309,9 @@ function getMemberLoanLedgerSummary(memberId, { portfolioShare } = {}) {
   }
 
   const borrower = member.display_name || member.name;
-  const { lots, overpaymentCredit } = buildLoanLotsFromTransactions(txs);
+  const { lots, overpaymentCredit } = buildLoanLotsFromTransactions(txs, {
+    memberName: borrower,
+  });
   assignLoanInterestAndBalances(
     lots,
     portfolioShare != null ? portfolioShare : getPortfolioInterestShare(),
@@ -313,7 +336,10 @@ function getAllBankLoanLots({ status } = {}) {
   const members = getMembersWithLoanActivity();
   const lotsByMember = members.map((member) => {
     const txs = getMemberLoanTransactions(member.member_id);
-    const { lots, overpaymentCredit } = buildLoanLotsFromTransactions(txs);
+    const borrower = member.display_name || member.name;
+    const { lots, overpaymentCredit } = buildLoanLotsFromTransactions(txs, {
+      memberName: borrower,
+    });
     return { member, lots, overpaymentCredit };
   });
 

@@ -170,6 +170,7 @@ Click any card to see a detailed table. Common cards:
 | Card | Meaning |
 |------|---------|
 | **Ledger Checking Balance** | Bank balance from imported/manual ledger activity. |
+| **Bank Reconcile Status** | **Reconciled** when live ledger still matches the last successful bank import; **Out of Sync** if row count or balance drifted; **Not Verified** until the first post-deploy import. |
 | **Member Contributions Accounts (Total)** | Sum of all member contribution balances. |
 | **Member Contributions & Withdrawals** | Contributions minus withdrawals (excludes distributions and fees). |
 | **Registration Income** | Membership fees collected. |
@@ -256,7 +257,7 @@ Upload a **cumulative** bank export: **period start through today**. PFM skips r
    - **Red Blocked:** fix the issue before applying (see [When Numbers Look Wrong](#21-when-numbers-look-wrong)).
    - **Green note** (ledger above statement beginning): normal for re-uploads; duplicates will be Skipped.
 7. Click **Add New Transactions**.
-8. Check **Cooperative Books** and affected members.
+8. Check **Cooperative Books** : **Bank Reconcile Status** should show **Reconciled** after a successful import.
 
 **Re-upload the same file anytime.** Duplicates are never added twice.
 
@@ -452,7 +453,11 @@ Manage your Cooperative's **Peer Finance Manager** platform subscription (Stripe
 
 On **Members & Accounts**, open the member → expand **Contributions Account** or **Loan Account**.
 
-There is **no Save Changes button on the table**.
+Every adjustable bank row has a **Category** dropdown and a **Split** button. There is **no Save Changes button on the table**.
+
+**Contributions Account:** Member Deposit, Withdrawal, Distribution, Registration Fee, and cross-classifications (e.g. deposit → Loan Repayment).
+
+**Loan Account:** Use **Bank Ledger Rows (Split or Reclassify)** for full bank amounts, or the per-loan repayment table (same **Split** / **Category** controls). Works the same for every Cooperative and every member.
 
 ### Reclassify (move whole entry to another category)
 
@@ -460,18 +465,18 @@ There is **no Save Changes button on the table**.
 2. Click **OK** on the confirm dialog (or **Cancel** to undo).
 3. Balances update immediately. The row moves to the correct account section.
 
-### Split (part contribution, part loan)
+### Split (part contribution, part loan, or any mix)
 
 1. Click **Split** on the row.
 2. In the **Split Transaction** dialog, set **Category**, **Member**, and **Amount** on each line.
-3. Lines must **total the original amount**.
+3. Lines must **total the original bank amount**.
 4. Click **Save Split**.
 
 ### After reclassify or split
 
-A green **Ledger Updated** banner offers **Download Csv Ledger** / **Download Xlsx Ledger**. Download if you keep a local reference file for Full Ledger Refresh.
+A green **Ledger Updated** banner offers **Download Csv Ledger** / **Download Xlsx Ledger**. Download if you keep a local reference file for Full Ledger Refresh. Adjustments are saved per tenant and re-applied on every **Full Ledger Refresh**.
 
-**Not adjustable here:** rows showing **:** in Category (non-member ledger types).
+**Not adjustable here:** rows showing **:** in Category (Cooperative-level ledger types, not member bank rows).
 
 ---
 
@@ -482,8 +487,10 @@ A green **Ledger Updated** banner offers **Download Csv Ledger** / **Download Xl
 | **Bank balance wrong after import** | Check preview **Review** rows. Re-upload cumulative stmt; Skipped rows are fine. |
 | **Import blocked (ledger below statement beginning)** | Ledger is missing history. **Full Ledger Refresh** with master file, then import stmt again. |
 | **Import blocked (ending mismatch)** | Fix **Type**/**Member** on **New** rows in preview, or fix base ledger first. |
-| **One member's row wrong** | [Reclassify or split](#20-fix-a-misclassified-bank-entry) on their profile. |
+| **One member's row wrong** | [Reclassify or split](#20-fix-a-misclassified-bank-entry) on **Contributions Account** or **Loan Account** (Bank Ledger Rows). |
+| **Payment covers loan and contribution** | **Split** on the full bank row: set lines and **Save Split** (Coop Admin). |
 | **Whole ledger corrupted** | **Full Ledger Refresh** (master) + **Import New Bank Activity** (current month stmt). |
+| **Bank Reconcile Status: Out of Sync** | Ledger drifted since last verified import. **Full Ledger Refresh** + cumulative stmt import; card should return to **Reconciled**. |
 
 ---
 

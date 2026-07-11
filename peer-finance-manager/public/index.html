@@ -1724,6 +1724,24 @@
         </div>
       </div>
     </div>
+    <div id="appNoticeModal" class="app-notice-modal hidden" role="dialog" aria-modal="true" aria-labelledby="appNoticeTitle">
+      <div class="app-notice-card" id="appNoticeCard">
+        <div class="app-notice-icon" id="appNoticeIcon" aria-hidden="true"></div>
+        <div class="app-notice-content">
+          <h3 id="appNoticeTitle" class="app-notice-title">Notice</h3>
+          <div id="appNoticeMessage" class="app-notice-message"></div>
+          <label id="appNoticeInputWrap" class="app-notice-input-wrap hidden">
+            <span id="appNoticeInputLabel" class="subtle"></span>
+            <input type="text" id="appNoticeInput" class="app-notice-input" />
+          </label>
+        </div>
+        <div class="app-notice-actions">
+          <button type="button" class="btn" id="appNoticeCancel">Cancel</button>
+          <button type="button" class="btn primary" id="appNoticeConfirm">OK</button>
+        </div>
+      </div>
+    </div>
+    <div id="appToastStack" class="app-toast-stack" aria-live="polite" aria-atomic="false"></div>
     <script src="flexxforms-embed.js"></script>
     <script src="app.js"></script>
   </body>

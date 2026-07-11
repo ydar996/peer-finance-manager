@@ -413,11 +413,21 @@ function applyWorkbookInterestToLot(lot, reference, memberName = "") {
   lot.scheduledTotalPayable = reference.scheduledTotalPayable;
   lot.schedule = reference.installments;
 
-  const { interestEarned } = computeInterestFromSchedule(
-    lot.collected,
-    reference.installments
-  );
-  lot.interestIncome = interestEarned;
+  const payoffTarget =
+    reference.scheduledTotalPayable > 0.005
+      ? reference.scheduledTotalPayable
+      : lot.principal;
+  const fullyPaid = lot.collected >= payoffTarget - 0.005;
+
+  if (fullyPaid && reference.totalScheduledInterest > 0.005) {
+    lot.interestIncome = reference.totalScheduledInterest;
+  } else {
+    const { interestEarned } = computeInterestFromSchedule(
+      lot.collected,
+      reference.installments
+    );
+    lot.interestIncome = interestEarned;
+  }
 
   const loanPrincipal = lot.principal;
   const cashPrincipalRepaid = Math.min(
@@ -426,7 +436,7 @@ function applyWorkbookInterestToLot(lot, reference, memberName = "") {
   );
   lot.principalRepaid = cashPrincipalRepaid;
   lot.outstanding = Math.max(0, Math.round((loanPrincipal - cashPrincipalRepaid) * 100) / 100);
-  lot.status = lot.collected >= loanPrincipal - 0.005 ? "paid" : "active";
+  lot.status = fullyPaid || lot.collected >= loanPrincipal - 0.005 ? "paid" : "active";
   if (lot.status === "paid") {
     lot.outstanding = 0;
     lot.principalRepaid = loanPrincipal;

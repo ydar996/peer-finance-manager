@@ -6,6 +6,7 @@ const {
   getCdTermMetrics,
 } = require("./cd-balance-service");
 const { getCheckingBalanceSnapshot } = require("./checking-balance-service");
+const { getBankReconcileStatus } = require("./bank-reconcile-service");
 const { getCooperativeSetting } = require("./cooperative-settings");
 const {
   getLoanPortfolioFromBankLedger,
@@ -282,6 +283,7 @@ function getCooperativeBooks() {
     checkingBalanceAsOf: checkingSnapshot.asOf,
     ledgerCheckingBalance: checkingSnapshot.ledgerBalance,
     ledgerCheckingAsOf: checkingSnapshot.ledgerAsOf,
+    bankReconcile: getBankReconcileStatus(),
     primaryCheckingCurrency: primaryBank?.currency || "USD",
     bankAccounts: bankAccounts.map((a) => ({
       id: a.id,
@@ -332,6 +334,7 @@ const BOOK_DETAIL_SLUGS = {
   expenses: "Cooperative Expenses",
   "cd-balance": "CD Account",
   "checking-balance": "Checking Account",
+  "bank-reconcile": "Bank Reconcile Status",
   "expected-cd-interest": "Expected CD Interest",
   "cd-interest-income": "CD Interest Income",
   "loan-interest-income": "Loan Interest Income",
@@ -625,6 +628,48 @@ function getBookDetail(slug) {
         outstanding: Math.max(0, (row.scheduled || row.principal) - (row.collected || 0)),
         status: row.status,
       })),
+    };
+  }
+
+  if (slug === "bank-reconcile") {
+    const reconcile = getBankReconcileStatus();
+    const rows = [];
+    if (reconcile.anchor) {
+      rows.push({
+        date: reconcile.anchor.asOf,
+        type: "Verified Balance",
+        amount: reconcile.anchor.balance,
+        description: `${reconcile.anchor.bankImportRows} bank import rows · ${reconcile.anchor.source || "import"}`,
+      });
+    }
+    for (const divergence of reconcile.divergences || []) {
+      rows.push({
+        date: reconcile.anchor?.asOf || null,
+        type:
+          divergence.field === "bankImportRows"
+            ? "Row Count Drift"
+            : "Balance Drift",
+        amount: divergence.live,
+        description: `Anchor ${divergence.anchor} · delta ${divergence.delta}`,
+      });
+    }
+    return {
+      slug,
+      title,
+      navigateTab: "import",
+      summary:
+        reconcile.status === "reconciled"
+          ? "Reconciled"
+          : reconcile.status === "out_of_sync"
+            ? "Out of Sync"
+            : "Not Verified",
+      columns: [
+        { key: "date", label: "Date", format: "date" },
+        { key: "type", label: "Type" },
+        { key: "amount", label: "Amount", format: "money" },
+        { key: "description", label: "Description" },
+      ],
+      rows,
     };
   }
 

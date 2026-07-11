@@ -22,6 +22,156 @@ function coopCopy(text) {
     .replace(/\bcooperative\b(?![-])/g, "Cooperative");
 }
 
+const APP_NOTICE_ICONS = {
+  info: "i",
+  success: "✓",
+  warning: "!",
+  danger: "×",
+};
+
+let appNoticeResolver = null;
+
+function formatAppNoticeMessage(message) {
+  return coopCopy(String(message ?? ""));
+}
+
+function setAppNoticeVariant(variant) {
+  const card = $("#appNoticeCard");
+  const icon = $("#appNoticeIcon");
+  if (!card) return;
+  card.className = `app-notice-card variant-${variant}`;
+  if (icon) {
+    icon.textContent = APP_NOTICE_ICONS[variant] || APP_NOTICE_ICONS.info;
+    icon.classList.remove("hidden");
+  }
+}
+
+function closeAppNotice(result) {
+  $("#appNoticeModal")?.classList.add("hidden");
+  const input = $("#appNoticeInput");
+  if (input) input.value = "";
+  const resolve = appNoticeResolver;
+  appNoticeResolver = null;
+  if (resolve) resolve(result);
+}
+
+function openAppNotice({
+  title = "Notice",
+  message = "",
+  variant = "info",
+  confirmLabel = "OK",
+  cancelLabel = "Cancel",
+  showCancel = false,
+  input = false,
+  inputLabel = "",
+  inputDefault = "",
+  inputType = "text",
+} = {}) {
+  return new Promise((resolve) => {
+    const modal = $("#appNoticeModal");
+    const titleEl = $("#appNoticeTitle");
+    const messageEl = $("#appNoticeMessage");
+    const confirmBtn = $("#appNoticeConfirm");
+    const cancelBtn = $("#appNoticeCancel");
+    const inputWrap = $("#appNoticeInputWrap");
+    const inputLabelEl = $("#appNoticeInputLabel");
+    const inputEl = $("#appNoticeInput");
+    if (!modal || !titleEl || !messageEl || !confirmBtn || !cancelBtn) {
+      resolve(showCancel ? false : undefined);
+      return;
+    }
+    appNoticeResolver = resolve;
+    setAppNoticeVariant(variant);
+    titleEl.textContent = coopCopy(title);
+    messageEl.textContent = formatAppNoticeMessage(message);
+    confirmBtn.textContent = coopCopy(confirmLabel);
+    cancelBtn.textContent = coopCopy(cancelLabel);
+    cancelBtn.classList.toggle("hidden", !showCancel);
+    if (inputWrap && inputEl) {
+      inputWrap.classList.toggle("hidden", !input);
+      if (inputLabelEl) inputLabelEl.textContent = coopCopy(inputLabel || "");
+      inputEl.type = inputType;
+      inputEl.value = inputDefault ?? "";
+    }
+    modal.classList.remove("hidden");
+    (input && inputEl ? inputEl : confirmBtn).focus();
+    if (input && inputEl) inputEl.select();
+  });
+}
+
+function appAlert(message, { title = "Notice", variant = "info" } = {}) {
+  return openAppNotice({ title, message, variant, confirmLabel: "OK", showCancel: false });
+}
+
+function appConfirm(message, { title = "Confirm", variant = "warning", confirmLabel = "Confirm", cancelLabel = "Cancel" } = {}) {
+  return openAppNotice({
+    title,
+    message,
+    variant,
+    confirmLabel,
+    cancelLabel,
+    showCancel: true,
+  }).then((ok) => Boolean(ok));
+}
+
+function appPrompt(message, { title = "Input", variant = "info", label = "", defaultValue = "", confirmLabel = "OK", cancelLabel = "Cancel" } = {}) {
+  return openAppNotice({
+    title,
+    message,
+    variant,
+    confirmLabel,
+    cancelLabel,
+    showCancel: true,
+    input: true,
+    inputLabel: label || message,
+    inputDefault: defaultValue,
+  }).then((value) => (value === false ? null : value));
+}
+
+function appToast(message, { title = "", variant = "info", durationMs = 5200 } = {}) {
+  const stack = $("#appToastStack");
+  if (!stack) return;
+  const toast = document.createElement("div");
+  toast.className = `app-toast variant-${variant}`;
+  toast.innerHTML = `
+    <div class="app-toast-icon" aria-hidden="true">${escapeHtml(APP_NOTICE_ICONS[variant] || APP_NOTICE_ICONS.info)}</div>
+    <div class="app-toast-body">
+      ${title ? `<p class="app-toast-title">${escapeHtml(coopCopy(title))}</p>` : ""}
+      <p class="app-toast-message">${escapeHtml(formatAppNoticeMessage(message))}</p>
+    </div>
+    <button type="button" class="app-toast-close" aria-label="Dismiss">×</button>`;
+  const dismiss = () => {
+    toast.remove();
+  };
+  toast.querySelector(".app-toast-close")?.addEventListener("click", dismiss);
+  stack.appendChild(toast);
+  if (durationMs > 0) setTimeout(dismiss, durationMs);
+}
+
+function initAppNoticeModal() {
+  $("#appNoticeConfirm")?.addEventListener("click", () => {
+    const inputWrap = $("#appNoticeInputWrap");
+    const inputEl = $("#appNoticeInput");
+    const withInput = inputWrap && !inputWrap.classList.contains("hidden") && inputEl;
+    closeAppNotice(withInput ? inputEl.value : true);
+  });
+  $("#appNoticeCancel")?.addEventListener("click", () => closeAppNotice(false));
+  $("#appNoticeModal")?.addEventListener("click", (e) => {
+    if (e.target?.id === "appNoticeModal") closeAppNotice(false);
+  });
+  $("#appNoticeInput")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      closeAppNotice(e.target.value);
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    const modal = $("#appNoticeModal");
+    if (!modal || modal.classList.contains("hidden")) return;
+    if (e.key === "Escape") closeAppNotice(false);
+  });
+}
+
 const TIMEZONE_SELECT_PRIORITY = [
   "America/Los_Angeles",
   "America/Denver",
@@ -567,7 +717,11 @@ async function loadPlatformOrganizations() {
 async function platformOrgAction(action, slug) {
   const statusEl = $("#platformOrgsStatus");
   if (action === "extend-grace") {
-    const daysStr = prompt(`Extend subscription grace for ${slug} by how many days?`, "15");
+    const daysStr = await appPrompt("", {
+      title: `Extend Grace: ${slug}`,
+      label: "How many days should grace be extended?",
+      defaultValue: "15",
+    });
     if (daysStr === null) return;
     const days = Number(daysStr);
     if (!Number.isFinite(days) || days < 1) {
@@ -591,9 +745,17 @@ async function platformOrgAction(action, slug) {
   }
   const notes =
     action === "cancel"
-      ? prompt(`Cancel subscription for ${slug}? Optional note:`) ?? undefined
+      ? await appPrompt("", {
+          title: `Cancel Subscription: ${slug}`,
+          label: "Optional note",
+          defaultValue: "",
+        })
       : action === "grant-legacy"
-        ? prompt(`Grant legacy active subscription for ${slug}? Optional note:`) ?? undefined
+        ? await appPrompt("", {
+            title: `Grant Legacy Subscription: ${slug}`,
+            label: "Optional note",
+            defaultValue: "",
+          })
         : undefined;
   if (action === "cancel" && notes === null) return;
   if (action === "grant-legacy" && notes === null) return;
@@ -733,7 +895,13 @@ async function openStripeBillingPortal() {
 
 async function requestTenantCheckPayment() {
   const statusEl = $("#platformSubscriptionStatus");
-  const notes = prompt("Optional note for the platform administrator (e.g. check mailed today):") || "";
+  const prompted = await appPrompt("", {
+    title: "Check Payment Request",
+    label: "Optional note for the platform administrator (e.g. check mailed today)",
+    defaultValue: "",
+  });
+  if (prompted === null) return;
+  const notes = prompted || "";
   try {
     const res = await fetch("/api/billing/check-request", {
       method: "POST",
@@ -958,7 +1126,7 @@ async function loadMyAccount() {
         );
         const [year, month] = String(monthSelectEl?.value || "").split("-").map(Number);
         downloadLoanStatement(btn.dataset.memberId, loanNumber, btn, { year, month }).catch((err) =>
-          alert(err.message)
+          void appAlert(err.message, { title: "Error", variant: "danger" })
         );
       });
     });
@@ -1123,13 +1291,40 @@ function formatDetailCell(value, format) {
   return escapeHtml(value ?? "");
 }
 
-function bookCardHtml(slug, { accent, label, amount, note }) {
+function bookCardHtml(slug, { accent, warn, label, amount, note }) {
+  const variantClass = warn ? " reconcile-warn" : accent ? " accent" : "";
   return `
-    <button type="button" class="book-card${accent ? " accent" : ""}" data-book-slug="${slug}">
+    <button type="button" class="book-card${variantClass}" data-book-slug="${slug}">
       <p class="book-label">${label}</p>
       <p class="book-amount${typeof amount === "number" ? " money" : ""}">${typeof amount === "number" ? fmt.format(amount) : escapeHtml(amount)}</p>
       ${note ? `<p class="book-note">${note}</p>` : ""}
     </button>`;
+}
+
+function bankReconcileCardNote(reconcile) {
+  if (!reconcile) return "Run Import New Bank Activity or Full Ledger Refresh to verify";
+  if (reconcile.status === "not_set") {
+    return "No verified anchor yet. Import bank activity to record one.";
+  }
+  const anchor = reconcile.anchor;
+  const parts = [
+    anchor?.asOf ? `Verified through ${formatDate(anchor.asOf)}` : null,
+    anchor?.balance != null ? fmt.format(anchor.balance) : null,
+    anchor?.bankImportRows != null ? `${anchor.bankImportRows} bank rows` : null,
+  ].filter(Boolean);
+  if (reconcile.status === "out_of_sync" && reconcile.divergences?.length) {
+    const hints = reconcile.divergences.map((d) => {
+      if (d.field === "bankImportRows") {
+        return `${d.live} rows now (was ${d.anchor})`;
+      }
+      if (d.field === "balanceAtAnchor") {
+        return `balance ${fmt.format(d.live)} vs ${fmt.format(d.anchor)} on ${formatDate(d.asOf)}`;
+      }
+      return null;
+    }).filter(Boolean);
+    if (hints.length) parts.push(hints.join(" · "));
+  }
+  return parts.join(" · ") || "Verified against last successful bank import";
 }
 
 function dashboardCardHtml(slug, { accent, label, amount, note }) {
@@ -1499,6 +1694,20 @@ async function loadBooks() {
             ]
               .filter(Boolean)
               .join(" · ") || "Primary checking account",
+          })
+        : "",
+      books.bankReconcile
+        ? bookCardHtml("bank-reconcile", {
+            accent: books.bankReconcile.status === "reconciled",
+            warn: books.bankReconcile.status === "out_of_sync",
+            label: "Bank Reconcile Status",
+            amount:
+              books.bankReconcile.status === "reconciled"
+                ? "Reconciled"
+                : books.bankReconcile.status === "out_of_sync"
+                  ? "Out of Sync"
+                  : "Not Verified",
+            note: bankReconcileCardNote(books.bankReconcile),
           })
         : "",
       books.cdBalance != null
@@ -1951,6 +2160,7 @@ function formatTxType(type) {
 const LEDGER_RECLASSIFY_TYPES = [
   { value: "deposit", label: "Member Deposit" },
   { value: "loan_repayment", label: "Loan Repayment" },
+  { value: "loan_disbursement", label: "Loan Disbursement" },
   { value: "membership_fee", label: "Registration Fee" },
   { value: "withdrawal", label: "Member Withdrawal" },
   { value: "distribution", label: "Distribution" },
@@ -2027,9 +2237,10 @@ async function submitLedgerReclassify(selectEl) {
   const oldType = selectEl.dataset.txType;
   if (newType === oldType) return;
   if (
-    !confirm(
-      `Reclassify this ${formatTxType(oldType)} entry as ${formatTxType(newType)}?\n\nThe Cooperative ledger will rebuild and balances will update.`
-    )
+    !(await appConfirm(
+      `Reclassify this ${formatTxType(oldType)} entry as ${formatTxType(newType)}?\n\nThe Cooperative ledger will rebuild and balances will update.`,
+      { title: "Reclassify Transaction", variant: "warning", confirmLabel: "Reclassify" }
+    ))
   ) {
     selectEl.value = oldType;
     return;
@@ -2053,7 +2264,7 @@ async function submitLedgerReclassify(selectEl) {
     if (memberId) await showProfile(memberId);
     loadMembers();
   } catch (err) {
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
     selectEl.value = oldType;
   } finally {
     selectEl.disabled = false;
@@ -2246,9 +2457,11 @@ function loanRepaymentRowsWithBalance(lot, loanTransactions) {
   const rows = sortRepaymentsChronological(lot.repayments).map((payment) => {
     cumulative = Math.round((cumulative + (Number(payment.amount) || 0)) * 100) / 100;
     const sourceTx = payment.transactionId ? txById.get(Number(payment.transactionId)) : null;
+    const bankAmount = sourceTx ? Math.abs(Number(sourceTx.amount) || 0) : null;
     return {
       date: payment.date,
       amount: Number(payment.amount) || 0,
+      bankAmount,
       balance:
         payment.balanceAfter != null
           ? payment.balanceAfter
@@ -2265,6 +2478,12 @@ function loanRepaymentRowsWithBalance(lot, loanTransactions) {
 function principalOutstandingAfterCollectedClient(lot, collected) {
   const principal = Number(lot?.principal) || 0;
   const paid = Number(collected) || 0;
+  if (
+    lot?.scheduledTotalPayable != null &&
+    paid >= lot.scheduledTotalPayable - 0.005
+  ) {
+    return 0;
+  }
   if (paid >= principal - 0.005) return 0;
   if (lot.schedule?.length) {
     const { principalRepaid } = computeInterestFromScheduleClient(paid, lot.schedule);
@@ -2302,27 +2521,30 @@ function computeInterestFromScheduleClient(collected, installments) {
 function loanRepaymentTableHtml(lot, memberId, loanTransactions) {
   const rows = loanRepaymentRowsWithBalance(lot, loanTransactions);
   const adminCols = adminCanEditLedgerRows();
+  const colCount = 4 + (adminCols ? 1 : 0);
   if (!rows.length) {
     return `
     <div class="table-wrap compact">
       <table>
         <thead><tr><th>Date</th><th>Amount</th><th>Balance</th><th>Description</th>${adminCols ? "<th>Category</th>" : ""}</tr></thead>
-        <tbody><tr><td colspan="${adminCols ? 5 : 4}" class="subtle">No Repayments</td></tr></tbody>
+        <tbody><tr><td colspan="${colCount}" class="subtle">No Repayments</td></tr></tbody>
       </table>
     </div>`;
   }
   const body = rows
     .map((row) => {
+      const bankAmount =
+        row.bankAmount != null && row.bankAmount > 0.005 ? row.bankAmount : row.amount;
       const tx = {
         type: row.type,
         transaction_date: row.transaction_date,
-        amount: row.amount,
+        amount: bankAmount,
         description: row.description,
       };
       return `
         <tr>
           <td>${formatDate(row.date)}</td>
-          <td class="money">${fmt.format(row.amount)}</td>
+          <td class="money">${fmt.format(bankAmount)}</td>
           <td class="money">${fmt.format(row.balance)}</td>
           <td>${escapeHtml(row.description)}</td>
           ${ledgerTxControlCellHtml(tx, memberId)}
@@ -2331,13 +2553,65 @@ function loanRepaymentTableHtml(lot, memberId, loanTransactions) {
     .join("");
   return `
     <h5 class="loan-repayments-title">Actual Repayments</h5>
-    <p class="subtle loan-repayments-hint">Most recent payment first. Balance is principal still owed after each payment.</p>
+    <p class="subtle loan-repayments-hint">Most recent payment first. Amounts are full bank deposits. Use <strong>Split</strong> or <strong>Reclassify</strong> when a deposit covers more than one category (Coop Admin only).</p>
     <div class="table-wrap compact">
       <table>
         <thead><tr><th>Date</th><th>Amount</th><th>Balance</th><th>Description</th>${adminCols ? "<th>Category</th>" : ""}</tr></thead>
         <tbody>${body}</tbody>
       </table>
     </div>`;
+}
+
+function loanTxTableRows(transactions, memberId) {
+  const adminCols = adminCanEditLedgerRows();
+  const colSpan = adminCols ? 5 : 4;
+  if (!transactions?.length) {
+    return `<tr><td colspan="${colSpan}" class="subtle">No Transactions</td></tr>`;
+  }
+  return transactions
+    .map(
+      (t) => `
+    <tr>
+      <td>${formatDate(t.transaction_date)}</td>
+      <td class="money">${fmt.format(t.amount)}</td>
+      <td>${escapeHtml(t.description || "")}</td>
+      ${ledgerTxControlCellHtml(t, memberId)}
+    </tr>`
+    )
+    .join("");
+}
+
+function loanBankLedgerPanelHtml(loanTransactions, memberId) {
+  if (!adminCanEditLedgerRows()) return "";
+  const adjustable = (loanTransactions || []).filter((tx) =>
+    LEDGER_ADJUSTABLE_TYPES.has(tx.type)
+  );
+  if (!adjustable.length) return "";
+  const rows = adjustable
+    .map(
+      (t) => `
+    <tr>
+      <td>${formatDate(t.transaction_date)}</td>
+      <td>${escapeHtml(formatTxType(t.type))}</td>
+      <td class="money">${fmt.format(t.amount)}</td>
+      <td>${escapeHtml(t.description || "")}</td>
+      ${ledgerTxControlCellHtml(t, memberId)}
+    </tr>`
+    )
+    .join("");
+  return `
+    <details class="profile-disclosure loan-bank-repayments-disclosure" open>
+      <summary>Bank Ledger Rows (Split or Reclassify)</summary>
+      <div class="profile-disclosure-body">
+        <p class="subtle profile-disclosure-note">Full bank rows for this member's loan account. Change <strong>Category</strong> or <strong>Split</strong> any row on demand. Same controls as Contributions Account.</p>
+        <div class="table-wrap compact">
+          <table>
+            <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Description</th><th>Category</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </details>`;
 }
 
 function buildLoanActivityRows(lot, newestFirst = true) {
@@ -2449,11 +2723,12 @@ function loanActivityPanelHtml(p, memberId) {
     <p class="subtle">Outstanding ${fmt.format(p.loan_account_balance || 0)} · ${loanAccountSubtitle(p)}</p>
     ${
       hasLots
-        ? loanLotsSectionHtml(p.loan_lots, p.member_id || memberId, p.loan_transactions)
+        ? loanLotsSectionHtml(p.loan_lots, p.member_id || memberId, p.loan_transactions) +
+          loanBankLedgerPanelHtml(p.loan_transactions, memberId)
         : `<div class="table-wrap compact">
       <table>
-        <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Description</th></tr></thead>
-        <tbody>${txTableRows(p.loan_transactions)}</tbody>
+        <thead><tr><th>Date</th><th>Amount</th><th>Description</th>${adminCanEditLedgerRows() ? "<th>Category</th>" : ""}</tr></thead>
+        <tbody>${loanTxTableRows(p.loan_transactions, memberId)}</tbody>
       </table>
     </div>`
     }`;
@@ -2536,7 +2811,7 @@ function bindLoanStatementButtons(root) {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       downloadLoanStatement(btn.dataset.memberId, btn.dataset.loanNumber, btn).catch((err) => {
-        alert(err.message);
+        void appAlert(err.message, { title: "Error", variant: "danger" });
       });
     });
   });
@@ -2553,7 +2828,7 @@ function loanAccountSubtitle(p) {
     parts.push(`${p.paid_loans} Paid`);
   }
   if ((p.loan_overpayment_credit || 0) > 0) {
-    parts.push(`${fmt.format(p.loan_overpayment_credit)} Prepaid Credit`);
+    parts.push(`${fmt.format(p.loan_overpayment_credit)} Surplus Pending Split`);
   }
   return parts.join(" · ");
 }
@@ -3243,7 +3518,7 @@ async function downloadMonthlyStatusReportFile(button) {
     link.click();
     URL.revokeObjectURL(link.href);
   } catch (err) {
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     setButtonBusy(button, false);
   }
@@ -3268,7 +3543,7 @@ async function generateMonthlyStatusReportNow(button) {
       statusEl.textContent = err.message;
       statusEl.className = "status err";
     } else {
-      alert(err.message);
+      void appAlert(err.message, { title: "Error", variant: "danger" });
     }
   } finally {
     setButtonBusy(button, false);
@@ -3292,7 +3567,7 @@ async function publishMonthlyStatusReportNow(button) {
       statusEl.textContent = err.message;
       statusEl.className = "status err";
     } else {
-      alert(err.message);
+      void appAlert(err.message, { title: "Error", variant: "danger" });
     }
   } finally {
     setButtonBusy(button, false);
@@ -3301,9 +3576,10 @@ async function publishMonthlyStatusReportNow(button) {
 
 async function unpublishMonthlyStatusReportNow(button) {
   if (
-    !confirm(
-      "Remove this report from the member portal? Members will not see it until you publish again."
-    )
+    !(await appConfirm(
+      "Remove this report from the member portal? Members will not see it until you publish again.",
+      { title: "Unpublish Report", variant: "warning", confirmLabel: "Unpublish" }
+    ))
   ) {
     return;
   }
@@ -3324,7 +3600,7 @@ async function unpublishMonthlyStatusReportNow(button) {
       statusEl.textContent = err.message;
       statusEl.className = "status err";
     } else {
-      alert(err.message);
+      void appAlert(err.message, { title: "Error", variant: "danger" });
     }
   } finally {
     setButtonBusy(button, false);
@@ -3577,7 +3853,7 @@ async function openCooperativeReportViewer(report) {
     }
   } catch (err) {
     closeCooperativeReportViewer();
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
   }
 }
 
@@ -3618,7 +3894,7 @@ async function downloadCooperativeReport(report, triggerBtn) {
     link.click();
     URL.revokeObjectURL(link.href);
   } catch (err) {
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     if (triggerBtn) setButtonBusy(triggerBtn, false);
   }
@@ -3813,7 +4089,13 @@ async function saveCooperativeMeetingDraft(e) {
 }
 
 async function announceCooperativeMeeting(button) {
-  if (!confirm("Announce this meeting to all members on the portal and by email (if configured)?")) return;
+  if (
+    !(await appConfirm(
+      "Announce this meeting to all members on the portal and by email (if configured)?",
+      { title: "Announce Meeting", variant: "info", confirmLabel: "Announce" }
+    ))
+  )
+    return;
   setButtonBusy(button, true, "Announcing…");
   try {
     const res = await fetch(`/api/books/meetings/${button.dataset.id}/announce`, { method: "POST" });
@@ -3822,14 +4104,20 @@ async function announceCooperativeMeeting(button) {
     resetCooperativeMeetingForm();
     await loadCooperativeMeetingsPanel();
   } catch (err) {
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     setButtonBusy(button, false);
   }
 }
 
 async function cancelCooperativeMeeting(button) {
-  if (!confirm("Cancel this meeting and notify members by email (if configured)?")) return;
+  if (
+    !(await appConfirm(
+      "Cancel this meeting and notify members by email (if configured)?",
+      { title: "Cancel Meeting", variant: "warning", confirmLabel: "Cancel Meeting" }
+    ))
+  )
+    return;
   setButtonBusy(button, true, "Cancelling…");
   try {
     const res = await fetch(`/api/books/meetings/${button.dataset.id}/cancel`, { method: "POST" });
@@ -3837,14 +4125,21 @@ async function cancelCooperativeMeeting(button) {
     if (!res.ok) throw new Error(data.error || "Cancel failed");
     await loadCooperativeMeetingsPanel();
   } catch (err) {
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     setButtonBusy(button, false);
   }
 }
 
 async function deleteCooperativeMeeting(button) {
-  if (!confirm("Delete this draft meeting?")) return;
+  if (
+    !(await appConfirm("Delete this draft meeting?", {
+      title: "Delete Draft",
+      variant: "danger",
+      confirmLabel: "Delete",
+    }))
+  )
+    return;
   setButtonBusy(button, true, "Deleting…");
   try {
     const res = await fetch(`/api/books/meetings/${button.dataset.id}`, { method: "DELETE" });
@@ -3852,7 +4147,7 @@ async function deleteCooperativeMeeting(button) {
     if (!res.ok) throw new Error(data.error || "Delete failed");
     await loadCooperativeMeetingsPanel();
   } catch (err) {
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     setButtonBusy(button, false);
   }
@@ -3868,14 +4163,15 @@ async function resendCooperativeMeetingEmail(button) {
     if (!res.ok) throw new Error(data.error || "Email failed");
     const sent = data.emailResult?.recipientCount ?? 0;
     const failed = data.emailResult?.failedCount ?? 0;
-    alert(
+    void appAlert(
       failed
         ? `Announcement email sent to ${sent} member(s). ${failed} failed. Open Email Send Audit for details.`
-        : `Announcement email sent to ${sent} member(s).`
+        : `Announcement email sent to ${sent} member(s).`,
+      { title: failed ? "Email Partially Sent" : "Email Sent", variant: failed ? "warning" : "success" }
     );
     await loadEmailSendAudit();
   } catch (err) {
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     setButtonBusy(button, false);
   }
@@ -4738,7 +5034,7 @@ async function downloadImportTemplate(kind, button) {
     link.click();
     URL.revokeObjectURL(link.href);
   } catch (err) {
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     setButtonBusy(button, false);
   }
@@ -5145,7 +5441,7 @@ async function downloadBankLedgerReference(button, format = "csv") {
     const filename = parseAttachmentFilename(res, fallback);
     await saveDownloadBlob(blob, filename);
   } catch (err) {
-    if (err?.name !== "AbortError") alert(err.message);
+    if (err?.name !== "AbortError") void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     setButtonBusy(button, false);
   }
@@ -5156,7 +5452,10 @@ async function sortBankLedgerUpload(button) {
   if (!form) return;
   const statement = form.statement?.files?.[0];
   if (!statement) {
-    alert("Choose your master ledger file first.");
+    void appAlert("Choose your master ledger file first.", {
+      title: "File Required",
+      variant: "warning",
+    });
     return;
   }
   setButtonBusy(button, true, "Sorting…");
@@ -5180,7 +5479,7 @@ async function sortBankLedgerUpload(button) {
       status.className = "status ok";
     }
   } catch (err) {
-    if (err?.name !== "AbortError") alert(err.message);
+    if (err?.name !== "AbortError") void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     setButtonBusy(button, false);
   }
@@ -5289,7 +5588,10 @@ async function downloadMissingManualRows(button) {
   if (!form) return;
   const statement = form.statement?.files?.[0];
   if (!statement) {
-    alert("Choose your master ledger file first.");
+    void appAlert("Choose your master ledger file first.", {
+      title: "File Required",
+      variant: "warning",
+    });
     return;
   }
   setButtonBusy(button, true, "Preparing…");
@@ -5311,7 +5613,7 @@ async function downloadMissingManualRows(button) {
     link.click();
     URL.revokeObjectURL(link.href);
   } catch (err) {
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     setButtonBusy(button, false);
   }
@@ -5406,8 +5708,9 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
       renderBankImportConflicts(data.conflicts);
       renderBankImportPreview(data.conflicts);
       const count = data.conflicts.missingFromImport.length;
-      const proceed = confirm(
-        `${count} manual transaction${count === 1 ? "" : "s"} in Peer Finance Manager ${count === 1 ? "is" : "are"} not in this file and will be removed.\n\nImport anyway?`
+      const proceed = await appConfirm(
+        `${count} manual transaction${count === 1 ? "" : "s"} in Peer Finance Manager ${count === 1 ? "is" : "are"} not in this file and will be removed.\n\nImport anyway?`,
+        { title: "Manual Rows Will Be Removed", variant: "danger", confirmLabel: "Import Anyway" }
       );
       if (proceed) {
         await runBankImport(form, { acknowledgeManualLoss: true });
@@ -6535,9 +6838,10 @@ $("#logoutBtn")?.addEventListener("click", async () => {
 $("#provisionMembersBtn")?.addEventListener("click", async () => {
   const status = $("#provisionMembersStatus");
   if (
-    !confirm(
-      "Create member portal logins for all members without accounts? Temporary passwords will be generated."
-    )
+    !(await appConfirm(
+      "Create member portal logins for all members without accounts? Temporary passwords will be generated.",
+      { title: "Generate Member Credentials", variant: "warning", confirmLabel: "Generate" }
+    ))
   ) {
     return;
   }
@@ -6592,7 +6896,7 @@ $("#downloadCredentialsBtn")?.addEventListener("click", async () => {
     if (status) setFormStatus(status, `Downloaded ${fileName}`, true);
   } catch (err) {
     if (status) setFormStatus(status, err.message, false);
-    else alert(err.message);
+    else void appAlert(err.message, { title: "Error", variant: "danger" });
   }
 });
 
@@ -6641,7 +6945,10 @@ $("#downloadMyDepositStatement")?.addEventListener("click", async () => {
     const value = monthSelect?.value || "";
     const [year, month] = value.split("-").map(Number);
     if (!year || !month) {
-      alert("Select a statement month first.");
+      void appAlert("Select a statement month first.", {
+        title: "Month Required",
+        variant: "warning",
+      });
       return;
     }
     const res = await fetch(`/api/me/deposit-statement?year=${year}&month=${month}`);
@@ -6657,7 +6964,7 @@ $("#downloadMyDepositStatement")?.addEventListener("click", async () => {
     a.click();
     URL.revokeObjectURL(url);
   } catch (err) {
-    alert(err.message);
+    void appAlert(err.message, { title: "Error", variant: "danger" });
   }
 });
 
@@ -7268,9 +7575,10 @@ async function deleteFlexxFormsApplication(applicationId) {
   const status = $("#flexxformsFormsStatus");
   if (!applicationId) return;
   if (
-    !window.confirm(
-      "Delete this membership application?\n\nThis removes the FlexxForms submission from Membership Applications. If the linked profile is still pending approval with no ledger activity, the prospective member profile is deleted too."
-    )
+    !(await appConfirm(
+      "Delete this membership application?\n\nThis removes the FlexxForms submission from Membership Applications. If the linked profile is still pending approval with no ledger activity, the prospective member profile is deleted too.",
+      { title: "Delete Application", variant: "danger", confirmLabel: "Delete" }
+    ))
   ) {
     return;
   }
@@ -7297,9 +7605,10 @@ async function reprocessFlexxFormsApplication(applicationId) {
   const status = $("#flexxformsFormsStatus");
   if (!applicationId) return;
   if (
-    !window.confirm(
-      "Re-read the stored FlexxForms submission and refresh this applicant profile? Use this if fields were imported incorrectly."
-    )
+    !(await appConfirm(
+      "Re-read the stored FlexxForms submission and refresh this applicant profile? Use this if fields were imported incorrectly.",
+      { title: "Reprocess Application", variant: "warning", confirmLabel: "Reprocess" }
+    ))
   ) {
     return;
   }
@@ -7335,9 +7644,10 @@ async function approveFlexxFormsApplication(applicationId) {
   const status = $("#flexxformsFormsStatus");
   if (!applicationId) return;
   if (
-    !window.confirm(
-      "Approve this applicant as an active member? Membership fee and initial contribution must already be recorded."
-    )
+    !(await appConfirm(
+      "Approve this applicant as an active member? Membership fee and initial contribution must already be recorded.",
+      { title: "Approve Member", variant: "warning", confirmLabel: "Approve" }
+    ))
   ) {
     return;
   }
@@ -7694,6 +8004,7 @@ function initLoginFromUrlParams() {
 
 applyAppBranding();
 initLoginFromUrlParams();
+initAppNoticeModal();
 fillOrgSlugInputs();
 
 function bootApplication() {

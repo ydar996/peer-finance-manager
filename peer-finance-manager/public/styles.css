@@ -689,6 +689,7 @@ th { background: #f8fafc; font-weight: 600; }
   outline-offset: 2px;
 }
 .book-card.accent { border-color: #0ea5e9; background: #f0f9ff; }
+.book-card.reconcile-warn { border-color: #f59e0b; background: #fffbeb; }
 .dashboard-card {
   text-align: left;
 }
@@ -1769,4 +1770,205 @@ tr.loan-row:hover { background: #f8fafc; }
   gap: 10px;
   justify-content: flex-end;
   margin-top: 12px;
+}
+
+/* App notice modal (replaces alert / confirm / prompt) */
+.app-notice-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+}
+.app-notice-card {
+  width: min(480px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px 18px;
+  align-items: start;
+}
+.app-notice-card.app-notice-no-icon {
+  grid-template-columns: 1fr;
+}
+.app-notice-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.app-notice-card.variant-info .app-notice-icon {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.app-notice-card.variant-success .app-notice-icon {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.app-notice-card.variant-warning .app-notice-icon {
+  background: #fffbeb;
+  color: #d97706;
+}
+.app-notice-card.variant-danger .app-notice-icon {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.app-notice-content {
+  grid-column: 2;
+}
+.app-notice-card.app-notice-no-icon .app-notice-content {
+  grid-column: 1;
+}
+.app-notice-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.app-notice-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #475569;
+  white-space: pre-wrap;
+}
+.app-notice-input-wrap {
+  display: block;
+  margin-top: 14px;
+}
+.app-notice-input-wrap.hidden {
+  display: none;
+}
+.app-notice-input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 15px;
+}
+.app-notice-input:focus {
+  outline: 2px solid #93c5fd;
+  border-color: #3b82f6;
+}
+.app-notice-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+.app-notice-actions .btn.hidden {
+  display: none;
+}
+
+/* Toast notifications */
+.app-toast-stack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.app-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+  animation: app-toast-in 0.28s ease-out;
+}
+@keyframes app-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.app-toast.variant-success {
+  border-color: #bbf7d0;
+  background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+}
+.app-toast.variant-danger {
+  border-color: #fecaca;
+  background: linear-gradient(180deg, #fef2f2 0%, #fff 100%);
+}
+.app-toast.variant-warning {
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #fffbeb 0%, #fff 100%);
+}
+.app-toast.variant-info {
+  border-color: #bfdbfe;
+  background: linear-gradient(180deg, #eff6ff 0%, #fff 100%);
+}
+.app-toast-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.app-toast.variant-success .app-toast-icon { background: #dcfce7; color: #16a34a; }
+.app-toast.variant-danger .app-toast-icon { background: #fee2e2; color: #dc2626; }
+.app-toast.variant-warning .app-toast-icon { background: #fef3c7; color: #d97706; }
+.app-toast.variant-info .app-toast-icon { background: #dbeafe; color: #2563eb; }
+.app-toast-body {
+  flex: 1;
+  min-width: 0;
+}
+.app-toast-title {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.app-toast-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #64748b;
+}
+.app-toast-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.app-toast-close:hover {
+  color: #475569;
 }

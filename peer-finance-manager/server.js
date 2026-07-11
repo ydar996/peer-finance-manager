@@ -173,6 +173,7 @@ app.get("/api/health", (req, res) => {
   const fs = require("fs");
   const { migrateLegacyDatabaseIfNeeded, ASSURANCE_SLUG, getOrgDataDir } = require("./lib/organization-service");
   const { loadBetterSqlite3 } = require("./lib/native-sqlite");
+  const { runWithOrg } = require("./lib/org-context");
   migrateLegacyDatabaseIfNeeded();
   const payload = { ok: true, name: "Peer Finance Manager" };
   try {
@@ -191,6 +192,12 @@ app.get("/api/health", (req, res) => {
         latestTransaction: latest,
         bankImportRows: bankImport,
       };
+      try {
+        const { getBankReconcileStatus } = require("./lib/bank-reconcile-service");
+        payload.ledger.bankReconcile = runWithOrg(ASSURANCE_SLUG, () => getBankReconcileStatus());
+      } catch (_) {
+        /* reconcile probe optional */
+      }
     }
   } catch (_) {
     /* health check stays ok even if ledger probe fails */

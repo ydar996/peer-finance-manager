@@ -69,6 +69,7 @@ function getCoopRoot() {
   }
   const root = getAppRoot();
   if (isPackaged()) return root;
+  if (path.basename(root) !== "peer-finance-manager") return root;
   return path.join(root, "..");
 }
 

@@ -256,11 +256,22 @@ function importBankLedgerCore({
 
   db.prepare(`UPDATE bank_imports SET status = 'applied' WHERE id = ?`).run(importId);
 
+  const {
+    captureBankReconcileAnchorFromLedger,
+    getBankReconcileStatus,
+  } = require("./bank-reconcile-service");
+  captureBankReconcileAnchorFromLedger({
+    source: "full_refresh",
+    label: importLabel,
+    db,
+  });
+
   return {
     importId,
     totalBankRows: bankTxs.length,
     ...counts,
     cdBalance: cdBalance != null ? Number(cdBalance) : null,
+    bankReconcile: getBankReconcileStatus(),
   };
 }
 
