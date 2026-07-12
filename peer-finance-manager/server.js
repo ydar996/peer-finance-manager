@@ -415,6 +415,9 @@ app.get("/api/loans", requireCooperativeView, (req, res) => {
           source: "bank_ledger",
           repayment_count: lot.repayments.length,
           disbursement_description: lot.disbursementDescription,
+          repayment_policy: lot.repaymentPolicy || "flexible",
+          late_fee_amount: lot.lateFeeAmount ?? 25,
+          late_fees_assessed: lot.lateFeesAssessed ?? 0,
         })),
       });
       return;
@@ -733,6 +736,28 @@ app.patch("/api/bank-accounts/:id", requireAdmin, restoreOrgContext, (req, res) 
     const { updateBankAccount } = require("./lib/bank-account-service");
     const account = updateBankAccount(req.params.id, req.body || {});
     res.json({ account });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/cooperative/loan-policy", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { getLoanPaymentPolicy } = require("./lib/loan-policy-service");
+    res.json(getLoanPaymentPolicy());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch("/api/cooperative/loan-policy", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { setLoanPaymentPolicy } = require("./lib/loan-policy-service");
+    const policy = setLoanPaymentPolicy({
+      mode: req.body?.mode,
+      lateFeeAmount: req.body?.lateFeeAmount,
+    });
+    res.json(policy);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

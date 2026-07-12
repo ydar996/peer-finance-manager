@@ -23,7 +23,13 @@ const RECLASSIFIABLE_LEDGER_TYPES = [
   "loan_disbursement",
   "distribution",
   "membership_fee",
+  "expense",
+  "cd_purchase",
+  "cd_liquidation",
+  "investment",
 ];
+
+const SPLIT_MIN_LINES = 2;
 
 function ensureLedgerAdjustmentSchema(database) {
   database.exec(`
@@ -143,8 +149,11 @@ function resolveMemberName(db, memberId, memberName) {
   return exact?.name || trimmed;
 }
 
-function validateAdjustmentLines(db, originalAmount, lines) {
+function validateAdjustmentLines(db, originalAmount, lines, { requireSplit = false } = {}) {
   if (!lines?.length) throw new Error("At least one classification line is required.");
+  if (requireSplit && lines.length < SPLIT_MIN_LINES) {
+    throw new Error(`A split needs at least ${SPLIT_MIN_LINES} lines.`);
+  }
   let sum = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -170,11 +179,11 @@ function validateAdjustmentLines(db, originalAmount, lines) {
     }
     sum += amount;
   }
-  const original = Math.round(Number(originalAmount) * 100) / 100;
+  const original = Math.round(Math.abs(Number(originalAmount)) * 100) / 100;
   const total = Math.round(sum * 100) / 100;
-  if (Math.abs(total - Math.abs(original)) > 0.01) {
+  if (Math.abs(total - original) > 0.005) {
     throw new Error(
-      `Split lines must total ${Math.abs(original).toFixed(2)} (got ${total.toFixed(2)}).`
+      `Split lines must total ${original.toFixed(2)} (got ${total.toFixed(2)}). Adjust the amounts before saving.`
     );
   }
 }
@@ -294,7 +303,7 @@ function saveSplitAdjustment({
 }) {
   const db = getDb();
   const ledgerKey = ledgerTransactionKey(transactionDate, amount, description);
-  validateAdjustmentLines(db, amount, lines);
+  validateAdjustmentLines(db, amount, lines, { requireSplit: true });
 
   const normalizedLines = lines.map((line) => ({
     ledgerType: line.ledgerType,
@@ -315,7 +324,12 @@ function saveSplitAdjustment({
     notes,
   });
 
-  return rebuildLedgerWithAdjustments({ userId });
+  const rebuild = rebuildLedgerWithAdjustments({ userId });
+  return {
+    ...rebuild,
+    splitLineCount: normalizedLines.length,
+    downloadLedgerRequired: true,
+  };
 }
 
 function rebuildLedgerWithAdjustments({ referencePath, userId } = {}) {
@@ -357,6 +371,14 @@ function rebuildLedgerWithAdjustments({ referencePath, userId } = {}) {
   queueCooperativeBankLedgerCsvSync("ledger_adjustment");
   const after = getLedgerEndingBalance();
 
+  let bankReconcile = null;
+  try {
+    const { refreshBankReconcileAfterClassification, getBankReconcileStatus } = require("./bank-reconcile-service");
+    bankReconcile =
+      refreshBankReconcileAfterClassification({ label: "split/reclassify" }) ||
+      getBankReconcileStatus();
+  } catch (_) {}
+
   return {
     ...result,
     referencePath: rebuildSource,
@@ -364,6 +386,8 @@ function rebuildLedgerWithAdjustments({ referencePath, userId } = {}) {
     beforeBalance: before?.balance ?? null,
     afterBalance: after?.balance ?? null,
     downloadLedgerPrompt: true,
+    downloadLedgerRequired: true,
+    bankReconcile,
   };
 }
 
@@ -401,10 +425,12 @@ function getAdjustmentForTransaction(tx) {
 module.exports = {
   ADJUSTMENT_KIND,
   RECLASSIFIABLE_LEDGER_TYPES,
+  SPLIT_MIN_LINES,
   ensureLedgerAdjustmentSchema,
   bankTxLedgerKey,
   dbTxLedgerKey,
   applyAdjustmentsToBankTransactions,
+  validateAdjustmentLines,
   saveReclassifyAdjustment,
   saveSplitAdjustment,
   rebuildLedgerWithAdjustments,

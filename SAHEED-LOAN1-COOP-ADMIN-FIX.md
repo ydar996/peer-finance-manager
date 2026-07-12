@@ -22,10 +22,19 @@ Only the Coop Admin decides the split lines and clicks **Save Split**.
 
 ---
 
-## Verified Ledger State (Local DB)
+## After You Split (Expected)
 
-- **11/6/2025:** one `bank_import` row, **$600**, type **loan_repayment**
-- **No** `ledger_adjustments` split saved for that date
+- Bank **cash balance** stays the same (e.g. **$16,241.55** through Jul 8, 2026).
+- **Bank import row count** goes up by 1 (one deposit becomes two classified ledger lines), e.g. 457 → 458.
+- Older builds showed **Out of Sync** for that row-count change even when the balance was correct. Current code realigns the reconcile anchor when balance still matches after split/reclassify.
+- Production queues a CSV sync from the live DB. For your PC master copy: **Import → Download Xlsx Ledger** (and Csv if you use it) and save over your local master if you want them identical.
+
+---
+
+## Verified Ledger State
+
+- **Before split:** one `bank_import` row, **$600**, type **loan_repayment**
+- **After Coop Admin Split:** adjustment saved; rebuild expands to the split lines; balance unchanged
 
 ---
 

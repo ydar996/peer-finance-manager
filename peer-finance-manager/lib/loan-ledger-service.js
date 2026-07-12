@@ -18,13 +18,18 @@ function applyPaymentToLot(lot, amount, tx, note) {
 }
 
 function lotCollectionTarget(lot, memberName, references) {
+  let target = lot.principal;
   if (memberName && references?.length) {
     const reference = matchLotToReference(lot, memberName, references);
     if (reference?.scheduledTotalPayable > 0.005) {
-      return reference.scheduledTotalPayable;
+      target = reference.scheduledTotalPayable;
     }
   }
-  return lot.principal;
+  try {
+    const { sumAssessedLateFeesForDisbursement } = require("./loan-policy-service");
+    target += sumAssessedLateFeesForDisbursement(lot.disbursementId);
+  } catch (_) {}
+  return target;
 }
 
 /**
@@ -225,6 +230,20 @@ function attachRepaymentBalances(lot) {
 }
 
 function enrichLoanLot(memberId, borrower, lot) {
+  let repaymentPolicy = "flexible";
+  let lateFeeAmount = 25;
+  let lateFeesAssessed = 0;
+  try {
+    const {
+      getPolicyForDisbursement,
+      sumAssessedLateFeesForDisbursement,
+    } = require("./loan-policy-service");
+    const policy = getPolicyForDisbursement(lot.disbursementId);
+    repaymentPolicy = policy.repaymentPolicy;
+    lateFeeAmount = policy.lateFeeAmount;
+    lateFeesAssessed = sumAssessedLateFeesForDisbursement(lot.disbursementId);
+  } catch (_) {}
+
   return {
     memberId,
     borrower,
@@ -247,6 +266,9 @@ function enrichLoanLot(memberId, borrower, lot) {
     status: lot.status,
     disbursementDescription: lot.disbursementDescription,
     repayments: attachRepaymentBalances(lot),
+    repaymentPolicy,
+    lateFeeAmount,
+    lateFeesAssessed,
     ledgerKey: `${memberId}-${lot.loanNumber}`,
   };
 }
@@ -317,6 +339,12 @@ function getMemberLoanLedgerSummary(memberId, { portfolioShare } = {}) {
     portfolioShare != null ? portfolioShare : getPortfolioInterestShare(),
     borrower
   );
+  try {
+    const { assessLateFeesForBankLot } = require("./loan-policy-service");
+    for (const lot of lots) {
+      assessLateFeesForBankLot({ lot, memberId, memberName: borrower });
+    }
+  } catch (_) {}
   const enriched = lots.map((lot) => enrichLoanLot(memberId, borrower, lot));
   return {
     lots: enriched,

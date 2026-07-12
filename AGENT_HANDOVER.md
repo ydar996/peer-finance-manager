@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 11, 2026 (Zero WinSCP; browser-only data ops)  
+**Last updated:** July 12, 2026 (N-way splits all types; reconcile align; loan policy pending deploy)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -97,6 +97,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 | [USER-GUIDE.md](./USER-GUIDE.md) | All users (members, staff, admins) | Complete simple-language guide: every tab, workflow, glossary |
 | [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) | Yinka | How to change code and publish safely |
 | [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) | Coop admins | Browser-only data ops: **Admin → Maintenance** / Import |
+| [SAAS-SCALABILITY-ARCHITECTURE-REVIEW.md](./SAAS-SCALABILITY-ARCHITECTURE-REVIEW.md) | Owners / lay admins | Plain-language scale and architecture review |
 | [UI-COPY-STANDARDS.md](./UI-COPY-STANDARDS.md) | Agents/devs | No em dashes, Title Case, wording rules |
 | [.cursor/rules/continuous-documentation.mdc](./.cursor/rules/continuous-documentation.mdc) | Agents (auto) | **Always applied** — doc updates same turn as every change |
 | [DEPLOY-TODAY.md](./DEPLOY-TODAY.md) | Yinka | First-time cloud setup (already done) |
@@ -107,6 +108,10 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-12** — **Splits: any N lines, all ledger types, no false Out of Sync, download notice:** Split supports 2+ lines mixing deposit/loan/expense/CD/investment/etc. Save blocked until amounts total the original (UI + API). Reconcile row-align treats any split-driven row-count increase as OK when cash balance still matches. Post-split prompt + alert require downloading Xlsx/Csv for local master sync. Test: `npm run test:ledger-split`. **Production:** with loan-policy when approved.
+- **2026-07-12** — **Reconcile after split/reclassify:** When bank cash balance at the verified as-of still matches but `bank_import` row count rose (one deposit expanded into split lines), realign the reconcile anchor instead of staying **Out of Sync**. Also refresh anchor after adjustment rebuild. Files: `bank-reconcile-service.js`, `ledger-adjustment-service.js`, `SAHEED-LOAN1-COOP-ADMIN-FIX.md`. **Production:** `git push` (with loan-policy when approved).
+- **2026-07-11** — **Loan Payment Policy (flexible vs strict late fees, all tenants):** Coop admins toggle under **Loans → Loan Payment Policy**. Default **Flexible** (no late fee; current behavior). **Strict Timelines** charges a configurable flat late fee (default $25) when a repayment is after the installment due date. Policy is snapshotted per loan/disbursement at start so toggling never rewrites history. APIs: `GET/PATCH /api/cooperative/loan-policy`. Files: `loan-policy-service.js`, `loan-service.js`, `loan-ledger-service.js`, bank import hooks, UI. Test: `npm run test:loan-policy`. **Production:** await user reverify before `git push`.
+- **2026-07-11** — **Layman SaaS scale review (MD):** Added [SAAS-SCALABILITY-ARCHITECTURE-REVIEW.md](./SAAS-SCALABILITY-ARCHITECTURE-REVIEW.md) (plain language: current limits, what works, phased plan). Linked from README + handover document map. Complements canvas `saas-scalability-architecture-review`.
 - **2026-07-11** — **Zero WinSCP (complete):** Removed every WinSCP/SFTP/break-glass data workflow. `UPLOAD-DATA-TO-PRODUCTION.md` rewritten as Coop-admin browser guide. `DEPLOY-TODAY.md` first-time seed = Register + **Maintenance → Restore**. Docs/UI/comments no longer instruct SFTP. Replacement path: **Admin → Import** / **Maintenance**. Task 4h ✅. (Nightly off-disk backups still 4i.)
 - **2026-07-11** — **SaaS scale architecture review (no code):** Audited multi-tenant readiness for thousands of Cooperatives. Verdict: isolation model (registry + per-org SQLite) is sound; single Render starter + 1 GB disk + in-process Puppeteer + no off-disk backups cannot scale. Canvas report: `canvases/saas-scalability-architecture-review.canvas.tsx`. Outstanding tasks 4i–4n (Phase 1 plan; 4h completed same day).
 - **2026-07-11** — **WinSCP retired for routine ops (all tenants):** New **Admin → Maintenance** tab: **Download Database Backup**, **Restore Database** (preview + confirm, closes live DB handle, no Manual Deploy), **Normalize Profiles** on production. APIs: `GET /api/admin/data-backup`, `GET /api/admin/data-status`, `POST /api/admin/data-restore/preview`, `POST /api/admin/data-restore`, `POST /api/admin/maintenance/normalize-profiles`. `profile-normalize-service.js`, `admin-data-service.js`, `admin-data-routes.js`; `normalize-profiles.js` uses shared service. Docs: `UPLOAD-DATA-TO-PRODUCTION.md`, `UPDATE-AND-PUBLISH.md`, `USER-GUIDE.md` §23, `README.md`, `DEPLOY-TODAY.md`, email setup guides. **Production:** `git push`.
@@ -664,8 +669,10 @@ Peer Finance Manager / Assurance Cooperative
 | 4l | **Per-tenant email FROM** | Store smtp_from / smtp_from_name on registry org; stop global Assurance branding. |
 | 4m | **Disk headroom + idle DB LRU** | Raise `render.yaml` disk; alert usage; evict idle `dbByOrg` handles. |
 | 4n | **Layman import UX** | Single Import Bank Statement path; onboarding wizard; stop Assurance `SEED_ALIASES` on empty tenants. |
+| 4o | ~~**Loan Payment Policy (flexible vs strict)**~~ | ✅ **Done** 2026-07-11 — Toggle on Loans tab; snapshot per loan; late fee default $25; `npm run test:loan-policy`. |
 | 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh**. Ops: `restore-ledger-production.js --org <slug>`. |
-| 4e | **Yomi Salami Nov 2025 split (Saheed bank alias)** | **Coop Admin only:** **Split** 11/6 **$600** in UI when ready. System has not saved a split. See [SAHEED-LOAN1-COOP-ADMIN-FIX.md](./SAHEED-LOAN1-COOP-ADMIN-FIX.md). |
+| 4e | ~~**Yomi Salami Nov 2025 split (Saheed bank alias)**~~ | ✅ **Done by Coop Admin** 2026-07-12 — Split saved on live; balance **$16,241.55** unchanged; row count 457→458 (expected). Reconcile row-align after classification added so Out of Sync does not false-alarm. |
+| 4p | ~~**Loan Payment Policy deploy**~~ | ✅ **Done** 2026-07-12 — Deployed with N-way split reconcile align + download notice. Default flexible; no effect on existing loans. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
 | 6 | ~~**Persist Title Case in database (backfill)**~~ | ✅ **Done** 2026-07-11 — **Admin → Maintenance → Normalize Profiles** on production (or CLI with `--org`). Display/save formatters already live. |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |

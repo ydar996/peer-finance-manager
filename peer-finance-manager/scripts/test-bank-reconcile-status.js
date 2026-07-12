@@ -48,7 +48,10 @@ function testOutOfSyncOnRowCountDrift() {
   assert.strictEqual(result.divergences.length, 1);
   assert.strictEqual(result.divergences[0].field, "bankImportRows");
   assert.strictEqual(result.divergences[0].delta, 2);
-  console.log("  out of sync on row count drift: OK");
+  console.log("  out of sync on row count drift (compare raw): OK");
+  console.log(
+    "  note: getBankReconcileStatus auto-aligns when only row count drifted and balance still matches (split/reclassify)"
+  );
 }
 
 function testOutOfSyncOnBalanceDrift() {

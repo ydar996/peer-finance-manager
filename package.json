@@ -20,6 +20,8 @@
     "pfm:import-bank": "node peer-finance-manager/scripts/import-bank-ledger.js",
     "test:bank-append": "node peer-finance-manager/scripts/test-bank-append-balance.js",
     "test:bank-reconcile": "node peer-finance-manager/scripts/test-bank-reconcile-status.js",
+    "test:loan-policy": "node peer-finance-manager/scripts/test-loan-payment-policy.js",
+    "test:ledger-split": "node peer-finance-manager/scripts/test-ledger-split-adjustments.js",
     "pfm:normalize-profiles": "node peer-finance-manager/scripts/normalize-profiles.js --dry-run",
     "pfm:normalize-profiles:apply": "node peer-finance-manager/scripts/normalize-profiles.js --apply",
     "pfm:status-report": "node peer-finance-manager/scripts/generate-cooperative-status.js",

@@ -170,7 +170,7 @@ Click any card to see a detailed table. Common cards:
 | Card | Meaning |
 |------|---------|
 | **Ledger Checking Balance** | Bank balance from imported/manual ledger activity. |
-| **Bank Reconcile Status** | **Reconciled** when live ledger still matches the last successful bank import; **Out of Sync** if row count or balance drifted; **Not Verified** until the first post-deploy import. |
+| **Bank Reconcile Status** | **Reconciled** when live ledger still matches the last successful bank import; **Out of Sync** if the cash balance at the verified date drifted. A **Split** can raise the internal row count by 1 while the bank balance stays the same; the app realigns that row count when the balance still matches. **Not Verified** until the first post-deploy import. |
 | **Member Contributions Accounts (Total)** | Sum of all member contribution balances. |
 | **Member Contributions & Withdrawals** | Contributions minus withdrawals (excludes distributions and fees). |
 | **Registration Income** | Membership fees collected. |
@@ -329,6 +329,17 @@ View the full **Loan Portfolio**:
 | **Statement** | Generate loan PDF. |
 | **Agreements** | Create guarantor or borrower agreements (FlexxForms). |
 
+### Loan Payment Policy (Admin)
+
+Under **Loans → Loan Payment Policy**, choose how repayment timing works for **new loans only**:
+
+| Mode | Behavior |
+|------|----------|
+| **Flexible: Pay Within Loan Term (No Late Fee)** | Default. Payments apply to the agreed schedule whenever they arrive during the loan term. No late fee. |
+| **Strict Timelines: Late Fee When Past Due** | Admin sets interest terms and a schedule with due dates (New Loan or Import Schedule). A payment after its due date adds a flat late fee (default **$25**, editable) in addition to the expected installment. |
+
+Changing the toggle does **not** change past loans. Each loan keeps the policy in effect when it was started.
+
 Create new loans on the **Record** tab → **New Loan**.
 
 Record repayments on **Record** → **Loan Repayment**, or via bank import when classified as **Loan Repayment**.
@@ -467,16 +478,20 @@ Every adjustable bank row has a **Category** dropdown and a **Split** button. Th
 2. Click **OK** on the confirm dialog (or **Cancel** to undo).
 3. Balances update immediately. The row moves to the correct account section.
 
-### Split (part contribution, part loan, or any mix)
+### Split (part contribution, part loan, expense, or any mix)
 
 1. Click **Split** on the row.
-2. In the **Split Transaction** dialog, set **Category**, **Member**, and **Amount** on each line.
-3. Lines must **total the original bank amount**.
-4. Click **Save Split**.
+2. In the **Split Transaction** dialog, set **Category**, **Member** (when required), and **Amount** on each line.
+3. Use **Add Line** for a third, fourth, or more parts. Mix contributions, loans, expenses, CD, and investment categories as needed.
+4. Line amounts must total the original bank amount exactly. **Save Split** stays disabled until they do.
+5. Click **Save Split**.
+6. Download the updated **Xlsx** / **Csv** ledger from the prompt and replace your local master so PC and cloud stay aligned.
+
+After a split, **Current Bank Balance** is unchanged when the math is correct. **Bank Reconcile Status** realigns when only the internal row count rose (any number of split lines) and the verified cash balance still matches.
 
 ### After reclassify or split
 
-A green **Ledger Updated** banner offers **Download Csv Ledger** / **Download Xlsx Ledger**. Download if you keep a local reference file for Full Ledger Refresh. Adjustments are saved per tenant and re-applied on every **Full Ledger Refresh**.
+A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download Csv Ledger**, plus a notice to replace your local master. Adjustments are saved per tenant and re-applied on every **Full Ledger Refresh**.
 
 **Not adjustable here:** rows showing **:** in Category (Cooperative-level ledger types, not member bank rows).
 
@@ -492,7 +507,7 @@ A green **Ledger Updated** banner offers **Download Csv Ledger** / **Download Xl
 | **One member's row wrong** | [Reclassify or split](#20-fix-a-misclassified-bank-entry) on **Contributions Account** or **Loan Account** (Bank Ledger Rows). |
 | **Payment covers loan and contribution** | **Split** on the full bank row: set lines and **Save Split** (Coop Admin). |
 | **Whole ledger corrupted** | **Full Ledger Refresh** (master) + **Import New Bank Activity** (current month stmt). |
-| **Bank Reconcile Status: Out of Sync** | Ledger drifted since last verified import. **Full Ledger Refresh** + cumulative stmt import; card should return to **Reconciled**. |
+| **Bank Reconcile Status: Out of Sync** | Cash balance at the verified date drifted, or an older build flagged a split’s extra ledger row. Prefer **Full Ledger Refresh** + cumulative stmt import if the **balance** is wrong. If only the row count changed after a Split and the bank balance is still correct, deploy the classification row-align fix (or Refresh Cooperative Books after that deploy). |
 
 ---
 

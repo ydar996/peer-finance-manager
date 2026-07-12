@@ -932,6 +932,7 @@ async function bootstrapApp() {
   loadLoans();
   loadStatementFiles();
   if (role === "admin") {
+    loadLoanPaymentPolicyPanel();
     loadRecordTabData();
     loadUsers();
     handleBillingReturnParams();
@@ -2168,9 +2169,19 @@ const LEDGER_RECLASSIFY_TYPES = [
   { value: "membership_fee", label: "Registration Fee" },
   { value: "withdrawal", label: "Member Withdrawal" },
   { value: "distribution", label: "Distribution" },
+  { value: "expense", label: "Expense" },
+  { value: "cd_purchase", label: "CD Purchase" },
+  { value: "cd_liquidation", label: "CD Liquidation" },
+  { value: "investment", label: "Investment" },
 ];
 
 const LEDGER_ADJUSTABLE_TYPES = new Set(LEDGER_RECLASSIFY_TYPES.map((t) => t.value));
+const LEDGER_SPLIT_MEMBER_OPTIONAL = new Set([
+  "expense",
+  "cd_purchase",
+  "cd_liquidation",
+  "investment",
+]);
 
 function adminCanEditLedgerRows() {
   return currentUser?.role === "admin";
@@ -2216,14 +2227,19 @@ function ledgerAdjustmentDownloadPromptHtml(result) {
       : result?.beforeBalance != null
         ? fmt.format(result.beforeBalance)
         : null;
+  const splitNote =
+    result?.splitLineCount > 1
+      ? `<p>This bank deposit was saved as <strong>${result.splitLineCount} ledger lines</strong>. Bank cash balance is unchanged when the split amounts add up.</p>`
+      : "";
   return `
     <div class="ledger-adjustment-prompt status ok">
-      <p><strong>Ledger Updated.</strong> Balances were recomputed from your reference ledger plus saved adjustments.</p>
+      <p><strong>Ledger Updated.</strong> Download the updated ledger now so your PC master file matches the cloud.</p>
+      ${splitNote}
       ${balance ? `<p>Ending bank balance: <strong>${balance}</strong></p>` : ""}
-      <p>Download the updated reference file and replace your local <strong>cooperative-bank-ledger-reference.csv</strong> or <strong>.xlsx</strong> so future Full Ledger Refresh stays aligned.</p>
+      <p>Replace your local <strong>cooperative-bank-ledger-reference.xlsx</strong> (and .csv if you use it) with these downloads before the next Full Ledger Refresh.</p>
       <p>
+        <button type="button" class="btn primary" id="ledgerAdjDownloadXlsx">Download Xlsx Ledger</button>
         <button type="button" class="btn" id="ledgerAdjDownloadCsv">Download Csv Ledger</button>
-        <button type="button" class="btn" id="ledgerAdjDownloadXlsx">Download Xlsx Ledger</button>
       </p>
     </div>`;
 }
@@ -2233,6 +2249,7 @@ function showLedgerAdjustmentPrompt(result) {
   if (!host) return;
   host.innerHTML = ledgerAdjustmentDownloadPromptHtml(result);
   host.classList.remove("hidden");
+  host.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 async function submitLedgerReclassify(selectEl) {
@@ -2285,19 +2302,24 @@ function openLedgerSplitModal(ctx) {
   const status = $("#ledgerSplitModalStatus");
   if (!modal || !body) return;
   const total = Math.abs(Number(ctx.amount) || 0);
+  const half = Math.round((total / 2) * 100) / 100;
+  const rest = Math.round((total - half) * 100) / 100;
   body.innerHTML = `
     <p class="subtle">Original amount: <strong>${fmt.format(total)}</strong> on ${escapeHtml(formatDate(ctx.date))}</p>
     <p class="subtle">${escapeHtml(ctx.description || "")}</p>
+    <p class="hint">Add as many lines as you need (2 or more). Categories may mix contributions, loans, expenses, and other types. Line amounts must total the original exactly.</p>
     <div class="ledger-split-lines" id="ledgerSplitLines">
-      ${ledgerSplitLineHtml({ ledgerType: ctx.type, amount: total, memberId: ctx.memberId }, 0)}
-      ${ledgerSplitLineHtml({ ledgerType: "deposit", amount: "", memberId: ctx.memberId }, 1)}
+      ${ledgerSplitLineHtml({ ledgerType: ctx.type, amount: half, memberId: ctx.memberId }, 0)}
+      ${ledgerSplitLineHtml({ ledgerType: "deposit", amount: rest, memberId: ctx.memberId }, 1)}
     </div>
+    <p id="ledgerSplitSumStatus" class="subtle" aria-live="polite"></p>
     <button type="button" class="btn" id="ledgerSplitAddLine">Add Line</button>`;
   if (status) {
     status.textContent = "";
     status.className = "status";
   }
   modal.classList.remove("hidden");
+  updateLedgerSplitSumStatus();
 }
 
 function ledgerSplitMemberOptions(selectedMemberId) {
@@ -2315,20 +2337,22 @@ function ledgerSplitMemberOptions(selectedMemberId) {
 }
 
 function ledgerSplitLineHtml(line, index) {
+  const type = line.ledgerType || "deposit";
+  const memberOptional = LEDGER_SPLIT_MEMBER_OPTIONAL.has(type);
   return `<div class="ledger-split-line" data-line-index="${index}">
     <label>Line ${index + 1}
-      <select class="ledger-split-type">${ledgerReclassifyOptionsHtml(line.ledgerType || "deposit")}</select>
+      <select class="ledger-split-type">${ledgerReclassifyOptionsHtml(type)}</select>
     </label>
-    <label>Member
+    <label>Member${memberOptional ? " (Optional)" : ""}
       <select class="ledger-split-member">
-        <option value="">Select Member</option>
+        <option value="">${memberOptional ? "None" : "Select Member"}</option>
         ${ledgerSplitMemberOptions(line.memberId)}
       </select>
     </label>
     <label>Amount
       <input type="number" class="ledger-split-amount" min="0.01" step="0.01" value="${line.amount ?? ""}" />
     </label>
-    <label>Note (optional)
+    <label>Note (Optional)
       <input type="text" class="ledger-split-note" value="${escapeHtml(line.descriptionNote || "")}" />
     </label>
   </div>`;
@@ -2347,11 +2371,50 @@ function collectLedgerSplitLines() {
   return lines;
 }
 
+function updateLedgerSplitSumStatus() {
+  const ctx = ledgerSplitContext;
+  const el = $("#ledgerSplitSumStatus");
+  const saveBtn = $("#ledgerSplitSave");
+  if (!ctx || !el) return;
+  const original = Math.round(Math.abs(Number(ctx.amount) || 0) * 100) / 100;
+  const lines = collectLedgerSplitLines();
+  const total = Math.round(
+    lines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0) * 100
+  ) / 100;
+  const remaining = Math.round((original - total) * 100) / 100;
+  const ok = lines.length >= 2 && Math.abs(remaining) < 0.005;
+  el.textContent = ok
+    ? `Lines total ${fmt.format(total)} : Ready to Save (${lines.length} lines)`
+    : `Lines total ${fmt.format(total)} · Remaining ${fmt.format(remaining)} · Need ${Math.max(0, 2 - lines.length)} more line(s) if under 2, and exact total before Save`;
+  el.className = ok ? "subtle status ok" : "subtle status err";
+  if (saveBtn) saveBtn.disabled = !ok;
+}
+
 async function submitLedgerSplit() {
   const ctx = ledgerSplitContext;
   const status = $("#ledgerSplitModalStatus");
   if (!ctx) return;
   const lines = collectLedgerSplitLines();
+  const original = Math.round(Math.abs(Number(ctx.amount) || 0) * 100) / 100;
+  const total = Math.round(
+    lines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0) * 100
+  ) / 100;
+  if (lines.length < 2) {
+    if (status) setFormStatus(status, "Add at least two lines before saving a split.", false);
+    updateLedgerSplitSumStatus();
+    return;
+  }
+  if (Math.abs(total - original) > 0.005) {
+    if (status) {
+      setFormStatus(
+        status,
+        `Split lines must total ${fmt.format(original)} (got ${fmt.format(total)}).`,
+        false
+      );
+    }
+    updateLedgerSplitSumStatus();
+    return;
+  }
   if (status) setFormStatus(status, "Saving split…", true);
   try {
     const res = await fetch("/api/ledger-adjustments/split", {
@@ -2368,6 +2431,10 @@ async function submitLedgerSplit() {
     if (!res.ok) throw new Error(data.error || "Split failed");
     $("#ledgerSplitModal")?.classList.add("hidden");
     showLedgerAdjustmentPrompt(data);
+    await appAlert(
+      `Split saved as ${data.splitLineCount || lines.length} ledger lines. Download the updated Xlsx (and Csv) ledger now and replace your local master file so cloud and PC stay in sync.`,
+      { title: "Download Updated Ledger", variant: "success", confirmLabel: "Got It" }
+    );
     if (ctx.memberId) await showProfile(ctx.memberId);
     loadMembers();
     loadBooks();
@@ -2842,6 +2909,7 @@ function loanAccountSubtitle(p) {
 function loanScheduleHtml(lot) {
   if (!lot.schedule?.length) return "";
   let balance = loanTotalDue(lot);
+  const showDue = lot.schedule.some((row) => row.dueDate);
   const rows = lot.schedule
     .map((row) => {
       const periodTotal = schedulePeriodAmount(row);
@@ -2849,6 +2917,7 @@ function loanScheduleHtml(lot) {
       return `
       <tr>
         <td>${row.period}</td>
+        ${showDue ? `<td>${row.dueDate ? formatDate(row.dueDate) : ":"}</td>` : ""}
         <td class="money">${fmt.format(row.interest || 0)}</td>
         <td class="money">${fmt.format(row.principal || 0)}</td>
         <td class="money">${fmt.format(balance)}</td>
@@ -2863,6 +2932,12 @@ function loanScheduleHtml(lot) {
     scheduleMeta.push(`Total scheduled interest ${fmt.format(lot.scheduledTotalInterest)}`);
   }
   scheduleMeta.push(`Total payable ${fmt.format(loanTotalDue(lot))}`);
+  if (lot.repaymentPolicy === "strict") {
+    scheduleMeta.push(`Strict timelines · late fee ${fmt.format(lot.lateFeeAmount || 25)}`);
+  }
+  if ((lot.lateFeesAssessed || 0) > 0.005) {
+    scheduleMeta.push(`Late fees assessed ${fmt.format(lot.lateFeesAssessed)}`);
+  }
   return `
     <details class="profile-disclosure loan-schedule-disclosure">
       <summary>Agreed Loan Repayment Schedule</summary>
@@ -2872,7 +2947,7 @@ function loanScheduleHtml(lot) {
         <div class="table-wrap compact">
           <table>
             <thead>
-              <tr><th>#</th><th>Interest</th><th>Principal</th><th>Balance</th></tr>
+              <tr><th>#</th>${showDue ? "<th>Due Date</th>" : ""}<th>Interest</th><th>Principal</th><th>Balance</th></tr>
             </thead>
             <tbody>${rows}</tbody>
           </table>
@@ -2883,7 +2958,15 @@ function loanScheduleHtml(lot) {
 
 function loanLotSummaryLine(lot) {
   const isPaid = lot.status === "paid";
-  return `Disbursed ${formatDate(lot.disbursementDate)} · Principal ${fmt.format(lot.principal)} · Repaid ${fmt.format(lot.collected)} · Interest earned ${fmt.format(lot.interestIncome || 0)}${lot.scheduledTotalInterest != null ? ` of ${fmt.format(lot.scheduledTotalInterest)} scheduled` : ""} · Outstanding ${fmt.format(lot.outstanding)}`;
+  const policyNote =
+    lot.repaymentPolicy === "strict"
+      ? ` · Strict timelines (late fee ${fmt.format(lot.lateFeeAmount || 25)})`
+      : "";
+  const lateNote =
+    (lot.lateFeesAssessed || 0) > 0.005
+      ? ` · Late fees ${fmt.format(lot.lateFeesAssessed)}`
+      : "";
+  return `Disbursed ${formatDate(lot.disbursementDate)} · Principal ${fmt.format(lot.principal)} · Repaid ${fmt.format(lot.collected)} · Interest earned ${fmt.format(lot.interestIncome || 0)}${lot.scheduledTotalInterest != null ? ` of ${fmt.format(lot.scheduledTotalInterest)} scheduled` : ""} · Outstanding ${fmt.format(lot.outstanding)}${policyNote}${lateNote}`;
 }
 
 function loanLotCardHtml(lot, memberId, loanTransactions) {
@@ -3104,6 +3187,71 @@ async function loadLoans() {
     if (body) body.innerHTML = `<tr><td colspan="11" class="status err">${escapeHtml(err.message)}</td></tr>`;
   }
 }
+
+async function loadLoanPaymentPolicyPanel() {
+  const panel = $("#loanPaymentPolicyPanel");
+  if (!panel || currentUser?.role !== "admin") return;
+  panel.classList.remove("hidden");
+  const status = $("#loanPaymentPolicyStatus");
+  try {
+    const res = await fetch("/api/cooperative/loan-policy");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load loan payment policy");
+    const flexible = $("#loanPolicyFlexible");
+    const strict = $("#loanPolicyStrict");
+    if (flexible) flexible.checked = data.mode !== "strict";
+    if (strict) strict.checked = data.mode === "strict";
+    const fee = $("#loanLateFeeAmount");
+    if (fee) fee.value = data.lateFeeAmount != null ? data.lateFeeAmount : 25;
+    const hint = $("#newLoanPolicyHint");
+    if (hint) {
+      hint.textContent =
+        data.mode === "strict"
+          ? `This loan will use Strict Timelines (late fee ${fmt.format(
+              data.lateFeeAmount || 25
+            )} when a payment is after its due date). Saved under Loans → Loan Payment Policy.`
+          : "This loan will use Flexible repayment (no late fee). Change under Loans → Loan Payment Policy.";
+    }
+    if (status) status.textContent = "";
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+}
+
+async function saveLoanPaymentPolicy() {
+  const status = $("#loanPaymentPolicyStatus");
+  const mode = $("#loanPolicyStrict")?.checked ? "strict" : "flexible";
+  const lateFeeAmount = Number($("#loanLateFeeAmount")?.value);
+  try {
+    const res = await fetch("/api/cooperative/loan-policy", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode, lateFeeAmount }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed");
+    if (status) {
+      status.textContent =
+        data.mode === "strict"
+          ? `Saved: Strict Timelines. Late fee ${fmt.format(
+              data.lateFeeAmount
+            )} applies only to new loans from now on.`
+          : "Saved: Flexible (no late fee). Applies only to new loans from now on.";
+      status.className = "status ok";
+    }
+    await loadLoanPaymentPolicyPanel();
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+}
+
+$("#saveLoanPaymentPolicy")?.addEventListener("click", () => saveLoanPaymentPolicy());
 
 async function toggleLoanDetail(row) {
   const key = row.dataset.loanKey;
@@ -8115,6 +8263,19 @@ document.addEventListener("change", (e) => {
   if (e.target?.classList?.contains("ledger-tx-type")) {
     submitLedgerReclassify(e.target);
   }
+  if (
+    e.target?.classList?.contains("ledger-split-amount") ||
+    e.target?.classList?.contains("ledger-split-type") ||
+    e.target?.classList?.contains("ledger-split-member")
+  ) {
+    updateLedgerSplitSumStatus();
+  }
+});
+
+document.addEventListener("input", (e) => {
+  if (e.target?.classList?.contains("ledger-split-amount")) {
+    updateLedgerSplitSumStatus();
+  }
 });
 
 document.addEventListener("click", (e) => {
@@ -8133,6 +8294,7 @@ document.addEventListener("click", (e) => {
     const host = $("#ledgerSplitLines");
     const count = host?.querySelectorAll(".ledger-split-line").length || 0;
     host?.insertAdjacentHTML("beforeend", ledgerSplitLineHtml({ ledgerType: "deposit" }, count));
+    updateLedgerSplitSumStatus();
     return;
   }
   if (e.target?.id === "ledgerSplitCancel") {

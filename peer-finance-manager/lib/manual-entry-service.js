@@ -118,7 +118,7 @@ function createManualLoan(payload) {
   const db = getDb();
   const loan = db.prepare(`SELECT * FROM loans WHERE id = ?`).get(loanId);
 
-  addTransaction({
+  const txId = addTransaction({
     memberId: loan.borrower_id,
     type: TRANSACTION_TYPES.LOAN_DISBURSEMENT,
     amount: -Math.abs(loan.principal),
@@ -127,6 +127,21 @@ function createManualLoan(payload) {
     loanId,
     source: "manual",
   });
+
+  try {
+    const { recordDisbursementPolicySnapshot } = require("./loan-policy-service");
+    recordDisbursementPolicySnapshot({
+      disbursementTxId: txId,
+      loanId,
+      memberId: loan.borrower_id,
+      disbursementDate: loan.start_date,
+      principal: loan.principal,
+      policyOverride: {
+        repaymentPolicy: loan.repayment_policy || "flexible",
+        lateFeeAmount: loan.late_fee_amount != null ? loan.late_fee_amount : 25,
+      },
+    });
+  } catch (_) {}
 
   queueCooperativeBankLedgerCsvSync("manual_loan_disbursement");
   return { loanId };

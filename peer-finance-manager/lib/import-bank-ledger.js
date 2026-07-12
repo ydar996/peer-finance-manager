@@ -161,7 +161,7 @@ function insertBankLedgerTransaction({
   if (type === TRANSACTION_TYPES.LOAN_DISBURSEMENT && signedAmount > 0) {
     signedAmount = -signedAmount;
   }
-  insertTx.run(
+  const insertInfo = insertTx.run(
     memberId,
     type,
     signedAmount,
@@ -172,6 +172,17 @@ function insertBankLedgerTransaction({
     reference,
     importId
   );
+  if (type === TRANSACTION_TYPES.LOAN_DISBURSEMENT) {
+    try {
+      const { recordDisbursementPolicySnapshot } = require("./loan-policy-service");
+      recordDisbursementPolicySnapshot({
+        disbursementTxId: Number(insertInfo.lastInsertRowid),
+        memberId,
+        disbursementDate: tx.date,
+        principal: Math.abs(signedAmount),
+      });
+    } catch (_) {}
+  }
   if (type === TRANSACTION_TYPES.DEPOSIT) counts.deposits += 1;
   if (type === TRANSACTION_TYPES.WITHDRAWAL) counts.withdrawals += 1;
   if (type === TRANSACTION_TYPES.LOAN_REPAYMENT) counts.loanRepayments += 1;

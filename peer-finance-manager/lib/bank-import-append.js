@@ -412,7 +412,7 @@ function insertAppendTransaction({
     signedAmount = -signedAmount;
   }
 
-  insertTx.run(
+  const insertInfo = insertTx.run(
     memberId,
     type,
     signedAmount,
@@ -425,6 +425,17 @@ function insertAppendTransaction({
     bankAccountId,
     fingerprint
   );
+  if (type === TRANSACTION_TYPES.LOAN_DISBURSEMENT && memberId) {
+    try {
+      const { recordDisbursementPolicySnapshot } = require("./loan-policy-service");
+      recordDisbursementPolicySnapshot({
+        disbursementTxId: Number(insertInfo.lastInsertRowid),
+        memberId,
+        disbursementDate: tx.date,
+        principal: Math.abs(signedAmount),
+      });
+    } catch (_) {}
+  }
   counts.inserted += 1;
   if (type === TRANSACTION_TYPES.DEPOSIT) counts.deposits += 1;
   if (type === TRANSACTION_TYPES.WITHDRAWAL) counts.withdrawals += 1;

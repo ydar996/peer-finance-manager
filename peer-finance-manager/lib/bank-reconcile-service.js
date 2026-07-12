@@ -168,11 +168,57 @@ function getBankReconcileStatus() {
     : null;
   const liveBankImportRows = countBankImportRows();
 
-  return compareBankReconcileStatus({
+  let compared = compareBankReconcileStatus({
     anchor,
     liveBalanceAtAnchor,
     liveBankImportRows,
     liveLedger,
+  });
+
+  // Split/reclassify expands one bank transaction into any number of bank_import rows
+  // (2-way, 3-way, …) without changing cash balance. Align row-count when balance matches.
+  if (
+    compared.status === "out_of_sync" &&
+    compared.divergences.length === 1 &&
+    compared.divergences[0].field === "bankImportRows" &&
+    liveBalanceAtAnchor?.balance != null &&
+    Math.abs(liveBalanceAtAnchor.balance - anchor.balance) <= BALANCE_TOLERANCE
+  ) {
+    captureBankReconcileAnchor({
+      balance: anchor.balance,
+      asOf: anchor.asOf,
+      source: "classification_row_align",
+      label: anchor.label || "split/reclassify",
+    });
+    compared = compareBankReconcileStatus({
+      anchor: readStoredAnchor(),
+      liveBalanceAtAnchor,
+      liveBankImportRows: countBankImportRows(),
+      liveLedger,
+    });
+  }
+
+  return compared;
+}
+
+/**
+ * After split/reclassify rebuild: keep balance/as-of, refresh bank_import row count.
+ */
+function refreshBankReconcileAfterClassification({ label = "split/reclassify" } = {}) {
+  const anchor = readStoredAnchor();
+  if (!anchor?.asOf) return null;
+  const liveBalanceAtAnchor = getLedgerEndingBalance(anchor.asOf);
+  if (
+    liveBalanceAtAnchor?.balance == null ||
+    Math.abs(liveBalanceAtAnchor.balance - anchor.balance) > BALANCE_TOLERANCE
+  ) {
+    return null;
+  }
+  return captureBankReconcileAnchor({
+    balance: anchor.balance,
+    asOf: anchor.asOf,
+    source: "ledger_adjustment",
+    label,
   });
 }
 
@@ -212,5 +258,6 @@ module.exports = {
   captureBankReconcileAnchorFromLedger,
   compareBankReconcileStatus,
   getBankReconcileStatus,
+  refreshBankReconcileAfterClassification,
   captureBankReconcileAfterAppend,
 };

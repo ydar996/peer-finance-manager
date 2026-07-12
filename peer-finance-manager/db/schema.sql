@@ -74,10 +74,36 @@ CREATE TABLE IF NOT EXISTS loans (
   borrower_sign_url TEXT,
   borrower_embed_url TEXT,
   borrower_doc_status TEXT,
+  repayment_policy TEXT NOT NULL DEFAULT 'flexible',
+  late_fee_amount REAL NOT NULL DEFAULT 25,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (borrower_id) REFERENCES members(id),
   FOREIGN KEY (guarantor1_id) REFERENCES members(id),
   FOREIGN KEY (guarantor2_id) REFERENCES members(id)
+);
+
+CREATE TABLE IF NOT EXISTS loan_policy_snapshots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  disbursement_tx_id INTEGER UNIQUE,
+  loan_id INTEGER,
+  member_id INTEGER,
+  disbursement_date TEXT NOT NULL,
+  principal REAL NOT NULL,
+  repayment_policy TEXT NOT NULL DEFAULT 'flexible',
+  late_fee_amount REAL NOT NULL DEFAULT 25,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS loan_late_fee_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  loan_id INTEGER,
+  installment_id INTEGER,
+  disbursement_tx_id INTEGER,
+  period_due_date TEXT NOT NULL,
+  amount REAL NOT NULL,
+  payment_date TEXT NOT NULL,
+  transaction_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS flexxforms_applications (

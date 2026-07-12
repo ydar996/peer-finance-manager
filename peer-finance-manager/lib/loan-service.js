@@ -5,12 +5,16 @@ const {
   MIN_MEMBERSHIP_MONTHS_FOR_LOAN,
   REQUIRED_GUARANTORS,
   LATE_FEE_AMOUNT,
-  LATE_FEE_DAY_OF_MONTH,
   TRANSACTION_TYPES,
 } = require("./constants");
 const { getMemberBalance } = require("./balance-service");
 const { addMonths, monthsBetween } = require("./dates");
 const { addTransaction } = require("./balance-service");
+const {
+  snapshotCurrentPolicy,
+  getPolicyForLoanRow,
+  assessLateFeeOnce,
+} = require("./loan-policy-service");
 
 function getMemberDepositTotal(memberId) {
   const db = getDb();
@@ -138,14 +142,16 @@ function createLoan({
     termMonths,
     startDate
   );
+  const policySnap = snapshotCurrentPolicy();
 
   const create = db.transaction(() => {
     const loanResult = db
       .prepare(
         `INSERT INTO loans
           (borrower_id, principal, annual_rate, term_months, start_date,
-           guarantor1_id, guarantor2_id, schedule_imported, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`
+           guarantor1_id, guarantor2_id, schedule_imported, notes,
+           repayment_policy, late_fee_amount)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`
       )
       .run(
         borrowerId,
@@ -155,7 +161,9 @@ function createLoan({
         startDate,
         guarantor1Id,
         guarantor2Id,
-        notes ?? null
+        notes ?? null,
+        policySnap.repaymentPolicy,
+        policySnap.lateFeeAmount
       );
     const loanId = loanResult.lastInsertRowid;
 
@@ -221,6 +229,7 @@ function applyLoanRepayment({
   const db = getDb();
   const loan = db.prepare(`SELECT * FROM loans WHERE id = ?`).get(loanId);
   if (!loan) throw new Error("Loan not found");
+  const policy = getPolicyForLoanRow(loan);
 
   const pending = db
     .prepare(
@@ -232,6 +241,7 @@ function applyLoanRepayment({
 
   let remaining = amount;
   const allocations = [];
+  const lateFees = [];
 
   for (const inst of pending) {
     if (remaining <= 0) break;
@@ -243,6 +253,19 @@ function applyLoanRepayment({
     ).run(newPaid, paymentDate, inst.id);
     remaining -= applied;
     allocations.push({ installmentId: inst.id, applied });
+
+    if (policy.isStrict && applied > 0.005) {
+      const assessed = assessLateFeeOnce({
+        loanId,
+        installmentId: inst.id,
+        periodDueDate: inst.due_date,
+        amount: policy.lateFeeAmount,
+        paymentDate,
+        memberId: loan.borrower_id,
+        description: `Late fee: Loan #${loanId} installment due ${String(inst.due_date).slice(0, 10)}`,
+      });
+      if (assessed) lateFees.push(assessed);
+    }
   }
 
   const repaymentAmount = amount - remaining;
@@ -282,15 +305,15 @@ function applyLoanRepayment({
     db.prepare(`UPDATE loans SET status = 'paid_off' WHERE id = ?`).run(loanId);
   }
 
-  return { allocations, overpayment: remaining };
+  return { allocations, overpayment: remaining, lateFees };
 }
 
-function calculateLateFee(dueDate, asOfDate) {
-  const due = new Date(dueDate);
-  const asOf = new Date(asOfDate);
-  const grace = new Date(due.getFullYear(), due.getMonth(), LATE_FEE_DAY_OF_MONTH);
-  if (asOf <= grace) return 0;
-  return LATE_FEE_AMOUNT;
+function calculateLateFee(dueDate, asOfDate, feeAmount = LATE_FEE_AMOUNT) {
+  if (!dueDate || !asOfDate) return 0;
+  const due = String(dueDate).slice(0, 10);
+  const asOf = String(asOfDate).slice(0, 10);
+  if (!due || !asOf || asOf <= due) return 0;
+  return Number(feeAmount) || LATE_FEE_AMOUNT;
 }
 
 function listLoans(status) {
