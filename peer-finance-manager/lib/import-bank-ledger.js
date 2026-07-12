@@ -183,6 +183,7 @@ function importBankLedgerCore({
   importLabel,
   cdBalance,
   replaceSpreadsheetDeposits = true,
+  captureReconcileAnchor = true,
 }) {
   const db = getDb();
   ensureSettingsTable(db);
@@ -256,22 +257,26 @@ function importBankLedgerCore({
 
   db.prepare(`UPDATE bank_imports SET status = 'applied' WHERE id = ?`).run(importId);
 
-  const {
-    captureBankReconcileAnchorFromLedger,
-    getBankReconcileStatus,
-  } = require("./bank-reconcile-service");
-  captureBankReconcileAnchorFromLedger({
-    source: "full_refresh",
-    label: importLabel,
-    db,
-  });
+  let bankReconcile = null;
+  if (captureReconcileAnchor) {
+    const {
+      captureBankReconcileAnchorFromLedger,
+      getBankReconcileStatus,
+    } = require("./bank-reconcile-service");
+    captureBankReconcileAnchorFromLedger({
+      source: "full_refresh",
+      label: importLabel,
+      db,
+    });
+    bankReconcile = getBankReconcileStatus();
+  }
 
   return {
     importId,
     totalBankRows: bankTxs.length,
     ...counts,
     cdBalance: cdBalance != null ? Number(cdBalance) : null,
-    bankReconcile: getBankReconcileStatus(),
+    bankReconcile,
   };
 }
 
@@ -426,12 +431,14 @@ function importBankLedgerFromTransactions({
   sourceLabel = "adjustment-rebuild",
   cdBalance,
   replaceSpreadsheetDeposits = true,
+  captureReconcileAnchor = false,
 }) {
   return importBankLedgerCore({
     bankTxs,
     importLabel: sourceLabel,
     cdBalance,
     replaceSpreadsheetDeposits,
+    captureReconcileAnchor,
   });
 }
 

@@ -6,7 +6,7 @@ const {
   findReferenceLedgerPath,
   importBankLedgerFromTransactions,
 } = require("./import-bank-ledger");
-const { queueCooperativeBankLedgerCsvSync, getLedgerEndingBalance } = require(
+const { queueCooperativeBankLedgerCsvSync, getLedgerEndingBalance, loadBankTransactionsFromDb } = require(
   "./cooperative-bank-ledger-csv"
 );
 const { clearPortfolioInterestShareCache } = require("./loan-ledger-service");
@@ -319,32 +319,39 @@ function saveSplitAdjustment({
 }
 
 function rebuildLedgerWithAdjustments({ referencePath, userId } = {}) {
-  const refPath = referencePath || findReferenceLedgerPath();
-  if (!refPath) {
-    throw new Error(
-      "No reference ledger file found on the server. Upload cooperative-bank-ledger-reference.csv or .xlsx first."
-    );
-  }
-
   const db = getDb();
   const members = db.prepare(`SELECT id, name FROM members`).all();
   const memberNames = members.map((m) => m.name);
-  const isCsv = refPath.toLowerCase().endsWith(".csv");
   const path = require("path");
 
-  let bankTxs = loadMergedBankTransactions({
-    xlsxPath: isCsv ? null : refPath,
-    csvPath: isCsv ? refPath : null,
-    memberNames,
-    xlsxOriginalName: path.basename(refPath),
-    csvOriginalName: isCsv ? path.basename(refPath) : null,
-  });
+  let bankTxs = loadBankTransactionsFromDb(db);
+  let rebuildSource = "live-db";
+
+  if (!bankTxs.length) {
+    const refPath = referencePath || findReferenceLedgerPath();
+    if (!refPath) {
+      throw new Error(
+        "No bank ledger rows in the database and no reference ledger file on the server. Run Full Ledger Refresh first."
+      );
+    }
+    const isCsv = refPath.toLowerCase().endsWith(".csv");
+    bankTxs = loadMergedBankTransactions({
+      xlsxPath: isCsv ? null : refPath,
+      csvPath: isCsv ? refPath : null,
+      memberNames,
+      xlsxOriginalName: path.basename(refPath),
+      csvOriginalName: isCsv ? path.basename(refPath) : null,
+    });
+    rebuildSource = refPath;
+  }
+
   bankTxs = applyAdjustmentsToBankTransactions(bankTxs);
 
   const before = getLedgerEndingBalance();
   const result = importBankLedgerFromTransactions({
     bankTxs,
-    sourceLabel: `adjustment-rebuild:${path.basename(refPath)}`,
+    sourceLabel: `adjustment-rebuild:${rebuildSource}`,
+    captureReconcileAnchor: false,
   });
   clearPortfolioInterestShareCache();
   queueCooperativeBankLedgerCsvSync("ledger_adjustment");
@@ -352,7 +359,7 @@ function rebuildLedgerWithAdjustments({ referencePath, userId } = {}) {
 
   return {
     ...result,
-    referencePath: refPath,
+    referencePath: rebuildSource,
     adjustmentRebuild: true,
     beforeBalance: before?.balance ?? null,
     afterBalance: after?.balance ?? null,

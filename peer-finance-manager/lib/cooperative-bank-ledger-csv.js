@@ -121,6 +121,18 @@ function loadLedgerRowsFromDb(db) {
     .all(...LEDGER_SOURCES, ...LEDGER_TYPES);
 }
 
+function loadBankTransactionsFromDb(db = getDb()) {
+  const rows = loadLedgerRowsFromDb(db);
+  return rows.map((row) => ({
+    date: row.transaction_date,
+    amount: Number(row.amount),
+    description: descriptionForCsvExport(row),
+    ledgerType: row.type,
+    member: row.member_name || null,
+    source: row.source || "bank_import",
+  }));
+}
+
 function buildExportRows(rows) {
   const mapped = rows.map((row, index) => {
     const amount = Number(row.amount);
@@ -418,6 +430,7 @@ module.exports = {
   queueCooperativeBankLedgerCsvSync,
   ledgerCsvAutoSyncEnabled,
   loadLedgerRowsFromDb,
+  loadBankTransactionsFromDb,
   buildExportRows,
   getLedgerEndingBalance,
   writeBankStatementCsv,
