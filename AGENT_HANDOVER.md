@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 11, 2026 (Bank Reconcile Status — all tenants)  
+**Last updated:** July 11, 2026 (Zero WinSCP; browser-only data ops)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -53,7 +53,7 @@ Documentation is the handoff contract between sessions. If it is stale, the next
 | Deploy, cloud, Git push, or data upload | **UPDATE-AND-PUBLISH.md** and/or **DEPLOY-TODAY.md** |
 | Architecture, ports, stack, folder layout | **README.md** — Architecture + Project layout |
 | UI labels/buttons (Title Case rules) | `.cursor/rules/ui-copy-standards.mdc` and **UI-COPY-STANDARDS.md** if conventions change |
-| Data backup / restore on production | **USER-GUIDE.md** §23, **UPLOAD-DATA-TO-PRODUCTION.md** (break-glass) |
+| Data backup / restore on production | **USER-GUIDE.md** §23, **UPLOAD-DATA-TO-PRODUCTION.md** |
 | Port numbers | **Ports in Use by Applications.md** (project copy + Desktop master) |
 
 ### Changelog rule
@@ -75,7 +75,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 1. **Never commit** `data/`, `*.db`, credentials CSV, or `.env` — they are gitignored.
 2. **Never set** `PFM_COOP_ROOT` on Render — breaks module loading (use `PFM_DATA_DIR` only).
-3. **Code deploy** = `git push` → Netlify + Render auto-deploy. **Data deploy** = **Admin → Maintenance** (backup/restore) or **Admin → Import** (ledger). WinSCP is break-glass only.
+3. **Code deploy** = `git push` → Netlify + Render auto-deploy. **Data deploy** = **Admin → Maintenance** (backup/restore) or **Admin → Import** (ledger). Never instruct Coop admins to use SFTP or file-copy tools.
 4. **Do not git commit** unless the user explicitly asks.
 5. After cloud-affecting changes, note whether user must **re-upload data** or only **git push**.
 6. **No em dashes** in user-facing app copy — use colons (`:`). See `.cursor/rules/ui-copy-standards.mdc`.
@@ -96,7 +96,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 |----------|----------|---------|
 | [USER-GUIDE.md](./USER-GUIDE.md) | All users (members, staff, admins) | Complete simple-language guide: every tab, workflow, glossary |
 | [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) | Yinka | How to change code and publish safely |
-| [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) | Yinka | Break-glass SFTP only; routine: **Admin → Maintenance** |
+| [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) | Coop admins | Browser-only data ops: **Admin → Maintenance** / Import |
 | [UI-COPY-STANDARDS.md](./UI-COPY-STANDARDS.md) | Agents/devs | No em dashes, Title Case, wording rules |
 | [.cursor/rules/continuous-documentation.mdc](./.cursor/rules/continuous-documentation.mdc) | Agents (auto) | **Always applied** — doc updates same turn as every change |
 | [DEPLOY-TODAY.md](./DEPLOY-TODAY.md) | Yinka | First-time cloud setup (already done) |
@@ -107,6 +107,8 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-11** — **Zero WinSCP (complete):** Removed every WinSCP/SFTP/break-glass data workflow. `UPLOAD-DATA-TO-PRODUCTION.md` rewritten as Coop-admin browser guide. `DEPLOY-TODAY.md` first-time seed = Register + **Maintenance → Restore**. Docs/UI/comments no longer instruct SFTP. Replacement path: **Admin → Import** / **Maintenance**. Task 4h ✅. (Nightly off-disk backups still 4i.)
+- **2026-07-11** — **SaaS scale architecture review (no code):** Audited multi-tenant readiness for thousands of Cooperatives. Verdict: isolation model (registry + per-org SQLite) is sound; single Render starter + 1 GB disk + in-process Puppeteer + no off-disk backups cannot scale. Canvas report: `canvases/saas-scalability-architecture-review.canvas.tsx`. Outstanding tasks 4i–4n (Phase 1 plan; 4h completed same day).
 - **2026-07-11** — **WinSCP retired for routine ops (all tenants):** New **Admin → Maintenance** tab: **Download Database Backup**, **Restore Database** (preview + confirm, closes live DB handle, no Manual Deploy), **Normalize Profiles** on production. APIs: `GET /api/admin/data-backup`, `GET /api/admin/data-status`, `POST /api/admin/data-restore/preview`, `POST /api/admin/data-restore`, `POST /api/admin/maintenance/normalize-profiles`. `profile-normalize-service.js`, `admin-data-service.js`, `admin-data-routes.js`; `normalize-profiles.js` uses shared service. Docs: `UPLOAD-DATA-TO-PRODUCTION.md`, `UPDATE-AND-PUBLISH.md`, `USER-GUIDE.md` §23, `README.md`, `DEPLOY-TODAY.md`, email setup guides. **Production:** `git push`.
 - **2026-07-11** — **Stale reference file cannot corrupt DB (all tenants):** Reclassify rebuilds from live DB (`00667b8`). Server startup no longer runs `syncMissingBankLedgerRows` (was injecting phantom rows from stale Render CSV on boot). Startup and post-import only **export DB → CSV**. `sync-missing` refreshes CSV from DB before any compare. §1B documents reference-file rules. Files: `import-bank-ledger.js`, `server.js`, `AGENT_HANDOVER.md`. **Production:** `git push` (`0aae2db`).
 - **2026-07-11** — **Member ledger reclassify/split (all tenants):** **Bank Ledger Rows** panel on Loan Account lists every adjustable row with **Category** + **Split** (same as Contributions Account). Loan rows without lots get controls too. **Loan Disbursement** added to reclassify dropdown. Split uses full bank amount. Files: `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
@@ -239,7 +241,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## 1A. Assurance bank ledger — canonical record (mandatory read)
 
-**Purpose:** Stop agents from re-opening resolved reconcile work, conflating two different files, or blaming the user. Read this **before** any balance-mismatch diagnosis, WinSCP advice, or “re-upload your xlsx” guidance.
+**Purpose:** Stop agents from re-opening resolved reconcile work, conflating two different files, or blaming the user. Read this **before** any balance-mismatch diagnosis or “re-upload your xlsx” guidance.
 
 ### Two different files (do not conflate)
 
@@ -397,7 +399,7 @@ Assurance wrapper: `restore-assurance-ledger-production.js` (§1A).
 |----|--------|
 | Ship fixes in **generic** libs (`bank-import-append.js`, aliases, UI) | Add Assurance-only UI thresholds or hardcoded balances |
 | Run `npm run test:bank-append` after append/balance changes | Claim "fixed" after data restore only |
-| Document §1B + changelog same turn | Tell tenants to WinSCP-upload for routine data (use **Admin → Import** / **Maintenance**) |
+| Document §1B + changelog same turn | Tell Coop admins to use SFTP or file-copy tools (use **Admin → Import** / **Maintenance**) |
 
 ---
 
@@ -508,13 +510,14 @@ Members/Admin browser
 │ peer-finance-     │                          │ peer-finance-manager.      │
 │ manager.netlify   │                          │ onrender.com               │
 │ .app              │                          │ SQLite: /var/data/         │
-│ Static UI only    │                          │ organizations/assurance/   │
+│ Static UI only    │                          │ organizations/{slug}/      │
 └───────────────────┘                          └────────────────────────────┘
         │                                                  ▲
-        │                                                  │ WinSCP upload
+        │                                                  │ Admin → Import /
+        │                                                  │ Maintenance
         │                                          ┌───────┴────────┐
-        │                                          │ PC data/ folder │
-        └─ publish: git push ──► GitHub ──────────┘ (not in git)    │
+        │                                          │ Coop admin UI  │
+        └─ publish: git push ──► GitHub ──────────┘ (browser only) │
 ```
 
 | Layer | Config files |
@@ -524,7 +527,7 @@ Members/Admin browser
 | Local PC | `PeerFinanceManager.exe`, `data/` folder |
 
 **Publish code:** `git push` → auto-deploy both services. See [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).  
-**Publish data:** **Admin → Import** (ledger) or **Admin → Maintenance** (backup/restore). WinSCP break-glass only.
+**Publish data:** **Admin → Import** (ledger) or **Admin → Maintenance** (backup/restore). Browser only.
 
 ### Local development
 
@@ -653,7 +656,14 @@ Peer Finance Manager / Assurance Cooperative
 | 4b | ~~**Fix auto-sync clobber**~~ | ✅ **Done** — xlsx never auto-overwritten; CSV sync cloud-only (§1B). |
 | 4d | ~~**Bank append product mode (all tenants)**~~ | ✅ **Done** 2026-07-09 — opening + ending blocks, Default Type on payment aliases, apply button disabled when blocked, `npm run test:bank-append`. See §1B. **Deploy:** `git push`. |
 | 4f | ~~**Bank Reconcile Status (all tenants)**~~ | ✅ **Done** 2026-07-11 — anchor on successful import; Cooperative Books card + `/api/health`; `npm run test:bank-reconcile`. **Deploy:** `git push`; re-import once per tenant to set anchor. |
-| 4g | ~~**Eliminate WinSCP routine dependency**~~ | ✅ **Done** 2026-07-11 — **Admin → Maintenance**: database backup/restore, normalize profiles on production; docs repointed from WinSCP. **Deploy:** `git push`. |
+| 4g | ~~**Eliminate WinSCP routine dependency**~~ | ✅ **Done** 2026-07-11 — **Admin → Maintenance**. |
+| 4h | ~~**Zero WinSCP (complete)**~~ | ✅ **Done** 2026-07-11 — Removed all WinSCP/SFTP/break-glass workflows from docs and UI copy. Replacement: **Admin → Maintenance** (backup/restore) + **Import**; first-time = Register + optional Restore. Automated off-disk backups remain task **4i**. |
+| 4i | **Automated off-disk backups (S3/R2)** | Nightly registry + all `organizations/*`. Complements browser Maintenance backups for SaaS DR. |
+| 4j | **Gate public org registration** | Invite/approval + CAPTCHA + rate limits on `POST /api/auth/register-organization`. |
+| 4k | **Remove hardcoded platform/admin passwords** | `platform-auth-service` defaults; `ensureAssuranceAdminUser` forced password. Env-only secrets. |
+| 4l | **Per-tenant email FROM** | Store smtp_from / smtp_from_name on registry org; stop global Assurance branding. |
+| 4m | **Disk headroom + idle DB LRU** | Raise `render.yaml` disk; alert usage; evict idle `dbByOrg` handles. |
+| 4n | **Layman import UX** | Single Import Bank Statement path; onboarding wizard; stop Assurance `SEED_ALIASES` on empty tenants. |
 | 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh**. Ops: `restore-ledger-production.js --org <slug>`. |
 | 4e | **Yomi Salami Nov 2025 split (Saheed bank alias)** | **Coop Admin only:** **Split** 11/6 **$600** in UI when ready. System has not saved a split. See [SAHEED-LOAN1-COOP-ADMIN-FIX.md](./SAHEED-LOAN1-COOP-ADMIN-FIX.md). |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |

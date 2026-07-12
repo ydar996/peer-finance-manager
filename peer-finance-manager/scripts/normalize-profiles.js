@@ -7,7 +7,7 @@
  *   node peer-finance-manager/scripts/normalize-profiles.js --apply
  *   node peer-finance-manager/scripts/normalize-profiles.js --org <slug> --apply
  *
- * Prefer Admin → Maintenance → Normalize Profiles on production (no WinSCP).
+ * Prefer Admin → Maintenance → Normalize Profiles on production.
  */
 const path = require("path");
 const { initPaths } = require("../lib/paths");

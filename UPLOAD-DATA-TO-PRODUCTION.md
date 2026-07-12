@@ -1,25 +1,60 @@
-# Upload Your Data to Production
+# Manage Production Data (Coop Admin)
 
-> **Routine workflow:** Do treasurer and ledger work on the **live Admin site** (https://peer-finance-manager.netlify.app/admin). **Do not use WinSCP** for bank ledger, profiles, or balance updates.
+All production money and member data is managed in the **browser**. Cooperative admins do not use SFTP, SSH, Shell, or file-copy tools.
 
-> **Backup / restore:** **Admin → Maintenance** → **Download Database Backup** or **Restore Database**. No SFTP, no Manual Deploy.
-
-This guide is **legacy / break-glass only** if the Maintenance tab is unavailable.
+**Live Admin:** https://peer-finance-manager.netlify.app/admin
 
 ---
 
-## What to use instead of WinSCP
+## Everyday tasks
 
-| Task | Where |
-|------|--------|
-| Monthly bank activity | **Import → Import New Bank Activity** |
-| Full ledger rebuild | **Import → Full Ledger Refresh** (upload xlsx) |
-| Download reference xlsx | **Import → Download Xlsx Ledger** |
-| Member money, profiles, loans | **Record**, **Members & Accounts** |
-| Database backup | **Maintenance → Download Database Backup** |
-| Database restore | **Maintenance → Restore Database** |
-| Title Case profile backfill | **Maintenance → Normalize Profiles** |
-| App code changes | `git push` only (Netlify + Render auto-deploy) |
+| What you need | Where to click |
+|---------------|----------------|
+| Add this month’s bank activity | **Import → Import New Bank Activity** |
+| Rebuild the full bank ledger | **Import → Full Ledger Refresh** |
+| Download your ledger workbook | **Import → Download Xlsx Ledger** |
+| Record deposits, loans, profiles | **Record**, **Members & Accounts** |
+| Save a safety copy of your database | **Maintenance → Download Database Backup** |
+| Put a known-good database back on live | **Maintenance → Restore Database** |
+| Fix Title Case on names | **Maintenance → Normalize Profiles** |
+
+---
+
+## Backup (every Cooperative)
+
+1. Sign in as Cooperative **admin**.
+2. Open **Maintenance**.
+3. Click **Download Database Backup**.
+4. Store the `.db` file somewhere safe (OneDrive, USB, etc.).
+
+Do this before major imports or at month-end.
+
+---
+
+## Restore (every Cooperative)
+
+Use when live data is wrong or corrupted and you have a good backup file.
+
+1. Sign in as Cooperative **admin**.
+2. Open **Maintenance**.
+3. Choose your `.db` backup file.
+4. Click **Preview Restore** and check member / transaction counts.
+5. Confirm **Restore Database**.
+
+The site swaps the live database immediately. No Manual Deploy. Hard-refresh the browser, then open **Cooperative Books** to verify.
+
+For **bank ledger** mistakes only, prefer **Import → Full Ledger Refresh** then **Import New Bank Activity** (keeps Bank Reconcile Status correct).
+
+---
+
+## First-time Cooperative on the live site
+
+You do **not** copy folders to the server.
+
+1. Open the live site and **Register** a Cooperative (or sign in if it already exists).
+2. The app creates an empty database for that Cooperative automatically.
+3. Optional: **Maintenance → Restore Database** if you already have a PC backup `.db` to load.
+4. Or start fresh: add members, then **Import** your bank statement / ledger.
 
 ---
 
@@ -27,37 +62,10 @@ This guide is **legacy / break-glass only** if the Maintenance tab is unavailabl
 
 | What changed | What to do |
 |--------------|------------|
-| **Bank ledger** | **Admin → Import** (browser) |
-| **Database backup/restore** | **Admin → Maintenance** (browser) |
-| **App code** | `git push` |
-| **WinSCP** | **Not used** for normal operations |
+| Member money, bank ledger, profiles | **Admin** tabs above (browser) |
+| App screens / buttons / features | Developer: `git push` (auto-deploys) |
 
-Data in `data/` on your PC does **not** travel through GitHub. Production data lives on Render at `/var/data` and is managed through the Admin UI.
-
----
-
-## Break-glass: WinSCP (emergency only)
-
-Use only when **Maintenance restore** cannot run (e.g. total admin lockout) and you have a known-good `peerfinance.db` on your PC.
-
-### Connect
-
-1. Render dashboard → **peer-finance-manager** → **Connect** → copy SSH details
-2. WinSCP: SFTP, host `ssh.<region>.render.com`, user `srv-xxxxx`, private key `.ppk`
-
-### Upload path
-
-| From (PC) | To (Render) |
-|-----------|-------------|
-| `C:\Users\yinka\Documents\AssurCoop\data\organizations\<slug>\peerfinance.db` | `/var/data/organizations/<slug>/peerfinance.db` |
-
-### After upload (required)
-
-1. Delete stale `peerfinance.db-wal`, `peerfinance.db-shm`, and `peerfinance.seed.db` in the same folder
-2. Render → **Manual Deploy** → **Deploy latest commit**
-3. Sign in and verify **Cooperative Books**
-
-**Prefer Maintenance restore** when the admin site works: it closes the live DB handle and swaps the file without a full platform restart.
+Private data never goes through GitHub. Production data lives on the cloud disk and is managed only through Admin.
 
 ---
 
@@ -65,10 +73,12 @@ Use only when **Maintenance restore** cannot run (e.g. total admin lockout) and 
 
 | Problem | What to try |
 |---------|-------------|
-| Live site shows old balances after Maintenance restore | Hard refresh; open **Maintenance** and confirm row counts |
-| Restore rejected | Upload must be a valid SQLite `.db` file that passes integrity check |
-| "Organization not found" on login | Registry or org folder missing on Render: contact ops |
+| Balances look old after restore | Hard refresh; open **Maintenance** and check **Live Database Status** |
+| Restore rejected | File must be a valid SQLite `peerfinance.db` backup |
+| Cannot sign in / org missing | Contact platform operator (registry issue) |
+| Ledger out of sync | **Import → Full Ledger Refresh** + **Import New Bank Activity** |
 
-Routine publish: [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md)
+Routine code publish: [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md)  
+User steps: [USER-GUIDE.md](./USER-GUIDE.md) §23 Maintenance
 
 *Last updated: July 11, 2026*

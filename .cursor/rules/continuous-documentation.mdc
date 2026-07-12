@@ -32,7 +32,7 @@ Every code, config, schema, script, or user-visible change **MUST** be documente
 Append under `AGENT_HANDOVER.md` § Changelog as soon as the change is made:
 
 ```
-- **YYYY-MM-DD** — What changed, why, and production/deploy notes (git push only vs WinSCP data upload).
+- **YYYY-MM-DD** — What changed, why, and production/deploy notes (git push only vs Admin → Maintenance / Import for data).
 ```
 
 ## Outstanding tasks

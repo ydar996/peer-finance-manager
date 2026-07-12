@@ -20,21 +20,17 @@ Your app needs **two free websites** working together:
 - Cloud-ready server code
 - `render.yaml` — Render setup file
 - `netlify.toml` — Netlify setup file
-- `cloud-data-bundle.zip` — your cooperative data (run step 0 if missing)
 
 ---
 
-## Step 0 — Pack your data (2 minutes)
+## Step 0 — Have a database backup ready (optional)
 
-1. Close **PeerFinanceManager.exe** if it is running.
-2. Open PowerShell in your project folder (`AssurCoop`).
-3. Run:
+If you already run the app on your PC and want that data on the live site:
 
-```powershell
-npm run bundle:cloud-data
-```
+1. On your PC, copy `data/organizations/<your-slug>/peerfinance.db` somewhere safe, **or**
+2. After the live site is up, sign in as admin → **Maintenance → Download Database Backup** anytime.
 
-You should see: `Created: cloud-data-bundle.zip`
+You load that file onto production later with **Maintenance → Restore Database** (browser). No file-copy tools.
 
 ---
 
@@ -102,84 +98,19 @@ Then add a **Disk**: name `pfm-data`, mount path `/var/data`, 1 GB.
 Environment variables: `NODE_ENV=production`, `PFM_DATA_DIR=/var/data`  
 (Do **not** set `PFM_COOP_ROOT` on Render — it breaks module loading.)
 
-**Add your data (important):**
+**Add your Cooperative data (browser only):**
 
-> **July 2026 update:** After go-live, routine database work uses **Admin → Maintenance** on the live site (backup, restore, normalize profiles). The WinSCP steps below are for **first-time seeding** of `/var/data` or **break-glass** recovery only. See [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md).
+Empty cloud disk is fine. The app creates `registry.db` and each Cooperative’s database when you register or sign in. **Do not use SFTP, SSH, or file-copy tools.**
 
-Think of this like **copying a folder from your PC onto Render’s hard drive**.  
-The browser **Shell** tab cannot drag-and-drop files — you use a free app called **WinSCP** (like USB, but over the internet).
+1. Wait until Render shows **Live**.
+2. Open the live Admin site and **Register** your Cooperative (or sign in).
+3. If you already have a database backup from your PC (`peerfinance.db`):
+   - Sign in as that Cooperative’s admin
+   - **Maintenance → Restore Database** → preview → confirm
+4. If you are starting fresh: add members, then use **Import** for the bank ledger.
+5. Verify **Cooperative Books** and **Maintenance → Live Database Status**.
 
-#### A — On your PC first (2 minutes)
-
-1. Find `cloud-data-bundle.zip` in your `AssurCoop` folder.
-2. **Right-click → Extract All** to your Desktop.
-3. You should get a folder with things like `registry.db` and `organizations` inside.
-
-#### B — One-time: give Render your “digital key” (5 minutes, only once)
-
-1. Open PowerShell and run:
-
-```powershell
-New-Item -ItemType Directory -Force -Path $env:USERPROFILE\.ssh
-ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\render_key -N '""'
-```
-
-Press Enter for any questions. (If you see “No such file or directory”, the first line creates the missing `.ssh` folder.)
-
-2. Show your public key:
-
-```powershell
-Get-Content $env:USERPROFILE\.ssh\render_key.pub
-```
-
-3. Copy the whole line it prints.
-4. On Render: click your **profile icon** (top right) → **Account Settings** → **SSH Public Keys** → **Add SSH Public Key** → paste → Save.
-
-#### C — Install WinSCP and connect (5 minutes)
-
-1. Download and install [WinSCP](https://winscp.net/eng/download.php) (free).
-2. On Render: open **peer-finance-manager** service → click **Connect** (top right).
-3. Copy the **SSH** command shown (looks like `ssh srv-xxxxx@ssh.oregon.render.com`).
-4. In WinSCP, click **New Site** and fill in:
-   - **File protocol:** SFTP
-   - **Host name:** the part after `@` (e.g. `ssh.oregon.render.com`)
-   - **User name:** the part before `@` (e.g. `srv-xxxxx`)
-   - **Advanced** → **SSH** → **Authentication** → **Private key file:** browse to `C:\Users\YOURNAME\.ssh\render_key`
-5. Click **Login** (say Yes if it asks about converting the key).
-
-#### D — Copy your data (2 minutes)
-
-1. **Left side** (your PC): open the folder you unzipped on your Desktop.
-2. **Right side** (Render): double-click into **`var`** → then **`data`** (full path: `/var/data`).
-3. Select everything on the left (`registry.db`, `organizations` folder, etc.).
-4. **Drag** to the right side.
-
-You should end up with `registry.db` directly inside `/var/data` — not inside another subfolder.
-
-#### E — Check it worked
-
-1. Back on Render → **Shell** tab, run:
-
-```bash
-ls /var/data
-ls /var/data/organizations/assurance
-```
-
-You should see `registry.db` and `peerfinance.db`.
-
-2. Click **Manual Deploy** → **Deploy latest commit**.
-
-**Alternative (if WinSCP is painful):** In Render Shell, you can download the zip from a private link:
-
-```bash
-cd /var/data
-curl -L -o bundle.zip "PASTE_YOUR_ONEDRIVE_OR_DROPBOX_LINK_HERE"
-apt-get update && apt-get install -y unzip
-unzip -o bundle.zip
-ls /var/data
-```
-
-Only use a **private** share link you delete afterward — this file has member passwords.
+Full guide: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md).
 
 ---
 
@@ -258,7 +189,7 @@ Full automatic sync from SQLite to Supabase is a later step.
 | Problem | Fix |
 |---------|-----|
 | Blank page / login fails | Check `RENDER_API_URL` on Netlify and redeploy |
-| “Organization not found” | Data not uploaded to `/var/data` on Render |
+| “Organization not found” | Register the Cooperative on the live site, or restore via **Admin → Maintenance** |
 | API health fails | Render logs → **Logs** tab |
 | Statements won’t download | First request may be slow; Render free tier sleeps after 15 min idle — first visit wakes it (~30 sec) |
 | Still works on your PC | Yes — `PeerFinanceManager.exe` is unchanged |
@@ -268,6 +199,6 @@ Full automatic sync from SQLite to Supabase is a later step.
 ## What stays on your computer
 
 - **PeerFinanceManager.exe** — still works offline for admin work.
-- **data/** folder — your master copy. Back it up to USB or OneDrive regularly.
+- **data/** folder — local copy. Prefer **Admin → Maintenance → Download Database Backup** on live for the canonical cloud copy.
 
-After cloud is live, you can use either the website or the exe; they share the same structure but **won’t auto-sync** until you upload fresh data to Render again.
+PC and live site do **not** auto-sync. Move data with **Maintenance → Restore** (upload a `.db`) or rebuild the ledger with **Import**.

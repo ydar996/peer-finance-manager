@@ -71,9 +71,9 @@ Check:
 | **Bank ledger** | **Admin → Import** on live site |
 | **Database backup or restore** | **Admin → Maintenance** on live site |
 | **Title Case profile backfill** | **Admin → Maintenance → Normalize Profiles** |
-| **WinSCP** | **Not used** for routine work (break-glass only: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)) |
+| **Migrate PC database to live** | **Admin → Maintenance → Restore Database** (upload `.db`) |
 
-**Full guide:** [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) (points to Maintenance tab first).
+**Full guide:** [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)
 
 ---
 

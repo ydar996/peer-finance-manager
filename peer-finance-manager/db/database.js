@@ -69,7 +69,7 @@ function applyAuthMigrations(database) {
   );
 }
 
-/** Drop WAL/SHM left from a prior server run when peerfinance.db was replaced via WinSCP. */
+/** Drop WAL/SHM left from a prior server run when peerfinance.db was replaced (e.g. Admin → Maintenance restore). */
 function removeStaleWalSidecars(dbPath) {
   if (!fs.existsSync(dbPath)) return;
   const dbMtime = fs.statSync(dbPath).mtimeMs;

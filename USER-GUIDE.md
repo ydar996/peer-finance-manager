@@ -511,7 +511,7 @@ A green **Ledger Updated** banner offers **Download Csv Ledger** / **Download Xl
 
 ## 23. Maintenance Tab (Backup, Restore, Profile Tools)
 
-**Admin → Maintenance** replaces WinSCP for database and profile maintenance on the live site.
+**Admin → Maintenance** is where Cooperative admins back up, restore, and normalize profiles on the live site.
 
 | Section | Purpose |
 |---------|---------|
