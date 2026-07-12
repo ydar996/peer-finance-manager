@@ -251,7 +251,7 @@ Members need an email in **Members & Profiles** (profile or login email).
 
 - Change anything on **Netlify** for email.
 - Pay for SendGrid or another mail company (for this setup).
-- Upload database files (WinSCP) for email.
+- Upload database files for email (use **Admin → Maintenance** if needed).
 - Run commands on your PC after the PHP file is uploaded.
 
 ---

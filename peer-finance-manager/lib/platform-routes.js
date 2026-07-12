@@ -251,6 +251,7 @@ function requireActiveSubscription(req, res, next) {
     "/billing/",
     "/auth/",
     "/platform/",
+    "/admin/",
   ];
   if (billingPaths.some((p) => req.path.startsWith(p))) return next();
   try {

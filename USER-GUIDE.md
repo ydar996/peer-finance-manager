@@ -235,6 +235,8 @@ Every form has its own **Save** or **Record** button. Changes apply immediately 
 
 ## 10. Import Tab — Bank Statements and Bulk Data
 
+**Prefer xlsx?** Upload and download xlsx throughout; csv is optional and used for bank statement exports.
+
 ### A. Import New Bank Activity (normal monthly workflow)
 
 **Use this every month** (and anytime you want interim balance updates).
@@ -507,7 +509,22 @@ A green **Ledger Updated** banner offers **Download Csv Ledger** / **Download Xl
 
 ---
 
-## 23. Offline App on Your PC
+## 23. Maintenance Tab (Backup, Restore, Profile Tools)
+
+**Admin → Maintenance** replaces WinSCP for database and profile maintenance on the live site.
+
+| Section | Purpose |
+|---------|---------|
+| **Database Backup** | Download `peerfinance.db` for this Cooperative (archive or before risky changes). |
+| **Database Restore** | Upload a `.db` backup, preview row counts, then restore. Replaces live data; no Manual Deploy required. |
+| **Normalize Profiles (Title Case)** | Preview and apply formatting to member profiles and ledger names on production. |
+| **Live Database Status** | Row counts, integrity, and reconcile snapshot. |
+
+**When to use restore:** disaster recovery or copying a known-good backup onto production. For bank ledger corrections, prefer **Import → Full Ledger Refresh** + **Import New Bank Activity** so reconcile anchor stays correct.
+
+---
+
+## 24. Offline App on Your PC
 
 **PeerFinanceManager.exe** in the AssurCoop folder works without internet for desk work.
 
@@ -515,15 +532,15 @@ It does **not** auto-sync with the live website. See [UPDATE-AND-PUBLISH.md](./U
 
 ---
 
-## 24. Getting Help
+## 25. Getting Help
 
 | Need | Contact |
 |------|---------|
 | **Technical / admin issues** | Your Cooperative administrator (e.g. Yinka Daramola — `yinka@eworkchop.com` for Assurance). |
 | **Deploy and publish app changes** | [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) |
-| **Upload data to production server** | [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) |
+| **Database backup or restore** | **Admin → Maintenance** (see §23) |
 | **Email notifications setup** | [EMAIL-NOTIFICATIONS-SETUP.md](./EMAIL-NOTIFICATIONS-SETUP.md) or [BLUEHOST-EMAIL-RELAY-SETUP.md](./BLUEHOST-EMAIL-RELAY-SETUP.md) |
 
 ---
 
-*Last updated: July 10, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*
+*Last updated: July 11, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*

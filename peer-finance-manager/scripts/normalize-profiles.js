@@ -5,137 +5,47 @@
  * Usage:
  *   node peer-finance-manager/scripts/normalize-profiles.js --dry-run
  *   node peer-finance-manager/scripts/normalize-profiles.js --apply
+ *   node peer-finance-manager/scripts/normalize-profiles.js --org <slug> --apply
+ *
+ * Prefer Admin → Maintenance → Normalize Profiles on production (no WinSCP).
  */
 const path = require("path");
 const { initPaths } = require("../lib/paths");
 const { runWithOrg } = require("../lib/org-context");
 const { ASSURANCE_SLUG } = require("../lib/organization-service");
 const { getDb, closeDb } = require("../db/database");
-const { normalizeProfileFields, formatPersonName } = require("../lib/text-format");
+const { normalizeAllProfiles } = require("../lib/profile-normalize-service");
 
 initPaths(path.join(__dirname, "..", ".."));
 
-const PROFILE_COLUMNS = [
-  "first_name",
-  "middle_name",
-  "last_name",
-  "display_name",
-  "gender",
-  "address_line1",
-  "address_line2",
-  "city",
-  "state",
-  "country",
-  "next_of_kin_first_name",
-  "next_of_kin_last_name",
-  "next_of_kin_relationship",
-  "signature_name",
-  "email",
-  "next_of_kin_email",
-];
-
 function parseArgs(argv) {
-  const apply = argv.includes("--apply");
-  const dryRun = argv.includes("--dry-run") || !apply;
-  if (apply && argv.includes("--dry-run")) {
-    throw new Error("Use either --dry-run or --apply, not both");
+  const out = { org: ASSURANCE_SLUG, apply: false };
+  for (let i = 2; i < argv.length; i++) {
+    if (argv[i] === "--org" && argv[i + 1]) out.org = argv[++i];
+    else if (argv[i] === "--apply") out.apply = true;
+    else if (argv[i] === "--dry-run") out.apply = false;
   }
-  return { dryRun, apply };
+  return out;
 }
 
-function profileChanges(before, after) {
-  const changes = {};
-  for (const col of PROFILE_COLUMNS) {
-    const from = before[col] ?? null;
-    const to = after[col] ?? null;
-    if (from !== to) changes[col] = { from, to };
-  }
-  return changes;
-}
+const { org, apply } = parseArgs(process.argv);
 
-runWithOrg(ASSURANCE_SLUG, () => {
-  const { dryRun, apply } = parseArgs(process.argv.slice(2));
+runWithOrg(org, () => {
   const db = getDb();
-
-  const profiles = db
-    .prepare(
-      `SELECT p.*, m.name AS ledger_name
-       FROM member_profiles p
-       JOIN members m ON m.id = p.member_id
-       ORDER BY m.name`
-    )
-    .all();
-
-  let profileUpdateCount = 0;
-  let memberNameUpdateCount = 0;
-  const skippedNames = [];
-
-  for (const row of profiles) {
-    const normalized = normalizeProfileFields(row);
-    const changes = profileChanges(row, normalized);
-
-    const formattedLedgerName = formatPersonName(row.ledger_name);
-    const ledgerWouldChange =
-      formattedLedgerName && formattedLedgerName !== row.ledger_name;
-
-    if (!Object.keys(changes).length && !ledgerWouldChange) continue;
-
-    console.log(`\n${row.ledger_name} (member ${row.member_id})`);
-    for (const [col, { from, to }] of Object.entries(changes)) {
-      console.log(`  ${col}: ${JSON.stringify(from)} → ${JSON.stringify(to)}`);
-    }
-    if (ledgerWouldChange) {
-      console.log(
-        `  members.name: ${JSON.stringify(row.ledger_name)} → ${JSON.stringify(formattedLedgerName)}`
-      );
-    }
-
-    if (apply) {
-      if (Object.keys(changes).length) {
-        const sets = Object.keys(changes)
-          .map((col) => `${col} = @${col}`)
-          .join(", ");
-        const params = { member_id: row.member_id };
-        for (const col of Object.keys(changes)) params[col] = normalized[col];
-        db.prepare(
-          `UPDATE member_profiles SET ${sets}, updated_at = datetime('now') WHERE member_id = @member_id`
-        ).run(params);
-        profileUpdateCount += 1;
-      }
-
-      if (ledgerWouldChange) {
-        const clash = db
-          .prepare(`SELECT id FROM members WHERE name = ? AND id != ?`)
-          .get(formattedLedgerName, row.member_id);
-        if (clash) {
-          skippedNames.push({ memberId: row.member_id, name: row.ledger_name, target: formattedLedgerName });
-          console.log("  (skipped members.name — target already in use)");
-        } else {
-          db.prepare(`UPDATE members SET name = ? WHERE id = ?`).run(
-            formattedLedgerName,
-            row.member_id
-          );
-          memberNameUpdateCount += 1;
-        }
-      }
-    }
-  }
-
+  const result = normalizeAllProfiles(db, { apply });
   console.log(
-    `\n${dryRun ? "Dry run" : "Applied"}: ${profiles.length} profiles scanned` +
-      (apply
-        ? `; ${profileUpdateCount} profiles updated; ${memberNameUpdateCount} ledger names updated`
-        : "")
+    `${result.dryRun ? "Dry run" : "Applied"}: ${result.scanned} profiles scanned; ${result.wouldChange} would change`
   );
-  if (skippedNames.length) {
-    console.log(`Skipped ${skippedNames.length} ledger name(s) due to uniqueness:`);
-    skippedNames.forEach((s) =>
-      console.log(`  member ${s.memberId}: ${s.name} → ${s.target}`)
+  if (apply) {
+    console.log(
+      `Profiles updated: ${result.profileUpdates}; ledger names updated: ${result.memberNameUpdates}`
     );
   }
-  if (dryRun) {
-    console.log("\nRe-run with --apply to write changes.");
+  if (result.skippedNames?.length) {
+    console.log(`Skipped ${result.skippedNames.length} ledger name(s) due to uniqueness.`);
   }
-
+  if (result.dryRun && result.wouldChange) {
+    console.log("Re-run with --apply to write changes, or use Admin → Maintenance on production.");
+  }
   closeDb();
 });

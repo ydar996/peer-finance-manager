@@ -9,7 +9,7 @@
 |-----|----------------|
 | **[USER-GUIDE.md](./USER-GUIDE.md)** | Members, staff, admin — simple how-to |
 | **[UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md)** | Yinka: change app & publish safely |
-| **[UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)** | Yinka: WinSCP data upload (step by step) |
+| **[UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)** | Yinka: live-site data ops (**Admin → Maintenance** / Import); WinSCP break-glass only |
 | **[DEPLOY-TODAY.md](./DEPLOY-TODAY.md)** | First-time cloud setup (done) |
 | **[AGENT_HANDOVER.md](./AGENT_HANDOVER.md)** | Developers / AI agents — **read first**; changelog + tasks; **auto-update docs every change** (§0) |
 
@@ -382,9 +382,9 @@ AssurCoop/
 ├── UPDATE-AND-PUBLISH.md        ← How to change & publish safely
 ├── DEPLOY-TODAY.md              ← First-time cloud setup
 ├── AGENT_HANDOVER.md            ← Agent handover + changelog + tasks (read first)
-├── UPLOAD-DATA-TO-PRODUCTION.md ← WinSCP data upload guide
+├── UPLOAD-DATA-TO-PRODUCTION.md ← Live-site data ops (Maintenance tab); WinSCP emergency only
 ├── UI-COPY-STANDARDS.md         ← Title Case, no em dashes
-├── data/                        ← SQLite + bank CSV (gitignored, WinSCP to Render)
+├── data/                        ← SQLite + bank CSV (gitignored; backup via Admin → Maintenance)
 ├── server.js                    ← Statement Generator server
 ├── generator.html               ← Statement UI
 ├── lib/

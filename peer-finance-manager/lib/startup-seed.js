@@ -223,4 +223,11 @@ function scheduleStatementPregeneration() {
   });
 }
 
-module.exports = { ensureCooperativeData, findWpformsCsv, ensureDatabaseFile, scheduleStatementPregeneration };
+module.exports = {
+  ensureCooperativeData,
+  findWpformsCsv,
+  ensureDatabaseFile,
+  scheduleStatementPregeneration,
+  inspectDatabase,
+  removeWalPair,
+};

@@ -13,7 +13,7 @@ Once live, updates are mostly: **change code → push to GitHub → wait**.
 | **Cloud** | Copy of code (GitHub → Netlify + Render) + copy of database on Render disk |
 
 **Code updates** travel via **Git push**.  
-**Member/money data** does **not** auto-sync — only when you manually upload (WinSCP).
+**Member/money data** does **not** auto-sync with Git — use the **live Admin site**: **Import** (ledger), **Maintenance** (backup/restore, normalize profiles).
 
 ---
 
@@ -68,22 +68,12 @@ Check:
 
 | What changed | What to do |
 |--------------|------------|
-| **Bank ledger** (`cooperative-bank-ledger-reference.xlsx`) | **Admin → Import** on live site — no WinSCP |
-| **Other data** (profiles, manual PC edits in `data/`) | [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) (WinSCP + Manual Deploy) |
+| **Bank ledger** | **Admin → Import** on live site |
+| **Database backup or restore** | **Admin → Maintenance** on live site |
+| **Title Case profile backfill** | **Admin → Maintenance → Normalize Profiles** |
+| **WinSCP** | **Not used** for routine work (break-glass only: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)) |
 
-If you added deposits, members, CD balance updates, or other edits **only on your PC** (not via bank ledger file):
-
-**Full step-by-step guide:** [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)
-
-Short version (non-bank data only):
-
-1. Open **WinSCP** (same connection as before)
-2. Left: `C:\Users\yinka\Documents\AssurCoop\data`
-3. Right: `/var/data`
-4. Drag everything → **overwrite**
-5. Render → **Manual Deploy** → **Deploy latest commit**
-
-**You do not need to touch Netlify for data-only updates.**
+**Full guide:** [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) (points to Maintenance tab first).
 
 ---
 
@@ -101,7 +91,7 @@ Short version (non-bank data only):
 |-------|-----|
 | Delete `/var/data` on Render | Loses all member data |
 | Set `PFM_COOP_ROOT` on Render | Breaks the app (documented bug — leave unset) |
-| Commit `data/` or `.db` files to Git | Private member data — stays local + WinSCP only |
+| Commit `data/` or `.db` files to Git | Private member data — stays local; production copies via **Admin → Maintenance** |
 | Panic if first login is slow | Render wakes from idle (~30 sec) |
 | Forget to update docs after changes | **Session failure** — agents auto-update via `.cursor/rules/continuous-documentation.mdc` in the same turn as every change; see [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) §0 |
 
@@ -124,4 +114,4 @@ Short version (non-bank data only):
 
 ---
 
-*Last updated: July 1, 2026. First-time setup: [DEPLOY-TODAY.md](./DEPLOY-TODAY.md). Data upload: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md).*
+*Last updated: July 11, 2026. First-time setup: [DEPLOY-TODAY.md](./DEPLOY-TODAY.md). Data upload: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md).*

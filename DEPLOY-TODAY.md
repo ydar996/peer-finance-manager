@@ -104,6 +104,8 @@ Environment variables: `NODE_ENV=production`, `PFM_DATA_DIR=/var/data`
 
 **Add your data (important):**
 
+> **July 2026 update:** After go-live, routine database work uses **Admin → Maintenance** on the live site (backup, restore, normalize profiles). The WinSCP steps below are for **first-time seeding** of `/var/data` or **break-glass** recovery only. See [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md).
+
 Think of this like **copying a folder from your PC onto Render’s hard drive**.  
 The browser **Shell** tab cannot drag-and-drop files — you use a free app called **WinSCP** (like USB, but over the internet).
 

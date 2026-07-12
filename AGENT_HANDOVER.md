@@ -53,7 +53,7 @@ Documentation is the handoff contract between sessions. If it is stale, the next
 | Deploy, cloud, Git push, or data upload | **UPDATE-AND-PUBLISH.md** and/or **DEPLOY-TODAY.md** |
 | Architecture, ports, stack, folder layout | **README.md** — Architecture + Project layout |
 | UI labels/buttons (Title Case rules) | `.cursor/rules/ui-copy-standards.mdc` and **UI-COPY-STANDARDS.md** if conventions change |
-| Data upload to production (WinSCP) | **UPLOAD-DATA-TO-PRODUCTION.md** |
+| Data backup / restore on production | **USER-GUIDE.md** §23, **UPLOAD-DATA-TO-PRODUCTION.md** (break-glass) |
 | Port numbers | **Ports in Use by Applications.md** (project copy + Desktop master) |
 
 ### Changelog rule
@@ -75,7 +75,7 @@ Append a dated bullet under **§ Changelog** in this file **as soon as the chang
 
 1. **Never commit** `data/`, `*.db`, credentials CSV, or `.env` — they are gitignored.
 2. **Never set** `PFM_COOP_ROOT` on Render — breaks module loading (use `PFM_DATA_DIR` only).
-3. **Code deploy** = `git push` → Netlify + Render auto-deploy. **Data deploy** = WinSCP to `/var/data` + Render Manual Deploy (separate step).
+3. **Code deploy** = `git push` → Netlify + Render auto-deploy. **Data deploy** = **Admin → Maintenance** (backup/restore) or **Admin → Import** (ledger). WinSCP is break-glass only.
 4. **Do not git commit** unless the user explicitly asks.
 5. After cloud-affecting changes, note whether user must **re-upload data** or only **git push**.
 6. **No em dashes** in user-facing app copy — use colons (`:`). See `.cursor/rules/ui-copy-standards.mdc`.
@@ -96,7 +96,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 |----------|----------|---------|
 | [USER-GUIDE.md](./USER-GUIDE.md) | All users (members, staff, admins) | Complete simple-language guide: every tab, workflow, glossary |
 | [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) | Yinka | How to change code and publish safely |
-| [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) | Yinka | WinSCP: copy `data/` folder to live server |
+| [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md) | Yinka | Break-glass SFTP only; routine: **Admin → Maintenance** |
 | [UI-COPY-STANDARDS.md](./UI-COPY-STANDARDS.md) | Agents/devs | No em dashes, Title Case, wording rules |
 | [.cursor/rules/continuous-documentation.mdc](./.cursor/rules/continuous-documentation.mdc) | Agents (auto) | **Always applied** — doc updates same turn as every change |
 | [DEPLOY-TODAY.md](./DEPLOY-TODAY.md) | Yinka | First-time cloud setup (already done) |
@@ -107,7 +107,8 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
-- **2026-07-11** — **Reclassify rebuild from live DB (all tenants):** Reclassify/split no longer rebuilds from stale server `cooperative-bank-ledger-reference.*` (source of 455-row / -$32 phantom fee drift). Rebuild uses live ledger rows + saved adjustments; reconcile anchor not overwritten on adjustment rebuild. Files: `cooperative-bank-ledger-csv.js`, `ledger-adjustment-service.js`, `import-bank-ledger.js`. **Production:** `git push`.
+- **2026-07-11** — **WinSCP retired for routine ops (all tenants):** New **Admin → Maintenance** tab: **Download Database Backup**, **Restore Database** (preview + confirm, closes live DB handle, no Manual Deploy), **Normalize Profiles** on production. APIs: `GET /api/admin/data-backup`, `GET /api/admin/data-status`, `POST /api/admin/data-restore/preview`, `POST /api/admin/data-restore`, `POST /api/admin/maintenance/normalize-profiles`. `profile-normalize-service.js`, `admin-data-service.js`, `admin-data-routes.js`; `normalize-profiles.js` uses shared service. Docs: `UPLOAD-DATA-TO-PRODUCTION.md`, `UPDATE-AND-PUBLISH.md`, `USER-GUIDE.md` §23, `README.md`, `DEPLOY-TODAY.md`, email setup guides. **Production:** `git push`.
+- **2026-07-11** — **Stale reference file cannot corrupt DB (all tenants):** Reclassify rebuilds from live DB (`00667b8`). Server startup no longer runs `syncMissingBankLedgerRows` (was injecting phantom rows from stale Render CSV on boot). Startup and post-import only **export DB → CSV**. `sync-missing` refreshes CSV from DB before any compare. §1B documents reference-file rules. Files: `import-bank-ledger.js`, `server.js`, `AGENT_HANDOVER.md`. **Production:** `git push` (`0aae2db`).
 - **2026-07-11** — **Member ledger reclassify/split (all tenants):** **Bank Ledger Rows** panel on Loan Account lists every adjustable row with **Category** + **Split** (same as Contributions Account). Loan rows without lots get controls too. **Loan Disbursement** added to reclassify dropdown. Split uses full bank amount. Files: `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-11** — **Schedule-based loan payoff + Coop Admin split only (all tenants):** Loan repayments apply to **principal + scheduled interest** when workbook matches disbursement. Paid loans book **full scheduled interest**. **Split/Reclassify** use full bank deposit; **Amount** column shows **$600** (not an internal slice). Nov 6 row stays one `loan_repayment` until **Coop Admin** saves **Split** in UI. **Loan Repayment Bank Deposits** panel; surplus label **Surplus Pending Split**. `getCoopRoot()` fix; `test-loan-schedule-payoff.js`. Do not use `fix-march-2026-reconciliation.js` for Yomi Nov split. Files: `loan-ledger-service.js`, `loan-details-reference.js`, `paths.js`, `app.js`, `SAHEED-LOAN1-COOP-ADMIN-FIX.md`. **Production:** `git push`.
 - **2026-07-10** — **Apply page mobile landscape signing:** On `/c/{slug}/apply`, hide hero banner; compact topbar; in landscape on short screens hide sticky header/footer so FlexxForms signature pad gets full viewport. Files: `cooperative-public.html`, `cooperative-public.css`, `USER-GUIDE.md`. **Production:** `git push`.
@@ -396,7 +397,7 @@ Assurance wrapper: `restore-assurance-ledger-production.js` (§1A).
 |----|--------|
 | Ship fixes in **generic** libs (`bank-import-append.js`, aliases, UI) | Add Assurance-only UI thresholds or hardcoded balances |
 | Run `npm run test:bank-append` after append/balance changes | Claim "fixed" after data restore only |
-| Document §1B + changelog same turn | Tell tenants to WinSCP-upload bank ledger |
+| Document §1B + changelog same turn | Tell tenants to WinSCP-upload for routine data (use **Admin → Import** / **Maintenance**) |
 
 ---
 
@@ -523,7 +524,7 @@ Members/Admin browser
 | Local PC | `PeerFinanceManager.exe`, `data/` folder |
 
 **Publish code:** `git push` → auto-deploy both services. See [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).  
-**Publish data:** WinSCP → `/var/data` → Render Manual Deploy.
+**Publish data:** **Admin → Import** (ledger) or **Admin → Maintenance** (backup/restore). WinSCP break-glass only.
 
 ### Local development
 
@@ -652,10 +653,11 @@ Peer Finance Manager / Assurance Cooperative
 | 4b | ~~**Fix auto-sync clobber**~~ | ✅ **Done** — xlsx never auto-overwritten; CSV sync cloud-only (§1B). |
 | 4d | ~~**Bank append product mode (all tenants)**~~ | ✅ **Done** 2026-07-09 — opening + ending blocks, Default Type on payment aliases, apply button disabled when blocked, `npm run test:bank-append`. See §1B. **Deploy:** `git push`. |
 | 4f | ~~**Bank Reconcile Status (all tenants)**~~ | ✅ **Done** 2026-07-11 — anchor on successful import; Cooperative Books card + `/api/health`; `npm run test:bank-reconcile`. **Deploy:** `git push`; re-import once per tenant to set anchor. |
+| 4g | ~~**Eliminate WinSCP routine dependency**~~ | ✅ **Done** 2026-07-11 — **Admin → Maintenance**: database backup/restore, normalize profiles on production; docs repointed from WinSCP. **Deploy:** `git push`. |
 | 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh**. Ops: `restore-ledger-production.js --org <slug>`. |
 | 4e | **Yomi Salami Nov 2025 split (Saheed bank alias)** | **Coop Admin only:** **Split** 11/6 **$600** in UI when ready. System has not saved a split. See [SAHEED-LOAN1-COOP-ADMIN-FIX.md](./SAHEED-LOAN1-COOP-ADMIN-FIX.md). |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
-| 6 | **Persist Title Case in database (backfill)** | Script: `npm run pfm:normalize-profiles` then `:apply` locally → WinSCP upload + Manual Deploy. Display/save formatters already live (`2ce0dd7`). |
+| 6 | ~~**Persist Title Case in database (backfill)**~~ | ✅ **Done** 2026-07-11 — **Admin → Maintenance → Normalize Profiles** on production (or CLI with `--org`). Display/save formatters already live. |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |
 | 8 | ~~**Finish email notifications (Bluehost relay)**~~ | ✅ Relays live (`emailConfigured: true`; admin confirmed meeting send to 25). Keep **[BLUEHOST-EMAIL-RELAY-SETUP.md](BLUEHOST-EMAIL-RELAY-SETUP.md)** for ops. **Email Send Audit** now available on Meetings tab for on-demand verification. |
 

@@ -325,7 +325,7 @@ This key is **not** your email password. It only lets the app send through SendG
 
 - Use Gmail (any SMTP provider works).  
 - Change anything on **Netlify** for email (only Render).  
-- Upload data via WinSCP for email settings.  
+- Upload database files for email settings (use **Admin → Maintenance** if needed).  
 - Run any command on your PC for production email.
 
 ---

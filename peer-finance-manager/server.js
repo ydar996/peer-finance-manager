@@ -261,6 +261,9 @@ app.use("/api", (req, res, next) => {
 app.use("/api", requireActiveSubscription);
 app.use("/api", blockWritesUnlessAdmin);
 
+const { registerAdminDataRoutes } = require("./lib/admin-data-routes");
+registerAdminDataRoutes(app, { requireAdmin, restoreOrgContext, upload });
+
 app.use(express.static(getPublicDir()));
 registerStatementRoutes(app);
 

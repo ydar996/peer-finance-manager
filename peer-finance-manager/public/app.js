@@ -1231,6 +1231,7 @@ function switchTab(name, options = {}) {
   if (name === "public-pages" && currentUser?.role === "admin" && !sameTab) loadPublicPagesPanel();
   if (name === "forms" && currentUser?.role === "admin" && !sameTab) loadFlexxFormsSettings();
   if (name === "subscription" && currentUser?.role === "admin" && !sameTab) loadPlatformSubscriptionPanel();
+  if (name === "maintenance" && currentUser?.role === "admin" && !sameTab) loadMaintenancePanel();
   if (name === "books" && (currentUser?.role === "admin" || currentUser?.role === "staff") && !sameTab) {
     loadBooks();
   }
@@ -6934,6 +6935,183 @@ $("#createUserForm")?.addEventListener("submit", async (e) => {
 });
 
 $("#refreshUsers")?.addEventListener("click", () => loadUsers());
+
+async function loadMaintenancePanel() {
+  const host = $("#maintenanceDataStatus");
+  if (!host) return;
+  host.textContent = "Loading…";
+  try {
+    const res = await fetch("/api/admin/data-status");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Status failed");
+    host.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    host.textContent = err.message;
+  }
+}
+
+$("#refreshMaintenance")?.addEventListener("click", () => loadMaintenancePanel());
+
+$("#downloadDataBackupBtn")?.addEventListener("click", async () => {
+  const status = $("#dataBackupStatus");
+  const btn = $("#downloadDataBackupBtn");
+  setButtonBusy(btn, true, "Preparing…");
+  if (status) setFormStatus(status, "Preparing backup…", true);
+  try {
+    const res = await fetch("/api/admin/data-backup");
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Backup failed");
+    }
+    const blob = await res.blob();
+    const filename = parseAttachmentFilename(res, "peerfinance-backup.db");
+    await saveDownloadBlob(blob, filename);
+    if (status) setFormStatus(status, `Downloaded ${filename}`, true);
+  } catch (err) {
+    if (status) setFormStatus(status, err.message, false);
+    else void appAlert(err.message, { title: "Error", variant: "danger" });
+  } finally {
+    setButtonBusy(btn, false);
+  }
+});
+
+async function previewDataRestore() {
+  const form = $("#dataRestoreForm");
+  const status = $("#dataRestoreStatus");
+  const preview = $("#dataRestorePreview");
+  const file = form?.database?.files?.[0];
+  if (!file) {
+    if (status) setFormStatus(status, "Choose a .db backup file first.", false);
+    return;
+  }
+  const btn = $("#previewDataRestoreBtn");
+  setButtonBusy(btn, true, "Previewing…");
+  if (status) setFormStatus(status, "Checking upload…", true);
+  try {
+    const fd = new FormData();
+    fd.append("database", file);
+    const res = await fetch("/api/admin/data-restore/preview", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Preview failed");
+    if (preview) {
+      preview.textContent = JSON.stringify(data, null, 2);
+      preview.classList.remove("hidden");
+    }
+    const up = data.upload || {};
+    const live = data.live || {};
+    if (status) {
+      setFormStatus(
+        status,
+        `Upload: ${up.bankImport ?? ":"} bank rows, integrity ${up.integrityOk ? "ok" : "failed"}. Live: ${live.bankImport ?? ":"} bank rows.`,
+        true
+      );
+    }
+  } catch (err) {
+    if (preview) preview.classList.add("hidden");
+    if (status) setFormStatus(status, err.message, false);
+  } finally {
+    setButtonBusy(btn, false);
+  }
+}
+
+$("#previewDataRestoreBtn")?.addEventListener("click", previewDataRestore);
+
+$("#dataRestoreForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const status = $("#dataRestoreStatus");
+  const file = form.database?.files?.[0];
+  if (!file) {
+    if (status) setFormStatus(status, "Choose a .db backup file first.", false);
+    return;
+  }
+  if (!form.confirmRestore?.checked) {
+    if (status) setFormStatus(status, "Check the confirmation box before restoring.", false);
+    return;
+  }
+  const proceed = await appConfirm(
+    "Restore will replace the live Cooperative database with your upload. Continue?",
+    { title: "Restore Database", variant: "danger", confirmLabel: "Restore" }
+  );
+  if (!proceed) return;
+
+  const submitBtn = form.querySelector('button[type="submit"]');
+  setButtonBusy(submitBtn, true, "Restoring…");
+  if (status) setFormStatus(status, "Restoring database…", true);
+  try {
+    const fd = new FormData(form);
+    fd.set("confirmRestore", "true");
+    const res = await fetch("/api/admin/data-restore", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Restore failed");
+    if (status) setFormStatus(status, data.message || "Database restored.", true);
+    form.reset();
+    $("#dataRestorePreview")?.classList.add("hidden");
+    loadMaintenancePanel();
+    loadBooks();
+  } catch (err) {
+    if (status) setFormStatus(status, err.message, false);
+  } finally {
+    setButtonBusy(submitBtn, false);
+  }
+});
+
+async function runNormalizeProfilesPreview() {
+  const status = $("#normalizeProfilesStatus");
+  const preview = $("#normalizeProfilesPreview");
+  const btn = $("#previewNormalizeProfilesBtn");
+  setButtonBusy(btn, true, "Previewing…");
+  if (status) setFormStatus(status, "Scanning profiles…", true);
+  try {
+    const res = await fetch("/api/admin/maintenance/normalize-profiles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apply: false }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Preview failed");
+    if (preview) {
+      preview.textContent = JSON.stringify(data.preview || [], null, 2);
+      preview.classList.toggle("hidden", !(data.preview || []).length);
+    }
+    if (status) setFormStatus(status, data.message || "Preview complete.", true);
+  } catch (err) {
+    if (preview) preview.classList.add("hidden");
+    if (status) setFormStatus(status, err.message, false);
+  } finally {
+    setButtonBusy(btn, false);
+  }
+}
+
+$("#previewNormalizeProfilesBtn")?.addEventListener("click", runNormalizeProfilesPreview);
+
+$("#applyNormalizeProfilesBtn")?.addEventListener("click", async () => {
+  const status = $("#normalizeProfilesStatus");
+  const proceed = await appConfirm(
+    "Apply Title Case formatting to member profiles on the live database?",
+    { title: "Normalize Profiles", variant: "warning", confirmLabel: "Apply" }
+  );
+  if (!proceed) return;
+  const btn = $("#applyNormalizeProfilesBtn");
+  setButtonBusy(btn, true, "Applying…");
+  if (status) setFormStatus(status, "Applying…", true);
+  try {
+    const res = await fetch("/api/admin/maintenance/normalize-profiles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apply: true }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Apply failed");
+    if (status) setFormStatus(status, data.message || "Profiles updated.", true);
+    $("#normalizeProfilesPreview")?.classList.add("hidden");
+    loadMembers();
+  } catch (err) {
+    if (status) setFormStatus(status, err.message, false);
+  } finally {
+    setButtonBusy(btn, false);
+  }
+});
 $("#refreshMyAccount")?.addEventListener("click", () => loadMyAccount());
 
 $("#toggleMyAccountDescriptions")?.addEventListener("click", (e) => {

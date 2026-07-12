@@ -306,6 +306,7 @@
         <button type="button" class="tab" data-tab="forms" data-roles="admin">Forms &amp; Documents</button>
         <button type="button" class="tab" data-tab="subscription" data-roles="admin">Subscription</button>
         <button type="button" class="tab" data-tab="users" data-roles="admin">Users</button>
+        <button type="button" class="tab" data-tab="maintenance" data-roles="admin">Maintenance</button>
         <button type="button" class="tab" data-tab="my-account" data-roles="member">My Account</button>
       </nav>
 
@@ -1526,6 +1527,50 @@
             <p id="bankImportSummary" class="subtle"></p>
           </div>
         </details>
+      </section>
+
+      <section id="panel-maintenance" class="panel">
+        <div class="panel-head">
+          <h2>Maintenance</h2>
+          <button type="button" class="btn" id="refreshMaintenance">Refresh</button>
+        </div>
+        <p class="hint">Backup, restore, and profile tools run on the live Cooperative database. No WinSCP or Manual Deploy required.</p>
+        <div class="record-grid">
+          <div class="card accent">
+            <h3>Database Backup</h3>
+            <p class="subtle">Download a copy of <code>peerfinance.db</code> for this Cooperative. Use before major changes or for off-site archive.</p>
+            <button type="button" class="btn primary" id="downloadDataBackupBtn">Download Database Backup</button>
+            <p id="dataBackupStatus" class="status"></p>
+          </div>
+          <div class="card accent">
+            <h3>Database Restore</h3>
+            <p class="subtle">Replace the live database with a <code>.db</code> backup you downloaded earlier. Preview first, then confirm restore.</p>
+            <form id="dataRestoreForm" class="entry-form">
+              <label>Backup File (.db)
+                <input type="file" name="database" accept=".db,application/octet-stream" required />
+              </label>
+              <label>I understand this replaces all live Cooperative data for this organization.
+                <input type="checkbox" name="confirmRestore" />
+              </label>
+              <button type="button" class="btn" id="previewDataRestoreBtn">Preview Upload</button>
+              <button type="submit" class="btn primary">Restore Database</button>
+            </form>
+            <p id="dataRestoreStatus" class="status"></p>
+            <pre id="dataRestorePreview" class="subtle hidden"></pre>
+          </div>
+          <div class="card accent">
+            <h3>Normalize Profiles (Title Case)</h3>
+            <p class="subtle">Backfill member profile and ledger name formatting. Preview first, then apply on production.</p>
+            <button type="button" class="btn" id="previewNormalizeProfilesBtn">Preview Changes</button>
+            <button type="button" class="btn primary" id="applyNormalizeProfilesBtn">Apply Title Case</button>
+            <p id="normalizeProfilesStatus" class="status"></p>
+            <pre id="normalizeProfilesPreview" class="subtle hidden"></pre>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Live Database Status</h3>
+          <pre id="maintenanceDataStatus" class="subtle">Loading…</pre>
+        </div>
       </section>
 
       <section id="panel-users" class="panel">
