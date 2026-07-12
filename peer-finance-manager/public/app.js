@@ -1231,6 +1231,9 @@ function switchTab(name, options = {}) {
   if (name === "public-pages" && currentUser?.role === "admin" && !sameTab) loadPublicPagesPanel();
   if (name === "forms" && currentUser?.role === "admin" && !sameTab) loadFlexxFormsSettings();
   if (name === "subscription" && currentUser?.role === "admin" && !sameTab) loadPlatformSubscriptionPanel();
+  if (name === "books" && (currentUser?.role === "admin" || currentUser?.role === "staff") && !sameTab) {
+    loadBooks();
+  }
 
   activeTab = name;
 }
@@ -2263,6 +2266,7 @@ async function submitLedgerReclassify(selectEl) {
     showLedgerAdjustmentPrompt(data);
     if (memberId) await showProfile(memberId);
     loadMembers();
+    loadBooks();
   } catch (err) {
     void appAlert(err.message, { title: "Error", variant: "danger" });
     selectEl.value = oldType;
@@ -2365,6 +2369,7 @@ async function submitLedgerSplit() {
     showLedgerAdjustmentPrompt(data);
     if (ctx.memberId) await showProfile(ctx.memberId);
     loadMembers();
+    loadBooks();
   } catch (err) {
     if (status) setFormStatus(status, err.message, false);
   }
@@ -5176,7 +5181,7 @@ async function applyBankAppendImport(form) {
     if (summary && result.ledgerEndingBalance != null) {
       summary.textContent = `Ledger checking balance after import: ${fmt.format(result.ledgerEndingBalance)}`;
     }
-    if (activeTab === "books") loadBooks();
+    loadBooks();
   } catch (err) {
     if (status) {
       status.textContent = err.message;
@@ -5759,7 +5764,7 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
     }
     form.reset();
     loadBankImportPanel();
-    if (activeTab === "books") loadBooks();
+    loadBooks();
   } catch (err) {
     if (status) {
       status.textContent = err.message;

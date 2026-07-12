@@ -447,4 +447,5 @@ module.exports = {
   getTotalLoanInterestIncome,
   getExpectedFutureLoanInterest,
   hasBankLoanLedger,
+  clearPortfolioInterestShareCache,
 };
