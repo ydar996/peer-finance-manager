@@ -371,6 +371,17 @@ Asserts alias classification, cumulative re-upload (ledger above statement begin
 
 **Agent rule:** If status is **Out of Sync**, do **not** claim the ledger is correct. Use standard admin workflow (Full Ledger Refresh + append) or documented restore script; successful import refreshes the anchor.
 
+### Reference file vs live DB (never stale-into-DB)
+
+| Rule | Behavior |
+|------|----------|
+| **Authoritative** | Production `peerfinance.db` `transactions` table |
+| **`cooperative-bank-ledger-reference.csv` on Render** | **Export only** — rewritten from live DB after every import, append, and reclassify (`queueCooperativeBankLedgerCsvSync`). **xlsx is never auto-overwritten.** |
+| **Reclassify/split rebuild** | Uses **live DB rows** (`loadBankTransactionsFromDb`), not the on-disk reference file. Fallback to file only when DB has zero bank rows. |
+| **Server startup** | Exports DB → CSV only (`server_startup` sync). **Does not** read reference file into DB (removed dangerous `syncMissingBankLedgerRows` on boot). |
+| **`sync-missing` API** | If used, refreshes CSV from DB **before** comparing so a stale file cannot inject phantom rows. |
+| **Full Ledger Refresh** | Only routine path that loads from an **uploaded** master file chosen by the admin. |
+
 ### Ops recovery (when append is blocked)
 
 ```powershell

@@ -1411,20 +1411,13 @@ function startServer(port, callback) {
 
       const { listOrganizations } = require("./lib/organization-service");
       const { runWithOrg } = require("./lib/org-context");
-      const { syncMissingBankLedgerRows } = require("./lib/import-bank-ledger");
+      const { queueCooperativeBankLedgerCsvSync } = require("./lib/cooperative-bank-ledger-csv");
       for (const org of listOrganizations()) {
         runWithOrg(org.slug, () => {
           try {
-            const result = syncMissingBankLedgerRows();
-            if (result.inserted > 0) {
-              trace.info("Synced missing bank ledger rows", {
-                orgSlug: org.slug,
-                inserted: result.inserted,
-                afterBalance: result.afterBalance,
-              });
-            }
+            queueCooperativeBankLedgerCsvSync("server_startup");
           } catch (err) {
-            trace.info("Ledger sync skipped", { orgSlug: org.slug, error: err.message });
+            trace.info("Ledger CSV export skipped", { orgSlug: org.slug, error: err.message });
           }
         });
       }

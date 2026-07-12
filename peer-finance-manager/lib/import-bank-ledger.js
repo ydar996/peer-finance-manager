@@ -14,7 +14,10 @@ const {
   getCooperativeBankLedgerXlsxPath,
   getCooperativeBankLedgerCsvPath,
   getLedgerEndingBalance,
+  ledgerCsvAutoSyncEnabled,
+  syncCooperativeBankLedgerCsvFiles,
 } = require("./cooperative-bank-ledger-csv");
+const { trace } = require("./trace-log");
 const { todayIso: cooperativeTodayIso } = require("./cooperative-time");
 const { getOrgDataDir } = require("./organization-service");
 const { getOrgSlug } = require("./org-context");
@@ -281,6 +284,16 @@ function importBankLedgerCore({
 }
 
 function syncMissingBankLedgerRows({ referencePath } = {}) {
+  // Never trust a on-disk reference file ahead of the live DB. Refresh export from DB
+  // first so a stale cooperative-bank-ledger-reference.csv cannot inject phantom rows.
+  if (ledgerCsvAutoSyncEnabled()) {
+    try {
+      syncCooperativeBankLedgerCsvFiles();
+    } catch (err) {
+      trace.warn("Pre-sync reference refresh failed", { error: err.message });
+    }
+  }
+
   const refPath = referencePath || findReferenceLedgerPath();
   if (!refPath) {
     return { skipped: true, reason: "no_reference_file", inserted: 0 };
