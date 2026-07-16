@@ -16,16 +16,21 @@ const { openOrgDatabase, closeDb, getDb } = require("../db/database");
 const {
   ACCOUNT_STATUS,
   setMemberAccountStatus,
+  getMemberAccountStatus,
+  assertActiveDirectoryMember,
   saveMembershipStatusDocument,
   resolveMembershipStatusDocumentFile,
   isActiveDirectoryStatus,
   isEmailEligibleStatus,
   formatAccountStatusLabel,
 } = require("../lib/membership-status-service");
-const { listMembersWithProfiles } = require("../lib/member-profile-service");
+const {
+  listMembersWithProfiles,
+  getMemberProfile,
+} = require("../lib/member-profile-service");
 const { listMemberNotificationRecipients } = require("../lib/report-notification-service");
 const { createMember } = require("../lib/member-service");
-const { getMemberProfile } = require("../lib/member-profile-service");
+const { recordMemberDepositEntry } = require("../lib/manual-entry-service");
 
 const ORG = "status-test-coop";
 
@@ -114,13 +119,16 @@ function testDirectoryAndEmail() {
       .get(leaving.memberId);
     assert.strictEqual(user.active, 0);
 
-    setMemberAccountStatus(leaving.memberId, { status: ACCOUNT_STATUS.ACTIVE });
+    assert.throws(
+      () => setMemberAccountStatus(leaving.memberId, { status: ACCOUNT_STATUS.ACTIVE }),
+      /cannot be restored to Active/i
+    );
     listed = listMembersWithProfiles();
-    assert.ok(listed.some((m) => m.id === leaving.memberId));
-    const restored = db
+    assert.ok(!listed.some((m) => m.id === leaving.memberId));
+    const stillInactive = db
       .prepare(`SELECT active FROM users WHERE member_id = ?`)
       .get(leaving.memberId);
-    assert.strictEqual(restored.active, 1);
+    assert.strictEqual(stillInactive.active, 0);
 
     const tmpPdf = path.join(tmpRoot, "resignation.pdf");
     fs.writeFileSync(tmpPdf, "%PDF-1.4 resignation test");
@@ -136,13 +144,14 @@ function testDirectoryAndEmail() {
     const profile = getMemberProfile(leaving.memberId);
     assert.strictEqual(profile.membership_status_document_name, "sonia-resignation.pdf");
 
-    setMemberAccountStatus(leaving.memberId, { status: ACCOUNT_STATUS.RESIGNED });
-    const { assertActiveDirectoryMember } = require("../lib/membership-status-service");
+    // Cessation type can still be corrected (e.g. Resigned -> Deceased).
+    setMemberAccountStatus(leaving.memberId, { status: ACCOUNT_STATUS.DECEASED });
+    assert.strictEqual(getMemberAccountStatus(leaving.memberId).status, ACCOUNT_STATUS.DECEASED);
+
     assert.throws(
       () => assertActiveDirectoryMember(leaving.memberId, { action: "Distributions" }),
       /only available to active members/i
     );
-    const { recordMemberDepositEntry } = require("../lib/manual-entry-service");
     assert.throws(
       () =>
         recordMemberDepositEntry({

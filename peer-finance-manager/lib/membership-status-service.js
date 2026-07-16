@@ -93,6 +93,21 @@ function listAdminStatusOptions() {
   }));
 }
 
+/**
+ * Status choices for the Membership Status form.
+ * Former memberships cannot be restored to Active: returning people must open a new account.
+ */
+function listAdminStatusOptionsForCurrent(currentStatus) {
+  const current = normalizeAccountStatus(currentStatus) || ACCOUNT_STATUS.ACTIVE;
+  if (isCessationStatus(current)) {
+    return CESSATION_STATUSES.map((value) => ({
+      value,
+      label: STATUS_LABELS[value],
+    }));
+  }
+  return listAdminStatusOptions();
+}
+
 function ensureMembershipStatusColumns(db = getDb()) {
   const cols = db.prepare(`PRAGMA table_info(member_profiles)`).all();
   const names = new Set(cols.map((c) => c.name));
@@ -317,6 +332,18 @@ function setMemberAccountStatus(
   const existing = db
     .prepare(`SELECT * FROM member_profiles WHERE member_id = ?`)
     .get(memberId);
+  const priorStatus =
+    normalizeAccountStatus(existing?.cooperative_account_status) || ACCOUNT_STATUS.ACTIVE;
+
+  // No restore: a ceased membership stays historical. Returning members register anew.
+  if (
+    nextStatus === ACCOUNT_STATUS.ACTIVE &&
+    isCessationStatus(priorStatus)
+  ) {
+    throw new Error(
+      "This membership cannot be restored to Active. Register the person as a new member with a new member number and new account history."
+    );
+  }
 
   const changedAt =
     effectiveDate && String(effectiveDate).trim()
@@ -375,6 +402,7 @@ module.exports = {
   isCessationStatus,
   isEmailEligibleStatus,
   listAdminStatusOptions,
+  listAdminStatusOptionsForCurrent,
   ensureMembershipStatusColumns,
   getMemberAccountStatus,
   setMemberAccountStatus,

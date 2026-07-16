@@ -218,7 +218,7 @@ Membership does not only end by resignation. Admins choose the **status type** t
 | **Deceased** | Membership ends on death (Art. 4.2). |
 | **Expelled** | Expulsion after required notice and vote (Art. 4.3). |
 | **Suspended** | Suspension under expulsion/suspension procedures. |
-| **Active** | Reinstate someone who should be back on the active list. |
+| **Active** | Only for current active members. **Cannot** restore a former membership to Active. |
 
 **Procedure (example: Sonia Udom cash-out / resignation at Assurance):**
 
@@ -236,8 +236,9 @@ Membership does not only end by resignation. Admins choose the **status type** t
 - Blocks **all active-member benefits**: member portal, emails, statement downloads, new loans, guarantor roles, contributions, distributions, registration fees, and login provisioning.
 - Still allows **withdrawals** and **loan repayments** so accounts and debts can be settled.
 - Bank import can still match their name for historical ledger accuracy.
+- **No restore:** this membership cannot be set back to Active.
 
-Use **Show Former Members** when you need to open a former account for history or corrections.
+**If the person returns later:** Register them as a **new member** (new member number, new account history). Do not reopen the old membership. Use **Show Former Members** only to view the closed historical account.
 
 ### Register a new member from here
 

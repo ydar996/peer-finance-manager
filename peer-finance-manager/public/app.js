@@ -1990,13 +1990,21 @@ function formatAccountStatus(status) {
 function membershipStatusFormHtml(profile, memberId) {
   if (currentUser?.role !== "admin") return "";
   const current = String(profile.cooperative_account_status || "active").toLowerCase();
-  const options = [
-    ["active", "Active"],
-    ["resigned", "Resigned"],
-    ["deceased", "Deceased"],
-    ["expelled", "Expelled"],
-    ["suspended", "Suspended"],
-  ];
+  const isFormer = ["resigned", "deceased", "expelled", "suspended"].includes(current);
+  const options = isFormer
+    ? [
+        ["resigned", "Resigned"],
+        ["deceased", "Deceased"],
+        ["expelled", "Expelled"],
+        ["suspended", "Suspended"],
+      ]
+    : [
+        ["active", "Active"],
+        ["resigned", "Resigned"],
+        ["deceased", "Deceased"],
+        ["expelled", "Expelled"],
+        ["suspended", "Suspended"],
+      ];
   const optionHtml = options
     .map(
       ([value, label]) =>
@@ -2011,10 +2019,13 @@ function membershipStatusFormHtml(profile, memberId) {
     ? escapeHtml(profile.membership_status_document_name)
     : "";
   const hasDoc = Boolean(profile.membership_status_document_path || profile.membership_status_document_name);
+  const policyNote = isFormer
+    ? "This Membership Cannot Be Restored to Active. If the Person Returns, Register a New Member with a New Member Number and New Account History."
+    : "Choose the Type of Cessation (or Keep Active). Former Members Leave the Active List and Member Emails. Ledger History Is Kept. Membership Cannot Be Restored Later: Returning People Must Register Anew.";
   return `
     <form id="membershipStatusForm" class="membership-status-form" data-member-id="${memberId}" enctype="multipart/form-data">
       <h4>Membership Status</h4>
-      <p class="subtle">Choose the type of cessation (or Active). Former Members Leave the Active List and Member Emails. Ledger History Is Kept. Optionally Attach a PDF or Image of the Written Notice.</p>
+      <p class="subtle">${policyNote} Optionally Attach a PDF or Image of the Written Notice.</p>
       <label>Status Type
         <select name="status" required>${optionHtml}</select>
       </label>
