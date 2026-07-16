@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 16, 2026 (active member dashboard count; last deploy `33794d4`)  
+**Last updated:** July 16, 2026 (active member dashboard count; last deploy `408a55f`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
