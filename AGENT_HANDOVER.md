@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 16, 2026 (membership status + document upload; last deploy `48df822`)  
+**Last updated:** July 16, 2026 (membership status org-context fix; last deploy `48df822`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,6 +108,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-16** — **Fix membership status update “No organization database selected”:** `PATCH /api/members/:id/account-status` had `restoreOrgContext` before multer, so the upload cleared tenant context. Order is now upload → restore (same as bank append). **Production:** `git push`.
 - **2026-07-16** — **Membership status document upload:** On **Membership Status**, admins can attach PDF/image of resignation or termination notice; download via **Download Document**. Stored per org under `uploads/membership-status/`. APIs: multipart on `PATCH /api/members/:id/account-status`, `GET .../account-status/document`. Test covers save/resolve. **Production:** `git push` (`48df822`).
 - **2026-07-16** — **Membership status by type (all tenants):** Admins set **Active / Resigned / Deceased / Expelled / Suspended** on Members & Accounts (not a single vague inactive flag). Former members leave the default active list and **member emails**, keep ledger history, lose portal login until restored to Active. **Show Former Members** toggle. API: `PATCH /api/members/:id/account-status`. Profile edits no longer reset status to Active. Test: `npm run test:membership-status`. Files: `membership-status-service.js`, `member-profile-service.js`, `balance-service.js`, `report-notification-service.js`, `member-service.js`, `auth-service.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `schema.sql`, `USER-GUIDE.md`. **Production:** `git push` (`48df822`).
 - **2026-07-12** — **Splits: any N lines, all ledger types, no false Out of Sync, download notice:** Split supports 2+ lines mixing deposit/loan/expense/CD/investment/etc. Save blocked until amounts total the original (UI + API). Reconcile row-align treats any split-driven row-count increase as OK when cash balance still matches. Post-split prompt + alert require downloading Xlsx/Csv for local master sync. Test: `npm run test:ledger-split`. **Production:** `git push` (`971717e`).

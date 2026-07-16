@@ -307,8 +307,9 @@ app.get("/api/members", (req, res) => {
 app.patch(
   "/api/members/:id/account-status",
   requireAdmin,
-  restoreOrgContext,
+  // Multer leaves AsyncLocalStorage; restore org after upload (same as bank-import).
   upload.single("document"),
+  restoreOrgContext,
   (req, res) => {
     try {
       const {
