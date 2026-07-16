@@ -1808,7 +1808,8 @@ async function loadMembers() {
   if (body) body.innerHTML = '<tr><td colspan="5" class="subtle">Loading members…</td></tr>';
   setButtonBusy(refreshBtn, true);
   try {
-    const res = await fetch("/api/members?profiles=true");
+    // Always load former members for pickers; the Show Former Members toggle filters the table.
+    const res = await fetch("/api/members?profiles=true&includeFormer=true");
     if (requestId !== membersListRequestId) return;
     const { members } = await res.json();
     membersListCache = members || [];
@@ -1847,10 +1848,16 @@ function renderMembersList() {
   const body = $("#membersBody");
   if (!body) return;
 
-  const filtered = membersListCache.filter((m) => memberMatchesSearch(m, memberSearchQuery));
-  if (!membersListCache.length) {
-    body.innerHTML =
-      '<tr><td colspan="5">No Members. Import Spreadsheet on the Import Tab.</td></tr>';
+  const showFormer = Boolean($("#showFormerMembers")?.checked);
+  const directory = membersListCache.filter((m) => {
+    if (showFormer) return true;
+    return !m.is_former_member;
+  });
+  const filtered = directory.filter((m) => memberMatchesSearch(m, memberSearchQuery));
+  if (!directory.length) {
+    body.innerHTML = showFormer
+      ? '<tr><td colspan="5">No Members. Import Spreadsheet on the Import Tab.</td></tr>'
+      : '<tr><td colspan="5" class="subtle">No Active Members. Turn On Show Former Members to Review Resigned or Other Former Accounts.</td></tr>';
     return;
   }
   if (!filtered.length) {
@@ -1864,7 +1871,11 @@ function renderMembersList() {
       (m) => `
     <tr class="member-row${selectedMemberId === m.id ? " selected" : ""}" data-member-id="${m.id}">
       <td><span class="member-number">${escapeHtml(m.member_number || ":")}</span></td>
-      <td><strong>${escapeHtml(m.display_name || m.name)}</strong><br /><span class="subtle">${escapeHtml(m.name)}</span></td>
+      <td><strong>${escapeHtml(m.display_name || m.name)}</strong><br /><span class="subtle">${escapeHtml(m.name)}</span>${
+        m.is_former_member
+          ? `<br /><span class="badge former">${escapeHtml(m.account_status_label || formatAccountStatus(m.cooperative_account_status))}</span>`
+          : ""
+      }</td>
       <td class="money member-account-cell" data-account-panel="deposit">${fmt.format(m.deposit_balance ?? m.balance)}</td>
       <td class="money member-account-cell" data-account-panel="loan">${fmt.format(m.loan_balance || 0)}</td>
       <td>${m.profile_id ? '<span class="badge ok">On File</span>' : '<span class="badge warn">Missing</span>'}</td>
@@ -1887,6 +1898,10 @@ function renderMembersList() {
 
 $("#memberSearch")?.addEventListener("input", (e) => {
   memberSearchQuery = e.target.value || "";
+  renderMembersList();
+});
+
+$("#showFormerMembers")?.addEventListener("change", () => {
   renderMembersList();
 });
 
@@ -1954,10 +1969,128 @@ function emergencyContactName(profile) {
 }
 
 function formatAccountStatus(status) {
-  const raw = String(status || "active").trim();
+  const raw = String(status || "active").trim().toLowerCase();
+  const labels = {
+    active: "Active",
+    pending_approval: "Pending Approval",
+    resigned: "Resigned",
+    deceased: "Deceased",
+    expelled: "Expelled",
+    suspended: "Suspended",
+  };
+  if (labels[raw]) return labels[raw];
   if (!raw) return "Active";
-  if (raw === "pending_approval") return "Pending Approval";
   return raw.charAt(0).toUpperCase() + raw.slice(1).replace(/_/g, " ");
+}
+
+function membershipStatusFormHtml(profile, memberId) {
+  if (currentUser?.role !== "admin") return "";
+  const current = String(profile.cooperative_account_status || "active").toLowerCase();
+  const options = [
+    ["active", "Active"],
+    ["resigned", "Resigned"],
+    ["deceased", "Deceased"],
+    ["expelled", "Expelled"],
+    ["suspended", "Suspended"],
+  ];
+  const optionHtml = options
+    .map(
+      ([value, label]) =>
+        `<option value="${value}"${value === current ? " selected" : ""}>${label}</option>`
+    )
+    .join("");
+  const changedAt = profile.membership_status_changed_at
+    ? escapeHtml(String(profile.membership_status_changed_at).slice(0, 10))
+    : "";
+  const note = escapeHtml(profile.membership_status_note || "");
+  const docName = profile.membership_status_document_name
+    ? escapeHtml(profile.membership_status_document_name)
+    : "";
+  const hasDoc = Boolean(profile.membership_status_document_path || profile.membership_status_document_name);
+  return `
+    <form id="membershipStatusForm" class="membership-status-form" data-member-id="${memberId}" enctype="multipart/form-data">
+      <h4>Membership Status</h4>
+      <p class="subtle">Choose the type of cessation (or Active). Former Members Leave the Active List and Member Emails. Ledger History Is Kept. Optionally Attach a PDF or Image of the Written Notice.</p>
+      <label>Status Type
+        <select name="status" required>${optionHtml}</select>
+      </label>
+      <label>Effective Date
+        <input type="date" name="effectiveDate" value="${changedAt}" />
+      </label>
+      <label>Note (Optional)
+        <textarea name="note" rows="2" placeholder="e.g. Written Resignation Received">${note}</textarea>
+      </label>
+      <label>Resignation/Termination Document (Optional)
+        <input type="file" name="document" accept=".pdf,application/pdf,image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" />
+      </label>
+      ${
+        hasDoc
+          ? `<p class="subtle">On File: <button type="button" class="btn" id="downloadMembershipStatusDoc">${
+              docName || "Download Document"
+            }</button></p>`
+          : '<p class="subtle">No Document on File Yet.</p>'
+      }
+      <button type="submit" class="btn primary">Update Membership Status</button>
+      <p id="membershipStatusFormStatus" class="status"></p>
+    </form>`;
+}
+
+function bindMembershipStatusForm(el, memberId) {
+  const form = el.querySelector("#membershipStatusForm");
+  if (!form) return;
+  form.querySelector("#downloadMembershipStatusDoc")?.addEventListener("click", async () => {
+    const statusEl = $("#membershipStatusFormStatus");
+    setFormStatus(statusEl, "Downloading document…", true);
+    try {
+      const res = await fetch(`/api/members/${memberId}/account-status/document`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to download document");
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const match = disposition.match(/filename="?([^"]+)"?/i);
+      const fileName = match?.[1] || "membership-status-document";
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      setFormStatus(statusEl, "Document downloaded.", true);
+    } catch (err) {
+      setFormStatus(statusEl, err.message, false);
+    }
+  });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const statusEl = $("#membershipStatusFormStatus");
+    const fd = new FormData(form);
+    setFormStatus(statusEl, "Saving…", true);
+    try {
+      const res = await fetch(`/api/members/${memberId}/account-status`, {
+        method: "PATCH",
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update status");
+      const docBit = data.documentName
+        ? ` Document Saved: ${data.documentName}.`
+        : "";
+      setFormStatus(
+        statusEl,
+        `Updated: ${data.label || formatAccountStatus(data.status)}. ${
+          data.directoryListed
+            ? "Shown on Active Member List."
+            : "Removed from Active Member List and Member Emails."
+        }${docBit}`,
+        true
+      );
+      await loadMembers();
+      if (selectedMemberId === memberId) await showProfile(memberId);
+    } catch (err) {
+      setFormStatus(statusEl, err.message, false);
+    }
+  });
 }
 
 function formatFlexxFormsApplicationStatus(status) {
@@ -3043,7 +3176,12 @@ async function showProfile(memberId) {
           <p class="subtle">Account Name: <strong>${escapeHtml(p.ledger_account_name)}</strong></p>
           ${currentUser?.role === "admin" ? `<button type="button" class="btn" data-edit-profile="${memberId}">Edit Profile</button>` : ""}
           ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File : Use the Record Tab to Add or Update Profile.</p>'}
-          <p><span class="badge ok">${escapeHtml(p.cooperative_account_status || "active")}</span></p>
+          <p><span class="badge ${
+            String(p.cooperative_account_status || "active").toLowerCase() === "active"
+              ? "ok"
+              : "former"
+          }">${escapeHtml(formatAccountStatus(p.cooperative_account_status))}</span></p>
+          ${membershipStatusFormHtml(p, memberId)}
         </div>
       </div>
 
@@ -3117,6 +3255,7 @@ async function showProfile(memberId) {
   bindMemberAccountCards(el, memberId, initialPanel);
   bindProfilePhotoImage(el.querySelector(".profile-photo"), memberId);
   bindAdminProfilePhotoUpload(el, memberId);
+  bindMembershipStatusForm(el, memberId);
   el.querySelector("[data-edit-profile]")?.addEventListener("click", () => {
     openMemberProfileEditor(memberId);
   });

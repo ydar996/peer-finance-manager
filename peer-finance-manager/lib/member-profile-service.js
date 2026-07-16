@@ -4,11 +4,15 @@ const { attachDepositRunningBalances } = require("./balance-service");
 const { getMemberLoanLots, hasBankLoanLedger } = require("./loan-ledger-service");
 const { TRANSACTION_TYPES } = require("./constants");
 const { formatPersonName, formatMemberProfileForDisplay } = require("./text-format");
-const { PENDING_ACCOUNT_STATUS } = require("./flexxforms-membership-service");
 const { ledgerTransactionKey } = require("./import-fingerprint");
-
-const ACTIVE_MEMBER_FILTER =
-  "(mp.cooperative_account_status IS NULL OR mp.cooperative_account_status != ?)";
+const {
+  ACTIVE_DIRECTORY_SQL,
+  NON_PENDING_SQL,
+  ensureMembershipStatusColumns,
+  formatAccountStatusLabel,
+  isActiveDirectoryStatus,
+  isCessationStatus,
+} = require("./membership-status-service");
 
 function attachLedgerKeys(transactions) {
   return (transactions || []).map((tx) => ({
@@ -17,21 +21,29 @@ function attachLedgerKeys(transactions) {
   }));
 }
 
-function listMembersWithProfiles() {
+/**
+ * @param {{ includeFormer?: boolean }} [options]
+ * Default: active directory only. includeFormer=true adds resigned/deceased/expelled/suspended
+ * (still excludes pending_approval applicants).
+ */
+function listMembersWithProfiles({ includeFormer = false } = {}) {
   const db = getDb();
+  ensureMembershipStatusColumns(db);
+  const statusFilter = includeFormer ? NON_PENDING_SQL : ACTIVE_DIRECTORY_SQL;
   const rows = db
     .prepare(
       `SELECT m.id, m.member_number, m.name, m.joined_at, m.membership_fee_paid,
               mp.id AS profile_id,
               mp.display_name, mp.date_of_birth, mp.email, mp.phone, mp.photo_path,
               mp.preferred_payment_method, mp.zelle_bank_name,
-              mp.cooperative_account_status, mp.city, mp.state
+              mp.cooperative_account_status, mp.membership_status_changed_at,
+              mp.membership_status_note, mp.city, mp.state
        FROM members m
        LEFT JOIN member_profiles mp ON mp.member_id = m.id
-       WHERE ${ACTIVE_MEMBER_FILTER}
+       WHERE ${statusFilter}
        ORDER BY m.name`
     )
-    .all(PENDING_ACCOUNT_STATUS);
+    .all();
 
   return rows.map((m) => {
     const accounts = getMemberAccountSummary(m.id);
@@ -55,6 +67,9 @@ function listMembersWithProfiles() {
       active_loans: accounts.activeLoans,
       balance: accounts.depositAccountBalance,
       transaction_count: txCount,
+      account_status_label: formatAccountStatusLabel(m.cooperative_account_status),
+      is_former_member: isCessationStatus(m.cooperative_account_status),
+      is_directory_listed: isActiveDirectoryStatus(m.cooperative_account_status),
     };
   });
 }

@@ -46,7 +46,7 @@ function profileFieldsFromPayload(payload) {
     buildFullName(firstName, middleName, lastName) ||
     null;
 
-  return normalizeProfileFields({
+  const fields = normalizeProfileFields({
     first_name: firstName,
     middle_name: middleName,
     last_name: lastName,
@@ -70,9 +70,15 @@ function profileFieldsFromPayload(payload) {
     zelle_bank_name:
       payload.zelleBankName?.trim() ||
       zelleNameFromApplication(firstName, middleName, lastName),
-    cooperative_account_status: payload.cooperativeAccountStatus?.trim() || "active",
     application_source: payload.applicationSource?.trim() || "Manual entry",
   });
+
+  // Only set status when explicitly provided so profile edits cannot reset resigned/etc.
+  if (payload.cooperativeAccountStatus != null && String(payload.cooperativeAccountStatus).trim()) {
+    fields.cooperative_account_status = String(payload.cooperativeAccountStatus).trim();
+  }
+
+  return fields;
 }
 
 function upsertMemberProfile(db, memberId, fields) {
@@ -169,6 +175,10 @@ function createMember(payload = {}) {
   const joinedAt = payload.joinedAt || null;
   const notes = payload.notes?.trim() || null;
   const profileFields = profileFieldsFromPayload(payload);
+  if (!profileFields.cooperative_account_status) {
+    profileFields.cooperative_account_status =
+      payload.cooperativeAccountStatus?.trim() || "active";
+  }
   const shouldCreateProfile = hasProfileInput(payload) || Boolean(profileFields.display_name);
   const recordFee = payload.recordMembershipFee !== false;
 
@@ -226,8 +236,17 @@ function updateMemberProfile(memberId, payload = {}) {
           incoming.display_name ||
           existingProfile.display_name ||
           member.name,
+        // Preserve status unless the caller explicitly sent cooperativeAccountStatus.
+        cooperative_account_status:
+          incoming.cooperative_account_status ||
+          existingProfile.cooperative_account_status ||
+          "active",
       }
-    : incoming;
+    : {
+        ...incoming,
+        cooperative_account_status:
+          incoming.cooperative_account_status || "active",
+      };
 
   if (payload.name?.trim() && payload.name.trim() !== member.name) {
     const newName = formatPersonName(payload.name.trim());

@@ -165,6 +165,17 @@ function login(identifier, password, portal = PORTALS.MEMBER, organizationSlug) 
     if (!portalAllowsUser(portal, user)) {
       throw new Error("This account cannot sign in on this page");
     }
+    if (user.role === ROLES.MEMBER && user.memberId) {
+      const { getMemberAccountStatus, isActiveDirectoryStatus } = require(
+        "./membership-status-service"
+      );
+      const account = getMemberAccountStatus(user.memberId);
+      if (!isActiveDirectoryStatus(account.status)) {
+        throw new Error(
+          "This membership is no longer active. Contact your Cooperative administrator."
+        );
+      }
+    }
     const token = createSessionToken();
     getRegistryDb()
       .prepare(

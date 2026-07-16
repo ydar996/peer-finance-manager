@@ -1,9 +1,9 @@
 const { getDb } = require("../db/database");
 const { TRANSACTION_TYPES } = require("./constants");
-const { PENDING_ACCOUNT_STATUS } = require("./flexxforms-membership-service");
-
-const ACTIVE_MEMBER_FILTER =
-  "(mp.cooperative_account_status IS NULL OR mp.cooperative_account_status != ?)";
+const {
+  ACTIVE_DIRECTORY_SQL,
+  NON_PENDING_SQL,
+} = require("./membership-status-service");
 
 const DEPOSIT_LEDGER_TYPES = [
   TRANSACTION_TYPES.DEPOSIT,
@@ -102,17 +102,19 @@ function getMemberBalance(memberId) {
   return row.balance;
 }
 
-function listMembersWithBalances() {
+function listMembersWithBalances({ includeFormer = false } = {}) {
   const db = getDb();
+  const statusFilter = includeFormer ? NON_PENDING_SQL : ACTIVE_DIRECTORY_SQL;
   const members = db
     .prepare(
-      `SELECT m.id, m.member_number, m.name, m.joined_at, m.membership_fee_paid
+      `SELECT m.id, m.member_number, m.name, m.joined_at, m.membership_fee_paid,
+              mp.cooperative_account_status
        FROM members m
        LEFT JOIN member_profiles mp ON mp.member_id = m.id
-       WHERE ${ACTIVE_MEMBER_FILTER}
+       WHERE ${statusFilter}
        ORDER BY m.name`
     )
-    .all(PENDING_ACCOUNT_STATUS);
+    .all();
   const txCountStmt = db.prepare(
     `SELECT COUNT(*) AS c FROM transactions WHERE member_id = ?`
   );

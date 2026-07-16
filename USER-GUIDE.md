@@ -72,6 +72,8 @@ Members and staff **cannot** use each other's login page. Each Cooperative has i
 | **Split** | Divide one payment into two or more parts (e.g. part loan, part contribution). |
 | **Master ledger file** | Your reconciled historical spreadsheet through a past date (used for Full Ledger Refresh). |
 | **Pending Approval** | A membership applicant not yet active on **Members & Accounts**. |
+| **Former Member** | Resigned, Deceased, Expelled, or Suspended: off the active list and member emails; ledger history kept. |
+| **Membership Status** | Admin-selected type: Active, Resigned, Deceased, Expelled, or Suspended. |
 
 ---
 
@@ -190,17 +192,50 @@ Click **Refresh** to reload after imports or manual entries.
 
 - Search by **name** or **member number** (e.g. AIC-001).
 - Click a row to open their profile on the right.
+- Default list shows **Active** members only.
+- Turn on **Show Former Members** to see Resigned, Deceased, Expelled, or Suspended accounts (ledger history still available).
 
 ### Member profile sections
 
 | Section | Contents |
 |---------|----------|
 | **Membership Biodata** | Name, contact, address, joined date, etc. |
+| **Membership Status** | Admin sets status **type** (Active, Resigned, Deceased, Expelled, Suspended). |
 | **Contributions Account** | Balance and transaction history. |
 | **Loan Account** | Active and paid loans with repayment history. |
 | **Upload Photo** | Admin can add or change profile photo. |
 
 **Pending Approval** applicants do **not** appear here until approved (see [Forms & Documents](#16-forms--documents-tab)).
+
+### Membership ends (resign, death, expulsion, suspension)
+
+Membership does not only end by resignation. Admins choose the **status type** that matches how membership ceased:
+
+| Status Type | Typical use |
+|-------------|-------------|
+| **Resigned** | Written resignation (e.g. Assurance bylaws Art. 4.1). |
+| **Deceased** | Membership ends on death (Art. 4.2). |
+| **Expelled** | Expulsion after required notice and vote (Art. 4.3). |
+| **Suspended** | Suspension under expulsion/suspension procedures. |
+| **Active** | Reinstate someone who should be back on the active list. |
+
+**Procedure (example: Sonia Udom cash-out / resignation at Assurance):**
+
+1. Settle the Member Account (withdrawal / payout; clear loans and debts).
+2. Keep written resignation (or other governance record) on file outside the app as required by bylaws.
+3. Open **Members & Accounts** → select the member → under **Membership Status**, choose the correct **Status Type** (e.g. **Resigned**), optional effective date and note.
+4. Optionally attach a **Resignation/Termination Document** (PDF or image of the written notice) → **Update Membership Status**.
+5. Later, use **Download Document** on that form to retrieve the file on record.
+
+**What the system does:**
+
+- Removes them from the default **active** member list.
+- Keeps their ledger history (do **not** delete the member).
+- Stores the uploaded notice (PDF/JPEG/PNG/WebP/GIF) on the member profile.
+- Excludes them from Cooperative **member emails** (meetings, monthly report notices).
+- Blocks member portal login until status is set back to **Active**.
+
+Use **Show Former Members** when you need to open a former account for history or corrections.
 
 ### Register a new member from here
 

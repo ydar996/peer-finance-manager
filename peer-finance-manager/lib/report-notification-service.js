@@ -61,6 +61,7 @@ function getMemberPortalUrl() {
 
 function listMemberNotificationRecipients() {
   const db = getDb();
+  const { EMAIL_ELIGIBLE_SQL } = require("./membership-status-service");
   const rows = db
     .prepare(
       `SELECT m.id AS memberId,
@@ -69,7 +70,8 @@ function listMemberNotificationRecipients() {
        FROM members m
        LEFT JOIN member_profiles mp ON mp.member_id = m.id
        LEFT JOIN users u ON u.member_id = m.id AND u.role = 'member' AND u.active = 1
-       WHERE COALESCE(NULLIF(TRIM(mp.email), ''), NULLIF(TRIM(u.email), '')) IS NOT NULL
+       WHERE ${EMAIL_ELIGIBLE_SQL}
+         AND COALESCE(NULLIF(TRIM(mp.email), ''), NULLIF(TRIM(u.email), '')) IS NOT NULL
        ORDER BY m.name`
     )
     .all();

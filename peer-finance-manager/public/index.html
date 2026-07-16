@@ -701,12 +701,16 @@
             <button type="button" class="btn" id="refreshMembers">Refresh</button>
           </div>
         </div>
-        <p class="hint">Select a Member to View Their Biodata, Contributions Account, and Loan Account. Search by name or member number (e.g. AIC-001). Use <strong>Register Member</strong> on the Record Tab to Add Members Manually : Excel Import Is Optional.</p>
+        <p class="hint">Select a Member to View Their Biodata, Contributions Account, and Loan Account. Search by name or member number (e.g. AIC-001). Use <strong>Register Member</strong> on the Record Tab to Add Members Manually : Excel Import Is Optional. Former Members (Resigned, Deceased, Expelled, Suspended) Stay in the Ledger but Leave the Active List and Member Emails.</p>
 
         <div class="members-search-row">
           <label class="field-row members-search-label">
             <span class="sr-only">Search members</span>
             <input type="search" id="memberSearch" placeholder="Search by name or member number…" autocomplete="off" />
+          </label>
+          <label class="field-row members-former-toggle">
+            <input type="checkbox" id="showFormerMembers" />
+            <span>Show Former Members</span>
           </label>
         </div>
 

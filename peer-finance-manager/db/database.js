@@ -101,6 +101,7 @@ function openOrgDatabase(orgSlug) {
   fs.mkdirSync(orgDir, { recursive: true });
   fs.mkdirSync(path.join(orgDir, "uploads"), { recursive: true });
   fs.mkdirSync(path.join(orgDir, "uploads", "photos"), { recursive: true });
+  fs.mkdirSync(path.join(orgDir, "uploads", "membership-status"), { recursive: true });
   fs.mkdirSync(path.join(orgDir, "exports"), { recursive: true });
 
   if (!fs.existsSync(schemaPath)) {

@@ -1088,7 +1088,14 @@ body.cooperative-report-viewer-open {
 }
 .members-list-pane .member-row { cursor: pointer; }
 .members-list-pane .member-row.selected { background: #e0f2fe; }
-.members-search-row { margin: 0 0 14px; max-width: 420px; }
+.members-search-row {
+  margin: 0 0 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: center;
+}
+.members-search-label { flex: 1 1 280px; max-width: 420px; }
 .members-search-row input[type="search"] {
   width: 100%;
   padding: 10px 12px;
@@ -1096,6 +1103,37 @@ body.cooperative-report-viewer-open {
   border-radius: 8px;
   font-size: 15px;
 }
+.members-former-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+}
+.members-former-toggle input { margin: 0; }
+.membership-status-form {
+  margin: 12px 0 0;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  display: grid;
+  gap: 10px;
+}
+.membership-status-form h4 { margin: 0; font-size: 15px; }
+.membership-status-form label { display: grid; gap: 4px; font-size: 13px; }
+.membership-status-form select,
+.membership-status-form input,
+.membership-status-form textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+}
+.badge.former { background: #fef3c7; color: #92400e; }
 .member-number {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 13px;

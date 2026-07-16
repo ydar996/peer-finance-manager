@@ -280,16 +280,90 @@ app.get("/api/config", (req, res) => {
 
 app.get("/api/members", (req, res) => {
   try {
+    const withProfiles = req.query.profiles === "true";
+    // Admins/staff may include former members for pickers and Show Former Members.
+    // Members always see only their own active row.
+    const includeFormer =
+      req.user.role !== ROLES.MEMBER &&
+      (req.query.includeFormer === "true" || req.query.includeFormer === "1");
+    const listOpts = { includeFormer };
     if (req.user.role === ROLES.MEMBER) {
-      const withProfiles = req.query.profiles === "true";
-      const all = withProfiles ? listMembersWithProfiles() : listMembersWithBalances();
+      const all = withProfiles
+        ? listMembersWithProfiles({ includeFormer: true })
+        : listMembersWithBalances({ includeFormer: true });
       const mine = all.filter((m) => m.id === req.user.memberId);
       return res.json({ members: mine });
     }
-    const withProfiles = req.query.profiles === "true";
     res.json({
-      members: withProfiles ? listMembersWithProfiles() : listMembersWithBalances(),
+      members: withProfiles
+        ? listMembersWithProfiles(listOpts)
+        : listMembersWithBalances(listOpts),
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch(
+  "/api/members/:id/account-status",
+  requireAdmin,
+  restoreOrgContext,
+  upload.single("document"),
+  (req, res) => {
+    try {
+      const {
+        setMemberAccountStatus,
+        saveMembershipStatusDocument,
+        listAdminStatusOptions,
+      } = require("./lib/membership-status-service");
+      const memberId = Number(req.params.id);
+      const result = setMemberAccountStatus(memberId, {
+        status: req.body?.status,
+        effectiveDate: req.body?.effectiveDate,
+        note: req.body?.note,
+      });
+      let documentResult = null;
+      if (req.file) {
+        documentResult = saveMembershipStatusDocument(memberId, req.file);
+      }
+      res.json({
+        success: true,
+        ...result,
+        ...(documentResult || {}),
+        statusOptions: listAdminStatusOptions(),
+      });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
+app.get(
+  "/api/members/:id/account-status/document",
+  requireAdmin,
+  restoreOrgContext,
+  (req, res) => {
+    try {
+      const {
+        resolveMembershipStatusDocumentFile,
+        getMemberAccountStatus,
+      } = require("./lib/membership-status-service");
+      const memberId = Number(req.params.id);
+      const filePath = resolveMembershipStatusDocumentFile(memberId);
+      if (!filePath) return res.status(404).json({ error: "No status document on file" });
+      const meta = getMemberAccountStatus(memberId);
+      const downloadName = meta.documentName || path.basename(filePath);
+      res.download(filePath, downloadName);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+app.get("/api/members/account-status-options", requireAdmin, restoreOrgContext, (_req, res) => {
+  try {
+    const { listAdminStatusOptions } = require("./lib/membership-status-service");
+    res.json({ options: listAdminStatusOptions() });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
