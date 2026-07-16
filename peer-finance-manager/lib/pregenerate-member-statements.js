@@ -12,8 +12,8 @@ async function pregenerateMemberDepositStatements(options = {}) {
   const force = Boolean(options.force);
 
   return runWithOrg(orgSlug, async () => {
-    const db = getDb();
-    const members = db.prepare(`SELECT id, name FROM members ORDER BY id`).all();
+    const { listActiveDirectoryMembers } = require("./membership-status-service");
+    const members = listActiveDirectoryMembers();
     let generated = 0;
     let skipped = 0;
     let errors = 0;

@@ -34,6 +34,14 @@ function recordMemberDepositEntry({
   }
   if (!transactionDate) throw new Error("Date is required");
 
+  // Withdrawals may settle a former member account; contributions/distributions are active-only benefits.
+  if (type !== TRANSACTION_TYPES.WITHDRAWAL) {
+    const { assertActiveDirectoryMember } = require("./membership-status-service");
+    assertActiveDirectoryMember(memberId, {
+      action: type === TRANSACTION_TYPES.DISTRIBUTION ? "Distributions" : "Contributions",
+    });
+  }
+
   let signedAmount = numericAmount;
   if (type === TRANSACTION_TYPES.WITHDRAWAL && signedAmount > 0) {
     signedAmount = -signedAmount;

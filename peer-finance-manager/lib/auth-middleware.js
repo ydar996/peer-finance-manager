@@ -32,6 +32,25 @@ function requireAuth(req, res, next) {
   res.status(401).json({ error: "Login required" });
 }
 
+/** Member portal routes: former/ceased memberships cannot use active-member features. */
+function requireActiveMemberAccount(req, res, next) {
+  try {
+    const user = req.user;
+    if (!user) return res.status(401).json({ error: "Login required" });
+    if (user.role !== ROLES.MEMBER) return next();
+    if (!user.memberId) {
+      return res.status(403).json({ error: "Member account required" });
+    }
+    const { assertActiveDirectoryMember } = require("./membership-status-service");
+    assertActiveDirectoryMember(user.memberId, {
+      action: "The member portal",
+    });
+    return next();
+  } catch (err) {
+    return res.status(403).json({ error: err.message });
+  }
+}
+
 function requireAdmin(req, res, next) {
   if (req.user?.role === ROLES.ADMIN) return next();
   res.status(403).json({ error: "Administrator access required" });
@@ -78,6 +97,7 @@ function restoreOrgContext(req, res, next) {
 module.exports = {
   attachUser,
   requireAuth,
+  requireActiveMemberAccount,
   requireAdmin,
   requireCooperativeView,
   requireMemberSelf,

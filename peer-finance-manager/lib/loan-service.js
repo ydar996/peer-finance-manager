@@ -72,6 +72,21 @@ function validateLoanApplication({
     errors.push("Guarantors must be different members");
   }
 
+  const { assertActiveDirectoryMember } = require("./membership-status-service");
+  try {
+    if (borrowerId) {
+      assertActiveDirectoryMember(borrowerId, { action: "New loans" });
+    }
+    if (guarantor1Id) {
+      assertActiveDirectoryMember(guarantor1Id, { action: "Serving as guarantor" });
+    }
+    if (guarantor2Id) {
+      assertActiveDirectoryMember(guarantor2Id, { action: "Serving as guarantor" });
+    }
+  } catch (err) {
+    errors.push(err.message);
+  }
+
   const eligibility = isEligibleForLoan(borrowerId, startDate);
   if (!eligibility.eligible) errors.push(eligibility.reason);
 

@@ -386,14 +386,8 @@ function memberLoginEmail(username, profileEmail, db, organizationSlug) {
 
 function provisionAllMemberAccounts({ forceReset = false } = {}) {
   const db = getDb();
-  const members = db
-    .prepare(
-      `SELECT m.id, m.name, mp.email, mp.display_name
-       FROM members m
-       LEFT JOIN member_profiles mp ON mp.member_id = m.id
-       ORDER BY m.name`
-    )
-    .all();
+  const { listActiveDirectoryMembers } = require("./membership-status-service");
+  const members = listActiveDirectoryMembers();
 
   const created = [];
   const skipped = [];
@@ -519,6 +513,10 @@ function syncMemberPortalLoginEmail(db, memberId, profileEmail) {
 
 function listMemberCredentialsSummary() {
   const db = getDb();
+  const { ACTIVE_DIRECTORY_SQL, ensureMembershipStatusColumns } = require(
+    "./membership-status-service"
+  );
+  ensureMembershipStatusColumns(db);
   return db
     .prepare(
       `SELECT u.username, u.email AS login_email, u.must_change_password,
@@ -527,6 +525,7 @@ function listMemberCredentialsSummary() {
        JOIN members m ON m.id = u.member_id
        LEFT JOIN member_profiles mp ON mp.member_id = m.id
        WHERE u.role = 'member' AND u.active = 1
+         AND ${ACTIVE_DIRECTORY_SQL}
        ORDER BY m.name`
     )
     .all()

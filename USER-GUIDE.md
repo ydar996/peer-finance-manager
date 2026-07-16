@@ -230,11 +230,12 @@ Membership does not only end by resignation. Admins choose the **status type** t
 
 **What the system does:**
 
-- Removes them from the default **active** member list.
+- Removes them from the default **active** member list and **Active Members/Profiles** dashboard count.
 - Keeps their ledger history (do **not** delete the member).
 - Stores the uploaded notice (PDF/JPEG/PNG/WebP/GIF) on the member profile.
-- Excludes them from Cooperative **member emails** (meetings, monthly report notices).
-- Blocks member portal login until status is set back to **Active**.
+- Blocks **all active-member benefits**: member portal, emails, statement downloads, new loans, guarantor roles, contributions, distributions, registration fees, and login provisioning.
+- Still allows **withdrawals** and **loan repayments** so accounts and debts can be settled.
+- Bank import can still match their name for historical ledger accuracy.
 
 Use **Show Former Members** when you need to open a former account for history or corrections.
 

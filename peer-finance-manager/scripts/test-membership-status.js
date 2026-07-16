@@ -136,8 +136,33 @@ function testDirectoryAndEmail() {
     const profile = getMemberProfile(leaving.memberId);
     assert.strictEqual(profile.membership_status_document_name, "sonia-resignation.pdf");
 
+    setMemberAccountStatus(leaving.memberId, { status: ACCOUNT_STATUS.RESIGNED });
+    const { assertActiveDirectoryMember } = require("../lib/membership-status-service");
+    assert.throws(
+      () => assertActiveDirectoryMember(leaving.memberId, { action: "Distributions" }),
+      /only available to active members/i
+    );
+    const { recordMemberDepositEntry } = require("../lib/manual-entry-service");
+    assert.throws(
+      () =>
+        recordMemberDepositEntry({
+          memberId: leaving.memberId,
+          type: "deposit",
+          amount: 10,
+          transactionDate: "2026-07-16",
+        }),
+      /only available to active members/i
+    );
+    // Withdrawals remain allowed for settlement.
+    recordMemberDepositEntry({
+      memberId: leaving.memberId,
+      type: "withdrawal",
+      amount: 1,
+      transactionDate: "2026-07-16",
+    });
+
     closeDb();
-    console.log("  directory/email/portal/document: OK");
+    console.log("  directory/email/portal/document/benefits: OK");
   });
 }
 

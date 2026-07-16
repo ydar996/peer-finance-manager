@@ -68,7 +68,18 @@ function registerPlatformRoutes(app) {
         try {
           runWithOrg(org.slug, () => {
             const db = getDb();
-            memberCount = db.prepare(`SELECT COUNT(*) AS c FROM members`).get().c;
+            const { ACTIVE_DIRECTORY_SQL, ensureMembershipStatusColumns } = require(
+              "./membership-status-service"
+            );
+            ensureMembershipStatusColumns(db);
+            memberCount = db
+              .prepare(
+                `SELECT COUNT(*) AS c
+                 FROM members m
+                 LEFT JOIN member_profiles mp ON mp.member_id = m.id
+                 WHERE ${ACTIVE_DIRECTORY_SQL}`
+              )
+              .get().c;
             const admin = db
               .prepare(
                 `SELECT email FROM users WHERE role = 'admin' AND active = 1 ORDER BY id LIMIT 1`

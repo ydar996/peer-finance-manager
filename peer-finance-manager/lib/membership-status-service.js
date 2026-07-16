@@ -244,6 +244,54 @@ function setMemberPortalLoginActive(db, memberId, active) {
 }
 
 /**
+ * Block member benefits for former/pending statuses.
+ * Use for portal, emails, statements, new loans, distributions, contributions, etc.
+ * Do not use for bank-import matching, withdrawals, or loan repayments on existing debt.
+ */
+function assertActiveDirectoryMember(
+  memberId,
+  { action = "This action", allowMissingProfile = false } = {}
+) {
+  const db = getDb();
+  const member = db.prepare(`SELECT id FROM members WHERE id = ?`).get(memberId);
+  if (!member) throw new Error("Member not found");
+
+  ensureMembershipStatusColumns(db);
+  const row = db
+    .prepare(
+      `SELECT cooperative_account_status AS status FROM member_profiles WHERE member_id = ?`
+    )
+    .get(memberId);
+
+  if (!row && allowMissingProfile) {
+    return { status: ACCOUNT_STATUS.ACTIVE };
+  }
+
+  const status = normalizeAccountStatus(row?.status) || ACCOUNT_STATUS.ACTIVE;
+  if (!isActiveDirectoryStatus(status)) {
+    throw new Error(
+      `${action} is only available to active members. This membership is ${formatAccountStatusLabel(status)}.`
+    );
+  }
+  return { status };
+}
+
+function listActiveDirectoryMembers() {
+  const db = getDb();
+  ensureMembershipStatusColumns(db);
+  return db
+    .prepare(
+      `SELECT m.id, m.name, m.member_number, mp.email, mp.display_name,
+              mp.cooperative_account_status
+       FROM members m
+       LEFT JOIN member_profiles mp ON mp.member_id = m.id
+       WHERE ${ACTIVE_DIRECTORY_SQL}
+       ORDER BY m.name`
+    )
+    .all();
+}
+
+/**
  * Set membership account status by type. Does not delete the member or ledger rows.
  */
 function setMemberAccountStatus(
@@ -330,6 +378,8 @@ module.exports = {
   ensureMembershipStatusColumns,
   getMemberAccountStatus,
   setMemberAccountStatus,
+  assertActiveDirectoryMember,
+  listActiveDirectoryMembers,
   saveMembershipStatusDocument,
   resolveMembershipStatusDocumentFile,
   membershipStatusDocumentApiPath,

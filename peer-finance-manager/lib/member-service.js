@@ -132,6 +132,8 @@ function recordMembershipFee(memberId, { feeDate, amount } = {}) {
   const db = getDb();
   const member = db.prepare(`SELECT * FROM members WHERE id = ?`).get(memberId);
   if (!member) throw new Error("Member not found");
+  const { assertActiveDirectoryMember } = require("./membership-status-service");
+  assertActiveDirectoryMember(memberId, { action: "Registration fees" });
 
   const existing = db
     .prepare(

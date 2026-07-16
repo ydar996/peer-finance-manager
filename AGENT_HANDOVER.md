@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 16, 2026 (active member dashboard count; last deploy `408a55f`)  
+**Last updated:** July 16, 2026 (former members blocked from active benefits; last deploy `408a55f`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,6 +108,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-16** — **Former members blocked from active-member benefits (all tenants):** Resigned/Deceased/Expelled/Suspended cannot use portal APIs, emails, bulk/member statements, login provisioning/credentials, new loans/guarantor roles, contributions, distributions, or registration fees. Withdrawals + loan repayments still allowed for settlement; bank import matching kept for ledger history. `assertActiveDirectoryMember` + `requireActiveMemberAccount`. **Production:** `git push`.
 - **2026-07-16** — **Dashboard Active Members/Profiles excludes former members:** Cooperative Books card counted all ledger members, so resigning Sonia left **23/24** unchanged. Now counts only active directory members/profiles and notes former count. Files: `cooperative-books.js`, `app.js`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-16** — **Fix membership status update “No organization database selected”:** `PATCH /api/members/:id/account-status` had `restoreOrgContext` before multer, so the upload cleared tenant context. Order is now upload → restore (same as bank append). **Production:** `git push`.
 - **2026-07-16** — **Membership status document upload:** On **Membership Status**, admins can attach PDF/image of resignation or termination notice; download via **Download Document**. Stored per org under `uploads/membership-status/`. APIs: multipart on `PATCH /api/members/:id/account-status`, `GET .../account-status/document`. Test covers save/resolve. **Production:** `git push` (`48df822`).
@@ -677,7 +678,7 @@ Peer Finance Manager / Assurance Cooperative
 | 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh**. Ops: `restore-ledger-production.js --org <slug>`. |
 | 4e | ~~**Yomi Salami Nov 2025 split (Saheed bank alias)**~~ | ✅ **Done by Coop Admin** 2026-07-12 — Split saved on live; balance **$16,241.55** unchanged; row count 457→458 (expected). Reconcile row-align after classification added so Out of Sync does not false-alarm. |
 | 4p | ~~**Loan Payment Policy deploy**~~ | ✅ **Done** 2026-07-12 — Deployed with N-way split reconcile align + download notice. Default flexible; no effect on existing loans. |
-| 4q | ~~**Membership status by type (resign/death/expel/suspend)**~~ | ✅ **Done** 2026-07-16 — Typed status; hide from active list; keep ledger; exclude from emails; portal login off; PDF/image notice upload + download. `npm run test:membership-status`. **Deployed:** `48df822`. |
+| 4q | ~~**Membership status by type (resign/death/expel/suspend)**~~ | ✅ **Done** 2026-07-16 — Typed status; hide from active list; keep ledger; block all active benefits; PDF/image notice upload; dashboard active count. `npm run test:membership-status`. **Deploy:** `git push`. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
 | 6 | ~~**Persist Title Case in database (backfill)**~~ | ✅ **Done** 2026-07-11 — **Admin → Maintenance → Normalize Profiles** on production (or CLI with `--org`). Display/save formatters already live. |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |

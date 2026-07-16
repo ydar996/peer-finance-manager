@@ -24,7 +24,13 @@ const {
   hasBankLoanLedger,
 } = require("./loan-ledger-service");
 const path = require("path");
-const { requireAuth, requireAdmin, requireMemberSelf, getToken } = require("./auth-middleware");
+const {
+  requireAuth,
+  requireAdmin,
+  requireActiveMemberAccount,
+  requireMemberSelf,
+  getToken,
+} = require("./auth-middleware");
 const { runWithOrg } = require("./org-context");
 const {
   saveMemberPhotoUpload,
@@ -210,7 +216,7 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
-  app.put("/api/me/profile", requireAuth, (req, res) => {
+  app.put("/api/me/profile", requireAuth, requireActiveMemberAccount, (req, res) => {
     try {
       const user = req.user;
       if (user.role !== ROLES.MEMBER || !user.memberId) {
@@ -244,6 +250,7 @@ function registerAuthRoutes(app, deps = {}) {
     app.post(
       "/api/me/profile/photo",
       requireAuth,
+      requireActiveMemberAccount,
       upload.single("photo"),
       (req, res) => {
         const user = req.user;
@@ -269,7 +276,7 @@ function registerAuthRoutes(app, deps = {}) {
     );
   }
 
-  app.get("/api/me/account", requireAuth, (req, res) => {
+  app.get("/api/me/account", requireAuth, requireActiveMemberAccount, (req, res) => {
     try {
       const user = req.user;
       if (user.role !== ROLES.MEMBER || !user.memberId) {
@@ -314,7 +321,7 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
-  app.get("/api/me/cooperative-status-reports", requireAuth, (req, res) => {
+  app.get("/api/me/cooperative-status-reports", requireAuth, requireActiveMemberAccount, (req, res) => {
     try {
       const user = req.user;
       if (user.role !== ROLES.MEMBER) {
@@ -333,7 +340,7 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
-  app.get("/api/me/cooperative-status-reports/:periodSlug/view", requireAuth, (req, res) => {
+  app.get("/api/me/cooperative-status-reports/:periodSlug/view", requireAuth, requireActiveMemberAccount, (req, res) => {
     try {
       const user = req.user;
       if (user.role !== ROLES.MEMBER) {
@@ -354,7 +361,7 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
-  app.get("/api/me/cooperative-status-reports/:periodSlug/file", requireAuth, (req, res) => {
+  app.get("/api/me/cooperative-status-reports/:periodSlug/file", requireAuth, requireActiveMemberAccount, (req, res) => {
     try {
       const user = req.user;
       if (user.role !== ROLES.MEMBER) {
@@ -370,7 +377,7 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
-  app.get("/api/me/meetings", requireAuth, (req, res) => {
+  app.get("/api/me/meetings", requireAuth, requireActiveMemberAccount, (req, res) => {
     try {
       const user = req.user;
       if (user.role !== ROLES.MEMBER) {
@@ -383,7 +390,7 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
-  app.get("/api/me/operational-expenses-summary", requireAuth, (req, res) => {
+  app.get("/api/me/operational-expenses-summary", requireAuth, requireActiveMemberAccount, (req, res) => {
     try {
       const user = req.user;
       if (user.role !== ROLES.MEMBER) {
@@ -404,7 +411,7 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
-  app.get("/api/me/deposit-statement", requireAuth, async (req, res) => {
+  app.get("/api/me/deposit-statement", requireAuth, requireActiveMemberAccount, async (req, res) => {
     try {
       const user = req.user;
       if (user.role !== ROLES.MEMBER || !user.memberId) {
@@ -429,6 +436,12 @@ function registerAuthRoutes(app, deps = {}) {
       if (!canAccessMember(req.user, memberId)) {
         return res.status(403).json({ error: "Access denied" });
       }
+      // Members may only download their own statements while active.
+      // Admins/staff may download historical statements for former members for the books.
+      if (req.user.role === ROLES.MEMBER) {
+        const { assertActiveDirectoryMember } = require("./membership-status-service");
+        assertActiveDirectoryMember(memberId, { action: "Statement downloads" });
+      }
       const year = Number(req.query.year);
       const month = Number(req.query.month);
       const { generateMemberDepositStatementPdf } = require("./member-deposit-statement");
@@ -438,7 +451,8 @@ function registerAuthRoutes(app, deps = {}) {
       });
       res.download(result.outputPath, result.fileName);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      const status = /only available to active members/i.test(err.message) ? 403 : 500;
+      res.status(status).json({ error: err.message });
     }
   });
 }

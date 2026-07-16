@@ -52,9 +52,16 @@ function importDistributionFromFile({ filePath, creditedDate, label }) {
   }
 
   const db = getDb();
-  const members = db.prepare(`SELECT id, name FROM members`).all();
-  const ledgerNames = members.map((m) => m.name);
-  const nameToId = Object.fromEntries(members.map((m) => [m.name, m.id]));
+  const {
+    listActiveDirectoryMembers,
+    isActiveDirectoryStatus,
+    getMemberAccountStatus,
+  } = require("./membership-status-service");
+  const activeMembers = listActiveDirectoryMembers();
+  const ledgerNames = activeMembers.map((m) => m.name);
+  const nameToId = Object.fromEntries(activeMembers.map((m) => [m.name, m.id]));
+  const allMembers = db.prepare(`SELECT id, name FROM members`).all();
+  const allLedgerNames = allMembers.map((m) => m.name);
   const { periodYear, periodMonth } = parsePeriodFromDate(creditedDate);
 
   const run = db.transaction(() => {
@@ -67,15 +74,25 @@ function importDistributionFromFile({ filePath, creditedDate, label }) {
 
     let credited = 0;
     const unmatched = [];
+    const skippedFormer = [];
     const creditedMembers = [];
 
     for (const [sheetName, rawAmount] of entries) {
-      const ledgerName = resolveLedgerMemberName(sheetName, ledgerNames);
-      if (!ledgerName) {
+      const activeName = resolveLedgerMemberName(sheetName, ledgerNames);
+      if (!activeName) {
+        const formerName = resolveLedgerMemberName(sheetName, allLedgerNames);
+        if (formerName) {
+          const formerId = allMembers.find((m) => m.name === formerName)?.id;
+          const status = formerId ? getMemberAccountStatus(formerId).status : null;
+          if (status && !isActiveDirectoryStatus(status)) {
+            skippedFormer.push(formerName);
+            continue;
+          }
+        }
         unmatched.push(sheetName);
         continue;
       }
-      const memberId = nameToId[ledgerName];
+      const memberId = nameToId[activeName];
       const amount = Number(rawAmount);
       addTransaction({
         memberId,
@@ -85,16 +102,21 @@ function importDistributionFromFile({ filePath, creditedDate, label }) {
         periodYear,
         periodMonth,
         description: cleanLabel,
-        reference: `distribution-import:${batch.lastInsertRowid}:${ledgerName}`,
+        reference: `distribution-import:${batch.lastInsertRowid}:${activeName}`,
         source: "manual",
       });
       credited += 1;
-      creditedMembers.push({ member: ledgerName, amount });
+      creditedMembers.push({ member: activeName, amount });
     }
 
     if (!credited) {
+      const parts = [];
+      if (unmatched.length) parts.push(`Unmatched names: ${unmatched.join(", ")}`);
+      if (skippedFormer.length) {
+        parts.push(`Former members skipped: ${skippedFormer.join(", ")}`);
+      }
       throw new Error(
-        `No members matched the ledger. Unmatched names: ${unmatched.join(", ")}`
+        `No active members matched the ledger. ${parts.join(". ")}`
       );
     }
 
@@ -102,6 +124,7 @@ function importDistributionFromFile({ filePath, creditedDate, label }) {
       distributionBatchId: batch.lastInsertRowid,
       credited,
       unmatched,
+      skippedFormer,
       members: creditedMembers,
     };
   });
