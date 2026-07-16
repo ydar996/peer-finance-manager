@@ -181,6 +181,7 @@ Click any card to see a detailed table. Common cards:
 | **Cooperative Net Income** | Income minus expenses. |
 | **Loans Outstanding** | Principal still owed on active loans. |
 | **CD Account / Expected CD Interest** | Certificate of deposit balance and interest (if used). |
+| **Active Members/Profiles** | Active members only (profiles on file / member accounts). Resigned, Deceased, Expelled, and Suspended are excluded; the card notes how many former members are not counted. |
 
 Click **Refresh** to reload after imports or manual entries.
 

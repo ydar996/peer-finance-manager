@@ -1741,8 +1741,12 @@ async function loadBooks() {
           })
         : "",
       bookCardHtml("members-profiles", {
-        label: "Members/Profiles on File",
+        label: "Active Members/Profiles",
         amount: `${books.profileCount}/${books.memberCount}`,
+        note:
+          Number(books.formerMemberCount) > 0
+            ? `${books.formerMemberCount} former not counted`
+            : "",
       }),
     ].join("");
     bindBookCards();

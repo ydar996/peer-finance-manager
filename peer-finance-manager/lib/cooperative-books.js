@@ -251,9 +251,36 @@ function getCooperativeBooks() {
   const bankAccounts = listBankAccounts();
   const primaryBank = getPrimaryBankAccount();
 
-  const memberCount = db.prepare(`SELECT COUNT(*) AS c FROM members`).get().c;
+  const {
+    ACTIVE_DIRECTORY_SQL,
+    ensureMembershipStatusColumns,
+  } = require("./membership-status-service");
+  ensureMembershipStatusColumns(db);
+
+  // Dashboard membership counts = active directory only (excludes resigned/deceased/etc.).
+  const memberCount = db
+    .prepare(
+      `SELECT COUNT(*) AS c
+       FROM members m
+       LEFT JOIN member_profiles mp ON mp.member_id = m.id
+       WHERE ${ACTIVE_DIRECTORY_SQL}`
+    )
+    .get().c;
   const profileCount = db
-    .prepare(`SELECT COUNT(*) AS c FROM member_profiles`)
+    .prepare(
+      `SELECT COUNT(*) AS c
+       FROM members m
+       INNER JOIN member_profiles mp ON mp.member_id = m.id
+       WHERE ${ACTIVE_DIRECTORY_SQL}`
+    )
+    .get().c;
+  const formerMemberCount = db
+    .prepare(
+      `SELECT COUNT(*) AS c
+       FROM members m
+       INNER JOIN member_profiles mp ON mp.member_id = m.id
+       WHERE mp.cooperative_account_status IN ('resigned','deceased','expelled','suspended')`
+    )
     .get().c;
 
   const memberIds = db.prepare(`SELECT id FROM members`).all();
@@ -265,6 +292,7 @@ function getCooperativeBooks() {
   return {
     memberCount,
     profileCount,
+    formerMemberCount,
     memberDeposits,
     distributions,
     registrationIncome,
@@ -342,7 +370,7 @@ const BOOK_DETAIL_SLUGS = {
   "total-income": "Total Cooperative Income",
   "net-income": "Cooperative Net Income",
   investments: "Cooperative Investments",
-  "members-profiles": "Members/Profiles on File",
+  "members-profiles": "Active Members/Profiles",
 };
 
 function getBookDetail(slug) {
@@ -1058,30 +1086,51 @@ function getBookDetail(slug) {
   }
 
   if (slug === "members-profiles") {
+    const {
+      ACTIVE_DIRECTORY_SQL,
+      ensureMembershipStatusColumns,
+      formatAccountStatusLabel,
+    } = require("./membership-status-service");
+    ensureMembershipStatusColumns(db);
     const rows = db
       .prepare(
         `SELECT m.id AS member_id, m.name, mp.display_name, mp.id AS profile_id,
-                mp.email, mp.phone
+                mp.email, mp.phone, mp.cooperative_account_status AS account_status
          FROM members m
          LEFT JOIN member_profiles mp ON mp.member_id = m.id
+         WHERE ${ACTIVE_DIRECTORY_SQL}
          ORDER BY m.name`
       )
       .all();
     const withProfile = rows.filter((row) => row.profile_id).length;
+    const formerCount = db
+      .prepare(
+        `SELECT COUNT(*) AS c
+         FROM members m
+         INNER JOIN member_profiles mp ON mp.member_id = m.id
+         WHERE mp.cooperative_account_status IN ('resigned','deceased','expelled','suspended')`
+      )
+      .get().c;
     return {
       slug,
       title,
       navigateTab: "members",
       summary: `${withProfile}/${rows.length}`,
+      note:
+        formerCount > 0
+          ? `${formerCount} former member${formerCount === 1 ? "" : "s"} not counted (use Members & Accounts : Show Former Members).`
+          : null,
       columns: [
         { key: "member", label: "Member" },
         { key: "profile", label: "Profile" },
+        { key: "status", label: "Status" },
         { key: "email", label: "Email" },
         { key: "phone", label: "Phone" },
       ],
       rows: rows.map((row) => ({
         member: row.display_name || row.name,
         profile: row.profile_id ? "On File" : "Missing",
+        status: formatAccountStatusLabel(row.account_status),
         email: row.email || ":",
         phone: row.phone || ":",
         memberId: row.member_id,
