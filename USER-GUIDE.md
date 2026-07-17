@@ -447,6 +447,8 @@ Public links appear at the top of this tab to copy and share.
    - **Initial contribution** ($100 deposit) — **Record** → **Member Contributions Account**.
 5. When both are recorded, status becomes **Ready for Approval**.
 6. Click **Approve Member** to activate the account.
+7. PFM creates their portal login and **emails** the temporary password when email is configured and an address is on file.
+8. A short login message appears so you can **Copy Welcome Message** (or copy just the temporary password) and send it yourself if needed.
 
 **Delete** removes a test or mistaken application (only if still Pending Approval with no ledger activity).
 

@@ -97,10 +97,10 @@ function registerFlexxFormsRoutes(app) {
     "/api/flexxforms/applications/:id/approve",
     requireAuth,
     requireAdmin,
-    (req, res) => {
+    async (req, res) => {
       try {
         const slug = requestOrgSlug(req);
-        const result = approveMembershipApplication(slug, req.params.id, req.user?.id);
+        const result = await approveMembershipApplication(slug, req.params.id, req.user?.id);
         res.json({ success: true, ...result });
       } catch (err) {
         res.status(400).json({ error: err.message });

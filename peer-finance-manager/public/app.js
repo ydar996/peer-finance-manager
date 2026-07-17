@@ -1018,13 +1018,19 @@ function describePasswordEmailResult(emailResult, notifyEmail) {
 function showMemberPasswordResetResult(data, container = null) {
   const box = container || $("#memberPasswordResetResult");
   if (!box) return;
+  if (data?.error && !data.tempPassword) {
+    box.classList.remove("hidden");
+    box.innerHTML = `<p class="status err">${escapeHtml(data.error)}</p>`;
+    return;
+  }
   const emailNote = describePasswordEmailResult(data.emailResult, data.notifyEmail);
+  const isWelcome = data.purpose === "welcome";
   const copyPwdId = `copyResetTempPassword-${Date.now()}`;
   const copyAllId = `copyResetLoginDetails-${Date.now()}`;
   const copyStatusId = `memberPasswordResetCopyStatus-${Date.now()}`;
   box.classList.remove("hidden");
   box.innerHTML = `
-    <h4>Temporary Password Ready</h4>
+    <h4>${isWelcome ? "New Member Login Ready" : "Temporary Password Ready"}</h4>
     <p><strong>${escapeHtml(data.displayName || data.memberName)}</strong></p>
     <p class="subtle">${escapeHtml(emailNote)}</p>
     <dl class="member-password-reset-dl">
@@ -1035,7 +1041,9 @@ function showMemberPasswordResetResult(data, container = null) {
     </dl>
     <div class="member-password-reset-actions">
       <button type="button" class="btn primary" id="${copyPwdId}">Copy Temporary Password</button>
-      <button type="button" class="btn" id="${copyAllId}">Copy Full Login Details</button>
+      <button type="button" class="btn" id="${copyAllId}">${
+        isWelcome ? "Copy Welcome Message" : "Copy Full Login Details"
+      }</button>
     </div>
     <p id="${copyStatusId}" class="status"></p>
   `;
@@ -1051,7 +1059,11 @@ function showMemberPasswordResetResult(data, container = null) {
   document.getElementById(copyAllId)?.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(data.copyText || data.tempPassword || "");
-      setFormStatus(copyStatus, "Full login details copied.", true);
+      setFormStatus(
+        copyStatus,
+        isWelcome ? "Welcome message copied." : "Full login details copied.",
+        true
+      );
     } catch {
       setFormStatus(copyStatus, "Could not copy. Select the details and copy manually.", false);
     }
@@ -8262,7 +8274,7 @@ async function approveFlexxFormsApplication(applicationId) {
   if (!applicationId) return;
   if (
     !(await appConfirm(
-      "Approve this applicant as an active member? Membership fee and initial contribution must already be recorded.",
+      "Approve this applicant as an active member? Membership fee and initial contribution must already be recorded. Login details will be emailed when possible.",
       { title: "Approve Member", variant: "warning", confirmLabel: "Approve" }
     ))
   ) {
@@ -8274,9 +8286,27 @@ async function approveFlexxFormsApplication(applicationId) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Approval failed");
-    setFormStatus(status, "Member approved and account activated.", true);
+    const login = data.login || null;
+    if (login?.tempPassword) {
+      const emailNote = describePasswordEmailResult(login.emailResult, login.notifyEmail);
+      setFormStatus(
+        status,
+        `Member approved and account activated. ${emailNote}`,
+        true
+      );
+      showMemberPasswordResetResult(login, $("#memberApprovalLoginResult"));
+    } else if (login?.error) {
+      setFormStatus(
+        status,
+        `Member approved, but login setup failed: ${login.error}`,
+        false
+      );
+    } else {
+      setFormStatus(status, "Member approved and account activated.", true);
+    }
     await loadFlexxFormsApplications();
     if (typeof loadMembers === "function") await loadMembers();
+    if (typeof loadUsers === "function") await loadUsers();
   } catch (err) {
     setFormStatus(status, err.message, false);
   }

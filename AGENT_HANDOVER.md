@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 16, 2026 (admin one-click password reset + email; last deploy `531e909`)  
+**Last updated:** July 16, 2026 (approve member emails login; last deploy `531e909`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,6 +108,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-16** — **Approve member emails portal login (all tenants):** On **Approve Member**, PFM creates/resets portal credentials, emails a welcome login message when configured, and shows **Copy Welcome Message** / temp password for admin handoff. Files: `flexxforms-membership-service.js`, `auth-service.js`, `flexxforms-routes.js`, `app.js`, `index.html`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-16** — **Admin one-click member password reset + email (all tenants):** Users tab **Reset Password** (and member profile **Reset Portal Password**) creates a temp password, emails the member when configured, and shows **Copy Temporary Password** / **Copy Full Login Details**. API `POST /api/users/reset-member-password` (`sendEmail` default true). Script: `reset-member-password-production.js`. **Production:** `git push`.
 - **2026-07-16** — **Single-member portal password reset API:** Admin API `POST /api/users/reset-member-password` (`memberId` or `memberName`). Deployed `2a1fe6c`.
 - **2026-07-16** — **No membership restore (all tenants):** Former statuses cannot be set back to Active. Returning people must **Register New Member** (new number, new history). Old account stays historical. UI hides Active for former members; API rejects restore. Test: `npm run test:membership-status`. **Production:** `git push`.

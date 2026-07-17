@@ -415,6 +415,7 @@ async function emailMemberTempPassword({
   tempPassword,
   organizationName,
   organizationSlug,
+  purpose = "reset",
 }) {
   const { sendEmail, isEmailConfigured } = require("./email-service");
   if (!isEmailConfigured()) {
@@ -426,10 +427,16 @@ async function emailMemberTempPassword({
 
   const portalUrl = getMemberPortalLoginUrl();
   const orgLabel = organizationName || "Your Cooperative";
-  const subject = `${orgLabel}: Temporary Member Portal Password`;
+  const isWelcome = purpose === "welcome";
+  const subject = isWelcome
+    ? `${orgLabel}: Your Member Portal Login`
+    : `${orgLabel}: Temporary Member Portal Password`;
+  const intro = isWelcome
+    ? `Your membership with ${orgLabel} has been approved. Here are your Peer Finance Manager member portal login details.`
+    : `An administrator reset your Peer Finance Manager member portal password.`;
   const text =
     `Hello ${memberName},\n\n` +
-    `An administrator reset your Peer Finance Manager member portal password.\n\n` +
+    `${intro}\n\n` +
     `Organization code: ${organizationSlug}\n` +
     `Sign-in page: ${portalUrl}\n` +
     `Username: ${username}\n` +
@@ -438,7 +445,7 @@ async function emailMemberTempPassword({
     `If you did not expect this email, contact your Cooperative administrator.\n`;
   const html =
     `<p>Hello ${escapeHtmlAuth(memberName)},</p>` +
-    `<p>An administrator reset your Peer Finance Manager member portal password.</p>` +
+    `<p>${escapeHtmlAuth(intro)}</p>` +
     `<ul>` +
     `<li><strong>Organization Code:</strong> ${escapeHtmlAuth(organizationSlug)}</li>` +
     `<li><strong>Sign-In Page:</strong> <a href="${escapeHtmlAuth(portalUrl)}">${escapeHtmlAuth(portalUrl)}</a></li>` +
@@ -449,6 +456,35 @@ async function emailMemberTempPassword({
     `<p>If you did not expect this email, contact your Cooperative administrator.</p>`;
 
   return sendEmail({ to, subject, text, html });
+}
+
+function buildMemberLoginCopyText({
+  organizationSlug,
+  portalUrl,
+  username,
+  tempPassword,
+  memberName = null,
+  purpose = "reset",
+}) {
+  const greeting = memberName ? `Hello ${memberName},` : "Hello,";
+  if (purpose === "welcome") {
+    return (
+      `${greeting}\n\n` +
+      `Your membership is approved. Sign in here:\n` +
+      `${portalUrl}\n` +
+      `Organization: ${organizationSlug}\n` +
+      `Username: ${username}\n` +
+      `Temporary password: ${tempPassword}\n` +
+      `Please change your password after you sign in.`
+    );
+  }
+  return (
+    `Organization: ${organizationSlug}\n` +
+    `Sign-in: ${portalUrl}\n` +
+    `Username: ${username}\n` +
+    `Temporary password: ${tempPassword}\n` +
+    `Change password after first sign-in.`
+  );
 }
 
 function escapeHtmlAuth(value) {
@@ -467,6 +503,7 @@ async function resetMemberPortalPassword({
   memberId = null,
   memberName = null,
   sendEmailToMember = true,
+  emailPurpose = "reset",
 } = {}) {
   const db = getDb();
   const {
@@ -557,6 +594,7 @@ async function resetMemberPortalPassword({
         tempPassword,
         organizationName: organization?.name,
         organizationSlug: orgSlug,
+        purpose: emailPurpose === "welcome" ? "welcome" : "reset",
       });
     } catch (err) {
       emailResult = {
@@ -568,6 +606,8 @@ async function resetMemberPortalPassword({
     }
   }
 
+  const portalUrl = getMemberPortalLoginUrl();
+  const purpose = emailPurpose === "welcome" ? "welcome" : "reset";
   return {
     memberId: member.id,
     memberName: member.name,
@@ -577,15 +617,18 @@ async function resetMemberPortalPassword({
     notifyEmail,
     tempPassword,
     reset: wasReset,
-    portalUrl: getMemberPortalLoginUrl(),
+    portalUrl,
     organizationSlug: orgSlug,
     emailResult,
-    copyText:
-      `Organization: ${orgSlug}\n` +
-      `Sign-in: ${getMemberPortalLoginUrl()}\n` +
-      `Username: ${username}\n` +
-      `Temporary password: ${tempPassword}\n` +
-      `Change password after first sign-in.`,
+    purpose,
+    copyText: buildMemberLoginCopyText({
+      organizationSlug: orgSlug,
+      portalUrl,
+      username,
+      tempPassword,
+      memberName: displayName,
+      purpose,
+    }),
   };
 }
 
@@ -779,6 +822,7 @@ module.exports = {
   createUser,
   provisionAllMemberAccounts,
   resetMemberPortalPassword,
+  buildMemberLoginCopyText,
   syncMemberPortalLoginEmail,
   listMemberCredentialsSummary,
   portalAllowsUser,

@@ -846,7 +846,7 @@ module.exports = {
   reprocessMembershipApplicationWithFetch,
   listPendingApplications,
   findOrganizationByWebhookSecret,
-  approveMembershipApplication: (slug, applicationId, userId) =>
+  approveMembershipApplication: async (slug, applicationId, userId) =>
     runWithOrg(slug, () => {
       const { approveMembershipApplication } = require("./flexxforms-membership-service");
       return approveMembershipApplication(applicationId, userId);

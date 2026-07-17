@@ -882,7 +882,7 @@ function refreshMembershipApplicationStatus(applicationId) {
   return { ...row, status: nextStatus, readiness };
 }
 
-function approveMembershipApplication(applicationId, approvedByUserId) {
+async function approveMembershipApplication(applicationId, approvedByUserId) {
   const db = getDb();
   ensureMembershipApplicationSchema(db);
   const app = db
@@ -916,7 +916,27 @@ function approveMembershipApplication(applicationId, approvedByUserId) {
      WHERE id = ?`
   ).run(approvedByUserId || null, applicationId);
 
-  return { memberId: app.member_id, status: "approved" };
+  // Create/reset portal login and email welcome credentials to the new member.
+  const { resetMemberPortalPassword } = require("./auth-service");
+  let login = null;
+  try {
+    login = await resetMemberPortalPassword({
+      memberId: app.member_id,
+      sendEmailToMember: true,
+      emailPurpose: "welcome",
+    });
+  } catch (err) {
+    login = {
+      error: err.message,
+      emailResult: { sent: false, skipped: false, reason: "provision_failed", error: err.message },
+    };
+  }
+
+  return {
+    memberId: app.member_id,
+    status: "approved",
+    login,
+  };
 }
 
 function reprocessMembershipApplication(applicationId, payloadOverride = null) {
