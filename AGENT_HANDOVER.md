@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 16, 2026 (no membership restore; last deploy `798639b`)  
+**Last updated:** July 16, 2026 (single-member password reset; last deploy `798639b`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,6 +108,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-16** — **Single-member portal password reset (all tenants):** Admin API `POST /api/users/reset-member-password` (`memberId` or `memberName`) returns a new temp password for one active member. Script: `reset-member-password-production.js`. **Production:** `git push`.
 - **2026-07-16** — **No membership restore (all tenants):** Former statuses cannot be set back to Active. Returning people must **Register New Member** (new number, new history). Old account stays historical. UI hides Active for former members; API rejects restore. Test: `npm run test:membership-status`. **Production:** `git push`.
 - **2026-07-16** — **Former members blocked from active-member benefits (all tenants):** Resigned/Deceased/Expelled/Suspended cannot use portal APIs, emails, bulk/member statements, login provisioning/credentials, new loans/guarantor roles, contributions, distributions, or registration fees. Withdrawals + loan repayments still allowed for settlement; bank import matching kept for ledger history. `assertActiveDirectoryMember` + `requireActiveMemberAccount`. **Production:** `git push`.
 - **2026-07-16** — **Dashboard Active Members/Profiles excludes former members:** Cooperative Books card counted all ledger members, so resigning Sonia left **23/24** unchanged. Now counts only active directory members/profiles and notes former count. Files: `cooperative-books.js`, `app.js`, `USER-GUIDE.md`. **Production:** `git push`.

@@ -5,6 +5,7 @@ const {
   listUsers,
   createUser,
   provisionAllMemberAccounts,
+  resetMemberPortalPassword,
   listMemberCredentialsSummary,
   registerOrganizationWithAdmin,
   canAccessMember,
@@ -175,6 +176,18 @@ function registerAuthRoutes(app, deps = {}) {
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/users/reset-member-password", requireAuth, requireAdmin, (req, res) => {
+    try {
+      const result = resetMemberPortalPassword({
+        memberId: req.body?.memberId,
+        memberName: req.body?.memberName,
+      });
+      res.json({ success: true, ...result });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
     }
   });
 

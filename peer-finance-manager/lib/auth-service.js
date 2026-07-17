@@ -384,6 +384,100 @@ function memberLoginEmail(username, profileEmail, db, organizationSlug) {
   return `${username}@members.${normalizeSlug(organizationSlug)}.local`;
 }
 
+/**
+ * Reset (or create) one active member's portal login and return a new temp password.
+ * Former members are rejected: they must register as a new member.
+ */
+function resetMemberPortalPassword({ memberId = null, memberName = null } = {}) {
+  const db = getDb();
+  const {
+    assertActiveDirectoryMember,
+    listActiveDirectoryMembers,
+  } = require("./membership-status-service");
+
+  let member = null;
+  if (memberId) {
+    member = db
+      .prepare(
+        `SELECT m.id, m.name, mp.email, mp.display_name
+         FROM members m
+         LEFT JOIN member_profiles mp ON mp.member_id = m.id
+         WHERE m.id = ?`
+      )
+      .get(Number(memberId));
+  } else if (memberName && String(memberName).trim()) {
+    const needle = String(memberName).trim().toLowerCase();
+    const matches = listActiveDirectoryMembers().filter((m) => {
+      const name = String(m.name || "").toLowerCase();
+      const display = String(m.display_name || "").toLowerCase();
+      return name.includes(needle) || display.includes(needle);
+    });
+    if (!matches.length) {
+      throw new Error(`No active member matching "${memberName}"`);
+    }
+    if (matches.length > 1) {
+      throw new Error(
+        `Multiple active members match "${memberName}": ${matches
+          .map((m) => m.name)
+          .join(", ")}. Use a more specific name or member id.`
+      );
+    }
+    member = matches[0];
+  } else {
+    throw new Error("Member id or member name is required");
+  }
+
+  if (!member) throw new Error("Member not found");
+  assertActiveDirectoryMember(member.id, { action: "Portal login reset" });
+
+  const displayName = member.display_name || member.name;
+  const existing = db
+    .prepare(
+      `SELECT id, username, email FROM users WHERE member_id = ? AND role = 'member'`
+    )
+    .get(member.id);
+  const tempPassword = generateTempPassword();
+
+  if (existing) {
+    const username = existing.username || generateUsername(member.name, member.id, db);
+    const email = memberLoginEmail(username, member.email, db, getOrgSlug());
+    db.prepare(
+      `UPDATE users
+       SET email = ?, username = ?, password_hash = ?, display_name = ?,
+           active = 1, must_change_password = 1
+       WHERE id = ?`
+    ).run(email, username, hashPassword(tempPassword), displayName, existing.id);
+    return {
+      memberId: member.id,
+      memberName: member.name,
+      username,
+      email,
+      tempPassword,
+      reset: true,
+    };
+  }
+
+  const username = generateUsername(member.name, member.id, db);
+  const email = memberLoginEmail(username, member.email, db, getOrgSlug());
+  createUser({
+    email,
+    username,
+    password: tempPassword,
+    role: ROLES.MEMBER,
+    memberId: member.id,
+    displayName,
+    mustChangePassword: true,
+  });
+  return {
+    memberId: member.id,
+    memberName: member.name,
+    username,
+    email,
+    tempPassword,
+    reset: false,
+  };
+}
+
 function provisionAllMemberAccounts({ forceReset = false } = {}) {
   const db = getDb();
   const { listActiveDirectoryMembers } = require("./membership-status-service");
@@ -573,6 +667,7 @@ module.exports = {
   listUsers,
   createUser,
   provisionAllMemberAccounts,
+  resetMemberPortalPassword,
   syncMemberPortalLoginEmail,
   listMemberCredentialsSummary,
   portalAllowsUser,
