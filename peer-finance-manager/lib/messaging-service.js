@@ -2,15 +2,39 @@
  * Cooperative inbox messaging (all tenants).
  * Per-org SQLite: bidirectional threads between Cooperative admins and members.
  * Audience: all active members, a subset, or one member; members may write the Cooperative admin.
+ * Bodies support Markdown; optional PDF/image/docx attachments viewable by participants.
  */
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 const { getDb } = require("../db/database");
+const { getOrgSlug } = require("./org-context");
+const { getOrgDataDir } = require("./organization-service");
 const { ROLES } = require("./auth-service");
 const { ACTIVE_DIRECTORY_SQL } = require("./membership-status-service");
 const { sendEmail, isEmailConfigured } = require("./email-service");
 const { getMemberPortalUrl } = require("./report-notification-service");
+const { renderMarkdownToSafeHtml, markdownPreviewPlain, escapeHtml } = require("./markdown-lite");
+const {
+  sanitizeRichHtml,
+  htmlToPlainPreview,
+  isProbablyHtml,
+} = require("./html-sanitize-lite");
 
 const MAX_SUBJECT = 200;
-const MAX_BODY = 20000;
+const MAX_BODY = 100000;
+const MAX_ATTACHMENTS = 8;
+const MAX_ATTACHMENT_BYTES = 12 * 1024 * 1024;
+
+const ATTACHMENT_MIME = {
+  "application/pdf": ".pdf",
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/gif": ".gif",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "application/msword": ".doc",
+};
 
 function ensureMessagingSchema(db = getDb()) {
   db.exec(`
@@ -44,10 +68,202 @@ function ensureMessagingSchema(db = getDb()) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS coop_message_attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id INTEGER NOT NULL,
+      thread_id INTEGER NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_coop_msg_part_user ON coop_message_participants(user_id);
     CREATE INDEX IF NOT EXISTS idx_coop_msg_part_thread ON coop_message_participants(thread_id);
     CREATE INDEX IF NOT EXISTS idx_coop_messages_thread ON coop_messages(thread_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_coop_msg_attach_message ON coop_message_attachments(message_id);
   `);
+  const cols = db.prepare(`PRAGMA table_info(coop_messages)`).all().map((c) => c.name);
+  if (!cols.includes("body_format")) {
+    try {
+      db.exec(`ALTER TABLE coop_messages ADD COLUMN body_format TEXT NOT NULL DEFAULT 'markdown'`);
+    } catch (_) {
+      /* ignore */
+    }
+  }
+}
+
+function messagesUploadDir() {
+  const dir = path.join(getOrgDataDir(getOrgSlug()), "uploads", "messages");
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function normalizeUploadedFiles(files) {
+  if (!files) return [];
+  if (Array.isArray(files)) return files;
+  return [];
+}
+
+function saveMessageAttachments(messageId, threadId, files = []) {
+  const list = normalizeUploadedFiles(files).slice(0, MAX_ATTACHMENTS);
+  if (!list.length) return [];
+  const db = getDb();
+  ensureMessagingSchema(db);
+  const dir = messagesUploadDir();
+  const insert = db.prepare(
+    `INSERT INTO coop_message_attachments
+      (message_id, thread_id, original_name, stored_name, mime_type, size_bytes)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  );
+  const saved = [];
+  for (const file of list) {
+    const mime = String(file.mimetype || "").toLowerCase();
+    const ext = ATTACHMENT_MIME[mime];
+    if (!ext) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch (_) {
+        /* ignore */
+      }
+      const err = new Error(
+        "Unsupported attachment type. Use PDF, image (JPG/PNG/WebP/GIF), or Word (.docx)."
+      );
+      err.status = 400;
+      throw err;
+    }
+    const size = Number(file.size || 0);
+    if (size <= 0 || size > MAX_ATTACHMENT_BYTES) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch (_) {
+        /* ignore */
+      }
+      const err = new Error(`Each attachment must be under ${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB`);
+      err.status = 400;
+      throw err;
+    }
+    const storedName = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext}`;
+    const dest = path.join(dir, storedName);
+    fs.renameSync(file.path, dest);
+    const originalName = String(file.originalname || `attachment${ext}`).slice(0, 180);
+    const result = insert.run(messageId, threadId, originalName, storedName, mime, size);
+    saved.push({
+      id: result.lastInsertRowid,
+      originalName,
+      mimeType: mime,
+      sizeBytes: size,
+      viewableInline: mime === "application/pdf" || mime.startsWith("image/"),
+    });
+  }
+  return saved;
+}
+
+function listMessageAttachments(messageId) {
+  const db = getDb();
+  ensureMessagingSchema(db);
+  return db
+    .prepare(
+      `SELECT id, message_id AS messageId, thread_id AS threadId,
+              original_name AS originalName, mime_type AS mimeType,
+              size_bytes AS sizeBytes
+       FROM coop_message_attachments
+       WHERE message_id = ?
+       ORDER BY id`
+    )
+    .all(messageId)
+    .map((row) => ({
+      ...row,
+      viewableInline:
+        row.mimeType === "application/pdf" || String(row.mimeType || "").startsWith("image/"),
+    }));
+}
+
+function resolveAttachmentFile(user, attachmentId) {
+  const db = getDb();
+  ensureMessagingSchema(db);
+  const row = db
+    .prepare(
+      `SELECT id, message_id AS messageId, thread_id AS threadId,
+              original_name AS originalName, stored_name AS storedName,
+              mime_type AS mimeType, size_bytes AS sizeBytes
+       FROM coop_message_attachments
+       WHERE id = ?`
+    )
+    .get(Number(attachmentId));
+  if (!row) {
+    const err = new Error("Attachment not found");
+    err.status = 404;
+    throw err;
+  }
+  requireParticipant(user, row.threadId);
+  const absPath = path.join(messagesUploadDir(), row.storedName);
+  if (!fs.existsSync(absPath)) {
+    const err = new Error("Attachment file missing");
+    err.status = 404;
+    throw err;
+  }
+  return { ...row, absPath };
+}
+
+function normalizeBodyFormat(value, body) {
+  const fmt = String(value || "").toLowerCase();
+  if (fmt === "html" || fmt === "markdown" || fmt === "plain") return fmt;
+  if (isProbablyHtml(body)) return "html";
+  return "markdown";
+}
+
+function prepareStoredBody(body, bodyFormat, files = []) {
+  const format = normalizeBodyFormat(bodyFormat, body);
+  const fileCount = normalizeUploadedFiles(files).length;
+  let raw = String(body || "").trim();
+
+  if (format === "html") {
+    raw = sanitizeRichHtml(raw);
+    if (!htmlToPlainPreview(raw, 20) && !fileCount) {
+      const err = new Error("Write a message or attach at least one file");
+      err.status = 400;
+      throw err;
+    }
+    if (!raw && fileCount) raw = "<p>(See attached file.)</p>";
+    return { body: raw.slice(0, MAX_BODY), bodyFormat: "html" };
+  }
+
+  if (!raw && !fileCount) {
+    const err = new Error("Write a message or attach at least one file");
+    err.status = 400;
+    throw err;
+  }
+  if (!raw && fileCount) raw = "(See attached file.)";
+  return { body: raw.slice(0, MAX_BODY), bodyFormat: format === "plain" ? "plain" : "markdown" };
+}
+
+function formatMessageBody(body, bodyFormat = "markdown") {
+  const raw = String(body || "");
+  if (bodyFormat === "html") {
+    const safe = sanitizeRichHtml(raw);
+    return {
+      body: safe,
+      bodyFormat: "html",
+      bodyHtml: safe,
+      bodyPreview: htmlToPlainPreview(safe),
+    };
+  }
+  if (bodyFormat === "plain") {
+    return {
+      body: raw,
+      bodyFormat: "plain",
+      bodyHtml: `<p>${escapeHtml(raw).replace(/\n/g, "<br>")}</p>`,
+      bodyPreview: markdownPreviewPlain(raw),
+    };
+  }
+  return {
+    body: raw,
+    bodyFormat: "markdown",
+    bodyHtml: renderMarkdownToSafeHtml(raw),
+    bodyPreview: markdownPreviewPlain(raw),
+  };
 }
 
 function trimText(value, max) {
@@ -203,15 +419,10 @@ function queueNewMessageEmails({ thread, messagePreview, recipientUserIds, sende
   return { queued: true, sent, failed };
 }
 
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function createAdminThread(user, { subject, body, audience = "selected", memberIds = [] }) {
+function createAdminThread(
+  user,
+  { subject, body, bodyFormat = "html", audience = "selected", memberIds = [], files = [] } = {}
+) {
   if (user?.role !== ROLES.ADMIN) {
     const err = new Error("Administrator access required");
     err.status = 403;
@@ -220,7 +431,7 @@ function createAdminThread(user, { subject, body, audience = "selected", memberI
   const db = getDb();
   ensureMessagingSchema(db);
   const cleanSubject = trimText(assertNonEmpty(subject, "Subject"), MAX_SUBJECT);
-  const cleanBody = trimText(assertNonEmpty(body, "Message"), MAX_BODY);
+  const prepared = prepareStoredBody(body, bodyFormat, files);
   const targets = resolveMemberTargets({ audience, memberIds });
   if (!targets.members.length) {
     const err = new Error(
@@ -251,17 +462,21 @@ function createAdminThread(user, { subject, body, audience = "selected", memberI
     });
   }
 
-  db.prepare(
-    `INSERT INTO coop_messages
-      (thread_id, sender_user_id, sender_role, sender_member_id, body, created_at)
-     VALUES (?, ?, 'admin', NULL, ?, ?)`
-  ).run(threadId, user.id, cleanBody, now);
+  const msg = db
+    .prepare(
+      `INSERT INTO coop_messages
+        (thread_id, sender_user_id, sender_role, sender_member_id, body, body_format, created_at)
+       VALUES (?, ?, 'admin', NULL, ?, ?, ?)`
+    )
+    .run(threadId, user.id, prepared.body, prepared.bodyFormat, now);
+  saveMessageAttachments(msg.lastInsertRowid, threadId, files);
 
   const thread = getThreadRow(threadId);
   const recipientUserIds = targets.members.map((m) => m.userId);
+  const preview = formatMessageBody(prepared.body, prepared.bodyFormat).bodyPreview;
   queueNewMessageEmails({
     thread,
-    messagePreview: cleanBody,
+    messagePreview: preview,
     recipientUserIds,
     senderUserId: user.id,
   });
@@ -269,7 +484,7 @@ function createAdminThread(user, { subject, body, audience = "selected", memberI
   return getThreadDetail(user, threadId);
 }
 
-function createMemberThread(user, { subject, body }) {
+function createMemberThread(user, { subject, body, bodyFormat = "markdown", files = [] } = {}) {
   if (user?.role !== ROLES.MEMBER || !user.memberId) {
     const err = new Error("Member account required");
     err.status = 403;
@@ -288,7 +503,7 @@ function createMemberThread(user, { subject, body }) {
   }
 
   const cleanSubject = trimText(assertNonEmpty(subject, "Subject"), MAX_SUBJECT);
-  const cleanBody = trimText(assertNonEmpty(body, "Message"), MAX_BODY);
+  const prepared = prepareStoredBody(body, bodyFormat, files);
   const now = new Date().toISOString();
   const insert = db
     .prepare(
@@ -308,16 +523,19 @@ function createMemberThread(user, { subject, body }) {
     lastReadAt: now,
   });
 
-  db.prepare(
-    `INSERT INTO coop_messages
-      (thread_id, sender_user_id, sender_role, sender_member_id, body, created_at)
-     VALUES (?, ?, 'member', ?, ?, ?)`
-  ).run(threadId, user.id, user.memberId, cleanBody, now);
+  const msg = db
+    .prepare(
+      `INSERT INTO coop_messages
+        (thread_id, sender_user_id, sender_role, sender_member_id, body, body_format, created_at)
+       VALUES (?, ?, 'member', ?, ?, ?, ?)`
+    )
+    .run(threadId, user.id, user.memberId, prepared.body, prepared.bodyFormat, now);
+  saveMessageAttachments(msg.lastInsertRowid, threadId, files);
 
   const thread = getThreadRow(threadId);
   queueNewMessageEmails({
     thread,
-    messagePreview: cleanBody,
+    messagePreview: formatMessageBody(prepared.body, prepared.bodyFormat).bodyPreview,
     recipientUserIds: admins.map((a) => a.userId),
     senderUserId: user.id,
   });
@@ -409,7 +627,7 @@ function listInbox(user) {
       createdByRole: row.created_by_role,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      lastBody: row.lastBody || "",
+      lastBody: htmlToPlainPreview(row.lastBody || "") || markdownPreviewPlain(row.lastBody || ""),
       lastMessageAt: row.lastMessageAt || row.updated_at,
       lastSenderRole: row.lastSenderRole || null,
       memberCount: row.memberCount || 0,
@@ -438,11 +656,13 @@ function markThreadRead(user, threadId) {
 
 function listThreadMessages(threadId) {
   const db = getDb();
-  return db
+  ensureMessagingSchema(db);
+  const rows = db
     .prepare(
       `SELECT m.id, m.thread_id AS threadId, m.sender_user_id AS senderUserId,
               m.sender_role AS senderRole, m.sender_member_id AS senderMemberId,
-              m.body, m.created_at AS createdAt,
+              m.body, COALESCE(m.body_format, 'markdown') AS bodyFormat,
+              m.created_at AS createdAt,
               COALESCE(
                 NULLIF(TRIM(mp.display_name), ''),
                 NULLIF(TRIM(mem.name), ''),
@@ -458,6 +678,23 @@ function listThreadMessages(threadId) {
        ORDER BY m.created_at ASC, m.id ASC`
     )
     .all(threadId);
+
+  return rows.map((row) => {
+    const formatted = formatMessageBody(row.body, row.bodyFormat);
+    return {
+      id: row.id,
+      threadId: row.threadId,
+      senderUserId: row.senderUserId,
+      senderRole: row.senderRole,
+      senderMemberId: row.senderMemberId,
+      senderName: row.senderName,
+      body: formatted.body,
+      bodyFormat: formatted.bodyFormat,
+      bodyHtml: formatted.bodyHtml,
+      createdAt: row.createdAt,
+      attachments: listMessageAttachments(row.id),
+    };
+  });
 }
 
 function listThreadParticipants(threadId) {
@@ -498,7 +735,7 @@ function getThreadDetail(user, threadId) {
   };
 }
 
-function replyToThread(user, threadId, { body }) {
+function replyToThread(user, threadId, { body, bodyFormat, files = [] } = {}) {
   const db = getDb();
   ensureMessagingSchema(db);
   const { thread } = requireParticipant(user, threadId);
@@ -517,20 +754,28 @@ function replyToThread(user, threadId, { body }) {
     throw err;
   }
 
-  const cleanBody = trimText(assertNonEmpty(body, "Message"), MAX_BODY);
+  const preferredFormat =
+    bodyFormat || (user.role === ROLES.ADMIN ? "html" : "markdown");
+  const prepared = prepareStoredBody(body, preferredFormat, files);
   const now = new Date().toISOString();
-  db.prepare(
-    `INSERT INTO coop_messages
-      (thread_id, sender_user_id, sender_role, sender_member_id, body, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(
-    threadId,
-    user.id,
-    user.role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.MEMBER,
-    user.role === ROLES.MEMBER ? user.memberId : null,
-    cleanBody,
-    now
-  );
+  const msg = db
+    .prepare(
+      `INSERT INTO coop_messages
+        (thread_id, sender_user_id, sender_role, sender_member_id, body, body_format, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      threadId,
+      user.id,
+      user.role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.MEMBER,
+      user.role === ROLES.MEMBER ? user.memberId : null,
+      prepared.body,
+      prepared.bodyFormat,
+      now
+    );
+  if (user.role === ROLES.ADMIN) {
+    saveMessageAttachments(msg.lastInsertRowid, threadId, files);
+  }
   db.prepare(`UPDATE coop_message_threads SET updated_at = ? WHERE id = ?`).run(now, threadId);
   db.prepare(
     `UPDATE coop_message_participants SET last_read_at = ? WHERE thread_id = ? AND user_id = ?`
@@ -546,7 +791,7 @@ function replyToThread(user, threadId, { body }) {
 
   queueNewMessageEmails({
     thread,
-    messagePreview: cleanBody,
+    messagePreview: formatMessageBody(prepared.body, prepared.bodyFormat).bodyPreview,
     recipientUserIds: others,
     senderUserId: user.id,
   });
@@ -577,7 +822,12 @@ module.exports = {
   getThreadDetail,
   replyToThread,
   markThreadRead,
+  resolveAttachmentFile,
+  formatMessageBody,
   senderDisplayName,
   MAX_SUBJECT,
   MAX_BODY,
+  MAX_ATTACHMENTS,
+  MAX_ATTACHMENT_BYTES,
+  ATTACHMENT_MIME,
 };

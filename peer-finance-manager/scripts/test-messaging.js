@@ -23,6 +23,8 @@ const {
   replyToThread,
   listRecipientOptions,
 } = require("../lib/messaging-service");
+const { renderMarkdownToSafeHtml } = require("../lib/markdown-lite");
+const { sanitizeRichHtml } = require("../lib/html-sanitize-lite");
 
 const ORG = "messaging-test-coop";
 
@@ -105,13 +107,29 @@ function run() {
     const recipients = listRecipientOptions();
     assert.strictEqual(recipients.members.length, 2);
 
+    const mdHtml = renderMarkdownToSafeHtml("# Minutes\n\n**Action:** Review budget.");
+    assert.ok(mdHtml.includes("<h1>"));
+    assert.ok(mdHtml.includes("<strong>Action:</strong>"));
+    assert.ok(!mdHtml.includes("<script"));
+
+    const wordish = sanitizeRichHtml(
+      `<!--StartFragment--><p class="MsoNormal"><b>Budget</b> review</p><script>alert(1)</script><ul><li>Item</li></ul><!--EndFragment-->`
+    );
+    assert.ok(wordish.includes("<b>Budget</b>") || wordish.includes("<strong>"));
+    assert.ok(wordish.includes("<ul>"));
+    assert.ok(!wordish.includes("<script"));
+
     const broadcast = createAdminThread(ctx.adminUser, {
       subject: "Meeting Minutes",
-      body: "Here are yesterday's minutes for everyone.",
+      body: "<h2>Meeting Minutes</h2><p><b>Budget</b> review</p><ul><li>Call to order</li></ul>",
+      bodyFormat: "html",
       audience: "all",
     });
     assert.ok(broadcast.id);
     assert.strictEqual(broadcast.messages.length, 1);
+    assert.strictEqual(broadcast.messages[0].bodyFormat, "html");
+    assert.ok(broadcast.messages[0].bodyHtml.includes("<h2>"));
+    assert.ok(broadcast.messages[0].bodyHtml.includes("<ul>"));
 
     let adaUnread = getUnreadSummary(ctx.ada.user);
     assert.ok(adaUnread.hasUnread);

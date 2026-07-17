@@ -9042,10 +9042,168 @@ function renderThreadList(listEl, threads, { onOpen, emptyText }) {
   });
 }
 
+function messageAttachmentBasePath() {
+  return currentUser?.role === "member" ? "/api/me/messages/attachments" : "/api/messages/attachments";
+}
+
+function renderMessageAttachmentsHtml(attachments) {
+  if (!attachments?.length) return "";
+  const base = messageAttachmentBasePath();
+  const items = attachments
+    .map((file) => {
+      const viewUrl = `${base}/${encodeURIComponent(file.id)}`;
+      const downloadUrl = `${viewUrl}/download`;
+      const label = escapeHtml(file.originalName || "Attachment");
+      const sizeKb = file.sizeBytes ? ` · ${Math.max(1, Math.round(file.sizeBytes / 1024))} KB` : "";
+      if (String(file.mimeType || "").startsWith("image/")) {
+        return `<figure class="messages-attachment-figure">
+          <a href="${viewUrl}" target="_blank" rel="noopener noreferrer">
+            <img class="messages-attachment-image" src="${viewUrl}" alt="${label}" loading="lazy" />
+          </a>
+          <figcaption><a href="${downloadUrl}">${label}</a>${sizeKb}</figcaption>
+        </figure>`;
+      }
+      if (file.mimeType === "application/pdf" || file.viewableInline) {
+        return `<div class="messages-attachment-row">
+          <a class="btn small" href="${viewUrl}" target="_blank" rel="noopener noreferrer">View</a>
+          <a class="btn linkish small" href="${downloadUrl}">Download</a>
+          <span>${label}${sizeKb}</span>
+        </div>`;
+      }
+      return `<div class="messages-attachment-row">
+        <a class="btn small" href="${downloadUrl}">Download</a>
+        <span>${label}${sizeKb}</span>
+      </div>`;
+    })
+    .join("");
+  return `<div class="messages-attachments">${items}</div>`;
+}
+
+function sanitizePastedHtmlClient(html) {
+  const template = document.createElement("template");
+  let source = String(html || "");
+  const frag = /<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/i.exec(source);
+  if (frag) source = frag[1];
+  template.innerHTML = source;
+  const allowed = new Set([
+    "P",
+    "BR",
+    "STRONG",
+    "B",
+    "EM",
+    "I",
+    "U",
+    "UL",
+    "OL",
+    "LI",
+    "H1",
+    "H2",
+    "H3",
+    "A",
+    "TABLE",
+    "THEAD",
+    "TBODY",
+    "TR",
+    "TH",
+    "TD",
+    "BLOCKQUOTE",
+    "HR",
+  ]);
+  const unwrap = new Set(["SPAN", "FONT", "DIV", "SECTION", "ARTICLE"]);
+  const walk = (node) => {
+    const children = [...node.childNodes];
+    for (const child of children) {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        const tag = child.tagName;
+        if (unwrap.has(tag)) {
+          while (child.firstChild) node.insertBefore(child.firstChild, child);
+          node.removeChild(child);
+          continue;
+        }
+        if (!allowed.has(tag)) {
+          node.removeChild(child);
+          continue;
+        }
+        [...child.attributes].forEach((attr) => {
+          const name = attr.name.toLowerCase();
+          if (tag === "A" && name === "href" && /^https?:\/\//i.test(attr.value)) {
+            child.setAttribute("target", "_blank");
+            child.setAttribute("rel", "noopener noreferrer");
+            return;
+          }
+          child.removeAttribute(attr.name);
+        });
+        walk(child);
+      } else if (child.nodeType === Node.COMMENT_NODE) {
+        node.removeChild(child);
+      }
+    }
+  };
+  walk(template.content);
+  return template.innerHTML.trim();
+}
+
+function getRichEditorHtml(editor) {
+  if (!editor) return "";
+  const html = String(editor.innerHTML || "")
+    .replace(/<p><br\s*\/?><\/p>/gi, "")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+  const text = String(editor.textContent || "").replace(/\u00a0/g, " ").trim();
+  if (!text) return "";
+  return html || `<p>${escapeHtml(text)}</p>`;
+}
+
+function clearRichEditor(editor) {
+  if (!editor) return;
+  editor.innerHTML = "";
+}
+
+function bindRichEditor(editor) {
+  if (!editor || editor.dataset.richBound === "1") return;
+  editor.dataset.richBound = "1";
+  editor.addEventListener("paste", (e) => {
+    const html = e.clipboardData?.getData("text/html");
+    const text = e.clipboardData?.getData("text/plain") || "";
+    if (!html && !text) return;
+    e.preventDefault();
+    const cleaned = html
+      ? sanitizePastedHtmlClient(html)
+      : `<p>${escapeHtml(text).replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>")}</p>`;
+    document.execCommand("insertHTML", false, cleaned || escapeHtml(text));
+  });
+}
+
+function initAdminRichComposers() {
+  const compose = $("#adminMessageBodyEditor");
+  const reply = $("#adminMessageReplyEditor");
+  bindRichEditor(compose);
+  bindRichEditor(reply);
+  document.querySelectorAll("[data-rich-cmd]").forEach((btn) => {
+    if (btn.dataset.richBound === "1") return;
+    btn.dataset.richBound = "1";
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const targetId = btn.dataset.richTarget || "adminMessageBodyEditor";
+      const editor = document.getElementById(targetId);
+      if (!editor) return;
+      editor.focus();
+      const cmd = btn.dataset.richCmd;
+      const value = btn.dataset.richValue || null;
+      if (cmd === "formatBlock" && value) {
+        document.execCommand("formatBlock", false, value);
+      } else {
+        document.execCommand(cmd, false, value);
+      }
+    });
+  });
+}
+
 function renderThreadMessages(host, messages, currentUserId) {
   if (!host) return;
   if (!messages?.length) {
-    host.innerHTML = '<p class="subtle">No Messages in This Conversation Yet.</p>';
+    host.innerHTML =
+      '<p class="subtle messages-thread-empty">No Messages in This Conversation Yet.</p>';
     return;
   }
   host.innerHTML = messages
@@ -9053,13 +9211,17 @@ function renderThreadMessages(host, messages, currentUserId) {
       const fromSelf = Number(msg.senderUserId) === Number(currentUserId);
       const roleLabelText =
         msg.senderRole === "admin" ? "Cooperative Admin" : escapeHtml(msg.senderName || "Member");
+      const bodyHtml =
+        msg.bodyHtml ||
+        `<p>${escapeHtml(msg.body || "").replace(/\n/g, "<br>")}</p>`;
       return `
         <article class="messages-bubble${fromSelf ? " from-self" : ""}">
           <div class="messages-bubble-meta">
             <strong>${roleLabelText}</strong>
             <span>${escapeHtml(formatMessageWhen(msg.createdAt))}</span>
           </div>
-          <div class="messages-bubble-body">${escapeHtml(msg.body || "")}</div>
+          <div class="messages-bubble-body messages-md-body">${bodyHtml}</div>
+          ${renderMessageAttachmentsHtml(msg.attachments || [])}
         </article>`;
     })
     .join("");
@@ -9124,6 +9286,7 @@ function syncAdminAudiencePicker() {
 
 async function loadAdminMessagesPanel() {
   showAdminMessagesList();
+  initAdminRichComposers();
   await loadAdminMessageRecipients();
   syncAdminAudiencePicker();
   const list = $("#adminMessagesThreadList");
@@ -9241,6 +9404,19 @@ $("#adminMessageClearAll")?.addEventListener("click", () => {
   });
 });
 
+function refreshAdminAttachmentList() {
+  const input = $("#adminMessageAttachments");
+  const list = $("#adminMessageAttachmentList");
+  if (!list) return;
+  const files = [...(input?.files || [])];
+  list.innerHTML = files.length
+    ? files.map((f) => `<li>${escapeHtml(f.name)} (${Math.max(1, Math.round(f.size / 1024))} KB)</li>`).join("")
+    : "";
+}
+
+$("#adminMessageAttachments")?.addEventListener("change", refreshAdminAttachmentList);
+initAdminRichComposers();
+
 $("#adminMessageComposeForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const status = $("#adminMessageComposeStatus");
@@ -9254,21 +9430,26 @@ $("#adminMessageComposeForm")?.addEventListener("submit", async (e) => {
           Number(el.value)
         )
       : [];
+  const formData = new FormData();
+  formData.append("subject", $("#adminMessageSubject")?.value || "");
+  formData.append("body", getRichEditorHtml($("#adminMessageBodyEditor")));
+  formData.append("bodyFormat", "html");
+  formData.append("audience", audience);
+  formData.append("memberIds", JSON.stringify(memberIds));
+  [...($("#adminMessageAttachments")?.files || [])].forEach((file) => {
+    formData.append("attachments", file);
+  });
   try {
     const res = await fetch("/api/messages/threads", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        subject: $("#adminMessageSubject")?.value,
-        body: $("#adminMessageBody")?.value,
-        audience,
-        memberIds,
-      }),
+      body: formData,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to send message");
     $("#adminMessageSubject").value = "";
-    $("#adminMessageBody").value = "";
+    clearRichEditor($("#adminMessageBodyEditor"));
+    if ($("#adminMessageAttachments")) $("#adminMessageAttachments").value = "";
+    refreshAdminAttachmentList();
     document.querySelectorAll('input[name="adminMessageMember"]').forEach((el) => {
       el.checked = false;
     });
@@ -9287,18 +9468,24 @@ $("#adminMessageReplyForm")?.addEventListener("submit", async (e) => {
     setFormStatus(status, "Open a conversation first.", false);
     return;
   }
+  const formData = new FormData();
+  formData.append("body", getRichEditorHtml($("#adminMessageReplyEditor")));
+  formData.append("bodyFormat", "html");
+  [...($("#adminMessageReplyAttachments")?.files || [])].forEach((file) => {
+    formData.append("attachments", file);
+  });
   try {
     const res = await fetch(
       `/api/messages/threads/${encodeURIComponent(adminMessagesActiveThreadId)}/reply`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: $("#adminMessageReplyBody")?.value }),
+        body: formData,
       }
     );
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to send reply");
-    $("#adminMessageReplyBody").value = "";
+    clearRichEditor($("#adminMessageReplyEditor"));
+    if ($("#adminMessageReplyAttachments")) $("#adminMessageReplyAttachments").value = "";
     renderThreadMessages($("#adminMessagesThreadMessages"), data.thread?.messages || [], currentUser?.id);
     updateUnreadBadge($("#adminMessagesUnreadBadge"), data.unread);
     setFormStatus(status, "Reply sent.", true);

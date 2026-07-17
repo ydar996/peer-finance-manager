@@ -435,14 +435,19 @@ Cooperative-wide performance PDF for members.
 
 Two-way inbox for **every Cooperative** (not email-only broadcasts). Messages live in the portal so members can re-read them later. When email is configured, recipients also get a short email that a new portal message is waiting.
 
+Admins compose in a **rich text box**: paste from Microsoft Word and keep basic formatting (headings, bold, italics, lists). Optional **attachments** (PDF, images, Word) are viewable or downloadable in the member inbox.
+
 | Action | Steps |
 |--------|-------|
-| **Send to everyone** | **Messages** → **Send To: All Members with Portal Logins** → subject and body → **Send Message**. Example: meeting minutes. |
+| **Send formatted minutes to everyone** | **Messages** → **Compose** → **All Members** → paste from Word (or type) into **Message** → optional format toolbar (Bold/Italic/lists/Heading) → attach PDF if you want figures preserved exactly → **Send Message**. |
 | **Send to one member or a group** | Choose **Selected Members**, tick the names (or **Select All**), then send. Example: action items after a meeting. |
-| **Read replies** | Open a conversation in **Inbox**. Reply at the bottom. |
-| **Member → admin** | Members use **Messages** on My Account → **Message Cooperative Admin**. Their note appears in your admin inbox. |
+| **Attachments** | PDF and images open in the browser (**View**). Word (.docx) is downloadable. Up to 8 files, 12 MB each. |
+| **Read replies** | Open a conversation in **Inbox**. Formatted body and attachments appear. Reply at the bottom (admins may paste from Word and attach on reply too). |
+| **Member → admin** | Members use **Messages** on My Account → **Message Cooperative Admin**. |
 
-**Note:** Only members who already have a portal login can receive inbox messages. Create logins on the **Users** tab first. Performance reports and meeting announcements stay on their own tabs; use **Messages** for free-form admin/member conversation.
+**Tip for Word minutes with figures:** Paste the text into Messages for a readable summary, and **Save as PDF** + attach for the full document with images. No Markdown tools required.
+
+**Note:** Only members who already have a portal login can receive inbox messages. Create logins on the **Users** tab first.
 
 ---
 

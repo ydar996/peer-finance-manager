@@ -554,67 +554,132 @@
         </div>
       </section>
 
-      <section id="panel-messages" class="panel">
-        <div class="panel-head">
-          <h2>Messages</h2>
+      <section id="panel-messages" class="panel messages-panel">
+        <div class="panel-head messages-panel-head">
+          <div>
+            <h2>Messages</h2>
+            <p class="hint panel-intro-hint messages-panel-lead">Send Minutes and Notes to Members. Read Replies in Your Inbox.</p>
+          </div>
           <div class="panel-head-actions">
             <span class="badge" id="adminMessagesUnreadBadge">:</span>
             <button type="button" class="btn" id="refreshAdminMessages">Refresh</button>
           </div>
         </div>
-        <p class="hint panel-intro-hint">Send Messages to All Members, a Group, or One Member. Read Replies from Members in Your Inbox.</p>
         <div class="messages-layout" id="adminMessagesLayout">
-          <div class="messages-compose card">
-            <h3>New Message</h3>
-            <form id="adminMessageComposeForm" class="entry-form">
-              <fieldset class="messages-audience-fieldset">
-                <legend>Send To</legend>
-                <label class="toggle-row">
-                  <input type="radio" name="adminMessageAudience" value="all" checked />
-                  All Members with Portal Logins
-                </label>
-                <label class="toggle-row">
-                  <input type="radio" name="adminMessageAudience" value="selected" />
-                  Selected Members
-                </label>
-              </fieldset>
+          <div class="messages-compose card messages-surface">
+            <div class="messages-card-head">
+              <h3>Compose</h3>
+              <p class="subtle">Paste from Word. Keep headings, bold, and lists automatically.</p>
+            </div>
+            <form id="adminMessageComposeForm" class="entry-form messages-form">
+              <div class="messages-field">
+                <span class="messages-field-label">Send To</span>
+                <div class="messages-audience-seg" role="radiogroup" aria-label="Send To">
+                  <label class="messages-audience-option">
+                    <input type="radio" name="adminMessageAudience" value="all" checked />
+                    <span>All Members</span>
+                  </label>
+                  <label class="messages-audience-option">
+                    <input type="radio" name="adminMessageAudience" value="selected" />
+                    <span>Selected Members</span>
+                  </label>
+                </div>
+              </div>
               <div id="adminMessageRecipientPicker" class="messages-recipient-picker hidden">
-                <p class="subtle">Select One or More Members</p>
                 <div class="messages-recipient-actions">
-                  <button type="button" class="btn" id="adminMessageSelectAll">Select All</button>
-                  <button type="button" class="btn" id="adminMessageClearAll">Clear</button>
+                  <button type="button" class="btn small" id="adminMessageSelectAll">Select All</button>
+                  <button type="button" class="btn small" id="adminMessageClearAll">Clear</button>
                 </div>
                 <div id="adminMessageRecipientList" class="messages-recipient-list"></div>
               </div>
-              <label>Subject
+              <label class="messages-field">
+                <span class="messages-field-label">Subject</span>
                 <input type="text" id="adminMessageSubject" required maxlength="200" placeholder="Meeting Minutes: July 16" />
               </label>
-              <label>Message
-                <textarea id="adminMessageBody" rows="8" required maxlength="20000" placeholder="Write your message to members…"></textarea>
+              <div class="messages-field">
+                <span class="messages-field-label">Message</span>
+                <div class="messages-rich-shell">
+                  <div class="messages-rich-toolbar" role="toolbar" aria-label="Formatting">
+                    <button type="button" class="messages-format-btn" data-rich-cmd="bold" title="Bold" aria-label="Bold"><strong>B</strong></button>
+                    <button type="button" class="messages-format-btn" data-rich-cmd="italic" title="Italic" aria-label="Italic"><em>I</em></button>
+                    <span class="messages-format-sep" aria-hidden="true"></span>
+                    <button type="button" class="messages-format-btn" data-rich-cmd="insertUnorderedList" title="Bullet List" aria-label="Bullet List">•</button>
+                    <button type="button" class="messages-format-btn" data-rich-cmd="insertOrderedList" title="Numbered List" aria-label="Numbered List">1.</button>
+                    <button type="button" class="messages-format-btn" data-rich-cmd="formatBlock" data-rich-value="h2" title="Heading" aria-label="Heading">H</button>
+                    <span class="messages-format-sep" aria-hidden="true"></span>
+                    <button type="button" class="messages-format-btn messages-format-btn-wide" data-rich-cmd="removeFormat" title="Clear Formatting" aria-label="Clear Formatting">Clear</button>
+                  </div>
+                  <div
+                    id="adminMessageBodyEditor"
+                    class="messages-rich-editor"
+                    contenteditable="true"
+                    role="textbox"
+                    aria-multiline="true"
+                    aria-label="Message"
+                    data-placeholder="Paste from Word or type your message…"
+                  ></div>
+                </div>
+                <p class="subtle messages-field-hint">Optional PDF, image, or Word attachments (up to 12 MB each) for figures and full layout.</p>
+              </div>
+              <label class="messages-attach-field">
+                <span class="messages-attach-title">Attachments</span>
+                <span class="messages-attach-hint">PDF, Images, or Word · Optional</span>
+                <input type="file" id="adminMessageAttachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,application/pdf,image/*" />
               </label>
-              <button type="submit" class="btn primary" id="adminMessageSendBtn">Send Message</button>
+              <ul id="adminMessageAttachmentList" class="messages-attachment-list subtle"></ul>
+              <div class="messages-form-actions">
+                <button type="submit" class="btn primary" id="adminMessageSendBtn">Send Message</button>
+              </div>
             </form>
             <p id="adminMessageComposeStatus" class="status"></p>
           </div>
-          <div class="messages-inbox card">
+          <div class="messages-inbox card messages-surface">
             <div class="messages-inbox-list-view" id="adminMessagesListView">
-              <h3>Inbox</h3>
+              <div class="messages-card-head">
+                <h3>Inbox</h3>
+                <p class="subtle">Open a Conversation to Read and Reply.</p>
+              </div>
               <ul class="messages-thread-list" id="adminMessagesThreadList">
                 <li class="hint">Loading…</li>
               </ul>
             </div>
             <div class="messages-thread-view hidden" id="adminMessagesThreadView">
               <div class="messages-thread-toolbar">
-                <button type="button" class="btn" id="adminMessagesBackBtn">Back to Inbox</button>
+                <button type="button" class="btn small messages-back-btn" id="adminMessagesBackBtn">← Inbox</button>
               </div>
-              <h3 id="adminMessagesThreadSubject">Message</h3>
-              <p class="subtle" id="adminMessagesThreadMeta"></p>
+              <div class="messages-thread-head">
+                <h3 id="adminMessagesThreadSubject">Message</h3>
+                <p class="subtle" id="adminMessagesThreadMeta"></p>
+              </div>
               <div class="messages-thread-messages" id="adminMessagesThreadMessages"></div>
-              <form id="adminMessageReplyForm" class="entry-form messages-reply-form">
-                <label>Reply
-                  <textarea id="adminMessageReplyBody" rows="4" required maxlength="20000" placeholder="Write a reply…"></textarea>
+              <form id="adminMessageReplyForm" class="entry-form messages-form messages-reply-form">
+                <div class="messages-field">
+                  <span class="messages-field-label">Reply</span>
+                  <div class="messages-rich-shell">
+                    <div class="messages-rich-toolbar" role="toolbar" aria-label="Reply Formatting">
+                      <button type="button" class="messages-format-btn" data-rich-cmd="bold" data-rich-target="adminMessageReplyEditor" title="Bold" aria-label="Bold"><strong>B</strong></button>
+                      <button type="button" class="messages-format-btn" data-rich-cmd="italic" data-rich-target="adminMessageReplyEditor" title="Italic" aria-label="Italic"><em>I</em></button>
+                      <button type="button" class="messages-format-btn" data-rich-cmd="insertUnorderedList" data-rich-target="adminMessageReplyEditor" title="Bullet List" aria-label="Bullet List">•</button>
+                    </div>
+                    <div
+                      id="adminMessageReplyEditor"
+                      class="messages-rich-editor messages-rich-editor-compact"
+                      contenteditable="true"
+                      role="textbox"
+                      aria-multiline="true"
+                      aria-label="Reply"
+                      data-placeholder="Write a reply, or paste from Word…"
+                    ></div>
+                  </div>
+                </div>
+                <label class="messages-attach-field messages-attach-field-compact">
+                  <span class="messages-attach-title">Attachments</span>
+                  <span class="messages-attach-hint">Optional</span>
+                  <input type="file" id="adminMessageReplyAttachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,application/pdf,image/*" />
                 </label>
-                <button type="submit" class="btn primary">Send Reply</button>
+                <div class="messages-form-actions">
+                  <button type="submit" class="btn primary">Send Reply</button>
+                </div>
               </form>
               <p id="adminMessageReplyStatus" class="status"></p>
             </div>
@@ -622,49 +687,66 @@
         </div>
       </section>
 
-      <section id="panel-member-messages" class="panel">
-        <div class="panel-head">
-          <h2>Messages</h2>
+      <section id="panel-member-messages" class="panel messages-panel">
+        <div class="panel-head messages-panel-head">
+          <div>
+            <h2>Messages</h2>
+            <p class="hint panel-intro-hint messages-panel-lead">Read Messages from Your Cooperative and Write to the Admin.</p>
+          </div>
           <div class="panel-head-actions">
             <span class="badge" id="memberMessagesUnreadBadge">:</span>
             <button type="button" class="btn" id="refreshMemberMessages">Refresh</button>
             <button type="button" class="btn" id="memberMessagesBackToAccount">Back to My Account</button>
           </div>
         </div>
-        <p class="hint panel-intro-hint">Read Messages from Your Cooperative Administrator and Send Messages to the Admin.</p>
         <div class="messages-layout member-messages-layout" id="memberMessagesLayout">
-          <div class="messages-compose card" id="memberMessageComposeCard">
-            <h3>Message Cooperative Admin</h3>
-            <form id="memberMessageComposeForm" class="entry-form">
-              <label>Subject
+          <div class="messages-compose card messages-surface" id="memberMessageComposeCard">
+            <div class="messages-card-head">
+              <h3>Message Cooperative Admin</h3>
+              <p class="subtle">Ask a Question or Send a Note. Your Admin Will See It in Their Inbox.</p>
+            </div>
+            <form id="memberMessageComposeForm" class="entry-form messages-form">
+              <label class="messages-field">
+                <span class="messages-field-label">Subject</span>
                 <input type="text" id="memberMessageSubject" required maxlength="200" placeholder="Question About My Account" />
               </label>
-              <label>Message
-                <textarea id="memberMessageBody" rows="6" required maxlength="20000" placeholder="Write your message…"></textarea>
+              <label class="messages-field">
+                <span class="messages-field-label">Message</span>
+                <textarea id="memberMessageBody" rows="6" maxlength="100000" placeholder="Write your message…"></textarea>
               </label>
-              <button type="submit" class="btn primary">Send to Admin</button>
+              <div class="messages-form-actions">
+                <button type="submit" class="btn primary">Send to Admin</button>
+              </div>
             </form>
             <p id="memberMessageComposeStatus" class="status"></p>
           </div>
-          <div class="messages-inbox card">
+          <div class="messages-inbox card messages-surface">
             <div class="messages-inbox-list-view" id="memberMessagesListView">
-              <h3>Inbox</h3>
+              <div class="messages-card-head">
+                <h3>Inbox</h3>
+                <p class="subtle">Open a Conversation to Read the Full Thread.</p>
+              </div>
               <ul class="messages-thread-list" id="memberMessagesThreadList">
                 <li class="hint">Loading…</li>
               </ul>
             </div>
             <div class="messages-thread-view hidden" id="memberMessagesThreadView">
               <div class="messages-thread-toolbar">
-                <button type="button" class="btn" id="memberMessagesBackBtn">Back to Inbox</button>
+                <button type="button" class="btn small messages-back-btn" id="memberMessagesBackBtn">← Inbox</button>
               </div>
-              <h3 id="memberMessagesThreadSubject">Message</h3>
-              <p class="subtle" id="memberMessagesThreadMeta"></p>
+              <div class="messages-thread-head">
+                <h3 id="memberMessagesThreadSubject">Message</h3>
+                <p class="subtle" id="memberMessagesThreadMeta"></p>
+              </div>
               <div class="messages-thread-messages" id="memberMessagesThreadMessages"></div>
-              <form id="memberMessageReplyForm" class="entry-form messages-reply-form">
-                <label>Reply
-                  <textarea id="memberMessageReplyBody" rows="4" required maxlength="20000" placeholder="Write a reply…"></textarea>
+              <form id="memberMessageReplyForm" class="entry-form messages-form messages-reply-form">
+                <label class="messages-field">
+                  <span class="messages-field-label">Reply</span>
+                  <textarea id="memberMessageReplyBody" rows="4" maxlength="100000" placeholder="Write a reply…"></textarea>
                 </label>
-                <button type="submit" class="btn primary">Send Reply</button>
+                <div class="messages-form-actions">
+                  <button type="submit" class="btn primary">Send Reply</button>
+                </div>
               </form>
               <p id="memberMessageReplyStatus" class="status"></p>
             </div>

@@ -94,6 +94,7 @@ const upload = multer({
     fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
+  limits: { fileSize: 12 * 1024 * 1024, files: 8 },
 });
 
 const app = express();
@@ -271,6 +272,8 @@ registerMessagingRoutes(app, {
   requireAdmin,
   requireActiveMemberAccount,
   requireCooperativeView,
+  restoreOrgContext,
+  upload,
 });
 
 app.use(express.static(getPublicDir()));
