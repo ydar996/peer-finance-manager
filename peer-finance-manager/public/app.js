@@ -9220,8 +9220,8 @@ function renderThreadMessages(host, messages, currentUserId) {
             <strong>${roleLabelText}</strong>
             <span>${escapeHtml(formatMessageWhen(msg.createdAt))}</span>
           </div>
-          <div class="messages-bubble-body messages-md-body">${bodyHtml}</div>
           ${renderMessageAttachmentsHtml(msg.attachments || [])}
+          <div class="messages-bubble-body messages-md-body">${bodyHtml}</div>
         </article>`;
     })
     .join("");

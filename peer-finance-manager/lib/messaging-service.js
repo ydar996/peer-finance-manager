@@ -208,9 +208,12 @@ function resolveAttachmentFile(user, attachmentId) {
 }
 
 function normalizeBodyFormat(value, body) {
-  const fmt = String(value || "").toLowerCase();
-  if (fmt === "html" || fmt === "markdown" || fmt === "plain") return fmt;
-  if (isProbablyHtml(body)) return "html";
+  const fmt = String(value || "").toLowerCase().trim();
+  // Prefer content detection so HTML stored under the default "markdown"
+  // label (older deploys / column default) still renders as rich HTML.
+  if (fmt === "plain") return "plain";
+  if (fmt === "html" || isProbablyHtml(body)) return "html";
+  if (fmt === "markdown") return "markdown";
   return "markdown";
 }
 
@@ -241,7 +244,8 @@ function prepareStoredBody(body, bodyFormat, files = []) {
 
 function formatMessageBody(body, bodyFormat = "markdown") {
   const raw = String(body || "");
-  if (bodyFormat === "html") {
+  const format = normalizeBodyFormat(bodyFormat, raw);
+  if (format === "html") {
     const safe = sanitizeRichHtml(raw);
     return {
       body: safe,
@@ -250,7 +254,7 @@ function formatMessageBody(body, bodyFormat = "markdown") {
       bodyPreview: htmlToPlainPreview(safe),
     };
   }
-  if (bodyFormat === "plain") {
+  if (format === "plain") {
     return {
       body: raw,
       bodyFormat: "plain",

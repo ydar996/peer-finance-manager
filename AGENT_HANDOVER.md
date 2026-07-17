@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 17, 2026 (messages rich Word-paste composer + modern UI deployed)  
+**Last updated:** July 17, 2026 (messages HTML render fix + attachments on top deployed)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,6 +108,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-17** — **Messages HTML render fix (all tenants):** Member/admin thread view showed raw tags when HTML bodies were stored under default `body_format=markdown`. `formatMessageBody` / `normalizeBodyFormat` now detect HTML content and sanitize as rich HTML. Attachments render **above** the message body. Files: `messaging-service.js`, `app.js`, `styles.css`, `test-messaging.js`. **Production:** `git push` (this deploy).
 - **2026-07-17** — **Messages rich Word-paste + modern UI deploy:** Production `409dbb3`. Netlify UI + Render API. Hard-refresh Messages after deploy. No data upload.
 - **2026-07-17** — **Messages UI modernized (all tenants):** Redesigned Admin/Member Messages: segmented Send To control, compact format toolbar (B/I/lists) inside a unified rich shell, dashed attachment drop zone, elevated surfaces, chat-style bubbles (self-aligned), unread left accent on inbox rows. Files: `index.html`, `styles.css`, `app.js`. **Production:** `409dbb3`.
 - **2026-07-17** — **Messages rich Word-paste composer (all tenants):** Admin Messages uses contenteditable rich editor: paste from Word keeps headings/bold/lists; toolbar for Bold/Italic/Bullets/Heading; server sanitizes HTML (`html-sanitize-lite.js`, `body_format=html`). Attachments (PDF/image/Word) unchanged. Markdown still supported for older/member plain posts. Files: `html-sanitize-lite.js`, `messaging-service.js`, `messaging-routes.js`, `app.js`, `index.html`, `styles.css`, `USER-GUIDE.md`. Test: `npm run test:messaging`. **Production:** `409dbb3`.

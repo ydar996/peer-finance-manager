@@ -131,6 +131,16 @@ function run() {
     assert.ok(broadcast.messages[0].bodyHtml.includes("<h2>"));
     assert.ok(broadcast.messages[0].bodyHtml.includes("<ul>"));
 
+    // HTML body mislabeled as markdown (production default) must still render.
+    const { formatMessageBody } = require("../lib/messaging-service");
+    const recovered = formatMessageBody(
+      "<p><b>MEETING MINUTES</b></p><p>Date: July 16, 2026</p>",
+      "markdown"
+    );
+    assert.strictEqual(recovered.bodyFormat, "html");
+    assert.ok(recovered.bodyHtml.includes("<b>MEETING MINUTES</b>") || recovered.bodyHtml.includes("<strong>"));
+    assert.ok(!recovered.bodyHtml.includes("&lt;p&gt;"));
+
     let adaUnread = getUnreadSummary(ctx.ada.user);
     assert.ok(adaUnread.hasUnread);
     assert.strictEqual(adaUnread.unreadThreads, 1);

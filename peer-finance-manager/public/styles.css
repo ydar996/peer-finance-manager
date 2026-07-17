@@ -2592,7 +2592,7 @@ tr.loan-row:hover { background: #f8fafc; }
   border-radius: 4px;
 }
 .messages-attachments {
-  margin-top: 0.8rem;
+  margin: 0 0 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
