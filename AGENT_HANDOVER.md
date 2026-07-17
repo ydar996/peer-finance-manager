@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 17, 2026 (Cooperative inbox messaging; last deploy pending `git push`)  
+**Last updated:** July 17, 2026 (Cooperative inbox messaging; last deploy `167e2c7`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,7 +108,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
-- **2026-07-17** — **Cooperative inbox messaging (all tenants):** Bidirectional portal messages per org DB (`coop_message_threads` / participants / messages). Admin **Messages** tab: send to all / selected / one member; inbox + reply. Member My Account **Messages** / **Unread Messages** button (above performance reports) opens dedicated inbox page (list → full thread → back); members can message Cooperative admin. Optional email tip when SMTP/relay configured. APIs under `/api/messages/*` and `/api/me/messages/*`. Files: `messaging-service.js`, `messaging-routes.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `USER-GUIDE.md`. Test: `npm run test:messaging`. **Production:** `git push` (no data upload).
+- **2026-07-17** — **Cooperative inbox messaging (all tenants):** Bidirectional portal messages per org DB (`coop_message_threads` / participants / messages). Admin **Messages** tab: send to all / selected / one member; inbox + reply. Member My Account **Messages** / **Unread Messages** button (above performance reports) opens dedicated inbox page (list → full thread → back); members can message Cooperative admin. Optional email tip when SMTP/relay configured. APIs under `/api/messages/*` and `/api/me/messages/*`. Files: `messaging-service.js`, `messaging-routes.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `USER-GUIDE.md`. Test: `npm run test:messaging`. **Production:** `git push` (`167e2c7`; no data upload).
 - **2026-07-17** — **Member portal Apply for a Loan (status):** Embed shell already exists on My Account when `loan_form_id` is set. Gap: most orgs (incl. Assurance) have no published/assigned loan form; webhook stores `kind=loan` but does not parse, validate eligibility, or create a reviewable loan application (unlike membership). Needed next: FlexxForms loan form + assign id; then PFM loan-application pipeline (admin review → create loan → guarantor/borrower docs). Outstanding task **4r**.
 - **2026-07-17** — **Meeting reminder email layout:** Reminder (and announce) emails now match preferred copy: title, date/time, **Join Online**, **Agenda**, **Best regards** + org name, then **Sign In to the Member Portal**. File: `meeting-notification-service.js`. **Production:** `git push`.
 - **2026-07-16** — **Approve member emails portal login (all tenants):** On **Approve Member**, PFM creates/resets portal credentials, emails a welcome login message when configured, and shows **Copy Welcome Message** / temp password for admin handoff. Files: `flexxforms-membership-service.js`, `auth-service.js`, `flexxforms-routes.js`, `app.js`, `index.html`, `USER-GUIDE.md`. **Production:** `git push`.
