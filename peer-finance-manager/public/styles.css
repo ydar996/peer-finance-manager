@@ -1134,6 +1134,36 @@ body.cooperative-report-viewer-open {
   font: inherit;
 }
 .badge.former { background: #fef3c7; color: #92400e; }
+.member-password-reset-result {
+  margin: 0 0 14px;
+  padding: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+.member-password-reset-result h4 { margin: 0 0 8px; }
+.member-password-reset-dl {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) 1fr;
+  gap: 6px 12px;
+  margin: 10px 0;
+}
+.member-password-reset-dl dt { font-weight: 600; color: #334155; }
+.member-password-reset-dl dd { margin: 0; }
+.member-password-reset-dl code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 14px;
+  background: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+}
+.member-password-reset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
 .member-number {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 13px;

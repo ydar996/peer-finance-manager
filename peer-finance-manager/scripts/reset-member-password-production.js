@@ -55,6 +55,7 @@ async function main() {
     body: JSON.stringify({
       memberId: memberId || undefined,
       memberName: name || undefined,
+      sendEmail: true,
     }),
   });
   const body = await res.json();
@@ -63,8 +64,10 @@ async function main() {
   console.log("Member portal login reset:");
   console.log(`  Member:   ${body.memberName} (#${body.memberId})`);
   console.log(`  Username: ${body.username}`);
-  console.log(`  Email:    ${body.email}`);
+  console.log(`  Login email: ${body.email}`);
+  console.log(`  Notify email: ${body.notifyEmail || "(none)"}`);
   console.log(`  Temp password: ${body.tempPassword}`);
+  console.log(`  Email: ${body.emailResult?.sent ? "sent" : body.emailResult?.reason || "not sent"}`);
   console.log("  (Must change password on next login)");
 }
 

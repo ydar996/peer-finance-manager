@@ -954,19 +954,23 @@ async function loadUsers() {
     if (memberBody) {
       if (!accounts?.length) {
         memberBody.innerHTML =
-          '<tr><td colspan="4" class="subtle">No Member Portal Accounts Yet. Use Generate Member Credentials.</td></tr>';
+          '<tr><td colspan="5" class="subtle">No Member Portal Accounts Yet. Use Generate Member Credentials.</td></tr>';
       } else {
         memberBody.innerHTML = accounts
           .map(
             (a) => `
-          <tr>
+          <tr data-member-id="${a.memberId}">
             <td>${escapeHtml(a.memberName)}</td>
             <td>${escapeHtml(a.username || ":")}</td>
             <td>${escapeHtml(a.email || ":")}</td>
             <td>${a.mustChangePassword ? "Must Change on First Login" : "Password Set"}</td>
+            <td>
+              <button type="button" class="btn small" data-reset-member-password="${a.memberId}" data-member-name="${escapeHtml(a.memberName)}">Reset Password</button>
+            </td>
           </tr>`
           )
           .join("");
+        bindMemberPasswordResetButtons(memberBody);
       }
     }
 
@@ -989,9 +993,103 @@ async function loadUsers() {
   } catch (err) {
     body.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
     if (memberBody) {
-      memberBody.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
+      memberBody.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
     }
   }
+}
+
+function describePasswordEmailResult(emailResult, notifyEmail) {
+  if (!emailResult) return "Email status unknown.";
+  if (emailResult.sent) {
+    return `Email sent to ${notifyEmail || emailResult.to || "member"}.`;
+  }
+  if (emailResult.reason === "not_configured") {
+    return "Email is not configured on the server. Copy the temporary password below and send it yourself.";
+  }
+  if (emailResult.reason === "no_email") {
+    return "No usable member email on file. Copy the temporary password below and send it yourself.";
+  }
+  if (emailResult.skipped) {
+    return `Email not sent (${emailResult.reason || "skipped"}). Copy the temporary password below.`;
+  }
+  return `Email failed${emailResult.error ? `: ${emailResult.error}` : ""}. Copy the temporary password below.`;
+}
+
+function showMemberPasswordResetResult(data, container = null) {
+  const box = container || $("#memberPasswordResetResult");
+  if (!box) return;
+  const emailNote = describePasswordEmailResult(data.emailResult, data.notifyEmail);
+  const copyPwdId = `copyResetTempPassword-${Date.now()}`;
+  const copyAllId = `copyResetLoginDetails-${Date.now()}`;
+  const copyStatusId = `memberPasswordResetCopyStatus-${Date.now()}`;
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <h4>Temporary Password Ready</h4>
+    <p><strong>${escapeHtml(data.displayName || data.memberName)}</strong></p>
+    <p class="subtle">${escapeHtml(emailNote)}</p>
+    <dl class="member-password-reset-dl">
+      <dt>Organization Code</dt><dd>${escapeHtml(data.organizationSlug || ":")}</dd>
+      <dt>Sign-In Page</dt><dd>${escapeHtml(data.portalUrl || "/member")}</dd>
+      <dt>Username</dt><dd><code>${escapeHtml(data.username || ":")}</code></dd>
+      <dt>Temporary Password</dt><dd><code>${escapeHtml(data.tempPassword || ":")}</code></dd>
+    </dl>
+    <div class="member-password-reset-actions">
+      <button type="button" class="btn primary" id="${copyPwdId}">Copy Temporary Password</button>
+      <button type="button" class="btn" id="${copyAllId}">Copy Full Login Details</button>
+    </div>
+    <p id="${copyStatusId}" class="status"></p>
+  `;
+  const copyStatus = document.getElementById(copyStatusId);
+  document.getElementById(copyPwdId)?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(data.tempPassword || "");
+      setFormStatus(copyStatus, "Temporary password copied.", true);
+    } catch {
+      setFormStatus(copyStatus, "Could not copy. Select the password and copy manually.", false);
+    }
+  });
+  document.getElementById(copyAllId)?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(data.copyText || data.tempPassword || "");
+      setFormStatus(copyStatus, "Full login details copied.", true);
+    } catch {
+      setFormStatus(copyStatus, "Could not copy. Select the details and copy manually.", false);
+    }
+  });
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function bindMemberPasswordResetButtons(root) {
+  root.querySelectorAll("[data-reset-member-password]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const memberId = Number(btn.getAttribute("data-reset-member-password"));
+      const memberName = btn.getAttribute("data-member-name") || "this member";
+      const ok = await appConfirm(
+        `Reset portal password for ${memberName}? A new temporary password will be created and emailed when possible.`
+      );
+      if (!ok) return;
+      setButtonBusy(btn, true);
+      try {
+        const res = await fetch("/api/users/reset-member-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ memberId, sendEmail: true }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Password reset failed");
+        showMemberPasswordResetResult(data);
+        await loadUsers();
+      } catch (err) {
+        const box = $("#memberPasswordResetResult");
+        if (box) {
+          box.classList.remove("hidden");
+          box.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+        }
+      } finally {
+        setButtonBusy(btn, false);
+      }
+    });
+  });
 }
 
 let myAccountAccordionBound = false;
@@ -3190,12 +3288,19 @@ async function showProfile(memberId) {
           <p class="subtle">Member #: <strong>${escapeHtml(p.member_number || ":")}</strong></p>
           <p class="subtle">Account Name: <strong>${escapeHtml(p.ledger_account_name)}</strong></p>
           ${currentUser?.role === "admin" ? `<button type="button" class="btn" data-edit-profile="${memberId}">Edit Profile</button>` : ""}
+          ${
+            currentUser?.role === "admin" &&
+            String(p.cooperative_account_status || "active").toLowerCase() === "active"
+              ? `<button type="button" class="btn" data-reset-profile-password="${memberId}">Reset Portal Password</button>`
+              : ""
+          }
           ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File : Use the Record Tab to Add or Update Profile.</p>'}
           <p><span class="badge ${
             String(p.cooperative_account_status || "active").toLowerCase() === "active"
               ? "ok"
               : "former"
           }">${escapeHtml(formatAccountStatus(p.cooperative_account_status))}</span></p>
+          <div id="profilePasswordResetResult" class="member-password-reset-result hidden"></div>
           ${membershipStatusFormHtml(p, memberId)}
         </div>
       </div>
@@ -3273,6 +3378,33 @@ async function showProfile(memberId) {
   bindMembershipStatusForm(el, memberId);
   el.querySelector("[data-edit-profile]")?.addEventListener("click", () => {
     openMemberProfileEditor(memberId);
+  });
+  el.querySelector("[data-reset-profile-password]")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    const name = p.display_name || p.ledger_account_name || "this member";
+    const ok = await appConfirm(
+      `Reset portal password for ${name}? A new temporary password will be created and emailed when possible.`
+    );
+    if (!ok) return;
+    setButtonBusy(btn, true);
+    try {
+      const res = await fetch("/api/users/reset-member-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId, sendEmail: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Password reset failed");
+      showMemberPasswordResetResult(data, el.querySelector("#profilePasswordResetResult"));
+    } catch (err) {
+      const box = el.querySelector("#profilePasswordResetResult");
+      if (box) {
+        box.classList.remove("hidden");
+        box.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+      }
+    } finally {
+      setButtonBusy(btn, false);
+    }
   });
   loadedProfileMemberId = memberId;
 }

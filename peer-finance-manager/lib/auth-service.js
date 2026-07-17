@@ -384,11 +384,90 @@ function memberLoginEmail(username, profileEmail, db, organizationSlug) {
   return `${username}@members.${normalizeSlug(organizationSlug)}.local`;
 }
 
+function resolveMemberNotifyEmail(profileEmail, loginEmail) {
+  const profile = normalizeEmail(profileEmail);
+  if (profile && profile.includes("@") && !profile.endsWith(".local")) {
+    return profile;
+  }
+  const login = normalizeEmail(loginEmail);
+  if (login && login.includes("@") && !login.endsWith(".local")) {
+    return login;
+  }
+  return null;
+}
+
+function getMemberPortalLoginUrl() {
+  if (process.env.MEMBER_PORTAL_URL) {
+    return process.env.MEMBER_PORTAL_URL.replace(/\/$/, "");
+  }
+  const origins = process.env.ALLOWED_ORIGINS;
+  if (origins) {
+    const first = origins.split(",")[0].trim();
+    if (first) return `${first.replace(/\/$/, "")}/member`;
+  }
+  return "https://peer-finance-manager.netlify.app/member";
+}
+
+async function emailMemberTempPassword({
+  to,
+  memberName,
+  username,
+  tempPassword,
+  organizationName,
+  organizationSlug,
+}) {
+  const { sendEmail, isEmailConfigured } = require("./email-service");
+  if (!isEmailConfigured()) {
+    return { sent: false, skipped: true, reason: "not_configured" };
+  }
+  if (!to) {
+    return { sent: false, skipped: true, reason: "no_email" };
+  }
+
+  const portalUrl = getMemberPortalLoginUrl();
+  const orgLabel = organizationName || "Your Cooperative";
+  const subject = `${orgLabel}: Temporary Member Portal Password`;
+  const text =
+    `Hello ${memberName},\n\n` +
+    `An administrator reset your Peer Finance Manager member portal password.\n\n` +
+    `Organization code: ${organizationSlug}\n` +
+    `Sign-in page: ${portalUrl}\n` +
+    `Username: ${username}\n` +
+    `Temporary password: ${tempPassword}\n\n` +
+    `You must change this password after you sign in.\n\n` +
+    `If you did not expect this email, contact your Cooperative administrator.\n`;
+  const html =
+    `<p>Hello ${escapeHtmlAuth(memberName)},</p>` +
+    `<p>An administrator reset your Peer Finance Manager member portal password.</p>` +
+    `<ul>` +
+    `<li><strong>Organization Code:</strong> ${escapeHtmlAuth(organizationSlug)}</li>` +
+    `<li><strong>Sign-In Page:</strong> <a href="${escapeHtmlAuth(portalUrl)}">${escapeHtmlAuth(portalUrl)}</a></li>` +
+    `<li><strong>Username:</strong> ${escapeHtmlAuth(username)}</li>` +
+    `<li><strong>Temporary Password:</strong> ${escapeHtmlAuth(tempPassword)}</li>` +
+    `</ul>` +
+    `<p>You must change this password after you sign in.</p>` +
+    `<p>If you did not expect this email, contact your Cooperative administrator.</p>`;
+
+  return sendEmail({ to, subject, text, html });
+}
+
+function escapeHtmlAuth(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 /**
  * Reset (or create) one active member's portal login and return a new temp password.
- * Former members are rejected: they must register as a new member.
+ * Optionally emails the member. Former members are rejected.
  */
-function resetMemberPortalPassword({ memberId = null, memberName = null } = {}) {
+async function resetMemberPortalPassword({
+  memberId = null,
+  memberName = null,
+  sendEmailToMember = true,
+} = {}) {
   const db = getDb();
   const {
     assertActiveDirectoryMember,
@@ -437,44 +516,76 @@ function resetMemberPortalPassword({ memberId = null, memberName = null } = {}) 
     )
     .get(member.id);
   const tempPassword = generateTempPassword();
+  const orgSlug = getOrgSlug();
+  let username;
+  let loginEmail;
+  let wasReset = false;
 
   if (existing) {
-    const username = existing.username || generateUsername(member.name, member.id, db);
-    const email = memberLoginEmail(username, member.email, db, getOrgSlug());
+    username = existing.username || generateUsername(member.name, member.id, db);
+    loginEmail = memberLoginEmail(username, member.email, db, orgSlug);
     db.prepare(
       `UPDATE users
        SET email = ?, username = ?, password_hash = ?, display_name = ?,
            active = 1, must_change_password = 1
        WHERE id = ?`
-    ).run(email, username, hashPassword(tempPassword), displayName, existing.id);
-    return {
-      memberId: member.id,
-      memberName: member.name,
+    ).run(loginEmail, username, hashPassword(tempPassword), displayName, existing.id);
+    wasReset = true;
+  } else {
+    username = generateUsername(member.name, member.id, db);
+    loginEmail = memberLoginEmail(username, member.email, db, orgSlug);
+    createUser({
+      email: loginEmail,
       username,
-      email,
-      tempPassword,
-      reset: true,
-    };
+      password: tempPassword,
+      role: ROLES.MEMBER,
+      memberId: member.id,
+      displayName,
+      mustChangePassword: true,
+    });
   }
 
-  const username = generateUsername(member.name, member.id, db);
-  const email = memberLoginEmail(username, member.email, db, getOrgSlug());
-  createUser({
-    email,
-    username,
-    password: tempPassword,
-    role: ROLES.MEMBER,
-    memberId: member.id,
-    displayName,
-    mustChangePassword: true,
-  });
+  const notifyEmail = resolveMemberNotifyEmail(member.email, loginEmail);
+  let emailResult = { sent: false, skipped: true, reason: "not_requested" };
+  if (sendEmailToMember) {
+    const organization = getOrganization(orgSlug);
+    try {
+      emailResult = await emailMemberTempPassword({
+        to: notifyEmail,
+        memberName: displayName,
+        username,
+        tempPassword,
+        organizationName: organization?.name,
+        organizationSlug: orgSlug,
+      });
+    } catch (err) {
+      emailResult = {
+        sent: false,
+        skipped: false,
+        reason: "send_failed",
+        error: err.message,
+      };
+    }
+  }
+
   return {
     memberId: member.id,
     memberName: member.name,
+    displayName,
     username,
-    email,
+    email: loginEmail,
+    notifyEmail,
     tempPassword,
-    reset: false,
+    reset: wasReset,
+    portalUrl: getMemberPortalLoginUrl(),
+    organizationSlug: orgSlug,
+    emailResult,
+    copyText:
+      `Organization: ${orgSlug}\n` +
+      `Sign-in: ${getMemberPortalLoginUrl()}\n` +
+      `Username: ${username}\n` +
+      `Temporary password: ${tempPassword}\n` +
+      `Change password after first sign-in.`,
   };
 }
 

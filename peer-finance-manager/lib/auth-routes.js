@@ -179,11 +179,13 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
-  app.post("/api/users/reset-member-password", requireAuth, requireAdmin, (req, res) => {
+  app.post("/api/users/reset-member-password", requireAuth, requireAdmin, async (req, res) => {
     try {
-      const result = resetMemberPortalPassword({
+      const sendEmailToMember = req.body?.sendEmail !== false;
+      const result = await resetMemberPortalPassword({
         memberId: req.body?.memberId,
         memberName: req.body?.memberName,
+        sendEmailToMember,
       });
       res.json({ success: true, ...result });
     } catch (err) {

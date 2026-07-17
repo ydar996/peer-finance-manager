@@ -458,11 +458,19 @@ Public links appear at the top of this tab to copy and share.
 |------|-----|
 | **Create staff or member login** | **Create Account** form (role, email, password; link member for member role). |
 | **Provision all members at once** | **Generate Member Credentials** → **Download Credentials CSV**. |
+| **Reset one member password** | **Member Portal Accounts** → **Reset Password** (or on the member profile: **Reset Portal Password**). |
 | **Portal URLs** | Listed under **Sign-In Pages** (/member, /staff, /admin). |
 
 Members sign in with **username** (not always email). Staff and admins use **email**.
 
-Temporary passwords must be changed on first member sign-in.
+### Reset password (one click)
+
+1. Confirm the reset.
+2. PFM creates a new temporary password.
+3. If email is configured and the member has a real email on file, PFM **emails** them the username, temp password, and sign-in link.
+4. The admin screen shows the temp password with **Copy Temporary Password** and **Copy Full Login Details** so you can also send it yourself (text/WhatsApp/etc.).
+
+Temporary passwords must be changed on first member sign-in. Former members cannot receive a password reset (register a new membership instead).
 
 ---
 
