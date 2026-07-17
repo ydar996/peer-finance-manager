@@ -1,0 +1,583 @@
+/**
+ * Cooperative inbox messaging (all tenants).
+ * Per-org SQLite: bidirectional threads between Cooperative admins and members.
+ * Audience: all active members, a subset, or one member; members may write the Cooperative admin.
+ */
+const { getDb } = require("../db/database");
+const { ROLES } = require("./auth-service");
+const { ACTIVE_DIRECTORY_SQL } = require("./membership-status-service");
+const { sendEmail, isEmailConfigured } = require("./email-service");
+const { getMemberPortalUrl } = require("./report-notification-service");
+
+const MAX_SUBJECT = 200;
+const MAX_BODY = 20000;
+
+function ensureMessagingSchema(db = getDb()) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS coop_message_threads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      subject TEXT NOT NULL,
+      created_by_user_id INTEGER NOT NULL,
+      created_by_role TEXT NOT NULL,
+      audience TEXT NOT NULL DEFAULT 'selected',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS coop_message_participants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      thread_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      member_id INTEGER,
+      role TEXT NOT NULL,
+      last_read_at TEXT,
+      UNIQUE(thread_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS coop_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      thread_id INTEGER NOT NULL,
+      sender_user_id INTEGER NOT NULL,
+      sender_role TEXT NOT NULL,
+      sender_member_id INTEGER,
+      body TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_coop_msg_part_user ON coop_message_participants(user_id);
+    CREATE INDEX IF NOT EXISTS idx_coop_msg_part_thread ON coop_message_participants(thread_id);
+    CREATE INDEX IF NOT EXISTS idx_coop_messages_thread ON coop_messages(thread_id, created_at);
+  `);
+}
+
+function trimText(value, max) {
+  return String(value || "").trim().slice(0, max);
+}
+
+function assertNonEmpty(value, label) {
+  const text = String(value || "").trim();
+  if (!text) {
+    const err = new Error(`${label} is required`);
+    err.status = 400;
+    throw err;
+  }
+  return text;
+}
+
+function listActiveAdminUsers(db = getDb()) {
+  return db
+    .prepare(
+      `SELECT id AS userId, email, display_name AS displayName
+       FROM users
+       WHERE role = 'admin' AND active = 1
+       ORDER BY id`
+    )
+    .all();
+}
+
+function listMessageableMembers(db = getDb()) {
+  return db
+    .prepare(
+      `SELECT m.id AS memberId,
+              u.id AS userId,
+              COALESCE(NULLIF(TRIM(mp.display_name), ''), m.name) AS memberName,
+              COALESCE(NULLIF(TRIM(mp.email), ''), NULLIF(TRIM(u.email), '')) AS email
+       FROM members m
+       INNER JOIN users u ON u.member_id = m.id AND u.role = 'member' AND u.active = 1
+       LEFT JOIN member_profiles mp ON mp.member_id = m.id
+       WHERE ${ACTIVE_DIRECTORY_SQL}
+       ORDER BY memberName COLLATE NOCASE`
+    )
+    .all();
+}
+
+function resolveMemberTargets({ audience, memberIds }) {
+  const all = listMessageableMembers();
+  const byId = new Map(all.map((m) => [m.memberId, m]));
+  if (audience === "all") {
+    return { audience: "all", members: all };
+  }
+  const ids = Array.isArray(memberIds)
+    ? [...new Set(memberIds.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))]
+    : [];
+  if (!ids.length) {
+    const err = new Error("Select at least one member");
+    err.status = 400;
+    throw err;
+  }
+  const members = [];
+  for (const id of ids) {
+    const row = byId.get(id);
+    if (!row) {
+      const err = new Error(`Member ${id} is not available for messaging`);
+      err.status = 400;
+      throw err;
+    }
+    members.push(row);
+  }
+  return {
+    audience: members.length === 1 ? "direct" : "selected",
+    members,
+  };
+}
+
+function insertParticipant(db, { threadId, userId, memberId = null, role, lastReadAt = null }) {
+  db.prepare(
+    `INSERT OR IGNORE INTO coop_message_participants
+      (thread_id, user_id, member_id, role, last_read_at)
+     VALUES (?, ?, ?, ?, ?)`
+  ).run(threadId, userId, memberId, role, lastReadAt);
+}
+
+function addAdminParticipants(db, threadId, { markReadForUserId = null } = {}) {
+  for (const admin of listActiveAdminUsers(db)) {
+    insertParticipant(db, {
+      threadId,
+      userId: admin.userId,
+      memberId: null,
+      role: ROLES.ADMIN,
+      lastReadAt: markReadForUserId === admin.userId ? new Date().toISOString() : null,
+    });
+  }
+}
+
+function senderDisplayName(user) {
+  if (!user) return "Cooperative";
+  if (user.role === ROLES.MEMBER) {
+    return user.displayName || user.username || "Member";
+  }
+  return user.displayName || "Cooperative Admin";
+}
+
+function queueNewMessageEmails({ thread, messagePreview, recipientUserIds, senderUserId }) {
+  if (!isEmailConfigured()) return { queued: false, reason: "email_not_configured" };
+  const db = getDb();
+  const portalUrl = getMemberPortalUrl();
+  const subject = `New Message: ${thread.subject}`;
+  const preview = trimText(messagePreview, 280);
+  let sent = 0;
+  let failed = 0;
+
+  for (const userId of recipientUserIds) {
+    if (userId === senderUserId) continue;
+    const row = db
+      .prepare(
+        `SELECT u.id AS userId, u.role, u.email AS userEmail, u.member_id AS memberId,
+                COALESCE(NULLIF(TRIM(mp.email), ''), NULLIF(TRIM(u.email), '')) AS email,
+                COALESCE(NULLIF(TRIM(mp.display_name), ''), u.display_name, u.username) AS name
+         FROM users u
+         LEFT JOIN member_profiles mp ON mp.member_id = u.member_id
+         WHERE u.id = ? AND u.active = 1`
+      )
+      .get(userId);
+    const email = String(row?.email || row?.userEmail || "").trim();
+    if (!email) continue;
+    const text = [
+      `Hello ${row.name || ""},`,
+      "",
+      `You have a new message in your Cooperative portal.`,
+      "",
+      `Subject: ${thread.subject}`,
+      "",
+      preview,
+      "",
+      `Sign in to read and reply: ${portalUrl}`,
+      "",
+    ].join("\n");
+    const html = `
+      <p>Hello ${escapeHtml(row.name || "")},</p>
+      <p>You have a new message in your Cooperative portal.</p>
+      <p><strong>Subject:</strong> ${escapeHtml(thread.subject)}</p>
+      <p>${escapeHtml(preview).replace(/\n/g, "<br>")}</p>
+      <p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>
+    `;
+    sendEmail({ to: email, subject, text, html }).then(
+      () => {
+        sent += 1;
+      },
+      () => {
+        failed += 1;
+      }
+    );
+  }
+  return { queued: true, sent, failed };
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function createAdminThread(user, { subject, body, audience = "selected", memberIds = [] }) {
+  if (user?.role !== ROLES.ADMIN) {
+    const err = new Error("Administrator access required");
+    err.status = 403;
+    throw err;
+  }
+  const db = getDb();
+  ensureMessagingSchema(db);
+  const cleanSubject = trimText(assertNonEmpty(subject, "Subject"), MAX_SUBJECT);
+  const cleanBody = trimText(assertNonEmpty(body, "Message"), MAX_BODY);
+  const targets = resolveMemberTargets({ audience, memberIds });
+  if (!targets.members.length) {
+    const err = new Error(
+      "No members with portal logins are available. Create member portal accounts first."
+    );
+    err.status = 400;
+    throw err;
+  }
+
+  const now = new Date().toISOString();
+  const insert = db
+    .prepare(
+      `INSERT INTO coop_message_threads
+        (subject, created_by_user_id, created_by_role, audience, created_at, updated_at)
+       VALUES (?, ?, 'admin', ?, ?, ?)`
+    )
+    .run(cleanSubject, user.id, targets.audience, now, now);
+  const threadId = insert.lastInsertRowid;
+
+  addAdminParticipants(db, threadId, { markReadForUserId: user.id });
+  for (const member of targets.members) {
+    insertParticipant(db, {
+      threadId,
+      userId: member.userId,
+      memberId: member.memberId,
+      role: ROLES.MEMBER,
+      lastReadAt: null,
+    });
+  }
+
+  db.prepare(
+    `INSERT INTO coop_messages
+      (thread_id, sender_user_id, sender_role, sender_member_id, body, created_at)
+     VALUES (?, ?, 'admin', NULL, ?, ?)`
+  ).run(threadId, user.id, cleanBody, now);
+
+  const thread = getThreadRow(threadId);
+  const recipientUserIds = targets.members.map((m) => m.userId);
+  queueNewMessageEmails({
+    thread,
+    messagePreview: cleanBody,
+    recipientUserIds,
+    senderUserId: user.id,
+  });
+
+  return getThreadDetail(user, threadId);
+}
+
+function createMemberThread(user, { subject, body }) {
+  if (user?.role !== ROLES.MEMBER || !user.memberId) {
+    const err = new Error("Member account required");
+    err.status = 403;
+    throw err;
+  }
+  const { assertActiveDirectoryMember } = require("./membership-status-service");
+  assertActiveDirectoryMember(user.memberId, { action: "Messaging" });
+
+  const db = getDb();
+  ensureMessagingSchema(db);
+  const admins = listActiveAdminUsers(db);
+  if (!admins.length) {
+    const err = new Error("No Cooperative administrator is available to receive messages");
+    err.status = 400;
+    throw err;
+  }
+
+  const cleanSubject = trimText(assertNonEmpty(subject, "Subject"), MAX_SUBJECT);
+  const cleanBody = trimText(assertNonEmpty(body, "Message"), MAX_BODY);
+  const now = new Date().toISOString();
+  const insert = db
+    .prepare(
+      `INSERT INTO coop_message_threads
+        (subject, created_by_user_id, created_by_role, audience, created_at, updated_at)
+       VALUES (?, ?, 'member', 'direct', ?, ?)`
+    )
+    .run(cleanSubject, user.id, now, now);
+  const threadId = insert.lastInsertRowid;
+
+  addAdminParticipants(db, threadId);
+  insertParticipant(db, {
+    threadId,
+    userId: user.id,
+    memberId: user.memberId,
+    role: ROLES.MEMBER,
+    lastReadAt: now,
+  });
+
+  db.prepare(
+    `INSERT INTO coop_messages
+      (thread_id, sender_user_id, sender_role, sender_member_id, body, created_at)
+     VALUES (?, ?, 'member', ?, ?, ?)`
+  ).run(threadId, user.id, user.memberId, cleanBody, now);
+
+  const thread = getThreadRow(threadId);
+  queueNewMessageEmails({
+    thread,
+    messagePreview: cleanBody,
+    recipientUserIds: admins.map((a) => a.userId),
+    senderUserId: user.id,
+  });
+
+  return getThreadDetail(user, threadId);
+}
+
+function getThreadRow(threadId) {
+  const db = getDb();
+  ensureMessagingSchema(db);
+  return db.prepare(`SELECT * FROM coop_message_threads WHERE id = ?`).get(threadId);
+}
+
+function getParticipant(threadId, userId) {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT * FROM coop_message_participants WHERE thread_id = ? AND user_id = ?`
+    )
+    .get(threadId, userId);
+}
+
+function requireParticipant(user, threadId) {
+  const thread = getThreadRow(threadId);
+  if (!thread) {
+    const err = new Error("Message not found");
+    err.status = 404;
+    throw err;
+  }
+  const participant = getParticipant(threadId, user.id);
+  if (!participant) {
+    const err = new Error("You are not a participant in this conversation");
+    err.status = 403;
+    throw err;
+  }
+  return { thread, participant };
+}
+
+function countUnreadForParticipant(participant) {
+  const db = getDb();
+  if (!participant) return 0;
+  if (participant.last_read_at) {
+    return db
+      .prepare(
+        `SELECT COUNT(*) AS count FROM coop_messages
+         WHERE thread_id = ?
+           AND sender_user_id != ?
+           AND created_at > ?`
+      )
+      .get(participant.thread_id, participant.user_id, participant.last_read_at).count;
+  }
+  return db
+    .prepare(
+      `SELECT COUNT(*) AS count FROM coop_messages
+       WHERE thread_id = ? AND sender_user_id != ?`
+    )
+    .get(participant.thread_id, participant.user_id).count;
+}
+
+function listInbox(user) {
+  const db = getDb();
+  ensureMessagingSchema(db);
+  const rows = db
+    .prepare(
+      `SELECT t.id, t.subject, t.audience, t.created_by_role, t.created_at, t.updated_at,
+              p.last_read_at AS lastReadAt,
+              (SELECT body FROM coop_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS lastBody,
+              (SELECT created_at FROM coop_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS lastMessageAt,
+              (SELECT sender_role FROM coop_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS lastSenderRole,
+              (SELECT COUNT(*) FROM coop_message_participants mp
+                WHERE mp.thread_id = t.id AND mp.role = 'member') AS memberCount
+       FROM coop_message_threads t
+       INNER JOIN coop_message_participants p ON p.thread_id = t.id AND p.user_id = ?
+       ORDER BY COALESCE(t.updated_at, t.created_at) DESC, t.id DESC`
+    )
+    .all(user.id);
+
+  return rows.map((row) => {
+    const participant = {
+      thread_id: row.id,
+      user_id: user.id,
+      last_read_at: row.lastReadAt,
+    };
+    const unreadCount = countUnreadForParticipant(participant);
+    return {
+      id: row.id,
+      subject: row.subject,
+      audience: row.audience,
+      createdByRole: row.created_by_role,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      lastBody: row.lastBody || "",
+      lastMessageAt: row.lastMessageAt || row.updated_at,
+      lastSenderRole: row.lastSenderRole || null,
+      memberCount: row.memberCount || 0,
+      unreadCount,
+      hasUnread: unreadCount > 0,
+    };
+  });
+}
+
+function getUnreadSummary(user) {
+  const inbox = listInbox(user);
+  const unreadThreads = inbox.filter((t) => t.hasUnread).length;
+  const unreadMessages = inbox.reduce((sum, t) => sum + t.unreadCount, 0);
+  return { unreadThreads, unreadMessages, hasUnread: unreadMessages > 0 };
+}
+
+function markThreadRead(user, threadId) {
+  const db = getDb();
+  ensureMessagingSchema(db);
+  requireParticipant(user, threadId);
+  const now = new Date().toISOString();
+  db.prepare(
+    `UPDATE coop_message_participants SET last_read_at = ? WHERE thread_id = ? AND user_id = ?`
+  ).run(now, threadId, user.id);
+}
+
+function listThreadMessages(threadId) {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT m.id, m.thread_id AS threadId, m.sender_user_id AS senderUserId,
+              m.sender_role AS senderRole, m.sender_member_id AS senderMemberId,
+              m.body, m.created_at AS createdAt,
+              COALESCE(
+                NULLIF(TRIM(mp.display_name), ''),
+                NULLIF(TRIM(mem.name), ''),
+                NULLIF(TRIM(u.display_name), ''),
+                u.username,
+                CASE WHEN m.sender_role = 'admin' THEN 'Cooperative Admin' ELSE 'Member' END
+              ) AS senderName
+       FROM coop_messages m
+       LEFT JOIN users u ON u.id = m.sender_user_id
+       LEFT JOIN members mem ON mem.id = m.sender_member_id
+       LEFT JOIN member_profiles mp ON mp.member_id = m.sender_member_id
+       WHERE m.thread_id = ?
+       ORDER BY m.created_at ASC, m.id ASC`
+    )
+    .all(threadId);
+}
+
+function listThreadParticipants(threadId) {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT p.user_id AS userId, p.member_id AS memberId, p.role,
+              COALESCE(
+                NULLIF(TRIM(mp.display_name), ''),
+                NULLIF(TRIM(m.name), ''),
+                NULLIF(TRIM(u.display_name), ''),
+                u.username,
+                CASE WHEN p.role = 'admin' THEN 'Cooperative Admin' ELSE 'Member' END
+              ) AS displayName
+       FROM coop_message_participants p
+       LEFT JOIN users u ON u.id = p.user_id
+       LEFT JOIN members m ON m.id = p.member_id
+       LEFT JOIN member_profiles mp ON mp.member_id = p.member_id
+       WHERE p.thread_id = ?
+       ORDER BY p.role DESC, displayName COLLATE NOCASE`
+    )
+    .all(threadId);
+}
+
+function getThreadDetail(user, threadId) {
+  const { thread } = requireParticipant(user, threadId);
+  markThreadRead(user, threadId);
+  return {
+    id: thread.id,
+    subject: thread.subject,
+    audience: thread.audience,
+    createdByRole: thread.created_by_role,
+    createdAt: thread.created_at,
+    updatedAt: thread.updated_at,
+    participants: listThreadParticipants(thread.id),
+    messages: listThreadMessages(thread.id),
+    unread: getUnreadSummary(user),
+  };
+}
+
+function replyToThread(user, threadId, { body }) {
+  const db = getDb();
+  ensureMessagingSchema(db);
+  const { thread } = requireParticipant(user, threadId);
+  if (user.role === ROLES.MEMBER) {
+    const { assertActiveDirectoryMember } = require("./membership-status-service");
+    assertActiveDirectoryMember(user.memberId, { action: "Messaging" });
+  }
+  if (user.role === ROLES.STAFF) {
+    const err = new Error("Staff accounts are read-only");
+    err.status = 403;
+    throw err;
+  }
+  if (user.role !== ROLES.ADMIN && user.role !== ROLES.MEMBER) {
+    const err = new Error("Access denied");
+    err.status = 403;
+    throw err;
+  }
+
+  const cleanBody = trimText(assertNonEmpty(body, "Message"), MAX_BODY);
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT INTO coop_messages
+      (thread_id, sender_user_id, sender_role, sender_member_id, body, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(
+    threadId,
+    user.id,
+    user.role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.MEMBER,
+    user.role === ROLES.MEMBER ? user.memberId : null,
+    cleanBody,
+    now
+  );
+  db.prepare(`UPDATE coop_message_threads SET updated_at = ? WHERE id = ?`).run(now, threadId);
+  db.prepare(
+    `UPDATE coop_message_participants SET last_read_at = ? WHERE thread_id = ? AND user_id = ?`
+  ).run(now, threadId, user.id);
+
+  const others = db
+    .prepare(
+      `SELECT user_id AS userId FROM coop_message_participants
+       WHERE thread_id = ? AND user_id != ?`
+    )
+    .all(threadId, user.id)
+    .map((r) => r.userId);
+
+  queueNewMessageEmails({
+    thread,
+    messagePreview: cleanBody,
+    recipientUserIds: others,
+    senderUserId: user.id,
+  });
+
+  return getThreadDetail(user, threadId);
+}
+
+function listRecipientOptions() {
+  ensureMessagingSchema();
+  return {
+    members: listMessageableMembers().map((m) => ({
+      memberId: m.memberId,
+      userId: m.userId,
+      memberName: m.memberName,
+      email: m.email || null,
+    })),
+    adminCount: listActiveAdminUsers().length,
+  };
+}
+
+module.exports = {
+  ensureMessagingSchema,
+  listRecipientOptions,
+  createAdminThread,
+  createMemberThread,
+  listInbox,
+  getUnreadSummary,
+  getThreadDetail,
+  replyToThread,
+  markThreadRead,
+  senderDisplayName,
+  MAX_SUBJECT,
+  MAX_BODY,
+};

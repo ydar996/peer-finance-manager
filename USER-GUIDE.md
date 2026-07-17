@@ -25,16 +25,18 @@ This guide explains how to use Peer Finance Manager (PFM) without technical jarg
 12. [Loans Tab](#12-loans-tab)
 13. [Monthly Status Report Tab](#13-monthly-status-report-tab)
 14. [Meetings Tab](#14-meetings-tab)
-15. [Public Pages Tab](#15-public-pages-tab)
-16. [Forms & Documents Tab](#16-forms--documents-tab)
-17. [Users Tab — Logins and Passwords](#17-users-tab--logins-and-passwords)
-18. [Subscription Tab](#18-subscription-tab)
-19. [Common Monthly Workflows](#19-common-monthly-workflows)
-20. [Fix a Misclassified Bank Entry](#20-fix-a-misclassified-bank-entry)
-21. [When Numbers Look Wrong](#21-when-numbers-look-wrong)
-22. [Common Problems](#22-common-problems)
-23. [Offline App on Your PC](#23-offline-app-on-your-pc)
-24. [Getting Help](#24-getting-help)
+15. [Messages Tab](#15-messages-tab)
+16. [Public Pages Tab](#16-public-pages-tab)
+17. [Forms & Documents Tab](#17-forms--documents-tab)
+18. [Users Tab — Logins and Passwords](#18-users-tab--logins-and-passwords)
+19. [Subscription Tab](#19-subscription-tab)
+20. [Common Monthly Workflows](#20-common-monthly-workflows)
+21. [Fix a Misclassified Bank Entry](#21-fix-a-misclassified-bank-entry)
+22. [When Numbers Look Wrong](#22-when-numbers-look-wrong)
+23. [Common Problems](#23-common-problems)
+24. [Maintenance Tab (Backup, Restore, Profile Tools)](#24-maintenance-tab-backup-restore-profile-tools)
+25. [Offline App on Your PC](#25-offline-app-on-your-pc)
+26. [Getting Help](#26-getting-help)
 
 ---
 
@@ -97,14 +99,25 @@ First-time users must change the temporary password when prompted.
 | **Contributions Account** | Balance and transaction history with running balance. |
 | **Loan Account** | Each loan you have; expand to see repayments and balance after each payment. Paid loans are collapsed by default. |
 | **Monthly statement PDF** | Download your contributions statement. |
+| **Messages** | Button above performance reports. Opens your inbox (separate page) to read admin messages and send messages to the Cooperative admin. Flashes **Unread Messages** when something is new. |
 | **Cooperative Status Reports** | Month-end Cooperative summary PDF when the administrator publishes it. |
 | **Cooperative Meetings** | Meeting date, time, location, and agenda when announced (email too, if configured). |
+
+### Messages inbox (members)
+
+1. On **My Account**, tap **Messages** (or **Unread Messages** when the badge flashes).
+2. You leave My Account and open a dedicated **Messages** inbox: list newest conversations first.
+3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished.
+4. Use **Message Cooperative Admin** to start a new conversation with your administrator. You can also reply inside an open conversation.
+
+When email is configured, you may also get an email tip that a new portal message is waiting.
 
 ### On a phone
 
 - Use the **power icon** (top right) to sign out.
 - Transaction tables hide **Description** by default. Tap **Show Descriptions** if you need full detail.
 - Swipe sideways on wide tables if needed.
+- Prefer the **Messages** inbox for reading long notes (minutes, action items); it is built for mobile reading.
 
 ---
 
@@ -152,10 +165,12 @@ After you submit an application, it goes to administrators automatically.
 | **Import** | Bank statements, bulk spreadsheets, Full Ledger Refresh (advanced). |
 | **Status Report** | Month-end Cooperative performance PDF; publish to members. |
 | **Meetings** | Schedule meetings; email and portal announcements. |
+| **Messages** | Inbox: send to all members, a group, or one member; read and reply to member messages. |
 | **Public Pages** | Publish About Us and Bylaws for prospective members. |
 | **Forms & Documents** | FlexxForms setup; review and approve membership applications. |
 | **Subscription** | PFM platform billing (Stripe or check). |
 | **Users** | Member logins, staff accounts, download credentials. |
+| **Maintenance** | Download/restore database backup; normalize profiles. |
 
 Most sections use **expandable panels** (click the header to open). You only open what you need.
 
@@ -416,7 +431,22 @@ Cooperative-wide performance PDF for members.
 
 ---
 
-## 15. Public Pages Tab
+## 15. Messages Tab
+
+Two-way inbox for **every Cooperative** (not email-only broadcasts). Messages live in the portal so members can re-read them later. When email is configured, recipients also get a short email that a new portal message is waiting.
+
+| Action | Steps |
+|--------|-------|
+| **Send to everyone** | **Messages** → **Send To: All Members with Portal Logins** → subject and body → **Send Message**. Example: meeting minutes. |
+| **Send to one member or a group** | Choose **Selected Members**, tick the names (or **Select All**), then send. Example: action items after a meeting. |
+| **Read replies** | Open a conversation in **Inbox**. Reply at the bottom. |
+| **Member → admin** | Members use **Messages** on My Account → **Message Cooperative Admin**. Their note appears in your admin inbox. |
+
+**Note:** Only members who already have a portal login can receive inbox messages. Create logins on the **Users** tab first. Performance reports and meeting announcements stay on their own tabs; use **Messages** for free-form admin/member conversation.
+
+---
+
+## 16. Public Pages Tab
 
 Publish content for **prospective members** (no login required).
 
@@ -429,7 +459,7 @@ Public links appear at the top of this tab to copy and share.
 
 ---
 
-## 16. Forms & Documents Tab
+## 17. Forms & Documents Tab
 
 ### FlexxForms integration
 
@@ -454,7 +484,7 @@ Public links appear at the top of this tab to copy and share.
 
 ---
 
-## 17. Users Tab — Logins and Passwords
+## 18. Users Tab — Logins and Passwords
 
 | Task | How |
 |------|-----|
@@ -476,13 +506,13 @@ Temporary passwords must be changed on first member sign-in. Former members cann
 
 ---
 
-## 18. Subscription Tab
+## 19. Subscription Tab
 
 Manage your Cooperative's **Peer Finance Manager** platform subscription (Stripe or check payment). Admin only.
 
 ---
 
-## 19. Common Monthly Workflows
+## 20. Common Monthly Workflows
 
 ### Treasurer month-end checklist
 
@@ -510,7 +540,7 @@ Manage your Cooperative's **Peer Finance Manager** platform subscription (Stripe
 
 ---
 
-## 20. Fix a Misclassified Bank Entry
+## 21. Fix a Misclassified Bank Entry
 
 On **Members & Accounts**, open the member → expand **Contributions Account** or **Loan Account**.
 
@@ -545,7 +575,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 
 ---
 
-## 21. When Numbers Look Wrong
+## 22. When Numbers Look Wrong
 
 | Situation | What to do |
 |-----------|------------|
@@ -559,7 +589,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 
 ---
 
-## 22. Common Problems
+## 23. Common Problems
 
 | Problem | What to try |
 |---------|-------------|
@@ -572,7 +602,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 
 ---
 
-## 23. Maintenance Tab (Backup, Restore, Profile Tools)
+## 24. Maintenance Tab (Backup, Restore, Profile Tools)
 
 **Admin → Maintenance** is where Cooperative admins back up, restore, and normalize profiles on the live site.
 
@@ -587,7 +617,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 
 ---
 
-## 24. Offline App on Your PC
+## 25. Offline App on Your PC
 
 **PeerFinanceManager.exe** in the AssurCoop folder works without internet for desk work.
 
@@ -595,15 +625,15 @@ It does **not** auto-sync with the live website. See [UPDATE-AND-PUBLISH.md](./U
 
 ---
 
-## 25. Getting Help
+## 26. Getting Help
 
 | Need | Contact |
 |------|---------|
-| **Technical / admin issues** | Your Cooperative administrator (e.g. Yinka Daramola — `yinka@eworkchop.com` for Assurance). |
+| **Technical / admin issues** | Your Cooperative administrator (e.g. Yinka Daramola: `yinka@eworkchop.com` for Assurance). |
 | **Deploy and publish app changes** | [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) |
-| **Database backup or restore** | **Admin → Maintenance** (see §23) |
+| **Database backup or restore** | **Admin → Maintenance** (see §24) |
 | **Email notifications setup** | [EMAIL-NOTIFICATIONS-SETUP.md](./EMAIL-NOTIFICATIONS-SETUP.md) or [BLUEHOST-EMAIL-RELAY-SETUP.md](./BLUEHOST-EMAIL-RELAY-SETUP.md) |
 
 ---
 
-*Last updated: July 11, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*
+*Last updated: July 17, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*

@@ -78,6 +78,7 @@ const {
   attachUser,
   requireAuth,
   requireAdmin,
+  requireActiveMemberAccount,
   requireCooperativeView,
   requireMemberSelf,
   blockWritesUnlessAdmin,
@@ -263,6 +264,14 @@ app.use("/api", blockWritesUnlessAdmin);
 
 const { registerAdminDataRoutes } = require("./lib/admin-data-routes");
 registerAdminDataRoutes(app, { requireAdmin, restoreOrgContext, upload });
+
+const { registerMessagingRoutes } = require("./lib/messaging-routes");
+registerMessagingRoutes(app, {
+  requireAuth,
+  requireAdmin,
+  requireActiveMemberAccount,
+  requireCooperativeView,
+});
 
 app.use(express.static(getPublicDir()));
 registerStatementRoutes(app);

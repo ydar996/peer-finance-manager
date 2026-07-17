@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 17, 2026 (meeting reminder email format; last deploy `ca94918`)  
+**Last updated:** July 17, 2026 (Cooperative inbox messaging; last deploy pending `git push`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -53,7 +53,7 @@ Documentation is the handoff contract between sessions. If it is stale, the next
 | Deploy, cloud, Git push, or data upload | **UPDATE-AND-PUBLISH.md** and/or **DEPLOY-TODAY.md** |
 | Architecture, ports, stack, folder layout | **README.md** — Architecture + Project layout |
 | UI labels/buttons (Title Case rules) | `.cursor/rules/ui-copy-standards.mdc` and **UI-COPY-STANDARDS.md** if conventions change |
-| Data backup / restore on production | **USER-GUIDE.md** §23, **UPLOAD-DATA-TO-PRODUCTION.md** |
+| Data backup / restore on production | **USER-GUIDE.md** §24, **UPLOAD-DATA-TO-PRODUCTION.md** |
 | Port numbers | **Ports in Use by Applications.md** (project copy + Desktop master) |
 
 ### Changelog rule
@@ -108,6 +108,9 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-17** — **Cooperative inbox messaging (all tenants):** Bidirectional portal messages per org DB (`coop_message_threads` / participants / messages). Admin **Messages** tab: send to all / selected / one member; inbox + reply. Member My Account **Messages** / **Unread Messages** button (above performance reports) opens dedicated inbox page (list → full thread → back); members can message Cooperative admin. Optional email tip when SMTP/relay configured. APIs under `/api/messages/*` and `/api/me/messages/*`. Files: `messaging-service.js`, `messaging-routes.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `USER-GUIDE.md`. Test: `npm run test:messaging`. **Production:** `git push` (no data upload).
+- **2026-07-17** — **Member portal Apply for a Loan (status):** Embed shell already exists on My Account when `loan_form_id` is set. Gap: most orgs (incl. Assurance) have no published/assigned loan form; webhook stores `kind=loan` but does not parse, validate eligibility, or create a reviewable loan application (unlike membership). Needed next: FlexxForms loan form + assign id; then PFM loan-application pipeline (admin review → create loan → guarantor/borrower docs). Outstanding task **4r**.
+- **2026-07-17** — **Meeting reminder email layout:** Reminder (and announce) emails now match preferred copy: title, date/time, **Join Online**, **Agenda**, **Best regards** + org name, then **Sign In to the Member Portal**. File: `meeting-notification-service.js`. **Production:** `git push`.
 - **2026-07-16** — **Approve member emails portal login (all tenants):** On **Approve Member**, PFM creates/resets portal credentials, emails a welcome login message when configured, and shows **Copy Welcome Message** / temp password for admin handoff. Files: `flexxforms-membership-service.js`, `auth-service.js`, `flexxforms-routes.js`, `app.js`, `index.html`, `USER-GUIDE.md`. **Production:** `git push`.
 - **2026-07-16** — **Admin one-click member password reset + email (all tenants):** Users tab **Reset Password** (and member profile **Reset Portal Password**) creates a temp password, emails the member when configured, and shows **Copy Temporary Password** / **Copy Full Login Details**. API `POST /api/users/reset-member-password` (`sendEmail` default true). Script: `reset-member-password-production.js`. **Production:** `git push`.
 - **2026-07-16** — **Single-member portal password reset API:** Admin API `POST /api/users/reset-member-password` (`memberId` or `memberName`). Deployed `2a1fe6c`.
@@ -683,6 +686,8 @@ Peer Finance Manager / Assurance Cooperative
 | 4e | ~~**Yomi Salami Nov 2025 split (Saheed bank alias)**~~ | ✅ **Done by Coop Admin** 2026-07-12 — Split saved on live; balance **$16,241.55** unchanged; row count 457→458 (expected). Reconcile row-align after classification added so Out of Sync does not false-alarm. |
 | 4p | ~~**Loan Payment Policy deploy**~~ | ✅ **Done** 2026-07-12 — Deployed with N-way split reconcile align + download notice. Default flexible; no effect on existing loans. |
 | 4q | ~~**Membership status by type (resign/death/expel/suspend)**~~ | ✅ **Done** 2026-07-16 — Typed status; hide from active list; keep ledger; block all active benefits; PDF/image notice upload; dashboard active count. `npm run test:membership-status`. **Deploy:** `git push`. |
+| 4r | **Member portal Apply for a Loan (end-to-end)** | UI embed exists (`myLoanApplyCard`) but needs (1) published FlexxForms loan form + `loan_form_id` assigned per org, (2) PFM pipeline: parse webhook → link signed-in member → admin Loan Applications review → approve/create loan with eligibility (2 guarantors, max amount), (3) guarantor/borrower master docs for signing. Today loan submits only land as raw `flexxforms_applications` rows; staff still use **Record → New Loan**. |
+| 4s | ~~**Cooperative inbox messaging (all tenants)**~~ | ✅ **Done** 2026-07-17 — Admin broadcast/subset/direct + member→admin; unread flash; dedicated member inbox page. `npm run test:messaging`. **Deploy:** `git push`. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
 | 6 | ~~**Persist Title Case in database (backfill)**~~ | ✅ **Done** 2026-07-11 — **Admin → Maintenance → Normalize Profiles** on production (or CLI with `--org`). Display/save formatters already live. |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |

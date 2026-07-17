@@ -302,7 +302,9 @@
         <button type="button" class="tab" data-tab="import" data-roles="admin">Import</button>
         <button type="button" class="tab" data-tab="status-report" data-roles="admin,staff">Status Report</button>
         <button type="button" class="tab" data-tab="meetings" data-roles="admin,staff">Meetings</button>
+        <button type="button" class="tab" data-tab="messages" data-roles="admin">Messages</button>
         <button type="button" class="tab" data-tab="public-pages" data-roles="admin">Public Pages</button>
+        <button type="button" class="tab" data-tab="member-messages" data-roles="member">Messages</button>
         <button type="button" class="tab" data-tab="forms" data-roles="admin">Forms &amp; Documents</button>
         <button type="button" class="tab" data-tab="subscription" data-roles="admin">Subscription</button>
         <button type="button" class="tab" data-tab="users" data-roles="admin">Users</button>
@@ -549,6 +551,124 @@
               </details>
             </div>
           </details>
+        </div>
+      </section>
+
+      <section id="panel-messages" class="panel">
+        <div class="panel-head">
+          <h2>Messages</h2>
+          <div class="panel-head-actions">
+            <span class="badge" id="adminMessagesUnreadBadge">:</span>
+            <button type="button" class="btn" id="refreshAdminMessages">Refresh</button>
+          </div>
+        </div>
+        <p class="hint panel-intro-hint">Send Messages to All Members, a Group, or One Member. Read Replies from Members in Your Inbox.</p>
+        <div class="messages-layout" id="adminMessagesLayout">
+          <div class="messages-compose card">
+            <h3>New Message</h3>
+            <form id="adminMessageComposeForm" class="entry-form">
+              <fieldset class="messages-audience-fieldset">
+                <legend>Send To</legend>
+                <label class="toggle-row">
+                  <input type="radio" name="adminMessageAudience" value="all" checked />
+                  All Members with Portal Logins
+                </label>
+                <label class="toggle-row">
+                  <input type="radio" name="adminMessageAudience" value="selected" />
+                  Selected Members
+                </label>
+              </fieldset>
+              <div id="adminMessageRecipientPicker" class="messages-recipient-picker hidden">
+                <p class="subtle">Select One or More Members</p>
+                <div class="messages-recipient-actions">
+                  <button type="button" class="btn" id="adminMessageSelectAll">Select All</button>
+                  <button type="button" class="btn" id="adminMessageClearAll">Clear</button>
+                </div>
+                <div id="adminMessageRecipientList" class="messages-recipient-list"></div>
+              </div>
+              <label>Subject
+                <input type="text" id="adminMessageSubject" required maxlength="200" placeholder="Meeting Minutes: July 16" />
+              </label>
+              <label>Message
+                <textarea id="adminMessageBody" rows="8" required maxlength="20000" placeholder="Write your message to members…"></textarea>
+              </label>
+              <button type="submit" class="btn primary" id="adminMessageSendBtn">Send Message</button>
+            </form>
+            <p id="adminMessageComposeStatus" class="status"></p>
+          </div>
+          <div class="messages-inbox card">
+            <div class="messages-inbox-list-view" id="adminMessagesListView">
+              <h3>Inbox</h3>
+              <ul class="messages-thread-list" id="adminMessagesThreadList">
+                <li class="hint">Loading…</li>
+              </ul>
+            </div>
+            <div class="messages-thread-view hidden" id="adminMessagesThreadView">
+              <div class="messages-thread-toolbar">
+                <button type="button" class="btn" id="adminMessagesBackBtn">Back to Inbox</button>
+              </div>
+              <h3 id="adminMessagesThreadSubject">Message</h3>
+              <p class="subtle" id="adminMessagesThreadMeta"></p>
+              <div class="messages-thread-messages" id="adminMessagesThreadMessages"></div>
+              <form id="adminMessageReplyForm" class="entry-form messages-reply-form">
+                <label>Reply
+                  <textarea id="adminMessageReplyBody" rows="4" required maxlength="20000" placeholder="Write a reply…"></textarea>
+                </label>
+                <button type="submit" class="btn primary">Send Reply</button>
+              </form>
+              <p id="adminMessageReplyStatus" class="status"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-member-messages" class="panel">
+        <div class="panel-head">
+          <h2>Messages</h2>
+          <div class="panel-head-actions">
+            <span class="badge" id="memberMessagesUnreadBadge">:</span>
+            <button type="button" class="btn" id="refreshMemberMessages">Refresh</button>
+            <button type="button" class="btn" id="memberMessagesBackToAccount">Back to My Account</button>
+          </div>
+        </div>
+        <p class="hint panel-intro-hint">Read Messages from Your Cooperative Administrator and Send Messages to the Admin.</p>
+        <div class="messages-layout member-messages-layout" id="memberMessagesLayout">
+          <div class="messages-compose card" id="memberMessageComposeCard">
+            <h3>Message Cooperative Admin</h3>
+            <form id="memberMessageComposeForm" class="entry-form">
+              <label>Subject
+                <input type="text" id="memberMessageSubject" required maxlength="200" placeholder="Question About My Account" />
+              </label>
+              <label>Message
+                <textarea id="memberMessageBody" rows="6" required maxlength="20000" placeholder="Write your message…"></textarea>
+              </label>
+              <button type="submit" class="btn primary">Send to Admin</button>
+            </form>
+            <p id="memberMessageComposeStatus" class="status"></p>
+          </div>
+          <div class="messages-inbox card">
+            <div class="messages-inbox-list-view" id="memberMessagesListView">
+              <h3>Inbox</h3>
+              <ul class="messages-thread-list" id="memberMessagesThreadList">
+                <li class="hint">Loading…</li>
+              </ul>
+            </div>
+            <div class="messages-thread-view hidden" id="memberMessagesThreadView">
+              <div class="messages-thread-toolbar">
+                <button type="button" class="btn" id="memberMessagesBackBtn">Back to Inbox</button>
+              </div>
+              <h3 id="memberMessagesThreadSubject">Message</h3>
+              <p class="subtle" id="memberMessagesThreadMeta"></p>
+              <div class="messages-thread-messages" id="memberMessagesThreadMessages"></div>
+              <form id="memberMessageReplyForm" class="entry-form messages-reply-form">
+                <label>Reply
+                  <textarea id="memberMessageReplyBody" rows="4" required maxlength="20000" placeholder="Write a reply…"></textarea>
+                </label>
+                <button type="submit" class="btn primary">Send Reply</button>
+              </form>
+              <p id="memberMessageReplyStatus" class="status"></p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1707,6 +1827,13 @@
           <a href="#" class="public-apply-link hidden">Apply for Membership</a>
         </p>
         <div id="myProfileSection" class="card my-profile-card hidden"></div>
+        <div class="messages-entry-card" id="myMessagesEntry">
+          <button type="button" class="btn primary messages-entry-btn" id="openMyMessagesBtn">
+            <span id="openMyMessagesLabel">Messages</span>
+            <span class="badge messages-unread-badge hidden" id="myMessagesUnreadBadge">0</span>
+          </button>
+          <p class="subtle messages-entry-hint" id="myMessagesEntryHint">Open Your Inbox to Read and Send Messages.</p>
+        </div>
         <details class="profile-disclosure my-cooperative-reports-panel hidden" id="myCooperativeReportsCard">
           <summary class="monthly-status-report-summary my-cooperative-reports-summary">
             <span class="monthly-status-report-summary-text">Cooperative Performance Reports</span>

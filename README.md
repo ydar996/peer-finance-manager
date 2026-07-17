@@ -231,7 +231,10 @@ Members can sign in and use **My Account** to:
 - Expand **Membership Biodata** (read-only) and **Emergency Contact** (editable)
 - Upload an optional profile photo
 - Download monthly statement PDFs
+- Open **Messages** (dedicated inbox) for two-way notes with the Cooperative admin; unread badge flashes on My Account
 - On mobile: **Description** column hidden by default; tap **Show Descriptions** to expand
+
+Admins use the **Messages** tab to broadcast to all members, a subset, or one member (per-tenant inbox in each org SQLite DB).
 
 ### Loan rules (configured, not yet populated)
 

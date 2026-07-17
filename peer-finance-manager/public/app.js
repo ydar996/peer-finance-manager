@@ -1141,6 +1141,7 @@ async function loadMyAccount() {
     if (!res.ok) throw new Error(data.error);
     const profile = data.profile;
     renderMyProfileSection(profile);
+    await refreshMyMessagesEntry();
     await loadMyCooperativeReports();
     await loadMyMeetings();
     await loadMyLoanApplyEmbed();
@@ -1333,6 +1334,8 @@ function switchTab(name, options = {}) {
     loadUsers();
   }
   if (name === "my-account" && currentUser?.role === "member" && !sameTab) loadMyAccount();
+  if (name === "member-messages" && currentUser?.role === "member" && !sameTab) loadMemberMessagesPanel();
+  if (name === "messages" && currentUser?.role === "admin" && !sameTab) loadAdminMessagesPanel();
   if (name === "import" && currentUser?.role === "admin" && !sameTab) loadBankImportPanel();
   if (name === "status-report" && !sameTab) loadMonthlyStatusReportPanel();
   if (name === "meetings" && !sameTab) {
@@ -8662,6 +8665,417 @@ function initLoginFromUrlParams() {
     fillOrgSlugInputs(org?.trim().toLowerCase() || preferredOrgSlug());
   }
 }
+
+/* —— Cooperative inbox messaging (all tenants) —— */
+let adminMessagesActiveThreadId = null;
+let memberMessagesActiveThreadId = null;
+let adminMessageRecipientsCache = [];
+
+function previewMessageBody(body, max = 120) {
+  const text = String(body || "").replace(/\s+/g, " ").trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1)}…`;
+}
+
+function formatMessageWhen(value) {
+  if (!value) return "";
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return String(value);
+  }
+}
+
+function updateUnreadBadge(el, unread) {
+  if (!el) return;
+  const count = Number(unread?.unreadMessages || 0);
+  if (count > 0) {
+    el.textContent = count > 99 ? "99+" : String(count);
+    el.classList.remove("hidden");
+    el.classList.add("messages-unread-flash");
+  } else {
+    el.textContent = ":";
+    el.classList.add("hidden");
+    el.classList.remove("messages-unread-flash");
+  }
+}
+
+async function refreshMyMessagesEntry() {
+  const btn = $("#openMyMessagesBtn");
+  const label = $("#openMyMessagesLabel");
+  const badge = $("#myMessagesUnreadBadge");
+  const hint = $("#myMessagesEntryHint");
+  if (!btn || currentUser?.role !== "member") return;
+  try {
+    const res = await fetch("/api/me/messages/unread");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load messages");
+    const count = Number(data.unreadMessages || 0);
+    if (count > 0) {
+      btn.classList.add("has-unread");
+      if (label) label.textContent = "Unread Messages";
+      if (hint) {
+        hint.textContent =
+          count === 1
+            ? "You Have 1 Unread Message. Open Your Inbox to Read It."
+            : `You Have ${count} Unread Messages. Open Your Inbox to Read Them.`;
+      }
+    } else {
+      btn.classList.remove("has-unread");
+      if (label) label.textContent = "Messages";
+      if (hint) hint.textContent = "Open Your Inbox to Read and Send Messages.";
+    }
+    updateUnreadBadge(badge, data);
+  } catch {
+    btn.classList.remove("has-unread");
+    if (label) label.textContent = "Messages";
+    if (badge) badge.classList.add("hidden");
+  }
+}
+
+function renderThreadList(listEl, threads, { onOpen, emptyText }) {
+  if (!listEl) return;
+  if (!threads?.length) {
+    listEl.innerHTML = `<li class="hint">${escapeHtml(emptyText)}</li>`;
+    return;
+  }
+  listEl.innerHTML = threads
+    .map((thread) => {
+      const unread = thread.unreadCount > 0 ? `<span class="badge messages-unread-flash">${thread.unreadCount}</span>` : "";
+      return `
+        <li>
+          <button type="button" class="messages-thread-item${thread.hasUnread ? " has-unread" : ""}" data-thread-id="${thread.id}">
+            <div class="messages-thread-item-title">
+              <span>${escapeHtml(thread.subject || "Message")}</span>
+              ${unread}
+            </div>
+            <p class="messages-thread-item-preview">${escapeHtml(previewMessageBody(thread.lastBody))}</p>
+            <p class="messages-thread-item-meta">${escapeHtml(formatMessageWhen(thread.lastMessageAt))}</p>
+          </button>
+        </li>`;
+    })
+    .join("");
+  listEl.querySelectorAll("[data-thread-id]").forEach((btn) => {
+    btn.addEventListener("click", () => onOpen(Number(btn.dataset.threadId)));
+  });
+}
+
+function renderThreadMessages(host, messages, currentUserId) {
+  if (!host) return;
+  if (!messages?.length) {
+    host.innerHTML = '<p class="subtle">No Messages in This Conversation Yet.</p>';
+    return;
+  }
+  host.innerHTML = messages
+    .map((msg) => {
+      const fromSelf = Number(msg.senderUserId) === Number(currentUserId);
+      const roleLabelText =
+        msg.senderRole === "admin" ? "Cooperative Admin" : escapeHtml(msg.senderName || "Member");
+      return `
+        <article class="messages-bubble${fromSelf ? " from-self" : ""}">
+          <div class="messages-bubble-meta">
+            <strong>${roleLabelText}</strong>
+            <span>${escapeHtml(formatMessageWhen(msg.createdAt))}</span>
+          </div>
+          <div class="messages-bubble-body">${escapeHtml(msg.body || "")}</div>
+        </article>`;
+    })
+    .join("");
+  host.scrollTop = host.scrollHeight;
+}
+
+function showAdminMessagesList() {
+  adminMessagesActiveThreadId = null;
+  $("#adminMessagesListView")?.classList.remove("hidden");
+  $("#adminMessagesThreadView")?.classList.add("hidden");
+}
+
+function showAdminMessagesThread() {
+  $("#adminMessagesListView")?.classList.add("hidden");
+  $("#adminMessagesThreadView")?.classList.remove("hidden");
+}
+
+function showMemberMessagesList() {
+  memberMessagesActiveThreadId = null;
+  $("#memberMessagesListView")?.classList.remove("hidden");
+  $("#memberMessagesThreadView")?.classList.add("hidden");
+  $("#memberMessageComposeCard")?.classList.remove("hidden");
+}
+
+function showMemberMessagesThread() {
+  $("#memberMessagesListView")?.classList.add("hidden");
+  $("#memberMessagesThreadView")?.classList.remove("hidden");
+  $("#memberMessageComposeCard")?.classList.add("hidden");
+}
+
+async function loadAdminMessageRecipients() {
+  const list = $("#adminMessageRecipientList");
+  try {
+    const res = await fetch("/api/messages/recipients");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load members");
+    adminMessageRecipientsCache = data.members || [];
+    if (!list) return;
+    if (!adminMessageRecipientsCache.length) {
+      list.innerHTML =
+        '<p class="subtle">No Members with Portal Logins Yet. Create Logins on the Users Tab First.</p>';
+      return;
+    }
+    list.innerHTML = adminMessageRecipientsCache
+      .map(
+        (m) => `
+      <label>
+        <input type="checkbox" name="adminMessageMember" value="${m.memberId}" />
+        <span>${escapeHtml(m.memberName)}${m.email ? ` · ${escapeHtml(m.email)}` : ""}</span>
+      </label>`
+      )
+      .join("");
+  } catch (err) {
+    if (list) list.innerHTML = `<p class="subtle">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function syncAdminAudiencePicker() {
+  const selected = document.querySelector('input[name="adminMessageAudience"]:checked')?.value === "selected";
+  $("#adminMessageRecipientPicker")?.classList.toggle("hidden", !selected);
+}
+
+async function loadAdminMessagesPanel() {
+  showAdminMessagesList();
+  await loadAdminMessageRecipients();
+  syncAdminAudiencePicker();
+  const list = $("#adminMessagesThreadList");
+  try {
+    const res = await fetch("/api/messages/inbox");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load inbox");
+    updateUnreadBadge($("#adminMessagesUnreadBadge"), data.unread);
+    renderThreadList(list, data.threads || [], {
+      emptyText: "No Messages Yet. Send Minutes or a Note to Members Above.",
+      onOpen: openAdminMessageThread,
+    });
+  } catch (err) {
+    if (list) list.innerHTML = `<li class="hint">${escapeHtml(err.message)}</li>`;
+  }
+}
+
+async function openAdminMessageThread(threadId) {
+  const status = $("#adminMessageReplyStatus");
+  try {
+    const res = await fetch(`/api/messages/threads/${encodeURIComponent(threadId)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to open message");
+    adminMessagesActiveThreadId = threadId;
+    const thread = data.thread;
+    $("#adminMessagesThreadSubject").textContent = thread.subject || "Message";
+    const memberNames = (thread.participants || [])
+      .filter((p) => p.role === "member")
+      .map((p) => p.displayName)
+      .filter(Boolean);
+    $("#adminMessagesThreadMeta").textContent = memberNames.length
+      ? `With: ${memberNames.join(", ")}`
+      : "Conversation";
+    renderThreadMessages($("#adminMessagesThreadMessages"), thread.messages || [], currentUser?.id);
+    $("#adminMessageReplyBody").value = "";
+    showAdminMessagesThread();
+    updateUnreadBadge($("#adminMessagesUnreadBadge"), thread.unread);
+    setFormStatus(status, "", true);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+}
+
+async function loadMemberMessagesPanel() {
+  showMemberMessagesList();
+  const list = $("#memberMessagesThreadList");
+  try {
+    const res = await fetch("/api/me/messages/inbox");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load inbox");
+    updateUnreadBadge($("#memberMessagesUnreadBadge"), data.unread);
+    updateUnreadBadge($("#myMessagesUnreadBadge"), data.unread);
+    renderThreadList(list, data.threads || [], {
+      emptyText: "No Messages Yet. You Can Message Your Cooperative Admin Above.",
+      onOpen: openMemberMessageThread,
+    });
+    await refreshMyMessagesEntry();
+  } catch (err) {
+    if (list) list.innerHTML = `<li class="hint">${escapeHtml(err.message)}</li>`;
+  }
+}
+
+async function openMemberMessageThread(threadId) {
+  const status = $("#memberMessageReplyStatus");
+  try {
+    const res = await fetch(`/api/me/messages/threads/${encodeURIComponent(threadId)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to open message");
+    memberMessagesActiveThreadId = threadId;
+    const thread = data.thread;
+    $("#memberMessagesThreadSubject").textContent = thread.subject || "Message";
+    $("#memberMessagesThreadMeta").textContent = "Conversation with Cooperative Admin";
+    renderThreadMessages($("#memberMessagesThreadMessages"), thread.messages || [], currentUser?.id);
+    $("#memberMessageReplyBody").value = "";
+    showMemberMessagesThread();
+    updateUnreadBadge($("#memberMessagesUnreadBadge"), thread.unread);
+    await refreshMyMessagesEntry();
+    setFormStatus(status, "", true);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+}
+
+$("#openMyMessagesBtn")?.addEventListener("click", () => {
+  switchTab("member-messages");
+});
+
+$("#memberMessagesBackToAccount")?.addEventListener("click", () => {
+  switchTab("my-account");
+});
+
+$("#refreshAdminMessages")?.addEventListener("click", () => loadAdminMessagesPanel());
+$("#refreshMemberMessages")?.addEventListener("click", () => loadMemberMessagesPanel());
+$("#adminMessagesBackBtn")?.addEventListener("click", () => {
+  showAdminMessagesList();
+  loadAdminMessagesPanel();
+});
+$("#memberMessagesBackBtn")?.addEventListener("click", () => {
+  showMemberMessagesList();
+  loadMemberMessagesPanel();
+});
+
+document.querySelectorAll('input[name="adminMessageAudience"]').forEach((input) => {
+  input.addEventListener("change", syncAdminAudiencePicker);
+});
+
+$("#adminMessageSelectAll")?.addEventListener("click", () => {
+  document.querySelectorAll('input[name="adminMessageMember"]').forEach((el) => {
+    el.checked = true;
+  });
+});
+$("#adminMessageClearAll")?.addEventListener("click", () => {
+  document.querySelectorAll('input[name="adminMessageMember"]').forEach((el) => {
+    el.checked = false;
+  });
+});
+
+$("#adminMessageComposeForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#adminMessageComposeStatus");
+  const audience =
+    document.querySelector('input[name="adminMessageAudience"]:checked')?.value === "all"
+      ? "all"
+      : "selected";
+  const memberIds =
+    audience === "selected"
+      ? [...document.querySelectorAll('input[name="adminMessageMember"]:checked')].map((el) =>
+          Number(el.value)
+        )
+      : [];
+  try {
+    const res = await fetch("/api/messages/threads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: $("#adminMessageSubject")?.value,
+        body: $("#adminMessageBody")?.value,
+        audience,
+        memberIds,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to send message");
+    $("#adminMessageSubject").value = "";
+    $("#adminMessageBody").value = "";
+    document.querySelectorAll('input[name="adminMessageMember"]').forEach((el) => {
+      el.checked = false;
+    });
+    setFormStatus(status, "Message sent.", true);
+    await loadAdminMessagesPanel();
+    if (data.thread?.id) openAdminMessageThread(data.thread.id);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#adminMessageReplyForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#adminMessageReplyStatus");
+  if (!adminMessagesActiveThreadId) {
+    setFormStatus(status, "Open a conversation first.", false);
+    return;
+  }
+  try {
+    const res = await fetch(
+      `/api/messages/threads/${encodeURIComponent(adminMessagesActiveThreadId)}/reply`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: $("#adminMessageReplyBody")?.value }),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to send reply");
+    $("#adminMessageReplyBody").value = "";
+    renderThreadMessages($("#adminMessagesThreadMessages"), data.thread?.messages || [], currentUser?.id);
+    updateUnreadBadge($("#adminMessagesUnreadBadge"), data.unread);
+    setFormStatus(status, "Reply sent.", true);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#memberMessageComposeForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#memberMessageComposeStatus");
+  try {
+    const res = await fetch("/api/me/messages/threads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: $("#memberMessageSubject")?.value,
+        body: $("#memberMessageBody")?.value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to send message");
+    $("#memberMessageSubject").value = "";
+    $("#memberMessageBody").value = "";
+    setFormStatus(status, "Message sent to Cooperative Admin.", true);
+    await loadMemberMessagesPanel();
+    if (data.thread?.id) openMemberMessageThread(data.thread.id);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#memberMessageReplyForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#memberMessageReplyStatus");
+  if (!memberMessagesActiveThreadId) {
+    setFormStatus(status, "Open a conversation first.", false);
+    return;
+  }
+  try {
+    const res = await fetch(
+      `/api/me/messages/threads/${encodeURIComponent(memberMessagesActiveThreadId)}/reply`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: $("#memberMessageReplyBody")?.value }),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to send reply");
+    $("#memberMessageReplyBody").value = "";
+    renderThreadMessages($("#memberMessagesThreadMessages"), data.thread?.messages || [], currentUser?.id);
+    updateUnreadBadge($("#memberMessagesUnreadBadge"), data.unread);
+    await refreshMyMessagesEntry();
+    setFormStatus(status, "Reply sent.", true);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
 
 applyAppBranding();
 initLoginFromUrlParams();
