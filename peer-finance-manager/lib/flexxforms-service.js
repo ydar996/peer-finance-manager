@@ -735,6 +735,31 @@ async function handleFormSubmitted(slug, payload) {
       }
     }
 
+    if (kind === "loan") {
+      try {
+        const { processLoanFormSubmission, parseFlexxFormsLoanPayload } = require(
+          "./flexxforms-loan-service"
+        );
+        const parsed = parseFlexxFormsLoanPayload(payload);
+        db.prepare(
+          `UPDATE flexxforms_applications SET applicant_name = ?, applicant_email = ? WHERE id = ?`
+        ).run(parsed.applicantName || null, parsed.email || null, applicationId);
+        const result = processLoanFormSubmission(applicationId, payload);
+        return {
+          ok: true,
+          kind,
+          applicationId,
+          fetchedFromApi: enrich.fetched,
+          ...result,
+        };
+      } catch (err) {
+        db.prepare(
+          `UPDATE flexxforms_applications SET status = 'error', processing_error = ? WHERE id = ?`
+        ).run(err.message, applicationId);
+        return { ok: false, kind, applicationId, error: err.message };
+      }
+    }
+
     return { ok: true, kind, applicationId };
   });
 }

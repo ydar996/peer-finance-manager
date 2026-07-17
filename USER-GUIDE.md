@@ -467,6 +467,25 @@ Public links appear at the top of this tab to copy and share.
 - Assign **Membership Form Id**, **Loan Form Id**, and agreement document ids.
 - Click **Save Form & Document Ids**.
 
+### Link a loan form to Apply for a Loan (member portal)
+
+1. Publish the loan application form in FlexxForms (standalone public form).
+2. In PFM **Forms & Documents**, click **Load Forms & Documents**.
+3. Assign the form to **Loan Application** (or paste the UUID into **Loan Form Id**).
+4. Click **Save Form & Document Ids**.
+5. Members see **Apply for a Loan** on **My Account** and can submit the form.
+
+Completed submissions appear under **Loan Applications** on the same tab. They are **not** loans yet until you approve them.
+
+### Loan applications workflow
+
+1. Member submits via **My Account → Apply for a Loan**.
+2. Application appears under **Forms & Documents → Loan Applications** (answers are stored and retrievable).
+3. Open **Submitted Answers**, confirm amount/term, and link the borrower if needed.
+4. Click **Review & Approve Loan**, select borrower + two guarantor members, confirm principal/term/start date, then **Create Loan**.
+5. Only then is the loan created in Peer Finance Manager (eligibility and max-amount rules still apply).
+6. **Reject** keeps the record as rejected; **Delete** removes unapproved applications only.
+
 ### Membership applications workflow
 
 1. Applicant submits via public **Apply for Membership** link.

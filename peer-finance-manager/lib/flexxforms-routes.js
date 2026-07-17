@@ -11,7 +11,7 @@ const {
   isProvisioningConfigured,
   approveMembershipApplication,
 } = require("./flexxforms-service");
-const { requireAuth, requireAdmin } = require("./auth-middleware");
+const { requireAuth, requireAdmin, requireActiveMemberAccount } = require("./auth-middleware");
 
 function requestOrgSlug(req) {
   return req.user?.organizationSlug || req.organization?.slug || null;
@@ -92,6 +92,108 @@ function registerFlexxFormsRoutes(app) {
       res.status(400).json({ error: err.message });
     }
   });
+
+  app.get("/api/flexxforms/loan-applications", requireAuth, requireAdmin, (req, res) => {
+    try {
+      const { listLoanApplications } = require("./flexxforms-loan-service");
+      res.json({ applications: listLoanApplications() });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/flexxforms/loan-applications/:id", requireAuth, requireAdmin, (req, res) => {
+    try {
+      const { getLoanApplicationDetail } = require("./flexxforms-loan-service");
+      res.json({ application: getLoanApplicationDetail(Number(req.params.id)) });
+    } catch (err) {
+      res.status(err.status || 400).json({ error: err.message });
+    }
+  });
+
+  app.post(
+    "/api/flexxforms/loan-applications/:id/link-member",
+    requireAuth,
+    requireAdmin,
+    (req, res) => {
+      try {
+        const { linkLoanApplicationMember } = require("./flexxforms-loan-service");
+        const application = linkLoanApplicationMember(
+          Number(req.params.id),
+          Number(req.body?.memberId)
+        );
+        res.json({ success: true, application });
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/flexxforms/loan-applications/:id/approve",
+    requireAuth,
+    requireAdmin,
+    (req, res) => {
+      try {
+        const { approveLoanApplication } = require("./flexxforms-loan-service");
+        const result = approveLoanApplication(Number(req.params.id), req.user?.id, req.body || {});
+        res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/flexxforms/loan-applications/:id/reject",
+    requireAuth,
+    requireAdmin,
+    (req, res) => {
+      try {
+        const { rejectLoanApplication } = require("./flexxforms-loan-service");
+        const application = rejectLoanApplication(
+          Number(req.params.id),
+          req.body?.reason || null
+        );
+        res.json({ success: true, application });
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.delete(
+    "/api/flexxforms/loan-applications/:id",
+    requireAuth,
+    requireAdmin,
+    (req, res) => {
+      try {
+        const { deleteLoanApplication } = require("./flexxforms-loan-service");
+        const result = deleteLoanApplication(Number(req.params.id));
+        res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/me/loan-applications/claim",
+    requireAuth,
+    requireActiveMemberAccount,
+    (req, res) => {
+      try {
+        const { claimLoanApplicationForMember } = require("./flexxforms-loan-service");
+        const application = claimLoanApplicationForMember(req.user, {
+          submissionId: req.body?.submissionId,
+          applicationId: req.body?.applicationId,
+        });
+        res.json({ success: true, application });
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
 
   app.post(
     "/api/flexxforms/applications/:id/approve",

@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 17, 2026 (Cooperative inbox messaging; last deploy `167e2c7`)  
+**Last updated:** July 17, 2026 (loan applications review/approve pipeline)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,6 +108,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-17** — **Loan applications pipeline (all tenants):** Assign FlexxForms **Loan Form Id** → member **Apply for a Loan** embed. Webhook stores `kind=loan` with parsed answers; admin **Forms & Documents → Loan Applications** lists submissions; **Review & Approve Loan** (borrower + 2 guarantors) creates PFM loan; reject/delete for unapproved. Member claim on form completed. Files: `flexxforms-loan-service.js`, `flexxforms-service.js`, `flexxforms-routes.js`, `app.js`, `index.html`, `USER-GUIDE.md`. Test: `npm run test:loan-applications`. **Production:** `git push`.
 - **2026-07-17** — **Assurance subscription grace +15 days (ops):** Platform `extend-grace` for slug `assurance`: `subscription_grace_until` → **2026-08-01** (full access through that date). Status remains `check_pending`. Note stored on org. No code deploy.
 - **2026-07-17** — **Cooperative inbox messaging (all tenants):** Bidirectional portal messages per org DB (`coop_message_threads` / participants / messages). Admin **Messages** tab: send to all / selected / one member; inbox + reply. Member My Account **Messages** / **Unread Messages** button (above performance reports) opens dedicated inbox page (list → full thread → back); members can message Cooperative admin. Optional email tip when SMTP/relay configured. APIs under `/api/messages/*` and `/api/me/messages/*`. Files: `messaging-service.js`, `messaging-routes.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `USER-GUIDE.md`. Test: `npm run test:messaging`. **Production:** `git push` (`167e2c7`; no data upload).
 - **2026-07-17** — **Member portal Apply for a Loan (status):** Embed shell already exists on My Account when `loan_form_id` is set. Gap: most orgs (incl. Assurance) have no published/assigned loan form; webhook stores `kind=loan` but does not parse, validate eligibility, or create a reviewable loan application (unlike membership). Needed next: FlexxForms loan form + assign id; then PFM loan-application pipeline (admin review → create loan → guarantor/borrower docs). Outstanding task **4r**.
@@ -687,7 +688,7 @@ Peer Finance Manager / Assurance Cooperative
 | 4e | ~~**Yomi Salami Nov 2025 split (Saheed bank alias)**~~ | ✅ **Done by Coop Admin** 2026-07-12 — Split saved on live; balance **$16,241.55** unchanged; row count 457→458 (expected). Reconcile row-align after classification added so Out of Sync does not false-alarm. |
 | 4p | ~~**Loan Payment Policy deploy**~~ | ✅ **Done** 2026-07-12 — Deployed with N-way split reconcile align + download notice. Default flexible; no effect on existing loans. |
 | 4q | ~~**Membership status by type (resign/death/expel/suspend)**~~ | ✅ **Done** 2026-07-16 — Typed status; hide from active list; keep ledger; block all active benefits; PDF/image notice upload; dashboard active count. `npm run test:membership-status`. **Deploy:** `git push`. |
-| 4r | **Member portal Apply for a Loan (end-to-end)** | UI embed exists (`myLoanApplyCard`) but needs (1) published FlexxForms loan form + `loan_form_id` assigned per org, (2) PFM pipeline: parse webhook → link signed-in member → admin Loan Applications review → approve/create loan with eligibility (2 guarantors, max amount), (3) guarantor/borrower master docs for signing. Today loan submits only land as raw `flexxforms_applications` rows; staff still use **Record → New Loan**. |
+| 4r | ~~**Member portal Apply for a Loan (end-to-end)**~~ | ✅ **Done** 2026-07-17 — Assign Loan Form Id; webhook → Loan Applications list; admin approve creates loan (2 guarantors). Guarantor/borrower e-sign docs remain separate (existing Loans tab agreements). **Deploy:** `git push`. |
 | 4s | ~~**Cooperative inbox messaging (all tenants)**~~ | ✅ **Done** 2026-07-17 — Admin broadcast/subset/direct + member→admin; unread flash; dedicated member inbox page. `npm run test:messaging`. **Deploy:** `git push`. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
 | 6 | ~~**Persist Title Case in database (backfill)**~~ | ✅ **Done** 2026-07-11 — **Admin → Maintenance → Normalize Profiles** on production (or CLI with `--org`). Display/save formatters already live. |
