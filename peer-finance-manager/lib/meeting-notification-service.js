@@ -30,19 +30,30 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
-function meetingDetailsText(meeting, branding) {
+function agendaLines(agenda) {
+  return String(agenda || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^[-*•]\s*/, ""));
+}
+
+function meetingDetailsText(meeting) {
   const lines = [
     meeting.title,
     `${meeting.meetingDateLabel} at ${meeting.meetingTimeLabel} (${meeting.timezoneLabel})`,
   ];
   if (meeting.location) lines.push(`Location: ${meeting.location}`);
-  if (meeting.virtualLink) lines.push(`Online: ${meeting.virtualLink}`);
-  if (meeting.agenda) lines.push("", "Agenda:", meeting.agenda);
-  lines.push("", branding.organizationName);
+  if (meeting.virtualLink) lines.push(`Join Online: ${meeting.virtualLink}`);
+  const agenda = agendaLines(meeting.agenda);
+  if (agenda.length) {
+    lines.push("Agenda");
+    for (const item of agenda) lines.push(item);
+  }
   return lines.join("\n");
 }
 
-function meetingDetailsHtml(meeting, branding) {
+function meetingDetailsHtml(meeting) {
   let html =
     `<p><strong>${escapeHtml(meeting.title)}</strong></p>` +
     `<p>${escapeHtml(meeting.meetingDateLabel)} at ${escapeHtml(meeting.meetingTimeLabel)} ` +
@@ -51,13 +62,34 @@ function meetingDetailsHtml(meeting, branding) {
     html += `<p><strong>Location:</strong> ${escapeHtml(meeting.location)}</p>`;
   }
   if (meeting.virtualLink) {
-    html += `<p><strong>Online:</strong> <a href="${escapeHtml(meeting.virtualLink)}">${escapeHtml(meeting.virtualLink)}</a></p>`;
+    html +=
+      `<p><strong>Join Online:</strong> ` +
+      `<a href="${escapeHtml(meeting.virtualLink)}">${escapeHtml(meeting.virtualLink)}</a></p>`;
   }
-  if (meeting.agenda) {
-    html += `<p><strong>Agenda</strong></p><p>${escapeHtml(meeting.agenda).replace(/\n/g, "<br>")}</p>`;
+  const agenda = agendaLines(meeting.agenda);
+  if (agenda.length) {
+    html += `<p><strong>Agenda</strong></p><ul>`;
+    for (const item of agenda) {
+      html += `<li>${escapeHtml(item)}</li>`;
+    }
+    html += `</ul>`;
   }
-  html += `<p>${escapeHtml(branding.organizationName)}</p>`;
   return html;
+}
+
+function meetingEmailClosingText(branding, portalUrl) {
+  return (
+    `Best regards,\n` +
+    `${branding.organizationName}\n` +
+    `Sign In to the Member Portal: ${portalUrl}`
+  );
+}
+
+function meetingEmailClosingHtml(branding, portalUrl) {
+  return (
+    `<p>Best regards,<br><strong>${escapeHtml(branding.organizationName)}</strong></p>` +
+    `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>`
+  );
 }
 
 async function sendMemberBroadcastEmail({ triggerType, dedupeKey, subject, textFor, htmlFor }) {
@@ -155,15 +187,16 @@ async function sendMeetingAnnouncedEmails(meetingOrId, options = {}) {
     dedupeKey,
     subject,
     textFor: (recipient) =>
-      `Hello ${recipient.memberName},\n\n` +
-      `A Cooperative meeting has been scheduled:\n\n` +
-      meetingDetailsText(meeting, branding) +
-      `\n\nView details on the member portal: ${portalUrl}\n`,
+      `Hello ${recipient.memberName},\n` +
+      `A Cooperative meeting has been scheduled:\n` +
+      meetingDetailsText(meeting) +
+      `\n` +
+      meetingEmailClosingText(branding, portalUrl),
     htmlFor: (recipient) =>
       `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
       `<p>A Cooperative meeting has been scheduled:</p>` +
-      meetingDetailsHtml(meeting, branding) +
-      `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>`,
+      meetingDetailsHtml(meeting) +
+      meetingEmailClosingHtml(branding, portalUrl),
   });
 }
 
@@ -211,15 +244,16 @@ async function sendMeetingReminderEmails(meetingOrId) {
     dedupeKey,
     subject,
     textFor: (recipient) =>
-      `Hello ${recipient.memberName},\n\n` +
-      `Reminder : Cooperative meeting coming up:\n\n` +
-      meetingDetailsText(meeting, branding) +
-      `\n\nMember portal: ${portalUrl}\n`,
+      `Hello ${recipient.memberName},\n` +
+      `Reminder : Cooperative meeting coming up:\n` +
+      meetingDetailsText(meeting) +
+      `\n` +
+      meetingEmailClosingText(branding, portalUrl),
     htmlFor: (recipient) =>
       `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
       `<p>Reminder : Cooperative meeting coming up:</p>` +
-      meetingDetailsHtml(meeting, branding) +
-      `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>`,
+      meetingDetailsHtml(meeting) +
+      meetingEmailClosingHtml(branding, portalUrl),
   });
 }
 
