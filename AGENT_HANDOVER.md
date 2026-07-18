@@ -108,7 +108,8 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
-- **2026-07-18** — **Admin UX polish (all tenants):** (1) Member detail **Membership Status** collapsed by default (expand to edit). (2) **Members & Profiles** list no longer uses an inner max-height scroll pane: full list on the page. (3) Bank append preview: **Approve as Is** per Review row and **Approve Suggested Rows** when Type/Member already look correct (no toggle dance). Files: `app.js`, `styles.css`, `USER-GUIDE.md`. **Production:** `git push` (this deploy).
+- **2026-07-18** — **Admin UX polish deploy:** Production `b2dd327`. Membership Status collapsed; full members list; bank **Approve as Is**. No data upload.
+- **2026-07-18** — **Admin UX polish (all tenants):** (1) Member detail **Membership Status** collapsed by default (expand to edit). (2) **Members & Profiles** list no longer uses an inner max-height scroll pane: full list on the page. (3) Bank append preview: **Approve as Is** per Review row and **Approve Suggested Rows** when Type/Member already look correct (no toggle dance). Files: `app.js`, `styles.css`, `USER-GUIDE.md`. **Production:** `b2dd327`.
 - **2026-07-17** — **Messages HTML render fix deploy:** Production `e9c0678`. Existing minutes threads re-render without resend. Attachments above body. No data upload.
 - **2026-07-17** — **Messages HTML render fix (all tenants):** Member/admin thread view showed raw tags when HTML bodies were stored under default `body_format=markdown`. `formatMessageBody` / `normalizeBodyFormat` now detect HTML content and sanitize as rich HTML. Attachments render **above** the message body. Files: `messaging-service.js`, `app.js`, `styles.css`, `test-messaging.js`. **Production:** `e9c0678`.
 - **2026-07-17** — **Messages rich Word-paste + modern UI deploy:** Production `409dbb3`. Netlify UI + Render API. Hard-refresh Messages after deploy. No data upload.
