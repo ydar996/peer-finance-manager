@@ -208,6 +208,7 @@ Click **Refresh** to reload after imports or manual entries.
 
 - Search by **name** or **member number** (e.g. AIC-001).
 - Click a row to open their profile on the right.
+- The full member list shows on the page (scroll the page if needed; there is no separate short scroll box for the list).
 - Default list shows **Active** members only.
 - Turn on **Show Former Members** to see Resigned, Deceased, Expelled, or Suspended accounts (ledger history still available).
 
@@ -216,7 +217,7 @@ Click **Refresh** to reload after imports or manual entries.
 | Section | Contents |
 |---------|----------|
 | **Membership Biodata** | Name, contact, address, joined date, etc. |
-| **Membership Status** | Admin sets status **type** (Active, Resigned, Deceased, Expelled, Suspended). |
+| **Membership Status** | Collapsed by default. Expand to set status **type** (Active, Resigned, Deceased, Expelled, Suspended). |
 | **Contributions Account** | Balance and transaction history. |
 | **Loan Account** | Active and paid loans with repayment history. |
 | **Upload Photo** | Admin can add or change profile photo. |
@@ -239,7 +240,7 @@ Membership does not only end by resignation. Admins choose the **status type** t
 
 1. Settle the Member Account (withdrawal / payout; clear loans and debts).
 2. Keep written resignation (or other governance record) on file outside the app as required by bylaws.
-3. Open **Members & Accounts** → select the member → under **Membership Status**, choose the correct **Status Type** (e.g. **Resigned**), optional effective date and note.
+3. Open **Members & Profiles** → select the member → expand **Membership Status** → choose the correct **Status Type** (e.g. **Resigned**), optional effective date and note.
 4. Optionally attach a **Resignation/Termination Document** (PDF or image of the written notice) → **Update Membership Status**.
 5. Later, use **Download Document** on that form to retrieve the file on record.
 
@@ -306,7 +307,7 @@ Upload a **cumulative** bank export: **period start through today**. PFM skips r
 |--------|---------|
 | **New** | Will be added. Fix **Type** and **Member** dropdowns if wrong. |
 | **Skipped** | Already in the ledger. Safe to ignore on re-upload. |
-| **Review** | Set **Type** and **Member** before applying. |
+| **Review** | Confirm the row. Change **Type**/**Member** if wrong, or click **Approve as Is** (or **Approve Suggested Rows**) when the suggestion is already correct. |
 
 6. Read the **balance check** line:
    - **Red Blocked:** fix the issue before applying (see [When Numbers Look Wrong](#21-when-numbers-look-wrong)).

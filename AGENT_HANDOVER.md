@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 17, 2026 (messages HTML render fix + attachments on top deployed)  
+**Last updated:** July 18, 2026 (members list, membership status collapse, bank Approve as Is deployed)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,6 +108,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-07-18** — **Admin UX polish (all tenants):** (1) Member detail **Membership Status** collapsed by default (expand to edit). (2) **Members & Profiles** list no longer uses an inner max-height scroll pane: full list on the page. (3) Bank append preview: **Approve as Is** per Review row and **Approve Suggested Rows** when Type/Member already look correct (no toggle dance). Files: `app.js`, `styles.css`, `USER-GUIDE.md`. **Production:** `git push` (this deploy).
 - **2026-07-17** — **Messages HTML render fix deploy:** Production `e9c0678`. Existing minutes threads re-render without resend. Attachments above body. No data upload.
 - **2026-07-17** — **Messages HTML render fix (all tenants):** Member/admin thread view showed raw tags when HTML bodies were stored under default `body_format=markdown`. `formatMessageBody` / `normalizeBodyFormat` now detect HTML content and sanitize as rich HTML. Attachments render **above** the message body. Files: `messaging-service.js`, `app.js`, `styles.css`, `test-messaging.js`. **Production:** `e9c0678`.
 - **2026-07-17** — **Messages rich Word-paste + modern UI deploy:** Production `409dbb3`. Netlify UI + Render API. Hard-refresh Messages after deploy. No data upload.

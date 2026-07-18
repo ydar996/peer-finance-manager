@@ -2137,7 +2137,6 @@ function membershipStatusFormHtml(profile, memberId) {
     : "Choose the Type of Cessation (or Keep Active). Former Members Leave the Active List and Member Emails. Ledger History Is Kept. Membership Cannot Be Restored Later: Returning People Must Register Anew.";
   return `
     <form id="membershipStatusForm" class="membership-status-form" data-member-id="${memberId}" enctype="multipart/form-data">
-      <h4>Membership Status</h4>
       <p class="subtle">${policyNote} Optionally Attach a PDF or Image of the Written Notice.</p>
       <label>Status Type
         <select name="status" required>${optionHtml}</select>
@@ -3316,7 +3315,15 @@ async function showProfile(memberId) {
               : "former"
           }">${escapeHtml(formatAccountStatus(p.cooperative_account_status))}</span></p>
           <div id="profilePasswordResetResult" class="member-password-reset-result hidden"></div>
-          ${membershipStatusFormHtml(p, memberId)}
+          ${
+            currentUser?.role === "admin"
+              ? profileDisclosureHtml(
+                  "Membership Status",
+                  membershipStatusFormHtml(p, memberId),
+                  { extraClass: "membership-status-disclosure" }
+                )
+              : ""
+          }
         </div>
       </div>
 
@@ -5269,7 +5276,8 @@ function updateApplyBankAppendButton() {
     } else if (blockedEnding) {
       btn.title = "Blocked: projected ledger does not match statement ending.";
     } else if ((summary.needsReview || 0) > 0) {
-      btn.title = "Set Type and Member on Review rows first.";
+      btn.title =
+        "Set Type and Member on Review rows, or click Approve as Is when the suggestion is already correct.";
     } else if (bc.idempotentReplay) {
       btn.title = "All statement rows are already in the ledger. Upload again anytime; only New rows apply.";
     } else {
@@ -5291,6 +5299,21 @@ function validateBankAppendRowClient(row) {
   return issues;
 }
 
+function bankAppendRowCanApproveAsIs(row) {
+  if (!row || row.bucket !== "needsReview") return false;
+  return validateBankAppendRowClient(row).length === 0;
+}
+
+function approveBankAppendRowAsIs(row) {
+  if (!row || !bankAppendRowCanApproveAsIs(row)) return false;
+  row.userOverride = true;
+  row.approvedAsIs = true;
+  row.auditKind = null;
+  row.issues = [];
+  row.bucket = "ready";
+  return true;
+}
+
 function rebucketBankAppendPreviewClient() {
   if (!bankAppendPreviewData?.rows) return;
   let ready = 0;
@@ -5301,9 +5324,23 @@ function rebucketBankAppendPreviewClient() {
       skipped += 1;
       continue;
     }
-    const issues = validateBankAppendRowClient(row);
-    row.issues = issues;
-    row.bucket = issues.length ? "needsReview" : "ready";
+    const hardIssues = validateBankAppendRowClient(row);
+    if (row.userOverride || row.approvedAsIs) {
+      row.issues = hardIssues;
+      row.bucket = hardIssues.length ? "needsReview" : "ready";
+      if (row.bucket === "ready") row.auditKind = null;
+    } else if (row.auditKind) {
+      // Keep soft audit Review until Approve as Is or an explicit Type/Member change.
+      row.bucket = "needsReview";
+      if (hardIssues.length) {
+        row.issues = hardIssues;
+      } else if (!row.issues?.length) {
+        row.issues = ["Confirm Type and Member, or click Approve as Is."];
+      }
+    } else {
+      row.issues = hardIssues;
+      row.bucket = hardIssues.length ? "needsReview" : "ready";
+    }
     if (row.bucket === "ready") ready += 1;
     else needsReview += 1;
   }
@@ -5428,12 +5465,21 @@ function renderBankAppendPreview(preview) {
     }
     balanceNote = `<p class="${tone}">${parts.join(" · ")}${suffix}</p>`;
   }
+  const approvableCount = rows.filter((row) => bankAppendRowCanApproveAsIs(row)).length;
+  const approveAllBar =
+    approvableCount > 0
+      ? `<p class="bank-append-approve-bar">
+          <button type="button" class="btn small" id="bankAppendApproveAllSuggested">Approve Suggested Rows (${approvableCount})</button>
+          <span class="subtle">Use when Type and Member already look correct.</span>
+        </p>`
+      : "";
   panel.innerHTML = `
     <strong>Preview</strong>
-    <p class="subtle">Change <strong>Type</strong> or <strong>Member</strong> on <strong>New</strong> or <strong>Review</strong> rows before you add them. Rows already in the ledger (Skipped) cannot be changed here. Upload a cumulative statement from period start through today anytime: duplicates are Skipped for every Cooperative.</p>
+    <p class="subtle">Change <strong>Type</strong> or <strong>Member</strong> when a suggestion is wrong. If a <strong>Review</strong> row already looks correct, click <strong>Approve as Is</strong> (or <strong>Approve Suggested Rows</strong>). Rows already in the ledger (Skipped) cannot be changed here. Upload a cumulative statement from period start through today anytime: duplicates are Skipped for every Cooperative.</p>
     <p id="bankAppendPreviewCounts">${summary.ready || 0} ready to add · ${summary.skipped || 0} already in ledger · ${summary.needsReview || 0} need review</p>
     ${formatNote}
     ${balanceNote}
+    ${approveAllBar}
     <div class="table-wrap">
       <table class="data-table compact bank-append-preview-table">
         <thead>
@@ -5456,6 +5502,12 @@ function renderBankAppendPreview(preview) {
               const memberCell = editable
                 ? bankAppendMemberSelectHtml(row)
                 : escapeHtml(row.member || "");
+              const approveBtn = bankAppendRowCanApproveAsIs(row)
+                ? `<button type="button" class="btn small bank-append-approve-as-is">Approve as Is</button>`
+                : "";
+              const notesHtml = [issues ? escapeHtml(issues) : "", approveBtn]
+                .filter(Boolean)
+                .join("<br>");
               return `<tr data-row-index="${row.index}">
                 <td>${escapeHtml(status)}</td>
                 <td>${escapeHtml(row.date || "")}</td>
@@ -5463,13 +5515,25 @@ function renderBankAppendPreview(preview) {
                 <td>${escapeHtml(fmt.format(row.amount))}</td>
                 <td>${typeCell}</td>
                 <td>${memberCell}</td>
-                <td class="muted">${escapeHtml(issues)}</td>
+                <td class="muted bank-append-notes-cell">${notesHtml || ":"}</td>
               </tr>`;
             })
             .join("")}
         </tbody>
       </table>
     </div>`;
+  updateApplyBankAppendButton();
+}
+
+function refreshBankAppendPreviewAfterApproval() {
+  rebucketBankAppendPreviewClient();
+  renderBankAppendPreview(bankAppendPreviewData);
+  const s = bankAppendPreviewData?.summary || {};
+  const status = $("#bankAppendStatus");
+  if (status) {
+    status.textContent = `Preview ready: ${s.ready || 0} new, ${s.skipped || 0} skipped, ${s.needsReview || 0} need review.`;
+    status.className = s.needsReview ? "status warn" : "status ok";
+  }
   updateApplyBankAppendButton();
 }
 
@@ -5577,7 +5641,7 @@ async function handleApplyBankAppendClick() {
   if (ready <= 0) {
     if (status) {
       if (needsReview > 0) {
-        status.textContent = `${needsReview} row(s) need review. Set Type and Member in the preview table.`;
+        status.textContent = `${needsReview} row(s) need review. Fix Type/Member, or click Approve as Is when the suggestion is already correct.`;
         status.className = "status warn";
       } else if (skipped > 0) {
         status.textContent = `No new transactions to add. ${skipped} row(s) already in the ledger.`;
@@ -5795,21 +5859,36 @@ $("#bankAppendPreview")?.addEventListener("change", (e) => {
     row.typeLabel =
       BANK_APPEND_LEDGER_TYPES.find((t) => t.value === row.ledgerType)?.label || row.ledgerType;
     row.userOverride = true;
+    row.approvedAsIs = false;
   }
   if (e.target.classList.contains("bank-append-member")) {
     row.member = e.target.value || null;
     row.userOverride = true;
+    row.approvedAsIs = false;
   }
 
-  rebucketBankAppendPreviewClient();
-  renderBankAppendPreview(bankAppendPreviewData);
-  const s = bankAppendPreviewData.summary || {};
-  const status = $("#bankAppendStatus");
-  if (status) {
-    status.textContent = `Preview ready: ${s.ready || 0} new, ${s.skipped || 0} skipped, ${s.needsReview || 0} need review.`;
-    status.className = s.needsReview ? "status warn" : "status ok";
+  refreshBankAppendPreviewAfterApproval();
+});
+$("#bankAppendPreview")?.addEventListener("click", (e) => {
+  if (!bankAppendPreviewData) return;
+  if (e.target.id === "bankAppendApproveAllSuggested") {
+    e.preventDefault();
+    let approved = 0;
+    for (const row of bankAppendPreviewData.rows) {
+      if (approveBankAppendRowAsIs(row)) approved += 1;
+    }
+    if (approved) refreshBankAppendPreviewAfterApproval();
+    return;
   }
-  updateApplyBankAppendButton();
+  const btn = e.target.closest(".bank-append-approve-as-is");
+  if (!btn) return;
+  e.preventDefault();
+  const tr = btn.closest("tr[data-row-index]");
+  if (!tr) return;
+  const index = Number(tr.dataset.rowIndex);
+  const row = bankAppendPreviewData.rows.find((r) => r.index === index);
+  if (!approveBankAppendRowAsIs(row)) return;
+  refreshBankAppendPreviewAfterApproval();
 });
 $("#downloadImportTemplateCsv")?.addEventListener("click", (e) => {
   downloadImportTemplate("csv", e.currentTarget);
