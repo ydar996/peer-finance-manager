@@ -8,6 +8,7 @@ const {
   getLoanDocuments,
   createLoanAgreementDocument,
   listPendingApplications,
+  summarizePendingApplications,
   isProvisioningConfigured,
   approveMembershipApplication,
 } = require("./flexxforms-service");
@@ -88,6 +89,15 @@ function registerFlexxFormsRoutes(app) {
     try {
       const slug = requestOrgSlug(req);
       res.json({ applications: listPendingApplications(slug) });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/flexxforms/applications/summary", requireAuth, requireAdmin, (req, res) => {
+    try {
+      const slug = requestOrgSlug(req);
+      res.json(summarizePendingApplications(slug));
     } catch (err) {
       res.status(400).json({ error: err.message });
     }

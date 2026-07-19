@@ -581,12 +581,14 @@ function requireParticipant(user, threadId) {
 function countUnreadForParticipant(participant) {
   const db = getDb();
   if (!participant) return 0;
+  // System notices count as unread for every participant (including the
+  // admin user id used as the technical sender).
   if (participant.last_read_at) {
     return db
       .prepare(
         `SELECT COUNT(*) AS count FROM coop_messages
          WHERE thread_id = ?
-           AND sender_user_id != ?
+           AND (sender_user_id != ? OR sender_role = 'system')
            AND created_at > ?`
       )
       .get(participant.thread_id, participant.user_id, participant.last_read_at).count;
@@ -594,9 +596,112 @@ function countUnreadForParticipant(participant) {
   return db
     .prepare(
       `SELECT COUNT(*) AS count FROM coop_messages
-       WHERE thread_id = ? AND sender_user_id != ?`
+       WHERE thread_id = ?
+         AND (sender_user_id != ? OR sender_role = 'system')`
     )
     .get(participant.thread_id, participant.user_id).count;
+}
+
+/**
+ * Post an unread notice into every active Cooperative admin's Messages inbox.
+ * Used for membership applications and similar system alerts (all tenants).
+ */
+function createSystemAdminNotice({
+  subject,
+  body,
+  sourceKey = null,
+  emailAdmins = true,
+} = {}) {
+  const db = getDb();
+  ensureMessagingSchema(db);
+  const admins = listActiveAdminUsers(db);
+  if (!admins.length) return null;
+
+  const cleanSubject = trimText(assertNonEmpty(subject, "Subject"), MAX_SUBJECT);
+  const prepared = prepareStoredBody(body, "html", []);
+  const key = sourceKey ? trimText(String(sourceKey), 120) : null;
+
+  if (key) {
+    const existing = db
+      .prepare(
+        `SELECT id FROM coop_message_threads
+         WHERE audience = 'admins' AND subject = ?`
+      )
+      .get(cleanSubject);
+    if (existing) {
+      return { id: existing.id, created: false };
+    }
+  }
+
+  const now = new Date().toISOString();
+  const creatorId = admins[0].userId;
+  const insert = db
+    .prepare(
+      `INSERT INTO coop_message_threads
+        (subject, created_by_user_id, created_by_role, audience, created_at, updated_at)
+       VALUES (?, ?, 'system', 'admins', ?, ?)`
+    )
+    .run(cleanSubject, creatorId, now, now);
+  const threadId = insert.lastInsertRowid;
+
+  addAdminParticipants(db, threadId);
+  db.prepare(
+    `INSERT INTO coop_messages
+      (thread_id, sender_user_id, sender_role, sender_member_id, body, body_format, created_at)
+     VALUES (?, ?, 'system', NULL, ?, ?, ?)`
+  ).run(threadId, creatorId, prepared.body, prepared.bodyFormat, now);
+
+  const thread = getThreadRow(threadId);
+  if (emailAdmins) {
+    queueNewMessageEmails({
+      thread,
+      messagePreview: formatMessageBody(prepared.body, prepared.bodyFormat).bodyPreview,
+      recipientUserIds: admins.map((a) => a.userId),
+      senderUserId: null,
+    });
+  }
+
+  return { id: threadId, created: true };
+}
+
+function notifyAdminsOfMembershipApplication({
+  applicationId,
+  applicantName,
+  applicantEmail = null,
+  status = "pending",
+  processingError = null,
+} = {}) {
+  const id = Number(applicationId);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  const name = trimText(applicantName || "Applicant", 120) || "Applicant";
+  const email = trimText(applicantEmail || "", 200);
+  const subject = `New Membership Application #${id}: ${name}`;
+  const statusLabel = processingError
+    ? "Received with a processing error (open Forms & Documents to reprocess)."
+    : status === "awaiting_approval"
+      ? "Ready for review once you confirm fee and initial contribution."
+      : "Pending: record membership fee and initial contribution, then approve.";
+  const body = [
+    `<p><strong>A prospective member applied for membership.</strong></p>`,
+    `<p><strong>Applicant:</strong> ${escapeHtml(name)}</p>`,
+    email ? `<p><strong>Email:</strong> ${escapeHtml(email)}</p>` : "",
+    `<p><strong>Application Id:</strong> ${id}</p>`,
+    `<p>${escapeHtml(statusLabel)}</p>`,
+    `<p>Open <strong>Forms &amp; Documents → Membership Applications</strong> to review and approve.</p>`,
+  ]
+    .filter(Boolean)
+    .join("");
+
+  try {
+    return createSystemAdminNotice({
+      subject,
+      body,
+      sourceKey: `membership-application:${id}`,
+      emailAdmins: true,
+    });
+  } catch (err) {
+    return { created: false, error: err.message };
+  }
 }
 
 function listInbox(user) {
@@ -821,6 +926,8 @@ module.exports = {
   listRecipientOptions,
   createAdminThread,
   createMemberThread,
+  createSystemAdminNotice,
+  notifyAdminsOfMembershipApplication,
   listInbox,
   getUnreadSummary,
   getThreadDetail,

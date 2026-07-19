@@ -302,15 +302,28 @@
         <button type="button" class="tab" data-tab="import" data-roles="admin">Import</button>
         <button type="button" class="tab" data-tab="status-report" data-roles="admin,staff">Status Report</button>
         <button type="button" class="tab" data-tab="meetings" data-roles="admin,staff">Meetings</button>
-        <button type="button" class="tab" data-tab="messages" data-roles="admin">Messages</button>
+        <button type="button" class="tab" data-tab="messages" data-roles="admin">
+          Messages
+          <span class="badge tab-attention-badge hidden" id="messagesTabUnreadBadge">0</span>
+        </button>
         <button type="button" class="tab" data-tab="public-pages" data-roles="admin">Public Pages</button>
         <button type="button" class="tab" data-tab="member-messages" data-roles="member">Messages</button>
-        <button type="button" class="tab" data-tab="forms" data-roles="admin">Forms &amp; Documents</button>
+        <button type="button" class="tab" data-tab="forms" data-roles="admin">
+          Forms &amp; Documents
+          <span class="badge tab-attention-badge hidden" id="formsTabPendingBadge">0</span>
+        </button>
         <button type="button" class="tab" data-tab="subscription" data-roles="admin">Subscription</button>
         <button type="button" class="tab" data-tab="users" data-roles="admin">Users</button>
         <button type="button" class="tab" data-tab="maintenance" data-roles="admin">Maintenance</button>
         <button type="button" class="tab" data-tab="my-account" data-roles="member">My Account</button>
       </nav>
+
+      <div id="adminMembershipAppsNag" class="admin-attention-nag hidden" role="status">
+        <button type="button" class="admin-attention-nag-btn" id="adminMembershipAppsNagBtn">
+          <span class="admin-attention-nag-pulse" aria-hidden="true"></span>
+          <span id="adminMembershipAppsNagText">New Membership Application Waiting</span>
+        </button>
+      </div>
 
       <section id="panel-books" class="panel active">
         <div class="panel-head">
@@ -820,6 +833,8 @@
               <div class="panel-head-actions">
                 <button type="button" class="btn primary" id="savePublicBylawsSettings">Save Bylaws Page</button>
               </div>
+            </div>
+          </details>
 
           <p class="status" id="publicPagesStatus"></p>
         </div>

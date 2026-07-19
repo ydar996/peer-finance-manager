@@ -17,6 +17,7 @@ const { createMember } = require("../lib/member-service");
 const {
   createAdminThread,
   createMemberThread,
+  createSystemAdminNotice,
   listInbox,
   getUnreadSummary,
   getThreadDetail,
@@ -169,6 +170,28 @@ function run() {
     });
     const adminInbox = listInbox(ctx.adminUser);
     assert.ok(adminInbox.some((t) => t.id === fromMember.id && t.hasUnread));
+
+    const notice = createSystemAdminNotice({
+      subject: "New Membership Application #99: Test Applicant",
+      body: "<p><strong>A prospective member applied for membership.</strong></p>",
+      sourceKey: "membership-application:99",
+      emailAdmins: false,
+    });
+    assert.ok(notice?.created);
+    const adminUnread = getUnreadSummary(ctx.adminUser);
+    assert.ok(adminUnread.unreadMessages >= 2);
+    assert.ok(
+      listInbox(ctx.adminUser).some(
+        (t) => t.id === notice.id && t.hasUnread && /Membership Application/.test(t.subject)
+      )
+    );
+    const dup = createSystemAdminNotice({
+      subject: "New Membership Application #99: Test Applicant",
+      body: "<p>Duplicate should not create another thread.</p>",
+      sourceKey: "membership-application:99",
+      emailAdmins: false,
+    });
+    assert.strictEqual(dup.created, false);
 
     const replied = replyToThread(ctx.adminUser, fromMember.id, {
       body: "Yes. Use Download Monthly Statement on My Account.",

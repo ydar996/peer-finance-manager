@@ -535,6 +535,12 @@ function applyRoleUi() {
   document.querySelectorAll(".admin-only-report-settings").forEach((el) => {
     el.classList.toggle("hidden", role !== "admin");
   });
+
+  if (role === "admin") {
+    refreshAdminAttentionBadges();
+  } else {
+    updateMembershipAppsNag({ pendingCount: 0 });
+  }
 }
 
 async function restoreSession() {
@@ -8222,6 +8228,7 @@ async function loadFlexxFormsApplications() {
     const apps = data.applications || [];
     if (!apps.length) {
       list.innerHTML = '<p class="hint">None yet. Share the public membership link and submissions will appear here automatically.</p>';
+      await refreshAdminAttentionBadges();
       return;
     }
     list.innerHTML = apps
@@ -8278,6 +8285,7 @@ async function loadFlexxFormsApplications() {
         if (btn.dataset.memberId) openMemberProfileEditor(Number(btn.dataset.memberId));
       });
     });
+    await refreshAdminAttentionBadges();
   } catch {
     list.innerHTML = '<p class="hint">Unable to load applications</p>';
   }
@@ -9061,6 +9069,72 @@ function updateUnreadBadge(el, unread) {
   }
 }
 
+function updateTabAttentionBadge(el, count, tabSelector) {
+  if (!el) return;
+  const n = Number(count || 0);
+  const tab = tabSelector ? document.querySelector(tabSelector) : el.closest(".tab");
+  if (n > 0) {
+    el.textContent = n > 99 ? "99+" : String(n);
+    el.classList.remove("hidden");
+    el.classList.add("messages-unread-flash");
+    tab?.classList.add("has-attention");
+  } else {
+    el.textContent = "0";
+    el.classList.add("hidden");
+    el.classList.remove("messages-unread-flash");
+    tab?.classList.remove("has-attention");
+  }
+}
+
+function updateMembershipAppsNag(summary) {
+  const nag = $("#adminMembershipAppsNag");
+  const text = $("#adminMembershipAppsNagText");
+  if (!nag) return;
+  const count = Number(summary?.pendingCount || 0);
+  if (count <= 0 || currentUser?.role !== "admin") {
+    nag.classList.add("hidden");
+    return;
+  }
+  nag.classList.remove("hidden");
+  if (text) {
+    text.textContent =
+      count === 1
+        ? "1 Membership Application Needs Attention: Open Forms & Documents"
+        : `${count} Membership Applications Need Attention: Open Forms & Documents`;
+  }
+}
+
+async function refreshAdminAttentionBadges() {
+  if (currentUser?.role !== "admin") {
+    updateMembershipAppsNag({ pendingCount: 0 });
+    updateTabAttentionBadge($("#formsTabPendingBadge"), 0, '.tab[data-tab="forms"]');
+    updateTabAttentionBadge($("#messagesTabUnreadBadge"), 0, '.tab[data-tab="messages"]');
+    return;
+  }
+  try {
+    const [appsRes, msgRes] = await Promise.all([
+      fetch("/api/flexxforms/applications/summary"),
+      fetch("/api/messages/unread"),
+    ]);
+    const apps = appsRes.ok ? await appsRes.json() : { pendingCount: 0 };
+    const unread = msgRes.ok ? await msgRes.json() : { unreadMessages: 0 };
+    updateMembershipAppsNag(apps);
+    updateTabAttentionBadge(
+      $("#formsTabPendingBadge"),
+      apps.pendingCount || 0,
+      '.tab[data-tab="forms"]'
+    );
+    updateTabAttentionBadge(
+      $("#messagesTabUnreadBadge"),
+      unread.unreadMessages || 0,
+      '.tab[data-tab="messages"]'
+    );
+    updateUnreadBadge($("#adminMessagesUnreadBadge"), unread);
+  } catch {
+    /* ignore badge refresh errors */
+  }
+}
+
 async function refreshMyMessagesEntry() {
   const btn = $("#openMyMessagesBtn");
   const label = $("#openMyMessagesLabel");
@@ -9287,9 +9361,14 @@ function renderThreadMessages(host, messages, currentUserId) {
   }
   host.innerHTML = messages
     .map((msg) => {
-      const fromSelf = Number(msg.senderUserId) === Number(currentUserId);
+      const fromSelf =
+        msg.senderRole !== "system" && Number(msg.senderUserId) === Number(currentUserId);
       const roleLabelText =
-        msg.senderRole === "admin" ? "Cooperative Admin" : escapeHtml(msg.senderName || "Member");
+        msg.senderRole === "system"
+          ? "System Notice"
+          : msg.senderRole === "admin"
+            ? "Cooperative Admin"
+            : escapeHtml(msg.senderName || "Member");
       const bodyHtml =
         msg.bodyHtml ||
         `<p>${escapeHtml(msg.body || "").replace(/\n/g, "<br>")}</p>`;
@@ -9378,6 +9457,7 @@ async function loadAdminMessagesPanel() {
       emptyText: "No Messages Yet. Send Minutes or a Note to Members Above.",
       onOpen: openAdminMessageThread,
     });
+    await refreshAdminAttentionBadges();
   } catch (err) {
     if (list) list.innerHTML = `<li class="hint">${escapeHtml(err.message)}</li>`;
   }
@@ -9398,11 +9478,14 @@ async function openAdminMessageThread(threadId) {
       .filter(Boolean);
     $("#adminMessagesThreadMeta").textContent = memberNames.length
       ? `With: ${memberNames.join(", ")}`
-      : "Conversation";
+      : thread.createdByRole === "system"
+        ? "System Notice for Cooperative Admins"
+        : "Conversation";
     renderThreadMessages($("#adminMessagesThreadMessages"), thread.messages || [], currentUser?.id);
-    $("#adminMessageReplyBody").value = "";
+    clearRichEditor($("#adminMessageReplyEditor"));
     showAdminMessagesThread();
     updateUnreadBadge($("#adminMessagesUnreadBadge"), thread.unread);
+    await refreshAdminAttentionBadges();
     setFormStatus(status, "", true);
   } catch (err) {
     setFormStatus(status, err.message, false);
@@ -9448,6 +9531,10 @@ async function openMemberMessageThread(threadId) {
     setFormStatus(status, err.message, false);
   }
 }
+
+$("#adminMembershipAppsNagBtn")?.addEventListener("click", () => {
+  switchTab("forms");
+});
 
 $("#openMyMessagesBtn")?.addEventListener("click", () => {
   switchTab("member-messages");

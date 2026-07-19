@@ -1,3 +1,5 @@
+const { repairOcrWordSplits } = require("./ocr-text-repair");
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -39,8 +41,27 @@ function isLikelyHeading(line, nextLine) {
   return nextLine.length > 50 || line.length <= 48;
 }
 
+function parseArticleHeading(line) {
+  const m = String(line || "").match(
+    /^Article\s+(\d+)\s*[.:)]?\s*(.*)$/i
+  );
+  if (!m) return null;
+  const num = m[1];
+  let title = repairOcrWordSplits(m[2] || "").replace(/^[\s.:]+/, "").trim();
+  // "Article 17Indemnification" style (no space after number)
+  if (!title) {
+    const glued = String(line || "").match(/^Article\s+(\d+)([A-Za-z].*)$/i);
+    if (glued) {
+      title = repairOcrWordSplits(glued[2]).trim();
+    }
+  }
+  if (!title) return null;
+  return { num, title };
+}
+
 function plainTextToPublicHtml(text) {
-  const normalized = String(text || "").replace(/\r\n/g, "\n").trim();
+  const repaired = repairOcrWordSplits(String(text || "").replace(/\r\n/g, "\n"));
+  const normalized = repaired.trim();
   if (!normalized) return "";
 
   const lines = normalized.split("\n");
@@ -62,11 +83,11 @@ function plainTextToPublicHtml(text) {
       continue;
     }
 
-    const bulletMatch = line.match(/^(?:[-•*]|\d+[.)])\s+(.+)$/);
+    const bulletMatch = line.match(/^(?:[-•*]|\d+[.)]|[a-z][.)])\s+(.+)$/i);
     if (bulletMatch) {
       if (!inList) {
         closeList();
-        out.push("<ul>");
+        out.push('<ul class="cp-legal-list">');
         inList = true;
       }
       out.push(`<li>${escapeHtml(bulletMatch[1])}</li>`);
@@ -89,8 +110,21 @@ function plainTextToPublicHtml(text) {
       continue;
     }
 
+    const article = parseArticleHeading(line);
+    if (article) {
+      out.push(
+        `<h2 class="cp-section-title"><span class="cp-article-num">Article ${escapeHtml(article.num)}</span><span class="cp-article-name">${escapeHtml(article.title)}</span></h2>`
+      );
+      continue;
+    }
+
+    if (/^Certificate of Secretary$/i.test(line)) {
+      out.push(`<h2 class="cp-section-title">${escapeHtml(line)}</h2>`);
+      continue;
+    }
+
     if (isLikelyHeading(line, nextLine)) {
-      out.push(`<h2>${escapeHtml(line)}</h2>`);
+      out.push(`<h2 class="cp-section-title">${escapeHtml(line)}</h2>`);
       continue;
     }
 
@@ -123,6 +157,7 @@ module.exports = {
   escapeHtml,
   htmlToPlainText,
   plainTextToPublicHtml,
+  parseArticleHeading,
   normalizeExternalUrl,
   isValidExternalUrl,
 };

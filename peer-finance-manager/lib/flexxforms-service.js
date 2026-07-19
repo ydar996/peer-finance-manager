@@ -720,6 +720,17 @@ async function handleFormSubmitted(slug, payload) {
           `UPDATE flexxforms_applications SET applicant_name = ?, applicant_email = ? WHERE id = ?`
         ).run(parsed.displayName || null, parsed.email || null, applicationId);
         const result = processMembershipFormSubmission(applicationId, payload);
+        try {
+          const { notifyAdminsOfMembershipApplication } = require("./messaging-service");
+          notifyAdminsOfMembershipApplication({
+            applicationId,
+            applicantName: parsed.displayName,
+            applicantEmail: parsed.email,
+            status: result?.status || "pending",
+          });
+        } catch (_) {
+          /* notice is best-effort */
+        }
         return {
           ok: true,
           kind,
@@ -731,6 +742,22 @@ async function handleFormSubmitted(slug, payload) {
         db.prepare(
           `UPDATE flexxforms_applications SET status = 'error', processing_error = ? WHERE id = ?`
         ).run(err.message, applicationId);
+        try {
+          const { notifyAdminsOfMembershipApplication } = require("./messaging-service");
+          const nameGuess =
+            db
+              .prepare(`SELECT applicant_name, applicant_email FROM flexxforms_applications WHERE id = ?`)
+              .get(applicationId) || {};
+          notifyAdminsOfMembershipApplication({
+            applicationId,
+            applicantName: nameGuess.applicant_name || "Applicant",
+            applicantEmail: nameGuess.applicant_email || null,
+            status: "error",
+            processingError: err.message,
+          });
+        } catch (_) {
+          /* notice is best-effort */
+        }
         return { ok: false, kind, applicationId, error: err.message };
       }
     }
@@ -848,6 +875,13 @@ function listPendingApplications(slug) {
   });
 }
 
+function summarizePendingApplications(slug) {
+  return runWithOrg(slug, () => {
+    const { summarizeMembershipApplications } = require("./flexxforms-membership-service");
+    return summarizeMembershipApplications();
+  });
+}
+
 module.exports = {
   FLEXXFORMS_LOGIN_URL,
   FLEXXFORMS_EMBED_BASE,
@@ -870,6 +904,7 @@ module.exports = {
   handleWebhook,
   reprocessMembershipApplicationWithFetch,
   listPendingApplications,
+  summarizePendingApplications,
   findOrganizationByWebhookSecret,
   approveMembershipApplication: async (slug, applicationId, userId) =>
     runWithOrg(slug, () => {

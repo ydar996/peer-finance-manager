@@ -454,12 +454,14 @@ Admins compose in a **rich text box**: paste from Microsoft Word and keep basic 
 
 ## 16. Public Pages Tab
 
-Publish content for **prospective members** (no login required).
+Publish content for **prospective members** (no login required). Available to every Cooperative admin under **Public Pages**.
 
 | Section | Options |
 |---------|---------|
-| **About Us Page** | Paste plain text (PFM formats it), upload images, or link to an external About URL. Toggle **Publish**. Click **Save About Page**. |
-| **Bylaws Page** | Paste text, upload PDF, or link to external bylaws URL. Toggle **Publish**. Click **Save Bylaws Page**. |
+| **About Us Page** | Expand **About Us Page**, paste plain text from Word or a PDF (PFM formats headings and lists), upload images, or link to an external About URL. Toggle **Publish**. Click **Save About Page**. |
+| **Bylaws Page** | Expand **Bylaws Page**, paste plain text (OCR word-split cleanup + **Article** heading formatting), optionally upload a PDF for download/viewing, or link to an external bylaws URL. Toggle **Publish**. Click **Save Bylaws Page**. |
+
+**What the app does and does not do:** Paste text works for any tenant. Uploading a Word or PDF file does **not** auto-extract a full formatted page the way Messages handles Word paste; copy text from the document into the textarea, or keep a PDF as an optional attachment on Bylaws. To change a few words later: open the same section, edit the text, then Save.
 
 Public links appear at the top of this tab to copy and share.
 
@@ -495,15 +497,19 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
 ### Membership applications workflow
 
 1. Applicant submits via public **Apply for Membership** link.
-2. Application appears under **Membership Applications** as **Pending Approval**.
-3. Applicant does **not** appear on **Members & Accounts** yet.
-4. Before **Approve Member**, record on their profile:
+2. Cooperative admins are notified in three ways:
+   - Flashing badge on the **Forms & Documents** tab
+   - A flashing banner under the main tabs (click it to open Forms & Documents)
+   - An unread **System Notice** in **Messages** (and an email tip when email is configured)
+3. Application appears under **Membership Applications** as **Pending Approval**.
+4. Applicant does **not** appear on **Members & Accounts** yet.
+5. Before **Approve Member**, record on their profile:
    - **Membership fee** ($100) — **Record** tab or fee workflow.
    - **Initial contribution** ($100 deposit) — **Record** → **Member Contributions Account**.
-5. When both are recorded, status becomes **Ready for Approval**.
-6. Click **Approve Member** to activate the account.
-7. PFM creates their portal login and **emails** the temporary password when email is configured and an address is on file.
-8. A short login message appears so you can **Copy Welcome Message** (or copy just the temporary password) and send it yourself if needed.
+6. When both are recorded, status becomes **Ready for Approval**.
+7. Click **Approve Member** to activate the account.
+8. PFM creates their portal login and **emails** the temporary password when email is configured and an address is on file.
+9. A short login message appears so you can **Copy Welcome Message** (or copy just the temporary password) and send it yourself if needed.
 
 **Delete** removes a test or mistaken application (only if still Pending Approval with no ledger activity).
 

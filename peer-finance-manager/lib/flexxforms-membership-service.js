@@ -1173,6 +1173,22 @@ function listMembershipApplications() {
   });
 }
 
+/** Open membership applications that still need Cooperative admin attention. */
+function summarizeMembershipApplications() {
+  const apps = listMembershipApplications();
+  const open = apps.filter((a) =>
+    ["pending", "awaiting_payment", "awaiting_approval", "error"].includes(a.status)
+  );
+  return {
+    pendingCount: open.length,
+    awaitingPayment: open.filter((a) => a.status === "awaiting_payment" || a.status === "pending")
+      .length,
+    awaitingApproval: open.filter((a) => a.status === "awaiting_approval").length,
+    errorCount: open.filter((a) => a.status === "error").length,
+    hasPending: open.length > 0,
+  };
+}
+
 module.exports = {
   PENDING_ACCOUNT_STATUS,
   parseFlexxFormsMembershipPayload,
@@ -1189,5 +1205,6 @@ module.exports = {
   approveMembershipApplication,
   getApplicantPaymentReadiness,
   listMembershipApplications,
+  summarizeMembershipApplications,
   ensureMembershipApplicationSchema,
 };

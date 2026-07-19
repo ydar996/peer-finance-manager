@@ -2064,6 +2064,58 @@ tr.loan-row:hover { background: #f8fafc; }
   display: none !important;
 }
 
+.tab-attention-badge {
+  margin-left: 0.35rem;
+  vertical-align: middle;
+  background: #fee2e2;
+  color: #991b1b;
+}
+.tab-attention-badge.messages-unread-flash,
+.tab.has-attention .tab-attention-badge {
+  animation: messages-unread-pulse 1.2s ease-in-out infinite;
+}
+.tab.has-attention {
+  border-color: #fca5a5;
+  box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.12);
+}
+
+.admin-attention-nag {
+  margin: 0 0 0.85rem;
+}
+.admin-attention-nag.hidden {
+  display: none;
+}
+.admin-attention-nag-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 46px;
+  padding: 0.65rem 1rem;
+  border: 1px solid #fda4af;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #fff1f2 0%, #fff7ed 55%, #fff 100%);
+  color: #9f1239;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  animation: messages-entry-glow 1.6s ease-in-out infinite;
+}
+.admin-attention-nag-btn:hover,
+.admin-attention-nag-btn:focus-visible {
+  outline: none;
+  border-color: #f43f5e;
+}
+.admin-attention-nag-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #e11d48;
+  flex-shrink: 0;
+  animation: messages-unread-pulse 1.2s ease-in-out infinite;
+}
+
 .messages-panel-head {
   align-items: flex-start;
   gap: 1rem;
