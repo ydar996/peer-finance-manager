@@ -131,7 +131,7 @@ Your Cooperative can share public pages (no login):
 | **Bylaws** | `/c/{your-org-code}/bylaws` |
 | **Apply for Membership** | Linked from About Us or Bylaws |
 
-On a phone, rotate to **landscape** for a wider signature area. The page header and footer hide automatically while you sign.
+On a phone, rotate to **landscape** for a wider signature area. The page header and footer hide automatically while you sign. After signing, scroll **inside the form** to reach Submit (the embed stays viewport-sized so the page does not stretch with a large empty gap).
 
 After you submit an application, it goes to administrators automatically.
 

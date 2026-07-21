@@ -60,11 +60,22 @@
     return window.innerHeight || document.documentElement.clientHeight || 480;
   }
 
+  function isLandscapeSigningViewport() {
+    try {
+      return window.matchMedia("(orientation: landscape) and (max-height: 520px)").matches;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /**
+   * Fit the visible page shell. The form scrolls inside the iframe.
+   * Growing to FlexxForms document height caused endless gaps near the signature pad.
+   */
   function defaultFormIframeHeight() {
-    var vw = window.innerWidth || 390;
     var vh = viewportHeight();
-    if (vw < 768) return Math.max(3200, Math.round(vh * 4));
-    return Math.max(3600, Math.round(vh * 3));
+    var chrome = isLandscapeSigningViewport() ? 20 : 168;
+    return Math.max(480, Math.round(vh - chrome));
   }
 
   function buildPublicFormUrl(formId) {
@@ -80,17 +91,17 @@
     );
   }
 
-  function prepareIframe(iframe, minHeight) {
+  function prepareIframe(iframe, heightPx) {
     if (!iframe) return;
+    var h = Math.max(480, Math.round(heightPx));
     iframe.setAttribute("scrolling", "yes");
     iframe.setAttribute("allow", "fullscreen");
     iframe.style.width = "100%";
     iframe.style.display = "block";
     iframe.style.border = "0";
-    iframe.style.minHeight = Math.max(480, minHeight) + "px";
-    if (!iframe.style.height || parseInt(iframe.style.height, 10) < minHeight) {
-      iframe.style.height = Math.max(480, minHeight) + "px";
-    }
+    iframe.style.height = h + "px";
+    iframe.style.minHeight = h + "px";
+    iframe.style.maxHeight = h + "px";
   }
 
   function dedupeFlexxFormsIframes(container) {
@@ -145,14 +156,14 @@
     }
   }
 
-  function mountDirectIframe(container, opts, formId, formTitle, minHeight) {
+  function mountDirectIframe(container, opts, formId, formTitle, shellHeight) {
     var iframe = document.createElement("iframe");
     iframe.className = "flexxforms-public-embed-frame";
     iframe.title = formTitle;
     iframe.src = buildPublicFormUrl(formId);
-    prepareIframe(iframe, minHeight);
+    prepareIframe(iframe, shellHeight);
     container.appendChild(iframe);
-    bindFlexxFormsEmbedResize(iframe, { minHeight: 480 });
+    bindFlexxFormsEmbedResize(iframe, { minHeight: 480, mode: "shell" });
     wireLifecycleListeners(formId, opts);
     iframe.dataset.flexxformsFormId = formId;
     return iframe;
@@ -170,7 +181,7 @@
     }
 
     var formTitle = opts.formTitle || "Application form";
-    var minHeight = opts.minHeight || defaultFormIframeHeight();
+    var shellHeight = opts.minHeight || defaultFormIframeHeight();
     var usePublicSdk = opts.usePublicSdk !== false;
 
     container.innerHTML = "";
@@ -178,7 +189,7 @@
     container.dataset.flexxformsMounted = formId;
 
     if (!usePublicSdk) {
-      return Promise.resolve(mountDirectIframe(container, opts, formId, formTitle, minHeight));
+      return Promise.resolve(mountDirectIframe(container, opts, formId, formTitle, shellHeight));
     }
 
     var host = document.createElement("div");
@@ -191,7 +202,7 @@
         host.setAttribute("data-form-path", "p");
         host.setAttribute("data-embed-mode", "public");
         host.setAttribute("data-form-title", formTitle);
-        host.setAttribute("data-min-height", String(minHeight));
+        host.setAttribute("data-min-height", String(shellHeight));
 
         if (!host.querySelector("iframe[data-flexxforms-form-id]")) {
           if (typeof global.FlexxForms?.mount === "function") {
@@ -205,8 +216,8 @@
           dedupeFlexxFormsIframes(container);
           var iframe = findEmbedIframe(container);
           if (iframe) {
-            prepareIframe(iframe, minHeight);
-            bindFlexxFormsEmbedResize(iframe, { minHeight: 480 });
+            prepareIframe(iframe, defaultFormIframeHeight());
+            bindFlexxFormsEmbedResize(iframe, { minHeight: 480, mode: "shell" });
           }
         }
 
@@ -218,36 +229,82 @@
       })
       .catch(function () {
         container.innerHTML = "";
-        return mountDirectIframe(container, opts, formId, formTitle, minHeight);
+        return mountDirectIframe(container, opts, formId, formTitle, shellHeight);
       });
   }
 
-  /** FlexxForms-recommended resize listener. */
+  /**
+   * Shell mode (default): keep iframe at viewport shell height; scroll inside.
+   * Content-based grow was abandoned: signature pads inflate document height and create
+   * endless whitespace between the pad and Submit, plus scroll thrash.
+   */
   function bindFlexxFormsEmbedResize(iframe, opts) {
     if (!iframe || iframe.dataset.flexxformsBound === "1") return function () {};
     iframe.dataset.flexxformsBound = "1";
     var minHeight = (opts && opts.minHeight) || 480;
-    var maxSeenHeight = Math.max(minHeight, parseInt(iframe.style.height, 10) || minHeight);
+    var mode = (opts && opts.mode) || "shell";
+    var applying = false;
 
-    function applyHeight(height) {
-      maxSeenHeight = Math.max(maxSeenHeight, Math.ceil(height));
-      iframe.style.height = maxSeenHeight + "px";
-      iframe.style.minHeight = Math.max(minHeight, maxSeenHeight) + "px";
+    function shellHeight() {
+      return Math.max(minHeight, defaultFormIframeHeight());
+    }
+
+    function applyShell() {
+      applying = true;
+      prepareIframe(iframe, shellHeight());
+      // Release on next frame so MutationObserver can ignore our own writes.
+      requestAnimationFrame(function () {
+        applying = false;
+      });
     }
 
     function onMessage(event) {
       if (!isFlexxFormsOrigin(event.origin)) return;
       var data = event.data;
       if (!data || data.type !== "flexxforms:resize") return;
+      if (mode === "shell") {
+        applyShell();
+        return;
+      }
       if (typeof data.height !== "number" || data.height <= 0) return;
-      applyHeight(Math.max(minHeight, data.height + 48));
+      var next = Math.max(minHeight, Math.ceil(data.height + 48));
+      var cap = Math.max(shellHeight() * 1.25, 1200);
+      prepareIframe(iframe, Math.min(next, cap));
+    }
+
+    function onViewportChange() {
+      applyShell();
+    }
+
+    var observer = null;
+    if (typeof MutationObserver === "function") {
+      observer = new MutationObserver(function () {
+        if (applying || mode !== "shell") return;
+        var current = parseInt(iframe.style.height, 10) || 0;
+        var target = shellHeight();
+        if (Math.abs(current - target) > 24) {
+          applyShell();
+        }
+      });
+      observer.observe(iframe, { attributes: true, attributeFilter: ["style"] });
     }
 
     window.addEventListener("message", onMessage);
-    prepareIframe(iframe, maxSeenHeight);
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("orientationchange", onViewportChange);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onViewportChange);
+    }
+    applyShell();
 
     return function unbind() {
       window.removeEventListener("message", onMessage);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("orientationchange", onViewportChange);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", onViewportChange);
+      }
+      if (observer) observer.disconnect();
       delete iframe.dataset.flexxformsBound;
     };
   }

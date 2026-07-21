@@ -1008,6 +1008,15 @@ body.cp-public {
 
 .cp-page-apply-active .cp-apply-embed-host {
   min-height: min(70vh, 720px);
+  /* Shell-sized iframe: form scrolls inside; avoids signature-pad height blowouts */
+  overflow: hidden;
+}
+
+.cp-page-apply-active .cp-apply-embed-host iframe,
+.cp-page-apply-active .flexxforms-embed-mount iframe {
+  width: 100%;
+  display: block;
+  border: 0;
 }
 
 /* Landscape signing: hide chrome so the signature pad gets the screen */
