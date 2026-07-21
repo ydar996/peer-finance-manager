@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** July 20, 2026 (Apply embed shell-height fix for signature/submit gap)  
+**Last updated:** July 20, 2026 (Apply embed signature/submit gap deploy a71d895)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,7 +108,8 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
-- **2026-07-20** — **Apply for Membership embed: signature/submit gap fix:** Stop growing the FlexxForms iframe to inflated document heights (signature pad was creating endless whitespace + scroll glitch). Embed now stays at viewport shell height; form scrolls inside the iframe. MutationObserver fights embed.js restretch. Files: `flexxforms-embed.js`, `cooperative-public.css`, `cooperative-public.html`, `USER-GUIDE.md`. **Production:** `git push` (Netlify UI; hard-refresh apply page).
+- **2026-07-20** — **Apply embed signature/submit gap deploy:** Production `a71d895`. Netlify UI; hard-refresh apply page. No data upload.
+- **2026-07-20** — **Apply for Membership embed: signature/submit gap fix:** Stop growing the FlexxForms iframe to inflated document heights (signature pad was creating endless whitespace + scroll glitch). Embed now stays at viewport shell height; form scrolls inside the iframe. MutationObserver fights embed.js restretch. Files: `flexxforms-embed.js`, `cooperative-public.css`, `cooperative-public.html`, `USER-GUIDE.md`. **Production:** `a71d895`.
 - **2026-07-19** — **Membership alerts + bylaws cleanup deploy:** Production `478950c`. Admin membership-application nag/Messages notice; Assurance bylaws OCR/article/certificate seed v13; Public Pages Bylaws admin disclosure fix. No data upload; Render reseed applies Assurance bylaws on API restart.
 - **2026-07-18** — **Public Pages admin Bylaws disclosure:** Closed missing `</div></details>` around **Bylaws Page** in `index.html` so the section expands and shows Bylaws Text / PDF upload like About Us. **Production:** `git push` (this deploy).
 - **2026-07-18** — **Assurance Bylaws page cleanup:** Fixed OCR mid-word splits (`s hall` → shall, etc.), proper Article headers (`Article N` badge + title) with body text styling, Articles 14–18 as separate sections, Certificate filled with **December 9, 2022** and **Assurance Cooperative Executive Committee**. Seed version **13** (auto-applies on API restart). Files: `ocr-text-repair.js`, `public-plain-text-html.js`, `seed/assurance/public/bylaws.html`, `cooperative-public.css`, `cooperative-public-pages-service.js`. Test: `npm run test:ocr-text-repair`. **Production:** `git push` (this deploy; Render reseed).
@@ -704,7 +705,7 @@ Peer Finance Manager / Assurance Cooperative
 | 4r | ~~**Member portal Apply for a Loan (end-to-end)**~~ | ✅ **Done** 2026-07-17 — Assign Loan Form Id; webhook → Loan Applications list; admin approve creates loan (2 guarantors). Guarantor/borrower e-sign docs remain separate (existing Loans tab agreements). **Deploy:** `git push`. |
 | 4s | ~~**Cooperative inbox messaging (all tenants)**~~ | ✅ **Done** 2026-07-17 — Inbox + unread; **rich Word-paste composer** + modern UI + attachments. Deployed `409dbb3`. |
 | 4t | ~~**Admin nag + Messages notice on new membership application**~~ | ✅ **Done** 2026-07-18 — Forms tab flash + banner; system notice in admin Messages; optional email tip. **Deployed** 2026-07-19. |
-| 4u | ~~**Apply embed signature/submit endless gap**~~ | ✅ **Done** 2026-07-20 — Shell-height iframe + internal scroll; ignore content-height resize blowouts. **Deploy:** `git push`. |
+| 4u | ~~**Apply embed signature/submit endless gap**~~ | ✅ **Done** 2026-07-20 — Shell-height iframe + internal scroll; ignore content-height resize blowouts. **Deployed** `a71d895`. |
 | 5 | ~~**Wire bank import into Import tab UI**~~ | ✅ Done — **Import New Bank Activity** (append) + **Full Ledger Refresh** (advanced). APIs: `POST /api/bank-import/append/preview`, `append/apply`, `run`. |
 | 6 | ~~**Persist Title Case in database (backfill)**~~ | ✅ **Done** 2026-07-11 — **Admin → Maintenance → Normalize Profiles** on production (or CLI with `--org`). Display/save formatters already live. |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |
