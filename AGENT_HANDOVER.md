@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 6, 2026 (SaaS pricing $27.99 / 1% quarterly / 4% annual)  
+**Last updated:** August 6, 2026 (SaaS pricing $29.99 / 1% quarterly / 4% annual)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,7 +108,8 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
-- **2026-08-06** — **SaaS pricing update (all tenants):** Monthly **$27.99** (was $24.99); quarterly **1% off** → **$83.13**; annual **4% off** → **$322.44**. Source: `platform-billing-constants.js` (Stripe checkout amounts + API `pricing`). User-facing: marketing `product.html` pricing cards; platform Record Check Payment plan labels; admin Subscription pay buttons (API-driven). Docs: `USER-GUIDE.md` §19, `STRIPE-PAYMENTS-GUIDE.md`, `STRIPE-SETUP.md`. **Production:** `b58a8f6` (`git push`; Netlify UI + Render API; no data upload). Existing Stripe subscribers keep their old price until they start a new checkout.
+- **2026-08-06** — **SaaS pricing $29.99 (all tenants):** Monthly **$29.99** (was $27.99 / earlier $24.99); quarterly **1% off** → **$89.07**; annual **4% off** → **$345.48**. Same discount terms. Source: `platform-billing-constants.js` + marketing `product.html`, platform check-plan labels, docs. **Production:** needs `git push` (Netlify UI + Render API; no data upload).
+- **2026-08-06** — **SaaS pricing update (all tenants):** Monthly **$27.99** (was $24.99); quarterly **1% off** → **$83.13**; annual **4% off** → **$322.44**. Superseded same day by $29.99. **Production:** `b58a8f6`.
 - **2026-07-30** — **Assurance subscription grace +20 days (ops):** Platform `extend-grace` for slug `assurance`: `subscription_grace_until` → **2026-08-21** (was 2026-08-01; full access through that date). Status remains `check_pending` (check pickup pending). Note stored on org. No code deploy.
 - **2026-07-20** — **Apply embed signature/submit gap deploy:** Production `a71d895`. Netlify UI; hard-refresh apply page. No data upload.
 - **2026-07-20** — **Apply for Membership embed: signature/submit gap fix:** Stop growing the FlexxForms iframe to inflated document heights (signature pad was creating endless whitespace + scroll glitch). Embed now stays at viewport shell height; form scrolls inside the iframe. MutationObserver fights embed.js restretch. Files: `flexxforms-embed.js`, `cooperative-public.css`, `cooperative-public.html`, `USER-GUIDE.md`. **Production:** `a71d895`.

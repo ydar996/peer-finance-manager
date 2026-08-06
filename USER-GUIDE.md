@@ -545,9 +545,9 @@ Manage your Cooperative's **Peer Finance Manager** platform subscription (Stripe
 
 | Plan | Price |
 |------|-------|
-| Monthly | $27.99 |
-| Quarterly | $83.13 (1% off) |
-| Annual | $322.44 (4% off) |
+| Monthly | $29.99 |
+| Quarterly | $89.07 (1% off) |
+| Annual | $345.48 (4% off) |
 
 Pay by card (Stripe) or request check payment to Work Chop Inc. Larger Cooperatives: contact Work Chop for enterprise pricing.
 

@@ -1,5 +1,5 @@
 /** Peer Finance Manager SaaS pricing (USD). */
-const MONTHLY_PRICE_USD = 27.99;
+const MONTHLY_PRICE_USD = 29.99;
 const QUARTERLY_DISCOUNT_RATE = 0.01;
 const ANNUAL_DISCOUNT_RATE = 0.04;
 const QUARTERLY_PRICE_USD =
