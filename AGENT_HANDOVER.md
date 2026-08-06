@@ -108,7 +108,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
-- **2026-08-06** — **SaaS pricing $29.99 (all tenants):** Monthly **$29.99** (was $27.99 / earlier $24.99); quarterly **1% off** → **$89.07**; annual **4% off** → **$345.48**. Same discount terms. Source: `platform-billing-constants.js` + marketing `product.html`, platform check-plan labels, docs. **Production:** needs `git push` (Netlify UI + Render API; no data upload).
+- **2026-08-06** — **SaaS pricing $29.99 (all tenants):** Monthly **$29.99** (was $27.99 / earlier $24.99); quarterly **1% off** → **$89.07**; annual **4% off** → **$345.48**. Same discount terms. Source: `platform-billing-constants.js` + marketing `product.html`, platform check-plan labels, docs. **Production:** `4c31805` (`git push`; Netlify UI + Render API; no data upload).
 - **2026-08-06** — **SaaS pricing update (all tenants):** Monthly **$27.99** (was $24.99); quarterly **1% off** → **$83.13**; annual **4% off** → **$322.44**. Superseded same day by $29.99. **Production:** `b58a8f6`.
 - **2026-07-30** — **Assurance subscription grace +20 days (ops):** Platform `extend-grace` for slug `assurance`: `subscription_grace_until` → **2026-08-21** (was 2026-08-01; full access through that date). Status remains `check_pending` (check pickup pending). Note stored on org. No code deploy.
 - **2026-07-20** — **Apply embed signature/submit gap deploy:** Production `a71d895`. Netlify UI; hard-refresh apply page. No data upload.
