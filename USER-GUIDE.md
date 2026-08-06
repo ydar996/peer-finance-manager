@@ -541,6 +541,16 @@ Temporary passwords must be changed on first member sign-in. Former members cann
 
 Manage your Cooperative's **Peer Finance Manager** platform subscription (Stripe or check payment). Admin only.
 
+**Standard plans** (up to 25 members):
+
+| Plan | Price |
+|------|-------|
+| Monthly | $27.99 |
+| Quarterly | $83.13 (1% off) |
+| Annual | $322.44 (4% off) |
+
+Pay by card (Stripe) or request check payment to Work Chop Inc. Larger Cooperatives: contact Work Chop for enterprise pricing.
+
 ---
 
 ## 20. Common Monthly Workflows

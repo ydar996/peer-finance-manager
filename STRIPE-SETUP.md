@@ -15,9 +15,9 @@ Work Chop Inc. — existing Stripe account, Live mode only.
 
 | Plan | USD |
 |------|-----|
-| Monthly | 24.99 |
-| Quarterly | 71.22 |
-| Annual | 272.89 |
+| Monthly | 27.99 |
+| Quarterly (1% off) | 83.13 |
+| Annual (4% off) | 322.44 |
 
 ## Render env vars
 

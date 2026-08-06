@@ -688,6 +688,13 @@ async function loadPlatformOrganizations() {
     if (pricingEl && pricing) {
       pricingEl.textContent = formatSaasPricingLine(pricing, data.stripeConfigured);
     }
+    const checkPlanSelect = document.querySelector('#platformCheckPaymentForm select[name="plan"]');
+    if (checkPlanSelect && pricing) {
+      checkPlanSelect.innerHTML = `
+        <option value="monthly">Monthly ($${pricing.monthlyPriceUsd.toFixed(2)})</option>
+        <option value="quarterly">Quarterly ($${pricing.quarterlyPriceUsd.toFixed(2)} : ${pricing.quarterlyDiscountPercent}% discount)</option>
+        <option value="annual">Annual ($${pricing.annualPriceUsd.toFixed(2)} : ${pricing.annualDiscountPercent}% discount)</option>`;
+    }
     const orgs = data.organizations || [];
     if (!orgs.length) {
       body.innerHTML = `<tr><td colspan="9" class="subtle">No Cooperatives registered yet.</td></tr>`;

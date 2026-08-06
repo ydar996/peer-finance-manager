@@ -154,13 +154,13 @@ function planCheckoutDetails(plan) {
     case SUBSCRIPTION_PLAN.QUARTERLY:
       return {
         amount: QUARTERLY_AMOUNT_CENTS,
-        label: "Quarterly (5% discount)",
+        label: "Quarterly (1% discount)",
         recurring: { interval: "month", interval_count: 3 },
       };
     case SUBSCRIPTION_PLAN.ANNUAL:
       return {
         amount: ANNUAL_AMOUNT_CENTS,
-        label: "Annual (9% discount)",
+        label: "Annual (4% discount)",
         recurring: { interval: "year" },
       };
     default:

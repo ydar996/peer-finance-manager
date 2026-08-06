@@ -44,9 +44,9 @@ Until **both** #1 and #2 are on Render and you **redeploy**, the Pay buttons wil
 
 **Subscription prices** (already built into the software — you do not type these into Stripe):
 
-- **$24.99** per month  
-- **$71.22** every 3 months  
-- **$272.89** per year  
+- **$27.99** per month  
+- **$83.13** every 3 months (1% off)  
+- **$322.44** per year (4% off)  
 
 ---
 
@@ -91,7 +91,7 @@ Stripe’s home page may ask you to add a product. Other tutorials tell you to b
 When Assurance’s treasurer clicks **Pay Monthly**, the software automatically tells Stripe:
 
 - Product name: something like `Peer Finance Manager — Monthly`  
-- Price: `$24.99`  
+- Price: `$27.99`  
 
 You will see those appear in Stripe **after** the first real payment. You do not set them up beforehand.
 
@@ -180,7 +180,7 @@ Why these six? In plain terms:
 - **Checkout Sessions** — opens the payment page when someone clicks Pay  
 - **Customers** — remembers who paid  
 - **Billing portal** — lets them update their card later  
-- **Products & Prices** — the software creates the $24.99 / $71.22 / $272.89 lines automatically  
+- **Products & Prices** — the software creates the $27.99 / $83.13 / $322.44 lines automatically  
 - **Subscriptions** — monthly / quarterly / yearly billing  
 
 If names look slightly different in your Stripe screen, turn on **Write** for anything that mentions checkout, customers, billing portal, products, prices, or subscriptions.
