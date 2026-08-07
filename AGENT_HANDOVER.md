@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 6, 2026 (SaaS pricing $29.99 / 1% quarterly / 4% annual)  
+**Last updated:** August 7, 2026 (expense report label presets + add-new)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -108,6 +108,7 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ## Changelog
 
+- **2026-08-07** — **Operational Expense Labels presets + add-new (all tenants):** Seed dropdown from built-in categories (Bank Fees, Administrative, Technology, Meeting/Event, Professional Services, Insurance, Other). Empty catalog previously showed only **Other…**. Renamed freeform option to **Add New Label…**; added **Add Report Label** field; new labels persist and appear in all row dropdowns. Pre-selects matching import category when no report label assigned. API `POST /api/books/expense-report-labels`. Files: `expense-report-label-service.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `USER-GUIDE.md`. **Production:** `git push` (Netlify UI + Render API; no data upload; seed runs on next labels API call).
 - **2026-08-06** — **SaaS pricing $29.99 (all tenants):** Monthly **$29.99** (was $27.99 / earlier $24.99); quarterly **1% off** → **$89.07**; annual **4% off** → **$345.48**. Same discount terms. Source: `platform-billing-constants.js` + marketing `product.html`, platform check-plan labels, docs. **Production:** `4c31805` (`git push`; Netlify UI + Render API; no data upload).
 - **2026-08-06** — **SaaS pricing update (all tenants):** Monthly **$27.99** (was $24.99); quarterly **1% off** → **$83.13**; annual **4% off** → **$322.44**. Superseded same day by $29.99. **Production:** `b58a8f6`.
 - **2026-07-30** — **Assurance subscription grace +20 days (ops):** Platform `extend-grace` for slug `assurance`: `subscription_grace_until` → **2026-08-21** (was 2026-08-01; full access through that date). Status remains `check_pending` (check pickup pending). Note stored on org. No code deploy.

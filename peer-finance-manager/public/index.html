@@ -413,15 +413,21 @@
           <details class="card expense-report-labels-panel admin-only-report-settings hidden" id="expenseReportLabelsPanel">
             <summary>Operational Expense Labels</summary>
             <div class="profile-disclosure-body">
-              <p class="subtle">Assign a report label to each expense line. When every line has a label, the PDF shows consolidated totals by label.</p>
+              <p class="subtle">Assign a report label to each expense line. Defaults include Bank Fees, Administrative, Technology, Meeting/Event, Professional Services, Insurance, and Other. Choose <strong>Add New Label…</strong> to create another label; it stays available for every expense afterward. When every line has a label, the PDF shows consolidated totals by label.</p>
+              <div class="expense-report-add-label-row">
+                <label class="expense-report-add-label-field">Add Report Label
+                  <input type="text" id="newExpenseReportLabelInput" placeholder="e.g. Catering" maxlength="80" />
+                </label>
+                <button type="button" class="btn" id="addExpenseReportLabelBtn">Add Label</button>
+              </div>
               <div class="table-wrap expense-report-labels-table-wrap">
                 <table class="expense-report-labels-table">
                   <thead>
                     <tr>
                       <th>Date</th>
-                      <th>Bank description</th>
+                      <th>Bank Description</th>
                       <th class="money">Amount</th>
-                      <th>Report label</th>
+                      <th>Report Label</th>
                     </tr>
                   </thead>
                   <tbody id="expenseReportLabelsBody">

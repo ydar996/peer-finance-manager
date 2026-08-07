@@ -944,6 +944,25 @@ body.cooperative-report-viewer-open {
 }
 .bank-import-conflicts li { margin: 4px 0; }
 .expense-report-labels-panel { margin-top: 16px; }
+.expense-report-add-label-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin: 10px 0 4px;
+}
+.expense-report-add-label-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: min(280px, 100%);
+  flex: 1;
+}
+.expense-report-add-label-field input {
+  width: 100%;
+  font: inherit;
+  padding: 6px 8px;
+}
 .expense-report-labels-table-wrap { max-height: 360px; overflow: auto; margin: 12px 0; }
 .expense-report-labels-table td.money,
 .expense-report-labels-table th.money { text-align: right; white-space: nowrap; }

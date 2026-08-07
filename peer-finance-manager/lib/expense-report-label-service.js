@@ -1,4 +1,5 @@
 const { getDb } = require("../db/database");
+const { EXPENSE_CATEGORIES } = require("./constants");
 
 function ensureExpenseReportLabelSchema(db) {
   db.exec(`
@@ -13,6 +14,18 @@ function ensureExpenseReportLabelSchema(db) {
     db.exec(
       `ALTER TABLE expenses ADD COLUMN report_label_id INTEGER REFERENCES expense_report_labels(id)`
     );
+  }
+  ensureDefaultExpenseReportLabels(db);
+}
+
+/** Seed built-in expense categories as selectable report labels (idempotent). */
+function ensureDefaultExpenseReportLabels(db) {
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO expense_report_labels (label) VALUES (?)`
+  );
+  for (const label of EXPENSE_CATEGORIES) {
+    const text = normalizeLabelText(label);
+    if (text) insert.run(text);
   }
 }
 
@@ -37,9 +50,9 @@ function findOrCreateExpenseReportLabel(labelText) {
   const existing = db
     .prepare(`SELECT id, label FROM expense_report_labels WHERE label = ? COLLATE NOCASE`)
     .get(label);
-  if (existing) return existing;
+  if (existing) return { id: existing.id, label: existing.label };
   const result = db.prepare(`INSERT INTO expense_report_labels (label) VALUES (?)`).run(label);
-  return { id: result.lastInsertRowid, label };
+  return { id: Number(result.lastInsertRowid), label };
 }
 
 function effectiveReportLabel(line) {
@@ -51,6 +64,9 @@ function effectiveReportLabel(line) {
 function listExpenseReportLines() {
   const db = getDb();
   ensureExpenseReportLabelSchema(db);
+  const labelsByName = new Map(
+    listExpenseReportLabels().map((entry) => [entry.label.toLowerCase(), entry])
+  );
   const rows = db
     .prepare(
       `SELECT e.id, e.description, e.amount, e.expense_date, e.category, e.report_label_id,
@@ -63,13 +79,18 @@ function listExpenseReportLines() {
   return rows.map((row) => {
     const reportLabel = row.report_label || null;
     const category = row.category || null;
+    let reportLabelId = row.report_label_id;
+    if (reportLabelId == null && category) {
+      const match = labelsByName.get(normalizeLabelText(category).toLowerCase());
+      if (match) reportLabelId = match.id;
+    }
     return {
       id: row.id,
       description: row.description,
       amount: row.amount,
       expenseDate: row.expense_date,
       category,
-      reportLabelId: row.report_label_id,
+      reportLabelId,
       reportLabel,
       effectiveLabel: reportLabel || normalizeLabelText(category) || null,
     };
@@ -197,6 +218,7 @@ function getOperationalExpensesSummary() {
 
 module.exports = {
   ensureExpenseReportLabelSchema,
+  ensureDefaultExpenseReportLabels,
   listExpenseReportLabels,
   findOrCreateExpenseReportLabel,
   listExpenseReportLines,

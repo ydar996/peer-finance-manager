@@ -1399,6 +1399,19 @@ app.get("/api/books/expense-report-labels", requireCooperativeView, (req, res) =
   }
 });
 
+app.post("/api/books/expense-report-labels", requireAdmin, (req, res) => {
+  try {
+    const {
+      findOrCreateExpenseReportLabel,
+      listExpenseReportLabels,
+    } = require("./lib/expense-report-label-service");
+    const label = findOrCreateExpenseReportLabel(req.body?.label);
+    res.json({ success: true, label, labels: listExpenseReportLabels() });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.put("/api/books/expense-report-labels", requireAdmin, (req, res) => {
   try {
     const { updateExpenseReportLineLabels } = require("./lib/expense-report-label-service");

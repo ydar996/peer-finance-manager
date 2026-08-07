@@ -3665,6 +3665,7 @@ function updateMonthEndAutoPublishButton(settings) {
 }
 
 let expenseReportLabelCatalog = [];
+let expenseReportLabelLinesCache = [];
 
 function renderOperationalExpensesSummaryHtml(summary) {
   if (!summary?.groups?.length) {
@@ -3744,37 +3745,58 @@ async function loadOperationalExpensesPreview({ apiPath, bodyEl, totalEl, sectio
 }
 
 function expenseReportLabelOptionsHtml(selectedId) {
-  const options = ['<option value="">Select label…</option>'];
+  const options = ['<option value="">Select Label…</option>'];
   for (const entry of expenseReportLabelCatalog) {
     const selected = Number(selectedId) === Number(entry.id) ? " selected" : "";
     options.push(`<option value="${entry.id}"${selected}>${escapeHtml(entry.label)}</option>`);
   }
-  options.push('<option value="__other__">Other…</option>');
+  options.push('<option value="__other__">Add New Label…</option>');
   return options.join("");
 }
 
-function renderExpenseReportLabelsTable(lines) {
+function collectExpenseReportLabelSelections() {
+  const map = new Map();
+  const rows = $("#expenseReportLabelsBody")?.querySelectorAll("tr[data-expense-id]");
+  if (!rows) return map;
+  for (const row of rows) {
+    const expenseId = Number(row.dataset.expenseId);
+    const select = row.querySelector(".expense-report-label-select");
+    if (!select || select.value === "__other__") continue;
+    map.set(expenseId, select.value || "");
+  }
+  return map;
+}
+
+function renderExpenseReportLabelsTable(lines, preferredSelections = null) {
   const body = $("#expenseReportLabelsBody");
   if (!body) return;
+  expenseReportLabelLinesCache = Array.isArray(lines) ? lines : [];
   if (!lines?.length) {
     body.innerHTML = "<tr><td colspan=\"4\">No expenses recorded.</td></tr>";
     return;
   }
   body.innerHTML = lines
-    .map(
-      (line) => `
+    .map((line) => {
+      const preferred = preferredSelections?.get(Number(line.id));
+      const selectedId =
+        preferred !== undefined && preferred !== ""
+          ? preferred
+          : preferred === ""
+            ? ""
+            : line.reportLabelId;
+      return `
     <tr data-expense-id="${line.id}">
       <td>${escapeHtml(line.expenseDate)}</td>
       <td>${escapeHtml(line.description)}</td>
       <td class="money">${fmt.format(line.amount)}</td>
       <td>
         <select class="expense-report-label-select" data-expense-id="${line.id}">
-          ${expenseReportLabelOptionsHtml(line.reportLabelId)}
+          ${expenseReportLabelOptionsHtml(selectedId)}
         </select>
-        <input type="text" class="other-label-input hidden" placeholder="New report label" />
+        <input type="text" class="other-label-input hidden" placeholder="New Report Label" maxlength="80" />
       </td>
-    </tr>`
-    )
+    </tr>`;
+    })
     .join("");
 
   body.querySelectorAll(".expense-report-label-select").forEach((select) => {
@@ -3790,9 +3812,94 @@ function renderExpenseReportLabelsTable(lines) {
       }
     });
   });
+
+  body.querySelectorAll(".other-label-input").forEach((input) => {
+    const commit = async () => {
+      const label = input.value.trim();
+      if (!label || input.dataset.committing === "1") return;
+      input.dataset.committing = "1";
+      const select = input.parentElement?.querySelector(".expense-report-label-select");
+      const expenseId = Number(select?.dataset.expenseId);
+      try {
+        const created = await createExpenseReportLabel(label);
+        if (!created?.id) return;
+        const selections = collectExpenseReportLabelSelections();
+        if (Number.isFinite(expenseId)) selections.set(expenseId, String(created.id));
+        const nextLines = expenseReportLabelLinesCache.map((line) => ({
+          ...line,
+          reportLabelId: selections.has(Number(line.id))
+            ? selections.get(Number(line.id)) || null
+            : line.reportLabelId,
+        }));
+        renderExpenseReportLabelsTable(nextLines, selections);
+        const statusEl = $("#expenseReportLabelsStatus");
+        if (statusEl) {
+          statusEl.textContent = `Label "${created.label}" added and selected.`;
+          statusEl.className = "status ok";
+        }
+      } catch (err) {
+        const statusEl = $("#expenseReportLabelsStatus");
+        if (statusEl) {
+          statusEl.textContent = err.message;
+          statusEl.className = "status err";
+        }
+      } finally {
+        input.dataset.committing = "";
+      }
+    };
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commit();
+      }
+    });
+    input.addEventListener("blur", () => {
+      if (input.value.trim()) commit();
+    });
+  });
 }
 
-async function loadExpenseReportLabelsPanel() {
+async function createExpenseReportLabel(labelText) {
+  const res = await fetch("/api/books/expense-report-labels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label: labelText }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to add report label");
+  expenseReportLabelCatalog = data.labels || [];
+  return data.label;
+}
+
+async function addExpenseReportLabelFromPanel() {
+  const input = $("#newExpenseReportLabelInput");
+  const statusEl = $("#expenseReportLabelsStatus");
+  const label = input?.value?.trim();
+  if (!label) {
+    if (statusEl) {
+      statusEl.textContent = "Enter a new report label name.";
+      statusEl.className = "status err";
+    }
+    return;
+  }
+  try {
+    const selections = collectExpenseReportLabelSelections();
+    await createExpenseReportLabel(label);
+    if (input) input.value = "";
+    await loadExpenseReportLabelsPanel(selections);
+    if (statusEl) {
+      statusEl.textContent = `Label "${label}" is ready to use in the dropdowns.`;
+      statusEl.className = "status ok";
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    }
+  }
+}
+
+async function loadExpenseReportLabelsPanel(preferredSelections = null) {
   const body = $("#expenseReportLabelsBody");
   if (!body || currentUser?.role !== "admin") return;
   try {
@@ -3800,7 +3907,8 @@ async function loadExpenseReportLabelsPanel() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to load expense labels");
     expenseReportLabelCatalog = data.labels || [];
-    renderExpenseReportLabelsTable(data.lines || []);
+    expenseReportLabelLinesCache = data.lines || [];
+    renderExpenseReportLabelsTable(data.lines || [], preferredSelections);
   } catch (err) {
     body.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
   }
@@ -3822,7 +3930,7 @@ async function saveExpenseReportLabels() {
       const label = otherInput?.value?.trim();
       if (!label) {
         if (statusEl) {
-          statusEl.textContent = "Enter a new label for each expense set to Other.";
+          statusEl.textContent = "Enter a new label for each expense set to Add New Label.";
           statusEl.className = "status err";
         }
         return;
@@ -4887,6 +4995,13 @@ $("#toggleMonthEndAutoPublish")?.addEventListener("click", (e) => {
   toggleMonthEndAutoPublish(e.currentTarget);
 });
 $("#saveExpenseReportLabels")?.addEventListener("click", saveExpenseReportLabels);
+$("#addExpenseReportLabelBtn")?.addEventListener("click", addExpenseReportLabelFromPanel);
+$("#newExpenseReportLabelInput")?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    addExpenseReportLabelFromPanel();
+  }
+});
 $("#saveMonthlyStatusSettings")?.addEventListener("click", saveMonthlyStatusReportSettings);
 
 $("#spreadsheetForm").addEventListener("submit", async (e) => {
