@@ -12,7 +12,7 @@
 | **[UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md)** | Coop admins: backup, restore, and ledger on live Admin (browser only) |
 | **[SAAS-SCALABILITY-ARCHITECTURE-REVIEW.md](./SAAS-SCALABILITY-ARCHITECTURE-REVIEW.md)** | Layman review: can PFM serve thousands of Cooperatives? |
 | **[DEPLOY-TODAY.md](./DEPLOY-TODAY.md)** | First-time cloud setup (done) |
-| **[AGENT_HANDOVER.md](./AGENT_HANDOVER.md)** | Developers / AI agents — **read first**; changelog + tasks; **auto-update docs every change** (§0) |
+| **[AGENT_HANDOVER.md](./AGENT_HANDOVER.md)** | Developers / AI agents — **read first**; changelog + tasks; **machine transfer snapshot**; **auto-update docs every change** (§0) |
 
 > **AI agents:** Read [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) §0 and `.cursor/rules/continuous-documentation.mdc` first. Update documentation in the **same turn** as every code change. The user must never have to ask for doc updates.
 

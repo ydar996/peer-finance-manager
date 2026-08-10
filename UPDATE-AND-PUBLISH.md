@@ -106,12 +106,25 @@ Check:
 
 ---
 
+## Moving to another computer
+
+1. On the **old** PC: commit and `git push` so GitHub has the latest code + docs. Optionally download a live DB backup via **Admin → Maintenance** if you need local data later.
+2. On the **new** PC: `git clone` (or copy the folder **without** relying on untracked junk) → `npm install` → read [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) **Machine transfer snapshot**.
+3. Recreate `.env` / remember Render env vars separately (never in Git).
+4. Do **not** commit or depend on `tmp-live-app.js` or other untracked scratch files.
+5. Production keeps running from GitHub; the new PC only needs Git + Node to continue development.
+
+Full checklist: [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) → **Machine transfer snapshot**.
+
+---
+
 ## Costs (unchanged)
 
 - **Render:** ~$7–8/month (API + data disk)
 - **Netlify:** free tier for this site
 - **GitHub:** free
+- **Cooperative SaaS fee (PFM product):** **$29.99**/month; quarterly **$89.07** (1% off); annual **$345.48** (4% off)
 
 ---
 
-*Last updated: July 11, 2026. First-time setup: [DEPLOY-TODAY.md](./DEPLOY-TODAY.md). Data upload: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md).*
+*Last updated: August 9, 2026. First-time setup: [DEPLOY-TODAY.md](./DEPLOY-TODAY.md). Data upload: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md). Machine move: [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) Machine transfer snapshot.*

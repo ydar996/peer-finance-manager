@@ -2,11 +2,12 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 7, 2026 (expense report label presets + add-new)  
+**Last updated:** August 9, 2026 (machine-transfer docs sync; production HEAD `700d532`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
-**GitHub:** `ydar996/peer-finance-manager`
+**GitHub:** `ydar996/peer-finance-manager`  
+**Production HEAD (code):** `700d532` (note) on top of feature `d399bb4` (expense report labels); SaaS pricing deploy `4c31805`
 
 ---
 
@@ -106,8 +107,73 @@ When the user asks for a message to send **FlexxForms engineers** (or any FlexxF
 
 ---
 
+## Machine transfer snapshot (2026-08-09)
+
+Use this when cloning or continuing on another PC. **Read §0, then §1A/§1B before any ledger work.**
+
+### Git / deploy state
+
+| Item | Value |
+|------|--------|
+| Branch | `main` (tracks `origin/main`) |
+| Latest code on GitHub | `700d532` (includes expense label presets `d399bb4`, SaaS **$29.99** pricing `4c31805`) |
+| Working tree | Clean except untracked local junk `tmp-live-app.js` (**do not commit or copy**) |
+| Code deploy path | `git push` → Netlify (UI) + Render (API) auto-deploy |
+| Data deploy path | Live **Admin → Maintenance** (backup/restore) or **Import** (ledger). Never SFTP/WinSCP for routine ops |
+
+### SaaS pricing (live in code)
+
+| Plan | Price |
+|------|-------|
+| Monthly | **$29.99** |
+| Quarterly | **$89.07** (1% off) |
+| Annual | **$345.48** (4% off) |
+
+Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Stripe checkout uses dynamic `price_data` (no fixed Stripe Price IDs). Docs: `USER-GUIDE.md` §19, `STRIPE-SETUP.md`, `STRIPE-PAYMENTS-GUIDE.md`, marketing `product.html`.
+
+### Assurance ops status (verified 2026-08-09 on production API)
+
+| Item | Value |
+|------|--------|
+| Org slug | `assurance` |
+| Subscription | `check_pending` (check pickup pending; user will update when recorded) |
+| Grace until | **2026-08-21** (`subscription_grace_until`) |
+| Access | Full access while in grace (`graceDaysRemaining` ~12 as of 2026-08-09) |
+| Platform extend | `/platform` → org row → extend grace, or `POST /api/platform/organizations/assurance/extend-grace` |
+| Record check | `/platform` → **Record Check Payment** when check is in hand |
+
+### What moves with Git vs what does not
+
+| Moves via `git clone` / `git pull` | Does **not** move with Git (local/cloud only) |
+|------------------------------------|-----------------------------------------------|
+| All app code, `AGENT_HANDOVER.md`, USER-GUIDE, Stripe docs, Cursor rules | `data/` (local SQLite, org DBs, uploads) |
+| | `.env` / Render env vars (Stripe, SMTP, `PLATFORM_ADMIN_PASSWORD`, `PFM_DATA_DIR`) |
+| | Production Render disk under `PFM_DATA_DIR` |
+| | Untracked `tmp-live-app.js` (delete; ignore) |
+
+### New machine setup checklist
+
+1. Install **Node.js 18+** and Chrome/Edge (PDF via Puppeteer).
+2. `git clone https://github.com/ydar996/peer-finance-manager.git` (or pull if folder already copied).
+3. `npm install` from repo root (and under `peer-finance-manager` if that is how this clone is structured; follow root `package.json` scripts).
+4. Copy or recreate local `.env` if you develop against local secrets (never commit).
+5. Optional local data: restore from an **Admin → Maintenance → Download Database Backup** taken on the old machine, or work against production Admin only.
+6. Local run: `npm start` → http://localhost:3457/admin
+7. Read this file §0 + changelog + outstanding tasks before coding.
+8. Confirm live pricing/labels after hard-refresh: product page, Admin → Subscription, Monthly Status Report → Operational Expense Labels.
+
+### Recent product work already shipped (do not re-implement)
+
+- Expense report label presets + Add New Label (`d399bb4`)
+- SaaS fee **$29.99** / 1% quarterly / 4% annual (`4c31805`)
+- Apply embed signature gap fix (`a71d895`)
+- Membership alerts, bylaws cleanup, Messages rich UI, loan applications pipeline, membership status types, Maintenance tab, bank append product mode (see changelog)
+
+---
+
 ## Changelog
 
+- **2026-08-09** — **Machine-transfer docs sync:** Verified `main`/`origin/main` clean (ignore `tmp-live-app.js`). Added **Machine transfer snapshot** (git HEAD, pricing, Assurance grace through **2026-08-21** `check_pending`, what Git moves vs data/env). Corrected stale outstanding task **Cooperative expenses** (UI + report labels live). Refreshed §7/§8 next-session plan. **Production:** docs-only `git push` (no app behavior change).
 - **2026-08-07** — **Operational Expense Labels presets + add-new (all tenants):** Seed dropdown from built-in categories (Bank Fees, Administrative, Technology, Meeting/Event, Professional Services, Insurance, Other). Empty catalog previously showed only **Other…**. Renamed freeform option to **Add New Label…**; added **Add Report Label** field; new labels persist and appear in all row dropdowns. Pre-selects matching import category when no report label assigned. API `POST /api/books/expense-report-labels`. Files: `expense-report-label-service.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `USER-GUIDE.md`. **Production:** `d399bb4` (`git push`; Netlify UI + Render API; no data upload; seed runs on next labels API call).
 - **2026-08-06** — **SaaS pricing $29.99 (all tenants):** Monthly **$29.99** (was $27.99 / earlier $24.99); quarterly **1% off** → **$89.07**; annual **4% off** → **$345.48**. Same discount terms. Source: `platform-billing-constants.js` + marketing `product.html`, platform check-plan labels, docs. **Production:** `4c31805` (`git push`; Netlify UI + Render API; no data upload).
 - **2026-08-06** — **SaaS pricing update (all tenants):** Monthly **$27.99** (was $24.99); quarterly **1% off** → **$83.13**; annual **4% off** → **$322.44**. Superseded same day by $29.99. **Production:** `b58a8f6`.
@@ -687,7 +753,8 @@ Peer Finance Manager / Assurance Cooperative
 | # | Task | Notes |
 |---|------|-------|
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
-| 2 | **Cooperative expenses** | Table exists; no UI/import. |
+| 2 | ~~**Cooperative expenses**~~ | ✅ **Done** (incremental) — Expenses import from bank ledger; Record expense + categories; **Operational Expense Labels** on Monthly Status Report (presets + add-new) deployed `d399bb4`. Remaining polish only if user asks. |
+| 2b | **Assurance subscription check** | Status `check_pending`; grace through **2026-08-21**. User picking up check; when received → Platform **Record Check Payment** (or extend grace again). |
 | 3 | **Profile for Kehinde Agboola** | Olawale George added (WPForms row + local import). Kehinde still has no application row. |
 | 4 | ~~**Restore app import file from golden master**~~ | ✅ **Done** 2026-07-09 — Render **457 / $16,241.55**. |
 | 4b | ~~**Fix auto-sync clobber**~~ | ✅ **Done** — xlsx never auto-overwritten; CSV sync cloud-only (§1B). |
@@ -802,21 +869,24 @@ npm start   # → http://localhost:3457 (Assurance Cooperative Manager)
 
 ## 7. User communication context
 
-- User is building this incrementally; **loans, expenses, and unclear items** will be provided later.
-- User confirmed **regular member deposits** can be tracked now with workbook + bank CSV + Narrative column.
-- User cares about **statement presentation** (distribution placement was explicitly corrected).
-- **Assurance Status 4 2026** is authoritative through April 2026 end.
-- Transcript of full build history: `.cursor/projects/.../agent-transcripts/0476ec24-f606-4198-a323-74c9b1aec2c6/0476ec24-f606-4198-a323-74c9b1aec2c6.jsonl`
+- User builds incrementally; **loan schedules and remaining unclear items** may still arrive later.
+- **Expenses** are in use (bank import + report labels); do not treat as “table only.”
+- User cares about **statement presentation** and Title Case / no em dash UI copy.
+- **Assurance Status** workbook history still matters for April-era statement logic; live books use bank import + master ledger workflows (§1A/§1B).
+- SaaS pricing decision (2026-08-06): **$29.99**/mo, 1% quarterly, 4% annual.
+- Assurance billing: check payment pending; grace extended through **2026-08-21**.
+- Full build history lives in Cursor agent transcripts under `.cursor/projects/.../agent-transcripts/` (not required on the new machine if GitHub + this handover are current).
 
 ---
 
 ## 8. Suggested next session plan
 
-1. **Restore golden ledger** per §1A (`rebuild-ledger-from-bank.js` + verify **453 / $15,471.49**) → Admin → **Full Ledger Refresh**
-2. Fix **auto-sync clobber** in `cooperative-bank-ledger-csv.js` before more ledger edits
-3. July monthly: **Import New Bank Activity** with `stmt (7).csv` (append only, after step 1)
-4. Import loan records + schedules when user provides data
-5. Profile for Kehinde Agboola if application supplied
+1. On the new machine: clone/pull `main`, `npm install`, confirm local or production Admin login.
+2. **Assurance billing:** when check arrives → `/platform` → **Record Check Payment**; else extend grace before **2026-08-21**.
+3. Monthly bank work: **Import New Bank Activity** only (append); Full Ledger Refresh only for rebuild (§1B).
+4. Import loan records + schedules when user provides data.
+5. Profile for Kehinde Agboola if application supplied.
+6. SaaS hardening still open: **4i** off-disk backups, **4j** registration gate, **4k** remove default passwords.
 
 ---
 
@@ -846,7 +916,9 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 | Date formatting (PDF) | `formatDisplayDate` in `loan-statement-generator.js` |
 | Member self-service | `peer-finance-manager/lib/member-self-service.js` |
 | Bank ledger import | `peer-finance-manager/lib/import-bank-ledger.js` |
-| Master ledger auto-sync (danger) | `peer-finance-manager/lib/cooperative-bank-ledger-csv.js` — see §1A |
+| SaaS pricing constants | `peer-finance-manager/lib/platform-billing-constants.js` |
+| Expense report labels | `peer-finance-manager/lib/expense-report-label-service.js` |
+| Platform grace / check payment | `peer-finance-manager/lib/platform-billing-service.js`, `/platform` UI |
 | Golden rebuild script | `peer-finance-manager/scripts/rebuild-ledger-from-bank.js` |
 | Ledger vs stmt audit | `peer-finance-manager/scripts/audit-bank-ledger-discrepancy.js` |
 | CD dashboard | `peer-finance-manager/lib/cooperative-books.js`, `cd-balance-service.js` |
