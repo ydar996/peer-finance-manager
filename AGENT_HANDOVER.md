@@ -2,12 +2,12 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 9, 2026 (machine-transfer docs sync; production HEAD `700d532`)  
+**Last updated:** August 9, 2026 (machine-transfer docs sync; production HEAD `382e588`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** `700d532` (note) on top of feature `d399bb4` (expense report labels); SaaS pricing deploy `4c31805`
+**Production HEAD (code):** `382e588` (docs sync) — includes expense labels `d399bb4`, SaaS **$29.99** pricing `4c31805`
 
 ---
 
@@ -116,7 +116,7 @@ Use this when cloning or continuing on another PC. **Read §0, then §1A/§1B be
 | Item | Value |
 |------|--------|
 | Branch | `main` (tracks `origin/main`) |
-| Latest code on GitHub | `700d532` (includes expense label presets `d399bb4`, SaaS **$29.99** pricing `4c31805`) |
+| Latest code on GitHub | `382e588` (machine-transfer docs); prior features: expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
 | Working tree | Clean except untracked local junk `tmp-live-app.js` (**do not commit or copy**) |
 | Code deploy path | `git push` → Netlify (UI) + Render (API) auto-deploy |
 | Data deploy path | Live **Admin → Maintenance** (backup/restore) or **Import** (ledger). Never SFTP/WinSCP for routine ops |
@@ -173,7 +173,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
-- **2026-08-09** — **Machine-transfer docs sync:** Verified `main`/`origin/main` clean (ignore `tmp-live-app.js`). Added **Machine transfer snapshot** (git HEAD, pricing, Assurance grace through **2026-08-21** `check_pending`, what Git moves vs data/env). Corrected stale outstanding task **Cooperative expenses** (UI + report labels live). Refreshed §7/§8 next-session plan. **Production:** docs-only `git push` (no app behavior change).
+- **2026-08-09** — **Machine-transfer docs sync:** Verified `main`/`origin/main` (ignore untracked `tmp-live-app.js`). Added **Machine transfer snapshot** (git HEAD, pricing, Assurance grace through **2026-08-21** `check_pending`, what Git moves vs data/env). Corrected stale outstanding task **Cooperative expenses** (UI + report labels live). Refreshed §7/§8 next-session plan. Also `UPDATE-AND-PUBLISH.md` (moving PCs) + README pointer. **Production:** `382e588` (docs-only push).
 - **2026-08-07** — **Operational Expense Labels presets + add-new (all tenants):** Seed dropdown from built-in categories (Bank Fees, Administrative, Technology, Meeting/Event, Professional Services, Insurance, Other). Empty catalog previously showed only **Other…**. Renamed freeform option to **Add New Label…**; added **Add Report Label** field; new labels persist and appear in all row dropdowns. Pre-selects matching import category when no report label assigned. API `POST /api/books/expense-report-labels`. Files: `expense-report-label-service.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `USER-GUIDE.md`. **Production:** `d399bb4` (`git push`; Netlify UI + Render API; no data upload; seed runs on next labels API call).
 - **2026-08-06** — **SaaS pricing $29.99 (all tenants):** Monthly **$29.99** (was $27.99 / earlier $24.99); quarterly **1% off** → **$89.07**; annual **4% off** → **$345.48**. Same discount terms. Source: `platform-billing-constants.js` + marketing `product.html`, platform check-plan labels, docs. **Production:** `4c31805` (`git push`; Netlify UI + Render API; no data upload).
 - **2026-08-06** — **SaaS pricing update (all tenants):** Monthly **$27.99** (was $24.99); quarterly **1% off** → **$83.13**; annual **4% off** → **$322.44**. Superseded same day by $29.99. **Production:** `b58a8f6`.
