@@ -7,7 +7,7 @@ This document gives the next developer or AI agent enough context to continue wo
 **Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** `382e588` (docs sync) — includes expense labels `d399bb4`, SaaS **$29.99** pricing `4c31805`
+**Production HEAD (code):** `efd3006` (manual report as-of date + CD term form) — includes expense labels `d399bb4`, SaaS **$29.99** pricing `4c31805`
 
 ---
 
@@ -116,7 +116,7 @@ Use this when cloning or continuing on another PC. **Read §0, then §1A/§1B be
 | Item | Value |
 |------|--------|
 | Branch | `main` (tracks `origin/main`) |
-| Latest code on GitHub | `382e588` (machine-transfer docs); prior features: expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
+| Latest code on GitHub | `efd3006` (manual report as-of + CD terms); prior: machine-transfer docs `382e588`, expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
 | Working tree | Clean except untracked local junk `tmp-live-app.js` (**do not commit or copy**) |
 | Code deploy path | `git push` → Netlify (UI) + Render (API) auto-deploy |
 | Data deploy path | Live **Admin → Maintenance** (backup/restore) or **Import** (ledger). Never SFTP/WinSCP for routine ops |
@@ -173,7 +173,8 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
-- **2026-08-21** — **Manual status report date + CD term form (all tenants):** Manual **Generate Report** / **Publish to Members** now stamp the report **as at today** (the calendar day you run them). A prior save/display path always rewrote as-of to month-end, so mid-month publishes showed e.g. 08/31. Month-end auto-generate still uses the last calendar day. **Record → CD Account Balance and Term** now edits rollover terms (beginning balance, rate, APY, renewal, maturity, term days); Cooperative Books **Open Record** on CD cards opens that form; Expected CD Interest no longer formats dates/rates as money ($0.00). Updating the CD balance no longer resets terms to hardcoded defaults. Files: `cooperative-status-report.js`, `monthly-status-report-service.js`, `cd-balance-service.js`, `cooperative-books.js`, `server.js`, `app.js`, `index.html`, `USER-GUIDE.md`. **Production:** `git push` (Netlify UI + Render API); no data upload. After deploy, **Generate** then **Publish** this month's report so members see today's date; enter new CD term on Record after a rollover.
+- **2026-08-21** — **Manual status report date + CD term form deploy:** Production `efd3006`. Netlify UI + Render API. Hard-refresh after Render finishes. No data upload. Then **Status Report → Generate** (and **Publish** if auto-publish is off); **Record → CD Account Balance and Term** for the rolled-over CD.
+- **2026-08-21** — **Manual status report date + CD term form (all tenants):** Manual **Generate Report** / **Publish to Members** now stamp the report **as at today** (the calendar day you run them). A prior save/display path always rewrote as-of to month-end, so mid-month publishes showed e.g. 08/31. Month-end auto-generate still uses the last calendar day. **Record → CD Account Balance and Term** now edits rollover terms (beginning balance, rate, APY, renewal, maturity, term days); Cooperative Books **Open Record** on CD cards opens that form; Expected CD Interest no longer formats dates/rates as money ($0.00). Updating the CD balance no longer resets terms to hardcoded defaults. Files: `cooperative-status-report.js`, `monthly-status-report-service.js`, `cd-balance-service.js`, `cooperative-books.js`, `server.js`, `app.js`, `index.html`, `USER-GUIDE.md`. **Production:** `efd3006` (`git push`; Netlify UI + Render API; no data upload). After deploy, **Generate** then **Publish** this month's report so members see today's date; enter new CD term on Record after a rollover.
 - **2026-08-09** — **Machine-transfer docs sync:** Verified `main`/`origin/main` (ignore untracked `tmp-live-app.js`). Added **Machine transfer snapshot** (git HEAD, pricing, Assurance grace through **2026-08-21** `check_pending`, what Git moves vs data/env). Corrected stale outstanding task **Cooperative expenses** (UI + report labels live). Refreshed §7/§8 next-session plan. Also `UPDATE-AND-PUBLISH.md` (moving PCs) + README pointer. **Production:** `382e588` (docs-only push).
 - **2026-08-07** — **Operational Expense Labels presets + add-new (all tenants):** Seed dropdown from built-in categories (Bank Fees, Administrative, Technology, Meeting/Event, Professional Services, Insurance, Other). Empty catalog previously showed only **Other…**. Renamed freeform option to **Add New Label…**; added **Add Report Label** field; new labels persist and appear in all row dropdowns. Pre-selects matching import category when no report label assigned. API `POST /api/books/expense-report-labels`. Files: `expense-report-label-service.js`, `server.js`, `app.js`, `index.html`, `styles.css`, `USER-GUIDE.md`. **Production:** `d399bb4` (`git push`; Netlify UI + Render API; no data upload; seed runs on next labels API call).
 - **2026-08-06** — **SaaS pricing $29.99 (all tenants):** Monthly **$29.99** (was $27.99 / earlier $24.99); quarterly **1% off** → **$89.07**; annual **4% off** → **$345.48**. Same discount terms. Source: `platform-billing-constants.js` + marketing `product.html`, platform check-plan labels, docs. **Production:** `4c31805` (`git push`; Netlify UI + Render API; no data upload).
