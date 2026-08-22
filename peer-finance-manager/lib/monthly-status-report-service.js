@@ -78,11 +78,14 @@ function settingEnabled(key, defaultWhenUnset = true) {
 function getMonthlyStatusReportSettings() {
   const db = getDb();
   ensureReportsTable(db);
+  const { getPublicCountryProfile, listCountryProfiles } = require("./country-profile");
   return {
     autoGenerate: settingEnabled(SETTING_AUTO_GENERATE),
     autoPublish: settingEnabled(SETTING_AUTO_PUBLISH),
     organizationWebsite: getCooperativeSetting(SETTING_ORG_WEBSITE) || "",
     cooperativeTimezone: getCooperativeTimezone(),
+    countryProfile: getPublicCountryProfile(),
+    countries: listCountryProfiles(),
   };
 }
 
@@ -102,6 +105,10 @@ function updateMonthlyStatusReportSettings(payload = {}) {
   }
   if (payload.cooperativeTimezone !== undefined) {
     setCooperativeTimezone(payload.cooperativeTimezone);
+  }
+  if (payload.countryCode !== undefined) {
+    const { setCooperativeCountry } = require("./country-profile");
+    setCooperativeCountry(payload.countryCode);
   }
   return getMonthlyStatusReportSettings();
 }

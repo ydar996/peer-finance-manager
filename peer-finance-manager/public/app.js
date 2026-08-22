@@ -1,4 +1,4 @@
-const fmt = new Intl.NumberFormat("en-US", {
+let fmt = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
 });
@@ -14,6 +14,78 @@ let currentUser = null;
 let platformUser = null;
 let cooperativeTimezone = "America/Los_Angeles";
 let timezoneOptionsLoaded = false;
+let countryProfile = {
+  code: "US",
+  name: "United States",
+  currency: "USD",
+  locale: "en-US",
+  dateFormat: "MDY",
+  dateFormatLabel: "MM/DD/YYYY",
+  paymentRailLabel: "Zelle/Bank",
+  bankInstitutions: [],
+  states: [],
+  statementHint: "",
+};
+
+function moneyFormatterFor(profile) {
+  return new Intl.NumberFormat(profile?.locale || "en-US", {
+    style: "currency",
+    currency: profile?.currency || "USD",
+  });
+}
+
+function applyCountryProfile(profile) {
+  if (!profile?.code) return;
+  countryProfile = profile;
+  fmt = moneyFormatterFor(profile);
+  const currencyInput = $("#newBankAccountCurrency");
+  if (currencyInput && (!currencyInput.value || currencyInput.value === "USD" || currencyInput.dataset.autoCurrency === "1")) {
+    currencyInput.value = profile.currency || "USD";
+    currencyInput.placeholder = profile.currency || "USD";
+    currencyInput.dataset.autoCurrency = "1";
+  }
+  const hint = $("#countryStatementHint");
+  if (hint) hint.textContent = profile.statementHint || "";
+  const dateHint = $("#countryDateFormatHint");
+  if (dateHint) {
+    dateHint.textContent =
+      profile.dateFormat === "DMY"
+        ? "Nigeria uses DD/MM/YYYY (for example 21/08/2026). Import reads statement dates in this order."
+        : "United States uses MM/DD/YYYY (for example 08/21/2026). Import reads statement dates in this order.";
+  }
+  const aliasHint = $("#paymentAliasHint");
+  if (aliasHint) {
+    aliasHint.textContent =
+      profile.code === "NG"
+        ? "When your bank shows a different name than the member ledger, map it here. Use the name exactly as it appears on the statement. Separate multiple names with commas. Set Default Type when the bank description does not say contribution or loan (e.g. payer name only)."
+        : "When Zelle or your bank shows a different name than the member ledger, map it here. Use the name exactly as it appears on the statement. Separate multiple names with commas. Set Default Type when the bank description does not say contribution or loan (e.g. payer name only).";
+  }
+  populateCountrySelect($("#cooperativeCountry"), profile.code);
+  applyPaymentRailLabels(profile);
+  initSuggestPickers();
+}
+
+function paymentRailHeading() {
+  return countryProfile.code === "NG"
+    ? `Payments (${countryProfile.paymentRailLabel})`
+    : "Payments (Zelle/Bank)";
+}
+
+function paymentRailNameLabel() {
+  return countryProfile.code === "NG" ? `${countryProfile.paymentRailLabel} Name` : "Bank/Zelle Name";
+}
+
+function applyPaymentRailLabels(profile) {
+  const isNg = profile?.code === "NG";
+  document.querySelectorAll("[data-payment-rail]").forEach((el) => {
+    const kind = el.getAttribute("data-payment-rail");
+    if (isNg) {
+      el.textContent = kind === "optional" ? "Bank Transfer Name (Optional)" : "Bank Transfer Name";
+    } else {
+      el.textContent = kind === "optional" ? "Zelle/Bank Name (Optional)" : "Zelle/Bank Name";
+    }
+  });
+}
 
 function coopCopy(text) {
   if (text == null || text === "") return text;
@@ -207,6 +279,41 @@ let statementInspectRequestId = 0;
 
 function applyCooperativeTimezone(timeZone) {
   cooperativeTimezone = timeZone || "America/Los_Angeles";
+}
+
+let countrySelectOptions = [
+  { code: "US", name: "United States" },
+  { code: "NG", name: "Nigeria" },
+];
+let countryCatalogLoaded = false;
+
+function populateCountrySelect(select, selected) {
+  if (!select) return;
+  const current = selected || select.value || "US";
+  select.innerHTML = countrySelectOptions
+    .map((row) => `<option value="${escapeHtml(row.code)}">${escapeHtml(row.name)}</option>`)
+    .join("");
+  select.value = countrySelectOptions.some((row) => row.code === current) ? current : "US";
+}
+
+async function loadCountryCatalog() {
+  if (!countryCatalogLoaded) {
+    try {
+      const res = await nativeFetch("/api/countries");
+      const data = await res.json();
+      if (Array.isArray(data.countries) && data.countries.length) {
+        countrySelectOptions = data.countries.map((row) => ({
+          code: row.code,
+          name: row.name,
+        }));
+      }
+    } catch (_) {
+      /* keep US/NG fallback so Register still works if the API is waking */
+    }
+    countryCatalogLoaded = true;
+  }
+  populateCountrySelect($("#cooperativeCountry"), countryProfile.code);
+  populateCountrySelect(document.querySelector("#registerOrganizationForm select[name='countryCode']"));
 }
 
 function populateTimezoneSelect(select, timezones, selected) {
@@ -456,6 +563,7 @@ function showLoginForPortal(portal = getPortalFromPath(), message = "") {
   if (portal === "register") {
     hideAllScreens();
     $("#registerScreen")?.classList.remove("hidden");
+    loadCountryCatalog();
     return;
   }
   hideAllScreens();
@@ -559,6 +667,7 @@ async function restoreSession() {
     if (!res.ok) throw new Error(data.error || "Session expired");
     currentUser = data.user;
     applyCooperativeTimezone(data.cooperativeTimezone);
+    applyCountryProfile(data.countryProfile);
     if (!userMatchesPortal(currentUser, portal)) {
       sessionToken = "";
       localStorage.removeItem(SESSION_KEY);
@@ -1293,10 +1402,14 @@ function parseStoredInstant(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function dateDisplayLocale() {
+  return countryProfile.locale || "en-US";
+}
+
 function formatInstantDate(value) {
   const instant = parseStoredInstant(value);
   if (!instant) return null;
-  return instant.toLocaleDateString("en-US", {
+  return instant.toLocaleDateString(dateDisplayLocale(), {
     timeZone: cooperativeTimezone,
     year: "numeric",
     month: "short",
@@ -1309,7 +1422,7 @@ function formatDate(value) {
   const s = String(value).trim();
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) {
-    return new Date(`${iso[1]}-${iso[2]}-${iso[3]}T12:00:00Z`).toLocaleDateString("en-US", {
+    return new Date(`${iso[1]}-${iso[2]}-${iso[3]}T12:00:00Z`).toLocaleDateString(dateDisplayLocale(), {
       timeZone: cooperativeTimezone,
       year: "numeric",
       month: "short",
@@ -1320,7 +1433,7 @@ function formatDate(value) {
   if (instantLabel) return instantLabel;
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString(dateDisplayLocale(), {
     timeZone: cooperativeTimezone,
     year: "numeric",
     month: "short",
@@ -2319,9 +2432,9 @@ function profileDemographicsGridHtml(p) {
         <p class="profile-field-value">${addressBlock(p)}</p>
       </section>
       <section>
-        <h4>Payments (Zelle/Bank)</h4>
+        <h4>${paymentRailHeading()}</h4>
         ${profileFieldRow("Method", p.preferred_payment_method)}
-        ${profileFieldRow("Bank/Zelle Name", p.zelle_bank_name)}
+        ${profileFieldRow(paymentRailNameLabel(), p.zelle_bank_name)}
         ${profileFieldRow("Registration Fee Paid", p.membership_fee_paid ? "Yes" : "No")}
         ${profileFieldRow("Joined", p.joined_at)}
       </section>
@@ -3397,10 +3510,10 @@ async function showProfile(memberId) {
           <p>${addressBlock(p)}</p>
         </section>
         <section>
-          <h4>Payments (Zelle/Bank)</h4>
+          <h4>${paymentRailHeading()}</h4>
           <dl>
             <dt>Method</dt><dd>${escapeHtml(p.preferred_payment_method) || ":"}</dd>
-            <dt>Bank/Zelle Name</dt><dd>${escapeHtml(p.zelle_bank_name) || ":"}</dd>
+            <dt>${escapeHtml(paymentRailNameLabel())}</dt><dd>${escapeHtml(p.zelle_bank_name) || ":"}</dd>
             <dt>Fee Paid</dt><dd>${p.membership_fee_paid ? "Yes" : "No"}</dd>
             <dt>Joined</dt><dd>${p.joined_at || ":"}</dd>
           </dl>
@@ -3669,6 +3782,10 @@ function applyMonthlyStatusReportSettingsToForm(settings) {
     applyCooperativeTimezone(settings.cooperativeTimezone);
     populateTimezoneSelect(timezone, [], settings.cooperativeTimezone);
   }
+  if (settings.countryProfile) {
+    applyCountryProfile(settings.countryProfile);
+  }
+  populateCountrySelect($("#cooperativeCountry"), settings.countryProfile?.code || "US");
   updateMonthEndAutoPublishButton(settings);
 }
 
@@ -4260,6 +4377,7 @@ async function saveMonthlyStatusReportSettings() {
         autoPublish: $("#monthlyStatusAutoPublish")?.checked || false,
         organizationWebsite: $("#monthlyStatusOrgWebsite")?.value?.trim() || "",
         cooperativeTimezone: $("#cooperativeTimezone")?.value || cooperativeTimezone,
+        countryCode: $("#cooperativeCountry")?.value || countryProfile.code,
       }),
     });
     const data = await res.json();
@@ -4271,6 +4389,7 @@ async function saveMonthlyStatusReportSettings() {
     collapseMonthlyStatusReportSettings();
     applyMonthlyStatusReportSettingsToForm(data.settings);
     applyCooperativeTimezone(data.settings?.cooperativeTimezone);
+    applyCountryProfile(data.settings?.countryProfile);
     await loadMonthlyStatusReportPanel();
   } catch (err) {
     if (statusEl) {
@@ -5237,7 +5356,7 @@ function accountIsActive(account) {
 
 function accountOptionLabel(account) {
   const inst = account.institutionName ? ` (${account.institutionName})` : "";
-  const status = accountIsActive(account) ? "" : " — inactive";
+  const status = accountIsActive(account) ? "" : ": Inactive";
   return `${account.accountLabel}${inst}${status}`;
 }
 
@@ -5255,7 +5374,7 @@ function fillBankAccountEditForm(account) {
     inst.dataset.accountId = String(account.id);
   }
   if (label) label.value = account.accountLabel || "";
-  if (currency) currency.value = account.currency || "USD";
+  if (currency) currency.value = account.currency || countryProfile.currency || "USD";
   if (format) format.value = account.statementFormat || "auto";
   fillColumnMappingForm(account.columnMapping);
   toggleColumnMappingPanel(account.statementFormat || "auto");
@@ -5349,6 +5468,7 @@ async function loadBankImportSettings() {
     importMemberNamesCache = (membersData.members || []).map((m) => m.name).filter(Boolean).sort();
     const df = $("#cooperativeDateFormat");
     if (df && data.dateFormat) df.value = data.dateFormat;
+    if (data.countryProfile) applyCountryProfile(data.countryProfile);
     if (data.statementFormats) {
       statementFormatLabels = Object.fromEntries(
         Object.entries(data.statementFormats).map(([k, v]) => [k, v.label || k])
@@ -5943,7 +6063,7 @@ async function addBankAccount(e) {
       body: JSON.stringify({
         accountLabel: label,
         institutionName: $("#newBankAccountInstitution")?.value?.trim() || "",
-        currency: $("#newBankAccountCurrency")?.value?.trim() || "USD",
+        currency: $("#newBankAccountCurrency")?.value?.trim() || countryProfile.currency || "USD",
         statementFormat: $("#newBankAccountFormat")?.value || "auto",
         activeFrom: $("#newBankAccountActiveFrom")?.value || null,
         isPrimary: !!$("#newBankAccountPrimary")?.checked,
@@ -5953,7 +6073,7 @@ async function addBankAccount(e) {
     if (!res.ok) throw new Error(data.error || "Could not add bank account");
     $("#addBankAccountForm")?.reset();
     const currency = $("#newBankAccountCurrency");
-    if (currency) currency.value = "USD";
+    if (currency) currency.value = countryProfile.currency || "USD";
     await loadBankAccountsData();
     if (data.account) fillBankAccountEditForm(data.account);
     if (status) {
@@ -6760,9 +6880,119 @@ function initMemberPickers() {
   });
 }
 
+const suggestPickerInstances = new Set();
+
+function normalizeSuggestItem(item) {
+  if (item == null) return null;
+  if (typeof item === "string") return { name: item, aliases: [] };
+  const name = String(item.name || "").trim();
+  if (!name) return null;
+  return { name, aliases: Array.isArray(item.aliases) ? item.aliases : [] };
+}
+
+function suggestSource(kind) {
+  if (kind === "banks") return countryProfile.bankInstitutions || [];
+  if (kind === "states") return countryProfile.states || [];
+  return [];
+}
+
+function filterSuggestItems(kind, query) {
+  const items = (suggestSource(kind) || []).map(normalizeSuggestItem).filter(Boolean);
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return items;
+  return items.filter((item) => {
+    if (item.name.toLowerCase().includes(q)) return true;
+    return item.aliases.some((alias) => String(alias).toLowerCase().includes(q));
+  });
+}
+
+function closeAllSuggestPickers(except) {
+  suggestPickerInstances.forEach((picker) => {
+    if (picker !== except) picker.closeList();
+  });
+}
+
+function setupSuggestPicker(root) {
+  const input = root.querySelector(".suggest-picker-input");
+  const list = root.querySelector(".suggest-picker-list");
+  if (!input || !list) return;
+  const kind = input.getAttribute("data-suggest") || "states";
+
+  const picker = {
+    root,
+    input,
+    list,
+    kind,
+    closeList() {
+      list.classList.add("hidden");
+      list.innerHTML = "";
+    },
+    renderList(matches) {
+      list.innerHTML = "";
+      if (!matches.length) {
+        const empty = document.createElement("li");
+        empty.className = "suggest-picker-empty";
+        empty.textContent = input.value.trim()
+          ? "No Match: Keep Typing or Enter a Custom Name"
+          : "Type to Search";
+        list.appendChild(empty);
+        list.classList.remove("hidden");
+        return;
+      }
+      matches.forEach((item) => {
+        const li = document.createElement("li");
+        li.setAttribute("role", "option");
+        li.textContent = item.name;
+        li.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          picker.selectItem(item.name);
+        });
+        list.appendChild(li);
+      });
+      list.classList.remove("hidden");
+    },
+    selectItem(name) {
+      input.value = name;
+      picker.closeList();
+    },
+  };
+
+  input.addEventListener("focus", () => {
+    closeAllSuggestPickers(picker);
+    closeAllMemberPickers();
+    picker.renderList(filterSuggestItems(kind, input.value));
+  });
+  input.addEventListener("input", () => {
+    picker.renderList(filterSuggestItems(kind, input.value));
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") picker.closeList();
+    if (e.key === "Enter") {
+      const first = list.querySelector("li[role='option']");
+      if (first && !list.classList.contains("hidden")) {
+        e.preventDefault();
+        picker.selectItem(first.textContent);
+      }
+    }
+  });
+
+  suggestPickerInstances.add(picker);
+}
+
+function initSuggestPickers() {
+  document.querySelectorAll(".suggest-picker").forEach((root) => {
+    if (root.dataset.pickerReady === "1") return;
+    setupSuggestPicker(root);
+    root.dataset.pickerReady = "1";
+  });
+}
+
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".member-picker")) {
     closeAllMemberPickers();
+  }
+  if (!e.target.closest(".suggest-picker")) {
+    closeAllSuggestPickers();
   }
 });
 
@@ -7473,6 +7703,7 @@ async function handleLoginSubmit(e) {
     localStorage.setItem(SESSION_KEY, sessionToken);
     currentUser = data.user;
     applyCooperativeTimezone(data.cooperativeTimezone);
+    applyCountryProfile(data.countryProfile);
     if (data.mustChangePassword || currentUser.mustChangePassword) {
       showChangePassword();
       if (status) status.textContent = "";
@@ -9921,6 +10152,8 @@ function bootApplication() {
       );
       return;
     }
+    loadCountryCatalog();
+    initSuggestPickers();
     if (portal === "platform") {
       bootstrapPlatformApp();
     } else if (isPublicPagePath()) {

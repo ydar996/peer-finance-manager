@@ -45,6 +45,11 @@ function requestOrgSlug(req) {
 
 function registerAuthRoutes(app, deps = {}) {
   const upload = deps.upload;
+  app.get("/api/countries", (_req, res) => {
+    const { listCountryProfiles } = require("./country-profile");
+    res.json({ countries: listCountryProfiles() });
+  });
+
   app.get("/api/organizations/lookup", (req, res) => {
     try {
       const organization = getOrganization(req.query.slug || "");
@@ -57,13 +62,14 @@ function registerAuthRoutes(app, deps = {}) {
 
   app.post("/api/auth/register-organization", async (req, res) => {
     try {
-      const { name, slug, adminEmail, adminPassword, adminDisplayName } = req.body || {};
+      const { name, slug, adminEmail, adminPassword, adminDisplayName, countryCode } = req.body || {};
       const result = registerOrganizationWithAdmin({
         name,
         slug,
         adminEmail,
         adminPassword,
         adminDisplayName,
+        countryCode,
       });
 
       let flexxforms = { provisioned: false };
@@ -120,7 +126,13 @@ function registerAuthRoutes(app, deps = {}) {
         organizationSlug
       );
       const { getCooperativeTimezone } = require("./cooperative-time");
-      res.json({ success: true, ...result, cooperativeTimezone: getCooperativeTimezone() });
+      const { getPublicCountryProfile } = require("./country-profile");
+      res.json({
+        success: true,
+        ...result,
+        cooperativeTimezone: getCooperativeTimezone(),
+        countryProfile: getPublicCountryProfile(),
+      });
     } catch (err) {
       res.status(401).json({ error: err.message });
     }
@@ -133,9 +145,11 @@ function registerAuthRoutes(app, deps = {}) {
 
   app.get("/api/auth/me", requireAuth, (req, res) => {
     const { getCooperativeTimezone } = require("./cooperative-time");
+    const { getPublicCountryProfile } = require("./country-profile");
     res.json({
       user: req.user,
       cooperativeTimezone: getCooperativeTimezone(),
+      countryProfile: getPublicCountryProfile(),
     });
   });
 

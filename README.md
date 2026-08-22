@@ -203,7 +203,8 @@ npm run generate:feb-2026
 - **Member banking profiles** — contact, address, next of kin, Zelle name (from WPForms applications); member portal self-service (biodata view, emergency contact edit, photo upload)
 - **Periodic PDF statements** — Statements tab (see above)
 - **Loans framework** — rules, validation, schedule import (no live loans loaded yet)
-- **Bank ledger import** — **Import New Bank Activity** (append-only, preview, dedup) for monthly statements; **Full Ledger Refresh** (advanced) for master ledger replace; downloadable **Import Template** for catch-up; CLI `npm run pfm:import-bank` for local PC
+- **Bank ledger import** — **Import New Bank Activity** (append-only, preview, dedup) for monthly statements; **Full Ledger Refresh** (advanced) for master ledger replace; downloadable **Import Template** for catch-up; CLI `npm run pfm:import-bank` for local PC. Country profile maps US vs Nigerian statement headers without changing Assurance.
+- **Country / currency** — per-tenant profile (`country-profile.js` + `country-catalog.js`): US default (USD, MM/DD/YYYY); Nigeria (NGN, DD/MM/YYYY, searchable banks and states). Add future countries in those files only.
 - **Cooperative Books** — dashboard with CD balance and **Expected CD Interest** card; CD term (rate, maturity) is edited on **Record → CD Account Balance and Term**
 - **Expenses** — database table ready; UI not built
 
@@ -275,6 +276,9 @@ Exports: `data/organizations/assurance/exports/member-profiles.json`
 | `peer-finance-manager/lib/member-self-service.js` | Member portal profile, photo, emergency contact |
 | `peer-finance-manager/lib/cooperative-books.js` | Cooperative Books dashboard |
 | `peer-finance-manager/lib/bank-import.js` | Bank import preview (UI) |
+| `peer-finance-manager/lib/country-profile.js` | Per-tenant country (US default, Nigeria opt-in) |
+| `peer-finance-manager/lib/country-catalog.js` | Searchable bank and state lists |
+| `peer-finance-manager/lib/money-format.js` | Currency display from Country |
 | `peer-finance-manager/public/` | Web UI |
 
 ### npm scripts (PeerFinanceManager)
@@ -286,6 +290,7 @@ Exports: `data/organizations/assurance/exports/member-profiles.json`
 | `npm run pfm:profiles` | Import profiles from WPForms CSV in project root |
 | `npm run pfm:import-bank` | Import bank transactions from CSV + All deposits.xlsx |
 | `npm run pfm:build` | Build standalone Windows `.exe` (optional) |
+| `npm run test:country-profile` | US default + Nigeria statement aliases, banks/states, date order |
 
 ---
 

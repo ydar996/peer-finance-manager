@@ -4,17 +4,8 @@ const { launchBrowser } = require("./puppeteer-launch");
 const { getCoopRoot, getStatementsDir } = require("./paths");
 const { getDb } = require("../db/database");
 const { MONTH_NAMES } = require("./constants");
-
-const moneyFmt = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
-
-function formatMoney(value) {
-  const number = Number(value) || 0;
-  const formatted = moneyFmt.format(Math.abs(number));
-  return number < 0 ? `(${formatted})` : formatted;
-}
+const { formatMoney } = require("./money-format");
+const { getCooperativeDateLocale } = require("./cooperative-date-format");
 
 function sanitizeFilename(value) {
   return String(value || "")
@@ -31,7 +22,7 @@ function formatDisplayDate(value) {
     ? new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]))
     : new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString(getCooperativeDateLocale(), {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -293,7 +284,7 @@ async function generateLoanStatementPdf(loan, options = {}) {
   if (!loan) throw new Error("Loan not found");
 
   const profile = getBorrowerProfile(loan.memberId);
-  const preparedOn = new Date().toLocaleDateString("en-US", {
+  const preparedOn = new Date().toLocaleDateString(getCooperativeDateLocale(), {
     year: "numeric",
     month: "long",
     day: "numeric",

@@ -239,6 +239,7 @@ function registerOrganizationWithAdmin({
   adminEmail,
   adminPassword,
   adminDisplayName,
+  countryCode,
 }) {
   const normalizedEmail = normalizeEmail(adminEmail);
   if (!normalizedEmail) throw new Error("Administrator email is required");
@@ -246,7 +247,7 @@ function registerOrganizationWithAdmin({
     throw new Error("Administrator password must be at least 8 characters");
   }
 
-  const organization = registerOrganization({ name, slug });
+  const organization = registerOrganization({ name, slug, countryCode });
   updateOrganizationAdminEmail(organization.slug, normalizedEmail);
   return runWithOrg(organization.slug, () => {
     const db = getDb();
@@ -260,8 +261,12 @@ function registerOrganizationWithAdmin({
         hashPassword(adminPassword),
         adminDisplayName || "Administrator"
       );
+    const { applyCountryProfileDefaults } = require("./country-profile");
+    applyCountryProfileDefaults(organization.countryCode || countryCode, {
+      forceLocaleSettings: true,
+    });
     const admin = getUserById(result.lastInsertRowid, organization);
-    return { organization, admin };
+    return { organization: getOrganization(organization.slug), admin };
   });
 }
 

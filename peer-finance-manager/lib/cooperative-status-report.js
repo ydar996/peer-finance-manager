@@ -9,25 +9,13 @@ const { buildLoanPublicIdMap, getLoanPublicId } = require("./loan-public-id");
 const { getExpensesForStatusReport } = require("./expense-report-label-service");
 const { resolveCheckingBalanceForReport } = require("./checking-balance-service");
 const { MONTH_NAMES } = require("./constants");
+const { formatMoney } = require("./money-format");
+const { formatCooperativeDate } = require("./cooperative-date-format");
 const {
   todayIso: cooperativeTodayIso,
   calendarParts: cooperativeCalendarParts,
   localeDateString: cooperativeLocaleDateString,
 } = require("./cooperative-time");
-
-const moneyFmt = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
-
-function formatMoney(value, { parens = false } = {}) {
-  const number = Number(value) || 0;
-  const formatted = moneyFmt.format(Math.abs(number));
-  if (number < 0 || parens) {
-    return number < 0 || parens ? `(${formatted})` : formatted;
-  }
-  return formatted;
-}
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -58,7 +46,9 @@ function parseAsOfDate(dateIso) {
     month: mo,
     day,
     dateIso: `${y}-${String(mo).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-    labelUs: `${String(mo).padStart(2, "0")}/${String(day).padStart(2, "0")}/${y}`,
+    labelUs: formatCooperativeDate(
+      `${y}-${String(mo).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+    ),
     slug: `${y}-${String(mo).padStart(2, "0")}`,
     periodLabel: `${MONTH_NAMES[mo - 1]} ${y}`,
   };

@@ -47,7 +47,7 @@ This guide explains how to use Peer Finance Manager (PFM) without technical jarg
 | **Member** | `/member` | Organization code, **username**, password |
 | **Staff** | `/staff` | Organization code, email, password |
 | **Administrator** | `/admin` | Organization code, email, password |
-| **New Cooperative** | `/register` | Register a new organization on the platform |
+| **New Cooperative** | `/register` | Register a new organization on the platform. Choose **Country** (United States is the default). |
 
 **Tip:** If Sign In seems to do nothing, hard-refresh the page (**Ctrl+Shift+R** on Windows). The first visit after idle can take up to 30 seconds while the server wakes up.
 
@@ -76,6 +76,7 @@ Members and staff **cannot** use each other's login page. Each Cooperative has i
 | **Pending Approval** | A membership applicant not yet active on **Members & Accounts**. |
 | **Former Member** | Resigned, Deceased, Expelled, or Suspended: off the active list and member emails; ledger history kept. |
 | **Membership Status** | Admin-selected type: Active, Resigned, Deceased, Expelled, or Suspended. |
+| **Country** | Sets currency, time zone, and statement date order for your Cooperative. United States is the default (US dollars, MM/DD/YYYY). Nigeria uses naira and DD/MM/YYYY. |
 
 ---
 
@@ -270,8 +271,8 @@ Each form is collapsed until you expand it.
 
 | Section | When to use it |
 |---------|----------------|
-| **Register New Member** | Add a member to the ledger; optional biodata and $100 registration fee. Includes **Gender** (Male, Female, Decline to Specify). |
-| **Update Member Profile** | Change phone, email, address, gender, emergency contact, etc. |
+| **Register New Member** | Add a member to the ledger; optional biodata and $100 registration fee. Includes **Gender** (Male, Female, Decline to Specify). **State** is a searchable list (US states, or Nigerian states plus FCT). |
+| **Update Member Profile** | Change phone, email, address, gender, emergency contact, etc. **State** is the same searchable list. You can still type a custom value. |
 | **Registration Fee** | Post the one-time $100 fee for an existing member. |
 | **Current Bank Balance** | Update checking balance from a bank statement (reference point). |
 | **CD Account Balance and Term** | Update CD balance from a bank statement, and enter term details when a CD is new or rolls over (beginning balance, annual rate, APY, renewal date, maturity date, term length). From Cooperative Books, **Expected CD Interest** → **Open Record** opens this form. |
@@ -322,10 +323,12 @@ Upload a **cumulative** bank export: **period start through today**. PFM skips r
 Expand **Bank Accounts and Import Settings**:
 
 1. **Registered Bank Accounts** — see your accounts.
-2. **Add Bank Account** — label, institution, currency, statement format.
+2. **Add Bank Account** — label, institution (searchable bank names for your Country), currency (USD for United States, NGN for Nigeria), statement format.
 3. **Edit Selected Account** — institution, format, active dates, and:
    - **Classification Rules** — keywords PFM uses to recognize contributions and loans on bank lines.
-   - **Payment Name Mappings** — map Zelle/bank names to members. Set **Default Type** when the bank line has no keyword (e.g. payer name only → Loan Repayment).
+   - **Payment Name Mappings** — map Zelle/bank names (United States) or bank transfer names (Nigeria) to members. Set **Default Type** when the bank line has no keyword (e.g. payer name only → Loan Repayment).
+
+Nigerian statements that use Trans Date/Narration/Debit/Credit are auto-detected and read as **DD/MM/YYYY**. United States Date/Description/Amount files still use **MM/DD/YYYY**. You can confirm the date order under Bank Accounts and Import Settings.
 
 Pick the correct bank account before each import.
 
@@ -413,7 +416,8 @@ Cooperative-wide performance PDF for members.
 
 **Organization & Report Settings** (admin):
 
-- Cooperative **time zone** (default Pacific).
+- Cooperative **time zone** (default Pacific for United States).
+- **Country**: United States (US dollars, current workflows) or Nigeria (naira, Lagos time, DD/MM/YYYY statement dates). Existing ledger amounts and bank accounts stay as stored.
 - **Auto-generate** and **auto-publish** at month-end (on by default). Those scheduled reports are dated the **last calendar day** of the month.
 - Manual **Generate Report** / **Publish to Members** are dated **the day you run them**.
 - Optional organization website on the cover.

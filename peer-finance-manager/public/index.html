@@ -139,6 +139,13 @@
           <label>Organization Code
             <input type="text" name="slug" required placeholder="e.g. acme" pattern="[a-zA-Z0-9-]+" />
           </label>
+          <label>Country
+            <select name="countryCode" required>
+              <option value="US" selected>United States</option>
+              <option value="NG">Nigeria</option>
+            </select>
+          </label>
+          <p class="hint subtle">Sets currency, time zone, and bank statement date order. United States Cooperatives keep US dollars. You can change this later under Organization &amp; Report Settings.</p>
           <label>Administrator Email
             <input type="email" name="adminEmail" required autocomplete="username" />
           </label>
@@ -376,7 +383,12 @@
                 <span>Cooperative time zone (reports, dashboard, ledger dates)</span>
                 <select id="cooperativeTimezone"></select>
               </label>
-              <p class="hint subtle">Default is Pacific (Los Angeles / San Diego). All administrators share one time zone per Cooperative.</p>
+              <p class="hint subtle">Default is Pacific (Los Angeles / San Diego) for United States Cooperatives, or West Africa (Lagos) for Nigeria. All administrators share one time zone per Cooperative.</p>
+              <label class="field-row">
+                <span>Country (Currency and Bank Statement Conventions)</span>
+                <select id="cooperativeCountry"></select>
+              </label>
+              <p class="hint subtle">United States keeps US dollars and current workflows. Nigeria displays naira (NGN) and accepts common Nigerian statement headers. Existing ledger amounts and bank accounts stay as stored.</p>
               <label class="toggle-row">
                 <input type="checkbox" id="monthlyStatusAutoGenerate" checked />
                 Automatically generate at month end (as at last calendar day)
@@ -1109,9 +1121,12 @@
                 <input type="text" name="city" />
               </label>
               <label>State (Optional)
-                <input type="text" name="state" />
+                <div class="suggest-picker">
+                  <input type="text" name="state" class="suggest-picker-input" data-suggest="states" placeholder="Search State" autocomplete="off" spellcheck="false" />
+                  <ul class="suggest-picker-list hidden" role="listbox"></ul>
+                </div>
               </label>
-              <label>Zelle/Bank Name (Optional)
+              <label><span data-payment-rail="optional">Zelle/Bank Name (Optional)</span>
                 <input type="text" name="zelleBankName" placeholder="As shown on bank transfers" />
               </label>
               <label>Joined Date (Optional)
@@ -1178,7 +1193,10 @@
                 <input type="text" name="city" />
               </label>
               <label>State
-                <input type="text" name="state" />
+                <div class="suggest-picker">
+                  <input type="text" name="state" class="suggest-picker-input" data-suggest="states" placeholder="Search State" autocomplete="off" spellcheck="false" />
+                  <ul class="suggest-picker-list hidden" role="listbox"></ul>
+                </div>
               </label>
               <label>Postal Code
                 <input type="text" name="postalCode" />
@@ -1186,7 +1204,7 @@
               <label>Country
                 <input type="text" name="country" />
               </label>
-              <label>Zelle/Bank Name
+              <label><span data-payment-rail="required">Zelle/Bank Name</span>
                 <input type="text" name="zelleBankName" />
               </label>
               <label>Next of Kin First Name
@@ -1558,6 +1576,7 @@
                 <span class="import-panel-hint">Overview of labels, institutions, formats, and active status.</span>
               </summary>
               <div class="profile-disclosure-body">
+                <p class="subtle" id="countryStatementHint"></p>
                 <div class="table-wrap">
                   <table class="data-table compact" id="bankAccountsTable">
                     <thead>
@@ -1587,8 +1606,11 @@
                   <label>Account label
                     <input type="text" id="newBankAccountLabel" placeholder="Dues Collection Account" required />
                   </label>
-                  <label>Institution name
-                    <input type="text" id="newBankAccountInstitution" placeholder="Your bank name" />
+                  <label>Institution Name
+                    <div class="suggest-picker">
+                      <input type="text" id="newBankAccountInstitution" class="suggest-picker-input" data-suggest="banks" placeholder="Search Bank Name" autocomplete="off" spellcheck="false" />
+                      <ul class="suggest-picker-list hidden" role="listbox"></ul>
+                    </div>
                   </label>
                   <label>Currency
                     <input type="text" id="newBankAccountCurrency" placeholder="USD" maxlength="8" value="USD" />
@@ -1629,8 +1651,11 @@
                       <span class="import-panel-hint">Institution, label, currency, statement format, and active dates.</span>
                     </summary>
                     <div class="profile-disclosure-body">
-                      <label>Institution name
-                        <input type="text" id="bankAccountInstitution" placeholder="Your bank name" />
+                      <label>Institution Name
+                        <div class="suggest-picker">
+                          <input type="text" id="bankAccountInstitution" class="suggest-picker-input" data-suggest="banks" placeholder="Search Bank Name" autocomplete="off" spellcheck="false" />
+                          <ul class="suggest-picker-list hidden" role="listbox"></ul>
+                        </div>
                       </label>
                       <label>Account label
                         <input type="text" id="bankAccountLabel" placeholder="Main Operating Account" />
@@ -1667,13 +1692,14 @@
                         <input type="date" id="bankAccountActiveTo" />
                       </label>
                       <label><input type="checkbox" id="bankAccountPrimary" /> Primary account</label>
-                      <label>Date format (Cooperative-wide)
+                      <label>Date Format (Cooperative-wide)
                         <select id="cooperativeDateFormat">
                           <option value="MDY">MM/DD/YYYY</option>
                           <option value="DMY">DD/MM/YYYY</option>
                           <option value="YMD">YYYY-MM-DD</option>
                         </select>
                       </label>
+                      <p class="hint subtle" id="countryDateFormatHint"></p>
                     </div>
                   </details>
                   <details class="import-subsection profile-disclosure">
@@ -1691,7 +1717,7 @@
                       </label>
                       <p class="subtle">Words or phrases in a bank description that mean a loan repayment.</p>
                       <h4>Payment Name Mappings</h4>
-                      <p class="subtle">When Zelle or your bank shows a different name than the member ledger, map it here. Use the name exactly as it appears on the statement. Separate multiple names with commas. Set Default Type when the bank description does not say contribution or loan (e.g. payer name only).</p>
+                      <p class="subtle" id="paymentAliasHint">When Zelle or your bank shows a different name than the member ledger, map it here. Use the name exactly as it appears on the statement. Separate multiple names with commas. Set Default Type when the bank description does not say contribution or loan (e.g. payer name only).</p>
                       <div class="table-wrap">
                         <table class="data-table compact" id="paymentAliasesTable">
                           <thead>

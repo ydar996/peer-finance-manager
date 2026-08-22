@@ -36,6 +36,7 @@ function ensureBillingSchema(db) {
   add(`ADD COLUMN subscription_updated_at TEXT`);
   add(`ADD COLUMN subscription_grace_until TEXT`);
   add(`ADD COLUMN admin_email TEXT`);
+  add(`ADD COLUMN country_code TEXT`);
 }
 
 function getRegistryDb() {
@@ -105,6 +106,7 @@ function mapOrganizationRow(row) {
     subscriptionUpdatedAt: row.subscription_updated_at || null,
     subscriptionGraceUntil: row.subscription_grace_until || null,
     adminEmail: row.admin_email || null,
+    countryCode: row.country_code || null,
   };
 }
 
@@ -116,7 +118,7 @@ function listOrganizations() {
               subscription_status, subscription_plan, payment_method, billing_email,
               stripe_customer_id, stripe_subscription_id, subscription_current_period_end,
               check_payment_reference, subscription_notes, subscription_updated_at,
-              subscription_grace_until
+              subscription_grace_until, country_code
        FROM organizations ORDER BY name`
     )
     .all()
@@ -133,7 +135,7 @@ function getOrganization(slug) {
               subscription_status, subscription_plan, payment_method, billing_email,
               stripe_customer_id, stripe_subscription_id, subscription_current_period_end,
               check_payment_reference, subscription_notes, subscription_updated_at,
-              subscription_grace_until
+              subscription_grace_until, country_code
        FROM organizations WHERE slug = ?`
     )
     .get(normalized);
@@ -144,7 +146,7 @@ function organizationExists(slug) {
   return Boolean(getOrganization(slug));
 }
 
-function registerOrganization({ name, slug }) {
+function registerOrganization({ name, slug, countryCode }) {
   const normalized = normalizeSlug(slug);
   const displayName = String(name || "").trim();
   if (!displayName) throw new Error("Organization name is required");
@@ -152,9 +154,34 @@ function registerOrganization({ name, slug }) {
   if (normalized.length < 2) throw new Error("Organization code must be at least 2 characters");
   if (getOrganization(normalized)) throw new Error("This organization code is already registered");
 
+  const { normalizeCountryCode, DEFAULT_COUNTRY_CODE } = require("./country-profile");
+  const country = normalizeCountryCode(countryCode || DEFAULT_COUNTRY_CODE);
+
   const db = getRegistryDb();
-  db.prepare(`INSERT INTO organizations (slug, name) VALUES (?, ?)`).run(normalized, displayName);
+  try {
+    db.prepare(`INSERT INTO organizations (slug, name, country_code) VALUES (?, ?, ?)`).run(
+      normalized,
+      displayName,
+      country
+    );
+  } catch (_) {
+    db.prepare(`INSERT INTO organizations (slug, name) VALUES (?, ?)`).run(normalized, displayName);
+  }
   fs.mkdirSync(getOrgDataDir(normalized), { recursive: true });
+  return getOrganization(normalized);
+}
+
+function updateOrganizationCountry(slug, countryCode) {
+  const db = getRegistryDb();
+  const normalized = normalizeSlug(slug);
+  if (!normalized || !getOrganization(normalized)) return null;
+  const { normalizeCountryCode } = require("./country-profile");
+  const country = normalizeCountryCode(countryCode);
+  try {
+    db.prepare(`UPDATE organizations SET country_code = ? WHERE slug = ?`).run(country, normalized);
+  } catch (_) {
+    /* column missing on very old registry */
+  }
   return getOrganization(normalized);
 }
 
@@ -298,6 +325,7 @@ module.exports = {
   getOrganization,
   organizationExists,
   registerOrganization,
+  updateOrganizationCountry,
   updateOrganizationAdminEmail,
   updateOrganizationBilling,
   migrateLegacyDatabaseIfNeeded,

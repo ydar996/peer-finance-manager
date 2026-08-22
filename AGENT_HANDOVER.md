@@ -2,12 +2,13 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 21, 2026 (manual report as-of date + CD term form)  
+**Last updated:** August 21, 2026 (country profiles committed locally; not pushed)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
-**Workspace:** `C:\Users\yinka\Documents\AssurCoop`  
+**Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** `efd3006` (manual report as-of date + CD term form) — includes expense labels `d399bb4`, SaaS **$29.99** pricing `4c31805`
+**Production HEAD (code):** `efd3006` (manual report as-of date + CD term form) — includes expense labels `d399bb4`, SaaS **$29.99** pricing `4c31805`  
+**Local (committed, not pushed):** Country profiles + Nigerian banks/states searchable lists + DD/MM/YYYY. Production unchanged until `git push`.
 
 ---
 
@@ -117,7 +118,7 @@ Use this when cloning or continuing on another PC. **Read §0, then §1A/§1B be
 |------|--------|
 | Branch | `main` (tracks `origin/main`) |
 | Latest code on GitHub | `efd3006` (manual report as-of + CD terms); prior: machine-transfer docs `382e588`, expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
-| Working tree | Clean except untracked local junk `tmp-live-app.js` (**do not commit or copy**) |
+| Working tree | After country-profile commit: clean except untracked `tmp-live-app.js` (**do not commit or copy**). Country work is on local `main`, not on `origin/main` until push. |
 | Code deploy path | `git push` → Netlify (UI) + Render (API) auto-deploy |
 | Data deploy path | Live **Admin → Maintenance** (backup/restore) or **Import** (ledger). Never SFTP/WinSCP for routine ops |
 
@@ -131,16 +132,15 @@ Use this when cloning or continuing on another PC. **Read §0, then §1A/§1B be
 
 Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Stripe checkout uses dynamic `price_data` (no fixed Stripe Price IDs). Docs: `USER-GUIDE.md` §19, `STRIPE-SETUP.md`, `STRIPE-PAYMENTS-GUIDE.md`, marketing `product.html`.
 
-### Assurance ops status (verified 2026-08-09 on production API)
+### Assurance ops status (user report 2026-08-21; last API verify 2026-08-09)
 
 | Item | Value |
 |------|--------|
 | Org slug | `assurance` |
-| Subscription | `check_pending` (check pickup pending; user will update when recorded) |
-| Grace until | **2026-08-21** (`subscription_grace_until`) |
-| Access | Full access while in grace (`graceDaysRemaining` ~12 as of 2026-08-09) |
-| Platform extend | `/platform` → org row → extend grace, or `POST /api/platform/organizations/assurance/extend-grace` |
-| Record check | `/platform` → **Record Check Payment** when check is in hand |
+| Subscription | User reported **a year's subscription paid** last week (week of 2026-08-14). Last production API verify (2026-08-09) was still `check_pending` with grace through **2026-08-21**. **Confirm on `/platform`** that the payment is recorded (active/annual), not still pending. |
+| Grace until | **2026-08-21** was the last stored grace date. If payment is recorded, grace is moot. |
+| Access | Keep full access; do not treat Assurance as a Nigeria tenant. |
+| Platform | `/platform` → **Record Check Payment** if the annual check is in hand and not yet posted |
 
 ### What moves with Git vs what does not
 
@@ -168,11 +168,17 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 - SaaS fee **$29.99** / 1% quarterly / 4% annual (`4c31805`)
 - Apply embed signature gap fix (`a71d895`)
 - Membership alerts, bylaws cleanup, Messages rich UI, loan applications pipeline, membership status types, Maintenance tab, bank append product mode (see changelog)
+- Manual status report as-of today + CD term form (`efd3006`)
+
+**Built locally, committed, not shipped:** Country profiles (US default, Nigeria opt-in), `country-catalog.js` banks/states searchable dropdowns, Nigeria DD/MM/YYYY. Wait for user to ask for `git push`. Leave Assurance on United States.
 
 ---
 
 ## Changelog
 
+- **2026-08-21** — **Docs audit vs §0:** Confirmed feature changelog/USER-GUIDE/README for country work were written in the same session. Backfilled stale handover sections: workspace path `C:\Users\ydara\Documents\AssurCoop`; machine-snapshot working tree; Assurance annual-pay user report vs last API verify; outstanding task 2b; §6 test script; §7/§8 next session; §10 grep targets; README key files. **Production:** docs ride with the country commit; still not live until `git push`. No data upload.
+- **2026-08-21** — **Nigerian banks/states searchable dropdowns + DD/MM/YYYY:** Full catalog in `country-catalog.js`: CBN deposit-money banks (plus common aliases and digital/MFB names that appear on transfers) and all 36 Nigerian states + FCT. Institution and State fields use a type-to-search dropdown (custom names still allowed). US path uses US bank suggestions and 50 states + DC; Assurance date labels stay MM/DD/YYYY. Nigeria status reports, import, and UI dates use DD/MM/YYYY. Files: `country-catalog.js`, `country-profile.js`, `cooperative-date-format.js`, `cooperative-status-report.js`, statements, `app.js`, `index.html`, `styles.css`. Test: `npm run test:country-profile`. **Production:** committed locally; `git push` when asked (Netlify UI + Render API); no data upload. Do not change Assurance country.
+- **2026-08-21** — **Country profiles (US default, Nigeria ready, future-flexible):** Per-tenant **Country** on Register and **Organization & Report Settings**. Unset/unknown codes stay **United States** (USD, Pacific, MM/DD/YYYY) so Assurance and existing tenants are unchanged: no ledger conversion, no bank-account rewrite. Nigeria: NGN display, Africa/Lagos, DD/MM/YYYY, Nigerian statement header aliases (Trans Date/Narration/Debit/Credit, ₦ amounts). Add the next country in `country-profile.js` plus lists in `country-catalog.js`. Platform SaaS billing stays USD. Test: `npm run test:country-profile`. Files: `country-profile.js`, `money-format.js`, org/auth/import/PDF/UI. **Production:** `git push` (Netlify UI + Render API); no data upload. Do not change Assurance country.
 - **2026-08-21** — **Manual status report date + CD term form deploy:** Production `efd3006`. Netlify UI + Render API. Hard-refresh after Render finishes. No data upload. Then **Status Report → Generate** (and **Publish** if auto-publish is off); **Record → CD Account Balance and Term** for the rolled-over CD.
 - **2026-08-21** — **Manual status report date + CD term form (all tenants):** Manual **Generate Report** / **Publish to Members** now stamp the report **as at today** (the calendar day you run them). A prior save/display path always rewrote as-of to month-end, so mid-month publishes showed e.g. 08/31. Month-end auto-generate still uses the last calendar day. **Record → CD Account Balance and Term** now edits rollover terms (beginning balance, rate, APY, renewal, maturity, term days); Cooperative Books **Open Record** on CD cards opens that form; Expected CD Interest no longer formats dates/rates as money ($0.00). Updating the CD balance no longer resets terms to hardcoded defaults. Files: `cooperative-status-report.js`, `monthly-status-report-service.js`, `cd-balance-service.js`, `cooperative-books.js`, `server.js`, `app.js`, `index.html`, `USER-GUIDE.md`. **Production:** `efd3006` (`git push`; Netlify UI + Render API; no data upload). After deploy, **Generate** then **Publish** this month's report so members see today's date; enter new CD term on Record after a rollover.
 - **2026-08-09** — **Machine-transfer docs sync:** Verified `main`/`origin/main` (ignore untracked `tmp-live-app.js`). Added **Machine transfer snapshot** (git HEAD, pricing, Assurance grace through **2026-08-21** `check_pending`, what Git moves vs data/env). Corrected stale outstanding task **Cooperative expenses** (UI + report labels live). Refreshed §7/§8 next-session plan. Also `UPDATE-AND-PUBLISH.md` (moving PCs) + README pointer. **Production:** `382e588` (docs-only push).
@@ -634,6 +640,10 @@ Members/Admin browser
 **Publish code:** `git push` → auto-deploy both services. See [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md).  
 **Publish data:** **Admin → Import** (ledger) or **Admin → Maintenance** (backup/restore). Browser only.
 
+### Country profiles (currency and statement conventions)
+
+Unset or unknown `country_code` is **United States** (USD, Pacific, MM/DD/YYYY). Assurance needs no migration and must stay on United States. Nigeria is opt-in at Register or **Organization & Report Settings**. Changing country does not convert ledger amounts or rewrite bank accounts. Bank names and states live in `peer-finance-manager/lib/country-catalog.js` (Nigeria: CBN deposit-money banks plus common digital brands, 36 states + FCT; United States: 50 states + DC). Add the next client country in `country-profile.js` plus catalog lists. Do not fork product code per country. Platform SaaS billing stays USD. Test: `npm run test:country-profile`.
+
 ### Local development
 
 **Assurance Cooperative Manager** (`PeerFinanceManager.exe` / port **3457**) is the one app:
@@ -667,6 +677,8 @@ Bank CSV + All deposits.xlsx ──► parse-bank-sources.js ──► import-ba
 | 8 | `peer-finance-manager/lib/member-name-match.js` | Application ↔ ledger names; proxy Zelle beneficiary |
 | 9 | `peer-finance-manager/lib/member-self-service.js` | Member portal profile, photo, emergency contact |
 | 10 | `peer-finance-manager/db/schema.sql` | DB shape |
+| 11 | `peer-finance-manager/lib/country-profile.js` | Per-tenant country catalog (US default; add NG/next country here only) |
+| 12 | `peer-finance-manager/lib/country-catalog.js` | Banks and states for searchable dropdowns |
 
 ### Ports
 
@@ -685,6 +697,7 @@ npm run pfm:profiles       # WPForms → profiles
 npm run pfm:import-bank    # Bank CSV + xlsx → ledger (real dates)
 npm run generate:may-2026  # Bank + workbook → May PDFs
 npm run compare:bank       # Workbook vs bank CSV
+npm run test:country-profile  # US default, NG aliases, banks/states, DD/MM vs MM/DD
 npm run pfm:build          # Package PFM as .exe
 npm run statements:legacy-server  # Deprecated port 3456 only
 ```
@@ -756,7 +769,7 @@ Peer Finance Manager / Assurance Cooperative
 |---|------|-------|
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
 | 2 | ~~**Cooperative expenses**~~ | ✅ **Done** (incremental) — Expenses import from bank ledger; Record expense + categories; **Operational Expense Labels** on Monthly Status Report (presets + add-new) deployed `d399bb4`. Remaining polish only if user asks. |
-| 2b | **Assurance subscription check** | Status `check_pending`; grace through **2026-08-21**. User picking up check; when received → Platform **Record Check Payment** (or extend grace again). |
+| 2b | **Assurance subscription check** | User reported (2026-08-21) a **year's subscription paid** last week. Last production verify (2026-08-09) was `check_pending` / grace **2026-08-21**. Confirm on `/platform` that annual payment is recorded. Do not change Assurance country. |
 | 3 | **Profile for Kehinde Agboola** | Olawale George added (WPForms row + local import). Kehinde still has no application row. |
 | 4 | ~~**Restore app import file from golden master**~~ | ✅ **Done** 2026-07-09 — Render **457 / $16,241.55**. |
 | 4b | ~~**Fix auto-sync clobber**~~ | ✅ **Done** — xlsx never auto-overwritten; CSV sync cloud-only (§1B). |
@@ -799,8 +812,10 @@ Peer Finance Manager / Assurance Cooperative
 | 10 | **January 2026 verification** | Workbook has Jan 2026 column; bank CSV starts 2 Feb 2026. |
 | 11 | **Regenerate April PDFs** | After distribution layout fix, April folder may have old layout if not re-run. |
 | 12 | **Spreadsheet import placeholder dates** | `pfm:seed` still uses last-day-of-month; bank-imported txs have real dates. |
-| 13 | **Currency display consistency** | Statements use NGN; PFM UI uses USD formatter. Cosmetic unless user wants one currency. |
+| 13 | ~~**Currency display consistency**~~ | ✅ **Done (incremental)** 2026-08-21: PFM UI and PFM PDFs use the Cooperative **Country** currency (US = USD). Legacy root `lib/statement-generator.js` remains NGN for old Assurance workbook scripts only. |
 | 14 | **Verify PDF statements on production** | Member monthly download after Puppeteer Chrome deploy. |
+| 14b | **Nigeria bank statement sample** | Country profile, DD/MM/YYYY, header aliases, and searchable bank/state catalogs are in local code (not production until push). When the Nigerian Cooperative provides a real export, tune auto-detect if any columns still miss. Do not change US/Assurance parsers. |
+| 14c | ~~**Country profiles (US default, Nigeria)**~~ | ✅ **Done (committed locally)** 2026-08-21: `country-profile.js` + `country-catalog.js` + money format + Register/Settings Country. Assurance unset country = US. **Not on production** until `git push`. |
 
 ### Low — engineering hygiene
 
@@ -865,6 +880,9 @@ npm run generate:may-2026
 
 # Apps start
 npm start   # → http://localhost:3457 (Assurance Cooperative Manager)
+
+# Country profiles (US default / Nigeria)
+npm run test:country-profile
 ```
 
 ---
@@ -876,19 +894,22 @@ npm start   # → http://localhost:3457 (Assurance Cooperative Manager)
 - User cares about **statement presentation** and Title Case / no em dash UI copy.
 - **Assurance Status** workbook history still matters for April-era statement logic; live books use bank import + master ledger workflows (§1A/§1B).
 - SaaS pricing decision (2026-08-06): **$29.99**/mo, 1% quarterly, 4% annual.
-- Assurance billing: check payment pending; grace extended through **2026-08-21**.
+- Assurance billing: user reported **annual subscription paid** last week (2026-08-21). Confirm recorded on `/platform`. Last API verify (2026-08-09) was still `check_pending` / grace **2026-08-21**.
+- Next client country: **Nigeria** (same product; Country toggle). Country code is **local/uncommitted**; do not change Assurance country.
+- Docs rule: update `AGENT_HANDOVER.md` + affected guides in the **same turn** as code (`§0`). The user must never have to ask.
 - Full build history lives in Cursor agent transcripts under `.cursor/projects/.../agent-transcripts/` (not required on the new machine if GitHub + this handover are current).
 
 ---
 
 ## 8. Suggested next session plan
 
-1. On the new machine: clone/pull `main`, `npm install`, confirm local or production Admin login.
-2. **Assurance billing:** when check arrives → `/platform` → **Record Check Payment**; else extend grace before **2026-08-21**.
+1. Confirm Assurance annual payment is recorded on `/platform` (user reported paid last week).
+2. When the user asks: `git push` country-profile work; leave Assurance on United States.
 3. Monthly bank work: **Import New Bank Activity** only (append); Full Ledger Refresh only for rebuild (§1B).
 4. Import loan records + schedules when user provides data.
 5. Profile for Kehinde Agboola if application supplied.
-6. SaaS hardening still open: **4i** off-disk backups, **4j** registration gate, **4k** remove default passwords.
+6. Nigeria: wait for a real bank export (task **14b**) before tuning parsers.
+7. SaaS hardening still open: **4i** off-disk backups, **4j** registration gate, **4k** remove default passwords.
 
 ---
 
@@ -914,8 +935,9 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 | Name aliases (bank) | `MEMBER_BANK_ALIASES` in `bank-statement-parser.js` |
 | Name aliases (applications) | `APPLICATION_TO_LEDGER` in `member-name-match.js` |
 | Loan rules | `peer-finance-manager/lib/constants.js` |
-| Date formatting (UI) | `formatDate` in `peer-finance-manager/public/app.js` |
-| Date formatting (PDF) | `formatDisplayDate` in `loan-statement-generator.js` |
+| Date formatting (UI) | `formatDate` in `peer-finance-manager/public/app.js` (uses Country locale) |
+| Date formatting (PDF) | `formatDisplayDate` in `loan-statement-generator.js`; numeric as-of via `formatCooperativeDate` |
+| Country / currency | `peer-finance-manager/lib/country-profile.js`, `country-catalog.js`, `money-format.js` |
 | Member self-service | `peer-finance-manager/lib/member-self-service.js` |
 | Bank ledger import | `peer-finance-manager/lib/import-bank-ledger.js` |
 | SaaS pricing constants | `peer-finance-manager/lib/platform-billing-constants.js` |

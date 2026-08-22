@@ -1543,17 +1543,20 @@ tr.loan-row:hover { background: #f8fafc; }
   box-sizing: border-box;
 }
 .entry-form .btn { margin-top: 4px; align-self: flex-start; }
-.member-picker {
+.member-picker,
+.suggest-picker {
   position: relative;
   width: 100%;
   min-width: 0;
 }
-.member-picker-input {
+.member-picker-input,
+.suggest-picker-input {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
-.member-picker-list {
+.member-picker-list,
+.suggest-picker-list {
   position: absolute;
   z-index: 30;
   left: 0;
@@ -1570,8 +1573,10 @@ tr.loan-row:hover { background: #f8fafc; }
   list-style: none;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
 }
-.member-picker-list.hidden { display: none; }
-.member-picker-list li {
+.member-picker-list.hidden,
+.suggest-picker-list.hidden { display: none; }
+.member-picker-list li,
+.suggest-picker-list li {
   padding: 8px 10px;
   cursor: pointer;
   font-size: 13px;
@@ -1582,7 +1587,9 @@ tr.loan-row:hover { background: #f8fafc; }
   white-space: nowrap;
 }
 .member-picker-list li:hover,
-.member-picker-list li.active {
+.member-picker-list li.active,
+.suggest-picker-list li:hover,
+.suggest-picker-list li.active {
   background: #e0f2fe;
 }
 .member-picker-list .member-picker-meta {
@@ -1591,7 +1598,8 @@ tr.loan-row:hover { background: #f8fafc; }
   color: #64748b;
   font-weight: 400;
 }
-.member-picker-empty {
+.member-picker-empty,
+.suggest-picker-empty {
   padding: 8px 10px;
   font-size: 12px;
   color: #94a3b8;

@@ -64,10 +64,20 @@ function parseCooperativeDate(value, format = getCooperativeDateFormat()) {
 
 function formatCooperativeDate(iso, format = getCooperativeDateFormat()) {
   if (!iso) return "";
-  const [y, m, d] = String(iso).slice(0, 10).split("-").map(Number);
-  if (format === "YMD") return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const [y, m, d] = String(iso).slice(0, 10).split("-");
+  if (!y || !m || !d) return "";
+  if (format === "YMD") return `${y}-${m}-${d}`;
   if (format === "DMY") return `${d}/${m}/${y}`;
   return `${m}/${d}/${y}`;
+}
+
+function getCooperativeDateLocale() {
+  try {
+    const { getCountryProfile } = require("./country-profile");
+    return getCountryProfile().locale || "en-US";
+  } catch (_) {
+    return "en-US";
+  }
 }
 
 module.exports = {
@@ -78,4 +88,5 @@ module.exports = {
   setCooperativeDateFormat,
   parseCooperativeDate,
   formatCooperativeDate,
+  getCooperativeDateLocale,
 };

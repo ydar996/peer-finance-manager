@@ -50,8 +50,39 @@ function parseCsvLine(line) {
 
 function parseAmount(value) {
   if (value == null || value === "") return null;
-  const n = Number(String(value).replace(/,/g, "").replace(/"/g, "").trim());
+  const n = Number(
+    String(value)
+      .replace(/[₦$£€]/g, "")
+      .replace(/\b(NGN|USD)\b/gi, "")
+      .replace(/,/g, "")
+      .replace(/"/g, "")
+      .trim()
+  );
   return Number.isFinite(n) ? n : null;
+}
+
+const DATE_HEADER_ALIASES = [
+  "date",
+  "trans date",
+  "transaction date",
+  "value date",
+  "posting date",
+  "txn date",
+];
+const DESCRIPTION_HEADER_ALIASES = [
+  "description",
+  "narration",
+  "details",
+  "remarks",
+  "particulars",
+  "transaction details",
+];
+const AMOUNT_HEADER_ALIASES = ["amount", "transaction amount", "amt"];
+const CREDIT_HEADER_ALIASES = ["credit", "money in", "deposit", "lodgement", "credit amount"];
+const DEBIT_HEADER_ALIASES = ["debit", "money out", "withdrawal", "debit amount"];
+
+function headerHas(cols, aliases) {
+  return aliases.some((alias) => cols.includes(alias));
 }
 
 function normalizeHeader(value) {
@@ -91,13 +122,13 @@ function parseStatementSummaryFromText(raw) {
 function detectCsvFormat(lines) {
   const headerIndex = lines.findIndex((line) => {
     const cols = parseCsvLine(line).map(normalizeHeader);
-    return cols.includes("date") && cols.includes("description");
+    return headerHas(cols, DATE_HEADER_ALIASES) && headerHas(cols, DESCRIPTION_HEADER_ALIASES);
   });
   if (headerIndex < 0) return { format: "csv_date_description_amount", headerIndex: -1 };
 
   const cols = parseCsvLine(lines[headerIndex]).map(normalizeHeader);
   if (cols.includes("type")) return { format: "template_explicit", headerIndex };
-  if (cols.includes("credit") && cols.includes("debit")) {
+  if (headerHas(cols, CREDIT_HEADER_ALIASES) && headerHas(cols, DEBIT_HEADER_ALIASES)) {
     return { format: "csv_date_description_credit_debit", headerIndex };
   }
   if (headerIndex > 0 && /beginning balance|summary amt/i.test(lines.slice(0, headerIndex).join("\n"))) {
@@ -148,11 +179,11 @@ function parseCsvRows({
   requireExplicitType = false,
 }) {
   const headerCols = parseCsvLine(lines[headerIndex]);
-  const dateCol = resolveColumnIndex(headerCols, columnMapping.date, ["date"]);
-  const descCol = resolveColumnIndex(headerCols, columnMapping.description, ["description"]);
-  const amountCol = resolveColumnIndex(headerCols, columnMapping.amount, ["amount"]);
-  const creditCol = resolveColumnIndex(headerCols, columnMapping.credit, ["credit"]);
-  const debitCol = resolveColumnIndex(headerCols, columnMapping.debit, ["debit"]);
+  const dateCol = resolveColumnIndex(headerCols, columnMapping.date, DATE_HEADER_ALIASES);
+  const descCol = resolveColumnIndex(headerCols, columnMapping.description, DESCRIPTION_HEADER_ALIASES);
+  const amountCol = resolveColumnIndex(headerCols, columnMapping.amount, AMOUNT_HEADER_ALIASES);
+  const creditCol = resolveColumnIndex(headerCols, columnMapping.credit, CREDIT_HEADER_ALIASES);
+  const debitCol = resolveColumnIndex(headerCols, columnMapping.debit, DEBIT_HEADER_ALIASES);
   const typeCol = resolveColumnIndex(headerCols, columnMapping.type, ["type", "narrative"]);
   const memberCol = resolveColumnIndex(headerCols, columnMapping.member, ["member"]);
   const refCol = resolveColumnIndex(headerCols, columnMapping.reference, ["reference"]);
@@ -347,4 +378,5 @@ module.exports = {
   parseStatementFileWithFormat,
   detectCsvFormat,
   classifyRow,
+  parseAmount,
 };

@@ -252,6 +252,7 @@ app.use("/api", (req, res, next) => {
     req.path === "/auth/login" ||
     req.path === "/auth/register-organization" ||
     req.path === "/organizations/lookup" ||
+    req.path === "/countries" ||
     req.path.startsWith("/public/") ||
     req.path.startsWith("/platform/") ||
     req.path === "/billing/stripe-webhook" ||
@@ -861,6 +862,7 @@ app.get("/api/cooperative/import-settings", requireAdmin, restoreOrgContext, (re
     const { getImportRulesForUi } = require("./lib/import-rules-service");
     const { listPaymentAliases } = require("./lib/member-payment-alias-service");
     const { STATEMENT_FORMATS } = require("./lib/import-format-service");
+    const { getPublicCountryProfile } = require("./lib/country-profile");
     res.json({
       dateFormat: getCooperativeDateFormat(),
       dateFormatOptions: DATE_FORMAT_OPTIONS,
@@ -869,6 +871,7 @@ app.get("/api/cooperative/import-settings", requireAdmin, restoreOrgContext, (re
       importRules: getImportRulesForUi(),
       paymentAliases: listPaymentAliases(),
       statementFormats: STATEMENT_FORMATS,
+      countryProfile: getPublicCountryProfile(),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

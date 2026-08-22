@@ -8,6 +8,8 @@ const {
   attachDepositRunningBalances,
 } = require("./balance-service");
 const { TRANSACTION_TYPES, MONTH_NAMES } = require("./constants");
+const { formatMoney } = require("./money-format");
+const { getCooperativeDateLocale } = require("./cooperative-date-format");
 
 const DEPOSIT_STATEMENT_TYPES = [
   TRANSACTION_TYPES.DEPOSIT,
@@ -15,17 +17,6 @@ const DEPOSIT_STATEMENT_TYPES = [
   TRANSACTION_TYPES.DISTRIBUTION,
   TRANSACTION_TYPES.MEMBERSHIP_FEE,
 ];
-
-const moneyFmt = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
-
-function formatMoney(value) {
-  const number = Number(value) || 0;
-  const formatted = moneyFmt.format(Math.abs(number));
-  return number < 0 ? `(${formatted})` : formatted;
-}
 
 function formatTxType(type) {
   const labels = {
@@ -257,7 +248,7 @@ async function generateMemberDepositStatementPdf(memberId, options = {}) {
     }
   }
 
-  const preparedOn = new Date().toLocaleDateString("en-US", {
+  const preparedOn = new Date().toLocaleDateString(getCooperativeDateLocale(), {
     year: "numeric",
     month: "long",
     day: "numeric",
