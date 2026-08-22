@@ -2,13 +2,12 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 21, 2026 (country profiles committed locally; not pushed)  
+**Last updated:** August 21, 2026 (country profiles pushed `ae04579`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** `efd3006` (manual report as-of date + CD term form) — includes expense labels `d399bb4`, SaaS **$29.99** pricing `4c31805`  
-**Local (committed, not pushed):** Country profiles + Nigerian banks/states searchable lists + DD/MM/YYYY. Production unchanged until `git push`.
+**Production HEAD (code):** `ae04579` (country profiles: US default, Nigeria opt-in) — includes CD terms `efd3006`, expense labels `d399bb4`, SaaS **$29.99** `4c31805`
 
 ---
 
@@ -117,8 +116,8 @@ Use this when cloning or continuing on another PC. **Read §0, then §1A/§1B be
 | Item | Value |
 |------|--------|
 | Branch | `main` (tracks `origin/main`) |
-| Latest code on GitHub | `efd3006` (manual report as-of + CD terms); prior: machine-transfer docs `382e588`, expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
-| Working tree | After country-profile commit: clean except untracked `tmp-live-app.js` (**do not commit or copy**). Country work is on local `main`, not on `origin/main` until push. |
+| Latest code on GitHub | `ae04579` (country profiles US default / Nigeria); prior: CD terms `efd3006`, machine-transfer docs `382e588`, expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
+| Working tree | Country profiles are on `origin/main` (`ae04579`). Scratch file `tmp-live-app.js` deleted 2026-08-21. |
 | Code deploy path | `git push` → Netlify (UI) + Render (API) auto-deploy |
 | Data deploy path | Live **Admin → Maintenance** (backup/restore) or **Import** (ledger). Never SFTP/WinSCP for routine ops |
 
@@ -149,7 +148,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 | All app code, `AGENT_HANDOVER.md`, USER-GUIDE, Stripe docs, Cursor rules | `data/` (local SQLite, org DBs, uploads) |
 | | `.env` / Render env vars (Stripe, SMTP, `PLATFORM_ADMIN_PASSWORD`, `PFM_DATA_DIR`) |
 | | Production Render disk under `PFM_DATA_DIR` |
-| | Untracked `tmp-live-app.js` (delete; ignore) |
+| | Untracked scratch dumps (none currently; `tmp-live-app.js` was deleted 2026-08-21) |
 
 ### New machine setup checklist
 
@@ -170,14 +169,16 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 - Membership alerts, bylaws cleanup, Messages rich UI, loan applications pipeline, membership status types, Maintenance tab, bank append product mode (see changelog)
 - Manual status report as-of today + CD term form (`efd3006`)
 
-**Built locally, committed, not shipped:** Country profiles (US default, Nigeria opt-in), `country-catalog.js` banks/states searchable dropdowns, Nigeria DD/MM/YYYY. Wait for user to ask for `git push`. Leave Assurance on United States.
+**Shipped** `ae04579`: Country profiles (US default, Nigeria opt-in), `country-catalog.js` banks/states searchable dropdowns, Nigeria DD/MM/YYYY. Leave Assurance on United States.
 
 ---
 
 ## Changelog
 
-- **2026-08-21** — **Docs audit vs §0:** Confirmed feature changelog/USER-GUIDE/README for country work were written in the same session. Backfilled stale handover sections: workspace path `C:\Users\ydara\Documents\AssurCoop`; machine-snapshot working tree; Assurance annual-pay user report vs last API verify; outstanding task 2b; §6 test script; §7/§8 next session; §10 grep targets; README key files. **Production:** docs ride with the country commit; still not live until `git push`. No data upload.
-- **2026-08-21** — **Nigerian banks/states searchable dropdowns + DD/MM/YYYY:** Full catalog in `country-catalog.js`: CBN deposit-money banks (plus common aliases and digital/MFB names that appear on transfers) and all 36 Nigerian states + FCT. Institution and State fields use a type-to-search dropdown (custom names still allowed). US path uses US bank suggestions and 50 states + DC; Assurance date labels stay MM/DD/YYYY. Nigeria status reports, import, and UI dates use DD/MM/YYYY. Files: `country-catalog.js`, `country-profile.js`, `cooperative-date-format.js`, `cooperative-status-report.js`, statements, `app.js`, `index.html`, `styles.css`. Test: `npm run test:country-profile`. **Production:** committed locally; `git push` when asked (Netlify UI + Render API); no data upload. Do not change Assurance country.
+- **2026-08-21** — **Country profiles deploy:** Production `ae04579`. Netlify UI + Render API. Hard-refresh after Render finishes. Register a test org at `/register` with **Country: Nigeria**. Leave Assurance on United States. No data upload.
+- **2026-08-21** — **Deleted leftover `tmp-live-app.js`:** Local scratch dump of an old live `app.js`. It was never part of the product, was not in Git, and is gone. Do not recreate it. **Production:** no code impact.
+- **2026-08-21** — **Docs audit vs §0:** Confirmed feature changelog/USER-GUIDE/README for country work were written in the same session. Backfilled stale handover sections: workspace path `C:\Users\ydara\Documents\AssurCoop`; machine-snapshot working tree; Assurance annual-pay user report vs last API verify; outstanding task 2b; §6 test script; §7/§8 next session; §10 grep targets; README key files. **Production:** `ae04579`. No data upload.
+- **2026-08-21** — **Nigerian banks/states searchable dropdowns + DD/MM/YYYY:** Full catalog in `country-catalog.js`: CBN deposit-money banks (plus common aliases and digital/MFB names that appear on transfers) and all 36 Nigerian states + FCT. Institution and State fields use a type-to-search dropdown (custom names still allowed). US path uses US bank suggestions and 50 states + DC; Assurance date labels stay MM/DD/YYYY. Nigeria status reports, import, and UI dates use DD/MM/YYYY. Files: `country-catalog.js`, `country-profile.js`, `cooperative-date-format.js`, `cooperative-status-report.js`, statements, `app.js`, `index.html`, `styles.css`. Test: `npm run test:country-profile`. **Production:** `ae04579` (`git push`; Netlify UI + Render API); no data upload. Do not change Assurance country.
 - **2026-08-21** — **Country profiles (US default, Nigeria ready, future-flexible):** Per-tenant **Country** on Register and **Organization & Report Settings**. Unset/unknown codes stay **United States** (USD, Pacific, MM/DD/YYYY) so Assurance and existing tenants are unchanged: no ledger conversion, no bank-account rewrite. Nigeria: NGN display, Africa/Lagos, DD/MM/YYYY, Nigerian statement header aliases (Trans Date/Narration/Debit/Credit, ₦ amounts). Add the next country in `country-profile.js` plus lists in `country-catalog.js`. Platform SaaS billing stays USD. Test: `npm run test:country-profile`. Files: `country-profile.js`, `money-format.js`, org/auth/import/PDF/UI. **Production:** `git push` (Netlify UI + Render API); no data upload. Do not change Assurance country.
 - **2026-08-21** — **Manual status report date + CD term form deploy:** Production `efd3006`. Netlify UI + Render API. Hard-refresh after Render finishes. No data upload. Then **Status Report → Generate** (and **Publish** if auto-publish is off); **Record → CD Account Balance and Term** for the rolled-over CD.
 - **2026-08-21** — **Manual status report date + CD term form (all tenants):** Manual **Generate Report** / **Publish to Members** now stamp the report **as at today** (the calendar day you run them). A prior save/display path always rewrote as-of to month-end, so mid-month publishes showed e.g. 08/31. Month-end auto-generate still uses the last calendar day. **Record → CD Account Balance and Term** now edits rollover terms (beginning balance, rate, APY, renewal, maturity, term days); Cooperative Books **Open Record** on CD cards opens that form; Expected CD Interest no longer formats dates/rates as money ($0.00). Updating the CD balance no longer resets terms to hardcoded defaults. Files: `cooperative-status-report.js`, `monthly-status-report-service.js`, `cd-balance-service.js`, `cooperative-books.js`, `server.js`, `app.js`, `index.html`, `USER-GUIDE.md`. **Production:** `efd3006` (`git push`; Netlify UI + Render API; no data upload). After deploy, **Generate** then **Publish** this month's report so members see today's date; enter new CD term on Record after a rollover.
@@ -814,8 +815,8 @@ Peer Finance Manager / Assurance Cooperative
 | 12 | **Spreadsheet import placeholder dates** | `pfm:seed` still uses last-day-of-month; bank-imported txs have real dates. |
 | 13 | ~~**Currency display consistency**~~ | ✅ **Done (incremental)** 2026-08-21: PFM UI and PFM PDFs use the Cooperative **Country** currency (US = USD). Legacy root `lib/statement-generator.js` remains NGN for old Assurance workbook scripts only. |
 | 14 | **Verify PDF statements on production** | Member monthly download after Puppeteer Chrome deploy. |
-| 14b | **Nigeria bank statement sample** | Country profile, DD/MM/YYYY, header aliases, and searchable bank/state catalogs are in local code (not production until push). When the Nigerian Cooperative provides a real export, tune auto-detect if any columns still miss. Do not change US/Assurance parsers. |
-| 14c | ~~**Country profiles (US default, Nigeria)**~~ | ✅ **Done (committed locally)** 2026-08-21: `country-profile.js` + `country-catalog.js` + money format + Register/Settings Country. Assurance unset country = US. **Not on production** until `git push`. |
+| 14b | **Nigeria bank statement sample** | Country profile, DD/MM/YYYY, header aliases, and searchable bank/state catalogs are **deployed** `ae04579`. When the Nigerian Cooperative provides a real export, tune auto-detect if any columns still miss. Do not change US/Assurance parsers. |
+| 14c | ~~**Country profiles (US default, Nigeria)**~~ | ✅ **Done** 2026-08-21: `country-profile.js` + `country-catalog.js`. Assurance unset country = US. **Deployed** `ae04579`. |
 
 ### Low — engineering hygiene
 
@@ -895,7 +896,7 @@ npm run test:country-profile
 - **Assurance Status** workbook history still matters for April-era statement logic; live books use bank import + master ledger workflows (§1A/§1B).
 - SaaS pricing decision (2026-08-06): **$29.99**/mo, 1% quarterly, 4% annual.
 - Assurance billing: user reported **annual subscription paid** last week (2026-08-21). Confirm recorded on `/platform`. Last API verify (2026-08-09) was still `check_pending` / grace **2026-08-21**.
-- Next client country: **Nigeria** (same product; Country toggle). Country code is **local/uncommitted**; do not change Assurance country.
+- Next client country: **Nigeria** (same product; Country toggle). Deployed `ae04579`. Do not change Assurance country.
 - Docs rule: update `AGENT_HANDOVER.md` + affected guides in the **same turn** as code (`§0`). The user must never have to ask.
 - Full build history lives in Cursor agent transcripts under `.cursor/projects/.../agent-transcripts/` (not required on the new machine if GitHub + this handover are current).
 
@@ -904,7 +905,7 @@ npm run test:country-profile
 ## 8. Suggested next session plan
 
 1. Confirm Assurance annual payment is recorded on `/platform` (user reported paid last week).
-2. When the user asks: `git push` country-profile work; leave Assurance on United States.
+2. Nigeria test: hard-refresh live `/register`, create an org with **Country: Nigeria**, sign in at `/admin`. Leave Assurance on United States.
 3. Monthly bank work: **Import New Bank Activity** only (append); Full Ledger Refresh only for rebuild (§1B).
 4. Import loan records + schedules when user provides data.
 5. Profile for Kehinde Agboola if application supplied.

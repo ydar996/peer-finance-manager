@@ -111,7 +111,7 @@ Check:
 1. On the **old** PC: commit and `git push` so GitHub has the latest code + docs. Optionally download a live DB backup via **Admin → Maintenance** if you need local data later.
 2. On the **new** PC: `git clone` (or copy the folder **without** relying on untracked junk) → `npm install` → read [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) **Machine transfer snapshot**.
 3. Recreate `.env` / remember Render env vars separately (never in Git).
-4. Do **not** commit or depend on `tmp-live-app.js` or other untracked scratch files.
+4. Do **not** commit untracked scratch dumps. `tmp-live-app.js` was deleted 2026-08-21; do not recreate it.
 5. Production keeps running from GitHub; the new PC only needs Git + Node to continue development.
 
 Full checklist: [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) → **Machine transfer snapshot**.
