@@ -7,7 +7,7 @@ This document gives the next developer or AI agent enough context to continue wo
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** this deploy (root-absolute SPA assets so `/register` styles) — prior: country profiles `ae04579`, CD terms `efd3006`, expense labels `d399bb4`, SaaS **$29.99** `4c31805`
+**Production HEAD (code):** `03d1541` (SPA `/register` CSS fix) — prior: country profiles `ae04579`, CD terms `efd3006`, expense labels `d399bb4`, SaaS **$29.99** `4c31805`
 
 ---
 
@@ -116,7 +116,7 @@ Use this when cloning or continuing on another PC. **Read §0, then §1A/§1B be
 | Item | Value |
 |------|--------|
 | Branch | `main` (tracks `origin/main`) |
-| Latest code on GitHub | this deploy (SPA `/register` CSS fix); prior: country profiles `ae04579`, CD terms `efd3006`, machine-transfer docs `382e588`, expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
+| Latest code on GitHub | `03d1541` (SPA `/register` CSS fix); prior: country profiles `ae04579`, CD terms `efd3006`, machine-transfer docs `382e588`, expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
 | Working tree | SPA asset-path fix + private `/platform`. Scratch file `tmp-live-app.js` deleted 2026-08-21. |
 | Code deploy path | `git push` → Netlify (UI) + Render (API) auto-deploy |
 | Data deploy path | Live **Admin → Maintenance** (backup/restore) or **Import** (ledger). Never SFTP/WinSCP for routine ops |
@@ -175,7 +175,8 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
-- **2026-08-21** — **SPA portal CSS on Netlify (all public paths):** `/register`, `/admin`, `/staff`, `/member`, and `/platform` rewrite to `index.html`. Relative `styles.css`/`app.js` then requested `/register/styles.css` (also HTML), so CSS never applied, `.hidden` did nothing, and every login form stacked as raw HTML. Fix: root-absolute `/styles.css`, `/app.js`, `/flexxforms-embed.js`; inline `.hidden`; tiny boot script shows only the screen for the current path; Netlify cache-bust keeps leading slashes. **Platform Administration is never linked** from register/member/staff/admin/product; `robots.txt` disallows `/platform`. Operator-only URL stays in `STRIPE-PAYMENTS-GUIDE.md`. Files: `public/index.html`, `scripts/netlify-build-config.js`, `public/robots.txt`. **Production:** `git push` (Netlify UI; Render API unchanged). Hard-refresh `/register`. No data upload.
+- **2026-08-21** — **SPA portal CSS deploy:** Production `03d1541`. Hard-refresh `/register`. You should see only the styled **Register Cooperative** form. No data upload.
+- **2026-08-21** — **SPA portal CSS on Netlify (all public paths):** `/register`, `/admin`, `/staff`, `/member`, and `/platform` rewrite to `index.html`. Relative `styles.css`/`app.js` then requested `/register/styles.css` (also HTML), so CSS never applied, `.hidden` did nothing, and every login form stacked as raw HTML. Fix: root-absolute `/styles.css`, `/app.js`, `/flexxforms-embed.js`; inline `.hidden`; tiny boot script shows only the screen for the current path; Netlify cache-bust keeps leading slashes. **Platform Administration is never linked** from register/member/staff/admin/product; `robots.txt` disallows `/platform`. Operator-only URL stays in `STRIPE-PAYMENTS-GUIDE.md`. Files: `public/index.html`, `scripts/netlify-build-config.js`, `public/robots.txt`. **Production:** `03d1541` (`git push`; Netlify UI; Render API unchanged). Hard-refresh `/register`. No data upload.
 - **2026-08-21** — **Assurance annual subscription activated (ops):** Platform **Record Check Payment** for slug `assurance`, plan **annual**, method **check**. Status `active`. Period end **2027-08-22**. Live registry on Render (also recorded on local registry). No code deploy. Do not change Assurance country.
 - **2026-08-21** — **Country profiles deploy:** Production `ae04579`. Netlify UI + Render API. Hard-refresh after Render finishes. Register a test org at `/register` with **Country: Nigeria**. Leave Assurance on United States. No data upload.
 - **2026-08-21** — **Deleted leftover `tmp-live-app.js`:** Local scratch dump of an old live `app.js`. It was never part of the product, was not in Git, and is gone. Do not recreate it. **Production:** no code impact.
@@ -819,7 +820,7 @@ Peer Finance Manager / Assurance Cooperative
 | 14 | **Verify PDF statements on production** | Member monthly download after Puppeteer Chrome deploy. |
 | 14b | **Nigeria bank statement sample** | Country profile, DD/MM/YYYY, header aliases, and searchable bank/state catalogs are **deployed** `ae04579`. When the Nigerian Cooperative provides a real export, tune auto-detect if any columns still miss. Do not change US/Assurance parsers. |
 | 14c | ~~**Country profiles (US default, Nigeria)**~~ | ✅ **Done** 2026-08-21: `country-profile.js` + `country-catalog.js`. Assurance unset country = US. **Deployed** `ae04579`. |
-| 14d | ~~**SPA `/register` unstyled stacked forms**~~ | ✅ **Done** 2026-08-21: root-absolute CSS/JS on Netlify SPA rewrites; platform login not linked on public UI. |
+| 14d | ~~**SPA `/register` unstyled stacked forms**~~ | ✅ **Done** 2026-08-21: root-absolute CSS/JS on Netlify SPA rewrites; platform login not linked on public UI. **Deployed** `03d1541`. |
 
 ### Low — engineering hygiene
 
