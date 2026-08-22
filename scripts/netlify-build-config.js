@@ -17,6 +17,7 @@ const redirects = [
   "/register  /index.html  200",
   "/platform  /index.html  200",
   "/product  /product.html  200",
+  "/brochure  /brochure.html  200",
   "/c/*/about  /cooperative-public.html  200",
   "/c/*/bylaws  /cooperative-public.html  200",
   "/c/*/apply  /cooperative-public.html  200",
@@ -29,13 +30,14 @@ fs.writeFileSync(path.join(publicDir, "_redirects"), `${redirects}\n`, "utf8");
 
 const buildId = process.env.NETLIFY_DEPLOY_ID || String(Date.now());
 const cacheBust = buildId.slice(0, 12);
-for (const htmlName of ["index.html", "cooperative-public.html"]) {
+for (const htmlName of ["index.html", "cooperative-public.html", "brochure.html"]) {
   const htmlPath = path.join(publicDir, htmlName);
   if (!fs.existsSync(htmlPath)) continue;
   let html = fs.readFileSync(htmlPath, "utf8");
   html = html
     .replace(/href="\/?styles\.css(?:\?v=[^"]*)?"/g, `href="/styles.css?v=${cacheBust}"`)
     .replace(/href="\/?cooperative-public\.css(?:\?v=[^"]*)?"/g, `href="/cooperative-public.css?v=${cacheBust}"`)
+    .replace(/href="\/?brochure\.css(?:\?v=[^"]*)?"/g, `href="/brochure.css?v=${cacheBust}"`)
     .replace(/src="\/?app\.js(?:\?v=[^"]*)?"/g, `src="/app.js?v=${cacheBust}"`)
     .replace(/src="\/?flexxforms-embed\.js(?:\?v=[^"]*)?"/g, `src="/flexxforms-embed.js?v=${cacheBust}"`);
   fs.writeFileSync(htmlPath, html, "utf8");

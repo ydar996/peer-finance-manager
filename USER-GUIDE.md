@@ -5,6 +5,8 @@
 This guide explains how to use Peer Finance Manager (PFM) without technical jargon. It applies to **every Cooperative** on the platform. Your data stays in your organization's private account.
 
 **Live app:** https://peer-finance-manager.netlify.app  
+**Product page:** https://peer-finance-manager.netlify.app/product  
+**Brochure:** https://peer-finance-manager.netlify.app/brochure (open the page, then **Download PDF**)  
 **Example organization code:** `assurance` (Assurance Investment and Cooperative Inc.)
 
 ---
@@ -682,4 +684,4 @@ It does **not** auto-sync with the live website. See [UPDATE-AND-PUBLISH.md](./U
 
 ---
 
-*Last updated: August 21, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*
+*Last updated: August 22, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*

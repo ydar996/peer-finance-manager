@@ -236,6 +236,9 @@ app.get("/", (req, res) => res.redirect("/member"));
 app.get("/product", (req, res) => {
   res.sendFile(path.join(getPublicDir(), "product.html"));
 });
+app.get("/brochure", (req, res) => {
+  res.sendFile(path.join(getPublicDir(), "brochure.html"));
+});
 for (const portalPath of ["/member", "/staff", "/admin", "/register", "/platform"]) {
   app.get(portalPath, (req, res) => {
     res.sendFile(path.join(getPublicDir(), "index.html"));

@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 21, 2026 (SPA portal CSS on Netlify + private `/platform`)  
+**Last updated:** August 22, 2026 (marketing brochure `/brochure`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -175,6 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-08-22** — **Marketing brochure (webpage + PDF):** Printable two-page Letter brochure at `/brochure`. On-screen toolbar **Download PDF** opens the browser print dialog (choose Save as PDF). Copy matches product features, roles, workflow, and live pricing ($29.99 / $89.07 / $345.48). Linked from `/product`. Files: `public/brochure.html`, `public/brochure.css`, `server.js`, `scripts/netlify-build-config.js`. **Production:** `git push` (Netlify UI). Local: http://localhost:3457/brochure. No data upload.
 - **2026-08-21** — **SPA portal CSS deploy:** Production `03d1541`. Hard-refresh `/register`. You should see only the styled **Register Cooperative** form. No data upload.
 - **2026-08-21** — **SPA portal CSS on Netlify (all public paths):** `/register`, `/admin`, `/staff`, `/member`, and `/platform` rewrite to `index.html`. Relative `styles.css`/`app.js` then requested `/register/styles.css` (also HTML), so CSS never applied, `.hidden` did nothing, and every login form stacked as raw HTML. Fix: root-absolute `/styles.css`, `/app.js`, `/flexxforms-embed.js`; inline `.hidden`; tiny boot script shows only the screen for the current path; Netlify cache-bust keeps leading slashes. **Platform Administration is never linked** from register/member/staff/admin/product; `robots.txt` disallows `/platform`. Operator-only URL stays in `STRIPE-PAYMENTS-GUIDE.md`. Files: `public/index.html`, `scripts/netlify-build-config.js`, `public/robots.txt`. **Production:** `03d1541` (`git push`; Netlify UI; Render API unchanged). Hard-refresh `/register`. No data upload.
 - **2026-08-21** — **Assurance annual subscription activated (ops):** Platform **Record Check Payment** for slug `assurance`, plan **annual**, method **check**. Status `active`. Period end **2027-08-22**. Live registry on Render (also recorded on local registry). No code deploy. Do not change Assurance country.
@@ -952,6 +953,7 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 | SaaS pricing constants | `peer-finance-manager/lib/platform-billing-constants.js` |
 | Expense report labels | `peer-finance-manager/lib/expense-report-label-service.js` |
 | Platform grace / check payment | `peer-finance-manager/lib/platform-billing-service.js`, `/platform` UI |
+| Marketing product/brochure | `peer-finance-manager/public/product.html`, `brochure.html` (`/product`, `/brochure`) |
 | Golden rebuild script | `peer-finance-manager/scripts/rebuild-ledger-from-bank.js` |
 | Ledger vs stmt audit | `peer-finance-manager/scripts/audit-bank-ledger-discrepancy.js` |
 | CD dashboard | `peer-finance-manager/lib/cooperative-books.js`, `cd-balance-service.js` |
