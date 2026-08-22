@@ -7,7 +7,7 @@ This document gives the next developer or AI agent enough context to continue wo
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** `03d1541` (SPA `/register` CSS fix) — prior: country profiles `ae04579`, CD terms `efd3006`, expense labels `d399bb4`, SaaS **$29.99** `4c31805`
+**Production HEAD (code):** `13c1a24` (marketing brochure `/brochure`) — prior: SPA CSS `03d1541`, country profiles `ae04579`, CD terms `efd3006`, expense labels `d399bb4`, SaaS **$29.99** `4c31805`
 
 ---
 
@@ -116,7 +116,7 @@ Use this when cloning or continuing on another PC. **Read §0, then §1A/§1B be
 | Item | Value |
 |------|--------|
 | Branch | `main` (tracks `origin/main`) |
-| Latest code on GitHub | `03d1541` (SPA `/register` CSS fix); prior: country profiles `ae04579`, CD terms `efd3006`, machine-transfer docs `382e588`, expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
+| Latest code on GitHub | `13c1a24` (brochure `/brochure`); prior: SPA CSS `03d1541`, country profiles `ae04579`, CD terms `efd3006`, machine-transfer docs `382e588`, expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
 | Working tree | SPA asset-path fix + private `/platform`. Scratch file `tmp-live-app.js` deleted 2026-08-21. |
 | Code deploy path | `git push` → Netlify (UI) + Render (API) auto-deploy |
 | Data deploy path | Live **Admin → Maintenance** (backup/restore) or **Import** (ledger). Never SFTP/WinSCP for routine ops |
@@ -175,7 +175,8 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
-- **2026-08-22** — **Marketing brochure (webpage + PDF):** Printable two-page Letter brochure at `/brochure`. On-screen toolbar **Download PDF** opens the browser print dialog (choose Save as PDF). Copy matches product features, roles, workflow, and live pricing ($29.99 / $89.07 / $345.48). Linked from `/product`. Files: `public/brochure.html`, `public/brochure.css`, `server.js`, `scripts/netlify-build-config.js`. **Production:** `git push` (Netlify UI). Local: http://localhost:3457/brochure. No data upload.
+- **2026-08-22** — **Marketing brochure deploy:** Production `13c1a24`. After Netlify publishes, open https://peer-finance-manager.netlify.app/brochure and hard-refresh. **Download PDF** then Save as PDF. No data upload.
+- **2026-08-22** — **Marketing brochure (webpage + PDF):** Printable two-page Letter brochure at `/brochure`. On-screen toolbar **Download PDF** opens the browser print dialog (choose Save as PDF). Copy matches product features, roles, workflow, and live pricing ($29.99 / $89.07 / $345.48). Linked from `/product`. Files: `public/brochure.html`, `public/brochure.css`, `server.js`, `scripts/netlify-build-config.js`. **Production:** `13c1a24` (`git push`; Netlify UI). Local: http://localhost:3457/brochure. No data upload.
 - **2026-08-21** — **SPA portal CSS deploy:** Production `03d1541`. Hard-refresh `/register`. You should see only the styled **Register Cooperative** form. No data upload.
 - **2026-08-21** — **SPA portal CSS on Netlify (all public paths):** `/register`, `/admin`, `/staff`, `/member`, and `/platform` rewrite to `index.html`. Relative `styles.css`/`app.js` then requested `/register/styles.css` (also HTML), so CSS never applied, `.hidden` did nothing, and every login form stacked as raw HTML. Fix: root-absolute `/styles.css`, `/app.js`, `/flexxforms-embed.js`; inline `.hidden`; tiny boot script shows only the screen for the current path; Netlify cache-bust keeps leading slashes. **Platform Administration is never linked** from register/member/staff/admin/product; `robots.txt` disallows `/platform`. Operator-only URL stays in `STRIPE-PAYMENTS-GUIDE.md`. Files: `public/index.html`, `scripts/netlify-build-config.js`, `public/robots.txt`. **Production:** `03d1541` (`git push`; Netlify UI; Render API unchanged). Hard-refresh `/register`. No data upload.
 - **2026-08-21** — **Assurance annual subscription activated (ops):** Platform **Record Check Payment** for slug `assurance`, plan **annual**, method **check**. Status `active`. Period end **2027-08-22**. Live registry on Render (also recorded on local registry). No code deploy. Do not change Assurance country.
