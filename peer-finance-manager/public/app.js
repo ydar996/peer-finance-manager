@@ -1422,6 +1422,11 @@ function formatDetailCell(value, format) {
   return escapeHtml(value ?? "");
 }
 
+function resolveDetailCellFormat(row, col) {
+  if (col.key === "line") return col.format;
+  return row.format || col.format;
+}
+
 function bookCardHtml(slug, { accent, warn, label, amount, note }) {
   const variantClass = warn ? " reconcile-warn" : accent ? " accent" : "";
   return `
@@ -1556,11 +1561,12 @@ function renderBookDetailTable(view, slug) {
         const toggle = `<button type="button" class="detail-expand-toggle" data-expand-target="${rowKey}" aria-expanded="false" aria-label="Show deposits for ${escapeHtml(row.member)}">▸</button>`;
         const mainCells = view.columns
           .map((col, colIndex) => {
-            const cls = col.format === "money" ? ' class="money"' : "";
+            const format = resolveDetailCellFormat(row, col);
+            const cls = format === "money" ? ' class="money"' : "";
             const value =
               colIndex === 0
-                ? `${toggle}<span class="detail-member-link">${formatDetailCell(row[col.key], col.format)}</span>`
-                : formatDetailCell(row[col.key], col.format);
+                ? `${toggle}<span class="detail-member-link">${formatDetailCell(row[col.key], format)}</span>`
+                : formatDetailCell(row[col.key], format);
             return `<td${cls}>${value}</td>`;
           })
           .join("");
@@ -1601,8 +1607,9 @@ function renderBookDetailTable(view, slug) {
         : "";
       const cells = view.columns
         .map((col) => {
-          const cls = col.format === "money" ? ' class="money"' : "";
-          return `<td${cls}>${formatDetailCell(row[col.key], col.format)}</td>`;
+          const format = resolveDetailCellFormat(row, col);
+          const cls = format === "money" ? ' class="money"' : "";
+          return `<td${cls}>${formatDetailCell(row[col.key], format)}</td>`;
         })
         .join("");
       return `<tr${memberAttr}>${cells}</tr>`;
@@ -1657,6 +1664,17 @@ function renderBookDetail(detail, slug) {
     };
     tabLink.textContent = `Open ${tabLabels[detail.navigateTab] || detail.navigateTab}`;
     tabLink.onclick = () => {
+      if (detail.navigateTab === "record" && detail.navigateSection) {
+        switchTab("record", { skipRecordLoad: true });
+        loadRecordTabData().then(() => {
+          openRecordSection(detail.navigateSection);
+          document.getElementById(detail.navigateSection)?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
+        return;
+      }
       switchTab(detail.navigateTab);
     };
   } else {
@@ -4115,9 +4133,10 @@ async function generateMonthlyStatusReportNow(button) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to generate report");
     if (statusEl) {
+      const asAt = data.result?.period?.labelUs || data.result?.status?.period?.labelUs;
       statusEl.textContent = data.result?.published
-        ? "Report generated and published to members."
-        : "Report generated. Publish when ready for members to view.";
+        ? `Report generated and published as at ${asAt || "today"}.`
+        : `Report generated as at ${asAt || "today"}. Publish when ready for members to view.`;
       statusEl.className = "status ok";
     }
     await loadMonthlyStatusReportPanel();
@@ -4141,7 +4160,10 @@ async function publishMonthlyStatusReportNow(button) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to publish report");
     if (statusEl) {
-      statusEl.textContent = "Report published. Members can download it from My Account.";
+      const asAt = data.status?.period?.labelUs;
+      statusEl.textContent = asAt
+        ? `Report published as at ${asAt}. Members can download it from My Account.`
+        : "Report published. Members can download it from My Account.";
       statusEl.className = "status ok";
     }
     await loadMonthlyStatusReportPanel();
@@ -6895,6 +6917,25 @@ async function loadCheckingBalanceForm() {
   }
 }
 
+function decimalRateToPercentInput(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "";
+  const pct = n * 100;
+  if (Number.isInteger(pct)) return String(pct);
+  return String(Number(pct.toFixed(4)));
+}
+
+function fillCdTermDaysFromDates(form) {
+  const renewal = form.querySelector('[name="renewalDate"]')?.value;
+  const maturity = form.querySelector('[name="maturityDate"]')?.value;
+  const termDaysInput = form.querySelector('[name="termDays"]');
+  if (!renewal || !maturity || !termDaysInput) return;
+  const start = new Date(`${renewal}T12:00:00`);
+  const end = new Date(`${maturity}T12:00:00`);
+  const days = Math.round((end - start) / 86400000);
+  if (days > 0) termDaysInput.value = String(days);
+}
+
 async function loadCdBalanceForm() {
   const summaryEl = $("#cdBalanceCurrent");
   const form = $("#cdBalanceForm");
@@ -6904,27 +6945,41 @@ async function loadCdBalanceForm() {
     const { cdBalance } = await res.json();
     if (!res.ok) throw new Error(cdBalance?.error || "Failed to load CD balance");
 
-    const balanceInput = form.querySelector('[name="balance"]');
-    const asOfInput = form.querySelector('[name="asOfDate"]');
-    if (balanceInput && cdBalance.balance != null) {
-      balanceInput.value = Number(cdBalance.balance).toFixed(2);
+    const settings = cdBalance.termSettings || {};
+    const setNamed = (name, value) => {
+      const input = form.querySelector(`[name="${name}"]`);
+      if (input && value != null && value !== "") input.value = value;
+    };
+    if (cdBalance.balance != null) {
+      setNamed("balance", Number(cdBalance.balance).toFixed(2));
     }
-    if (asOfInput) {
-      asOfInput.value = cdBalance.asOf || todayIso();
+    setNamed("asOfDate", cdBalance.asOf || todayIso());
+    if (settings.cd_term_start_balance != null && settings.cd_term_start_balance !== "") {
+      setNamed("termStartBalance", Number(settings.cd_term_start_balance).toFixed(2));
     }
+    setNamed("annualRatePercent", decimalRateToPercentInput(settings.cd_annual_rate));
+    setNamed("apyPercent", decimalRateToPercentInput(settings.cd_apy));
+    setNamed("termDays", settings.cd_term_days || "");
+    setNamed("renewalDate", settings.cd_renewal_date || "");
+    setNamed("maturityDate", settings.cd_maturity_date || "");
+    setNamed("openedDate", settings.cd_opened_date || "");
 
     if (summaryEl) {
       if (cdBalance.balance == null) {
         summaryEl.textContent =
-          "No CD balance on file yet. Enter the balance from your bank statement.";
+          "No CD balance on file yet. Enter the balance from your bank statement and the term details.";
       } else {
+        const maturity = cdBalance.termMetrics?.maturityDate || settings.cd_maturity_date;
         summaryEl.textContent = [
           `Last updated ${cdBalance.asOf ? formatDate(cdBalance.asOf) : ":"}`,
           `Balance ${fmt.format(cdBalance.balance)}`,
           `Term start ${fmt.format(cdBalance.termMetrics?.termStartBalance || 0)}`,
           `Earned this term ${fmt.format(cdBalance.termMetrics?.termInterestEarned ?? cdBalance.accruedInterest ?? 0)}`,
           `Expected to maturity ${fmt.format(cdBalance.termMetrics?.futureInterest ?? 0)}`,
-        ].join(" · ");
+          maturity ? `Matures ${formatDate(maturity)}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
       }
     }
   } catch (err) {
@@ -7050,7 +7105,12 @@ function formJson(form) {
     if (["memberId", "borrowerId", "guarantor1Id", "guarantor2Id", "loanId", "termMonths"].includes(key)) {
       data[key] = Number(data[key]);
     }
-    if (["amount", "principal", "annualRate", "balance", "membershipFeeAmount"].includes(key) && data[key] !== "") {
+    if (
+      ["amount", "principal", "annualRate", "balance", "membershipFeeAmount", "termStartBalance", "annualRatePercent", "apyPercent", "termDays"].includes(
+        key
+      ) &&
+      data[key] !== ""
+    ) {
       data[key] = Number(data[key]);
     }
   }
@@ -7317,9 +7377,12 @@ $("#cdBalanceForm")?.addEventListener("submit", async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     const saved = data.cdBalance;
+    const maturity = saved.termMetrics?.maturityDate;
     setFormStatus(
       status,
-      `CD balance updated to ${fmt.format(saved.balance)} as of ${formatDate(saved.asOf)} · accrued interest ${fmt.format(saved.accruedInterest)}.`,
+      `CD balance and term saved: ${fmt.format(saved.balance)} as of ${formatDate(saved.asOf)}${
+        maturity ? ` · matures ${formatDate(maturity)}` : ""
+      } · accrued interest ${fmt.format(saved.accruedInterest)}.`,
       true
     );
     await loadCdBalanceForm();
@@ -7327,6 +7390,10 @@ $("#cdBalanceForm")?.addEventListener("submit", async (e) => {
   } catch (err) {
     setFormStatus(status, err.message, false);
   }
+});
+
+$("#cdBalanceForm")?.querySelectorAll('[name="renewalDate"], [name="maturityDate"]').forEach((input) => {
+  input.addEventListener("change", () => fillCdTermDaysFromDates(input.form));
 });
 
 $("#expenseForm")?.addEventListener("submit", async (e) => {

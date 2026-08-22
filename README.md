@@ -204,7 +204,7 @@ npm run generate:feb-2026
 - **Periodic PDF statements** — Statements tab (see above)
 - **Loans framework** — rules, validation, schedule import (no live loans loaded yet)
 - **Bank ledger import** — **Import New Bank Activity** (append-only, preview, dedup) for monthly statements; **Full Ledger Refresh** (advanced) for master ledger replace; downloadable **Import Template** for catch-up; CLI `npm run pfm:import-bank` for local PC
-- **Cooperative Books** — dashboard with CD balance and **Expected CD Interest** card
+- **Cooperative Books** — dashboard with CD balance and **Expected CD Interest** card; CD term (rate, maturity) is edited on **Record → CD Account Balance and Term**
 - **Expenses** — database table ready; UI not built
 
 ### How to use (web UI)

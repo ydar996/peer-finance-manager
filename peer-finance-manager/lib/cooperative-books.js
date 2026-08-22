@@ -752,6 +752,7 @@ function getBookDetail(slug) {
       slug,
       title,
       navigateTab: "record",
+      navigateSection: "recordSectionCdBalance",
       summary: balance != null ? Number(balance) : null,
       columns: [
         { key: "date", label: "Date", format: "date" },
@@ -796,6 +797,7 @@ function getBookDetail(slug) {
         slug,
         title,
         navigateTab: "record",
+        navigateSection: "recordSectionCdBalance",
         summary: 0,
         columns: [
           { key: "line", label: "Detail" },
@@ -857,10 +859,11 @@ function getBookDetail(slug) {
       slug,
       title,
       navigateTab: "record",
+      navigateSection: "recordSectionCdBalance",
       summary: metrics.futureInterest,
       columns: [
         { key: "line", label: "Detail" },
-        { key: "value", label: "Value", format: "money" },
+        { key: "value", label: "Value" },
       ],
       rows,
     };

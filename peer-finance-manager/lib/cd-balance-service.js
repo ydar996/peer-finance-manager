@@ -49,6 +49,72 @@ function setCdTermSettings(db, values = {}) {
   }
 }
 
+function parseIsoDateOrThrow(value, label) {
+  const iso = String(value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    throw new Error(`${label} must be a date (YYYY-MM-DD)`);
+  }
+  return iso;
+}
+
+function parsePercentToDecimal(value, label) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0 || n > 100) {
+    throw new Error(`${label} must be a percent between 0 and 100`);
+  }
+  return String(n / 100);
+}
+
+/** Map Record-tab form fields (percents and dates) to cooperative_settings keys. */
+function parseCdTermPayload(body = {}) {
+  const values = {};
+  const termStart = body.termStartBalance ?? body.cd_term_start_balance;
+  if (termStart != null && termStart !== "") {
+    const n = Number(termStart);
+    if (!Number.isFinite(n) || n < 0) {
+      throw new Error("Beginning Balance (This Term) must be a non-negative number");
+    }
+    values.cd_term_start_balance = String(n);
+  }
+  if (body.annualRatePercent != null && body.annualRatePercent !== "") {
+    values.cd_annual_rate = parsePercentToDecimal(body.annualRatePercent, "Annual Rate");
+  } else if (body.cd_annual_rate != null && body.cd_annual_rate !== "") {
+    values.cd_annual_rate = String(body.cd_annual_rate);
+  }
+  if (body.apyPercent != null && body.apyPercent !== "") {
+    values.cd_apy = parsePercentToDecimal(body.apyPercent, "APY");
+  } else if (body.cd_apy != null && body.cd_apy !== "") {
+    values.cd_apy = String(body.cd_apy);
+  }
+  if (body.renewalDate) {
+    values.cd_renewal_date = parseIsoDateOrThrow(body.renewalDate, "Renewal Date");
+  } else if (body.cd_renewal_date) {
+    values.cd_renewal_date = parseIsoDateOrThrow(body.cd_renewal_date, "Renewal Date");
+  }
+  if (body.maturityDate) {
+    values.cd_maturity_date = parseIsoDateOrThrow(body.maturityDate, "Maturity Date");
+  } else if (body.cd_maturity_date) {
+    values.cd_maturity_date = parseIsoDateOrThrow(body.cd_maturity_date, "Maturity Date");
+  }
+  if (body.openedDate) {
+    values.cd_opened_date = parseIsoDateOrThrow(body.openedDate, "Opened Date");
+  } else if (body.cd_opened_date) {
+    values.cd_opened_date = parseIsoDateOrThrow(body.cd_opened_date, "Opened Date");
+  }
+  const termDaysRaw = body.termDays ?? body.cd_term_days;
+  if (termDaysRaw != null && termDaysRaw !== "") {
+    const n = Number(termDaysRaw);
+    if (!Number.isFinite(n) || n < 1) {
+      throw new Error("Term Length (Days) must be a positive number");
+    }
+    values.cd_term_days = String(Math.round(n));
+  } else if (values.cd_renewal_date && values.cd_maturity_date) {
+    const days = daysBetweenIso(values.cd_renewal_date, values.cd_maturity_date);
+    if (days > 0) values.cd_term_days = String(days);
+  }
+  return Object.keys(values).length ? values : null;
+}
+
 function getCdTermMetrics({ balance, asOf, termSettings }) {
   if (balance == null || !asOf) return null;
 
@@ -171,14 +237,11 @@ function updateCdBalance({ balance, asOfDate, note, termSettings }) {
   ensureCdBalanceHistoryTable(db);
 
   const openPrincipal = getOpenCdPrincipal();
-  const settings = getCdTermSettings(db);
-  const accruedInterest = Math.max(0, amount - (Number(settings.cd_term_start_balance) || openPrincipal));
 
   const run = db.transaction(() => {
     setCooperativeSetting(db, "cd_balance", amount);
     setCooperativeSetting(db, "cd_balance_as_of", asOf);
     if (termSettings) setCdTermSettings(db, termSettings);
-    else setCdTermSettings(db, CD_TERM_DEFAULTS);
     const result = db
       .prepare(
         `INSERT INTO cd_balance_updates (balance, as_of_date, note)
@@ -189,6 +252,8 @@ function updateCdBalance({ balance, asOfDate, note, termSettings }) {
   });
 
   const updateId = run();
+  const savedSettings = getCdTermSettings(db);
+  const accruedInterest = Math.max(0, amount - (Number(savedSettings.cd_term_start_balance) || openPrincipal));
 
   return {
     id: updateId,
@@ -200,7 +265,7 @@ function updateCdBalance({ balance, asOfDate, note, termSettings }) {
     termMetrics: getCdTermMetrics({
       balance: amount,
       asOf,
-      termSettings: getCdTermSettings(db),
+      termSettings: savedSettings,
     }),
   };
 }
@@ -210,5 +275,6 @@ module.exports = {
   updateCdBalance,
   getOpenCdPrincipal,
   getCdTermMetrics,
+  parseCdTermPayload,
   CD_TERM_DEFAULTS,
 };

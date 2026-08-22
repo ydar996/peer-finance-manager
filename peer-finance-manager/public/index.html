@@ -389,7 +389,7 @@
                 <span>Organization website (optional, shown on report cover)</span>
                 <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
               </label>
-              <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the Cooperative report is built as at that calendar month-end date and published to members. You can still regenerate and publish manually anytime. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
+              <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the Cooperative report is built as at that calendar month-end date and published to members. <strong>Generate Report</strong> and <strong>Publish to Members</strong> use today's date (the day you run them), not month-end. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
               <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Organization Settings</button>
             </div>
           </details>
@@ -1256,8 +1256,9 @@
             </div>
           </details>
           <details class="card accent profile-disclosure record-section" id="recordSectionCdBalance">
-            <summary class="record-section-summary">CD Account Balance</summary>
+            <summary class="record-section-summary">CD Account Balance and Term</summary>
             <div class="profile-disclosure-body">
+            <p class="subtle">When a CD is new or rolls over, enter the beginning balance, annual rate, APY, renewal date, and maturity date for the new term. Set Beginning Balance (This Term) to the principal on the renewal date.</p>
             <p class="subtle" id="cdBalanceCurrent">Loading Current CD Balance…</p>
             <form id="cdBalanceForm" class="entry-form">
               <label>Current Balance (From Bank Statement)
@@ -1266,10 +1267,31 @@
               <label>As of Date
                 <input type="date" name="asOfDate" required />
               </label>
-              <label>Note (Optional)
-                <input type="text" name="note" placeholder="e.g. March 2026 statement" />
+              <label>Beginning Balance (This Term)
+                <input type="number" name="termStartBalance" step="0.01" min="0" />
               </label>
-              <button type="submit" class="btn primary">Update CD Balance</button>
+              <label>Annual Rate (%)
+                <input type="number" name="annualRatePercent" step="0.0001" min="0" max="100" />
+              </label>
+              <label>APY (%)
+                <input type="number" name="apyPercent" step="0.0001" min="0" max="100" />
+              </label>
+              <label>Term Length (Days)
+                <input type="number" name="termDays" step="1" min="1" />
+              </label>
+              <label>Renewal Date
+                <input type="date" name="renewalDate" />
+              </label>
+              <label>Maturity Date
+                <input type="date" name="maturityDate" />
+              </label>
+              <label>Opened Date (Optional)
+                <input type="date" name="openedDate" />
+              </label>
+              <label>Note (Optional)
+                <input type="text" name="note" placeholder="e.g. Rolled over 90-day CD" />
+              </label>
+              <button type="submit" class="btn primary">Save CD Balance and Term</button>
             </form>
             <p id="cdBalanceStatus" class="status"></p>
             </div>

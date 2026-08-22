@@ -166,7 +166,7 @@ function saveReportRecord({ period, fileName, outputPath, performanceOverview })
   const db = getDb();
   ensureReportsTable(db);
   const generatedAt = nowUtcIso();
-  const asOfDate = asOfDateForPeriodSlug(period.slug, period.dateIso).dateIso;
+  const asOfDate = parseAsOfDate(period.dateIso).dateIso;
   db.prepare(
     `INSERT INTO cooperative_status_reports (
        period_slug, as_of_date, file_name, generated_at, published_at, is_published, performance_overview

@@ -76,11 +76,24 @@ function parseMonthEndDate(year, month) {
   );
 }
 
-/** Report period slugs are YYYY-MM; always use that month-end as the as-of date. */
+/**
+ * Report period slugs are YYYY-MM. Prefer the stored/generated as-of date when it
+ * belongs to that month (manual Generate/Publish uses the calendar day it ran).
+ * Fall back to that month's last calendar day only when no valid as-of is stored
+ * (month-end auto-generate, or older rows that never saved a day).
+ */
 function asOfDateForPeriodSlug(periodSlug, fallbackAsOfDate = null) {
   const m = String(periodSlug || "").match(/^(\d{4})-(\d{2})$/);
+  const expectedSlug = m ? `${m[1]}-${m[2]}` : null;
+  if (fallbackAsOfDate) {
+    try {
+      const parsed = parseAsOfDate(fallbackAsOfDate);
+      if (!expectedSlug || parsed.slug === expectedSlug) return parsed;
+    } catch (_) {
+      /* ignore invalid stored dates and fall through */
+    }
+  }
   if (m) return parseMonthEndDate(Number(m[1]), Number(m[2]));
-  if (fallbackAsOfDate) return parseAsOfDate(fallbackAsOfDate);
   return defaultReportAsOfToday();
 }
 

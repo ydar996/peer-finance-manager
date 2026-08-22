@@ -17,6 +17,7 @@ const { getCooperativeBooks, getBookDetail } = require("./lib/cooperative-books"
 const {
   getCdBalanceSnapshot,
   updateCdBalance,
+  parseCdTermPayload,
 } = require("./lib/cd-balance-service");
 const {
   getCheckingBalanceSnapshot,
@@ -1168,9 +1169,7 @@ app.get("/api/books/monthly-status-report/status", requireCooperativeView, (req,
             month: req.query.month ? Number(req.query.month) : undefined,
             useMonthEnd: true,
           }
-        : latestPublished
-          ? { asOfDate: latestPublished.asOfDate }
-          : { asOfToday: true };
+        : { asOfToday: true };
     const performanceOverview =
       latestPublished?.performanceOverview ||
       getCooperativeStatusReportData(periodOptions).performanceOverview;
@@ -1219,11 +1218,22 @@ app.post("/api/books/monthly-status-report/generate", requireAdmin, async (req, 
   }
 });
 
-app.post("/api/books/monthly-status-report/publish", requireAdmin, (req, res) => {
+app.post("/api/books/monthly-status-report/publish", requireAdmin, async (req, res) => {
   try {
-    const { publishMonthlyStatusReport } = require("./lib/monthly-status-report-service");
+    const {
+      publishMonthlyStatusReport,
+      generateMonthlyStatusReport,
+      getMonthlyStatusReportStatus,
+    } = require("./lib/monthly-status-report-service");
     const { defaultReportAsOfToday } = require("./lib/cooperative-status-report");
-    const periodSlug = req.body?.periodSlug || defaultReportAsOfToday().slug;
+    const today = defaultReportAsOfToday();
+    const periodSlug = req.body?.periodSlug || today.slug;
+    if (periodSlug === today.slug) {
+      const current = getMonthlyStatusReportStatus({ asOfToday: true });
+      if (current.generated && current.period.dateIso !== today.dateIso) {
+        await generateMonthlyStatusReport({ asOfToday: true });
+      }
+    }
     const status = publishMonthlyStatusReport(periodSlug);
     res.json({ success: true, status });
   } catch (err) {
@@ -1477,12 +1487,13 @@ app.get("/api/settings/timezones", requireCooperativeView, (req, res) => {
   }
 });
 
-app.post("/api/settings/cd-balance", (req, res) => {
+app.post("/api/settings/cd-balance", requireAdmin, (req, res) => {
   try {
     const result = updateCdBalance({
       balance: req.body.balance,
       asOfDate: req.body.asOfDate,
       note: req.body.note,
+      termSettings: parseCdTermPayload(req.body),
     });
     res.json({ success: true, cdBalance: result });
   } catch (err) {

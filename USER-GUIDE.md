@@ -100,7 +100,7 @@ First-time users must change the temporary password when prompted.
 | **Loan Account** | Each loan you have; expand to see repayments and balance after each payment. Paid loans are collapsed by default. |
 | **Monthly statement PDF** | Download your contributions statement. |
 | **Messages** | Button above performance reports. Opens your inbox (separate page) to read admin messages and send messages to the Cooperative admin. Flashes **Unread Messages** when something is new. |
-| **Cooperative Status Reports** | Month-end Cooperative summary PDF when the administrator publishes it. |
+| **Cooperative Status Reports** | Cooperative summary PDF when the administrator publishes it (dated the day it was published, or month-end when auto-generated). |
 | **Cooperative Meetings** | Meeting date, time, location, and agenda when announced (email too, if configured). |
 
 ### Messages inbox (members)
@@ -163,7 +163,7 @@ After you submit an application, it goes to administrators automatically.
 | **Loans** | Loan portfolio, repayments, loan PDFs, loan agreements. |
 | **Record** | Register members, post contributions, fees, loans, expenses by hand. |
 | **Import** | Bank statements, bulk spreadsheets, Full Ledger Refresh (advanced). |
-| **Status Report** | Month-end Cooperative performance PDF; publish to members. |
+| **Status Report** | Cooperative performance PDF; publish to members (manual reports dated today; auto reports dated month-end). |
 | **Meetings** | Schedule meetings; email and portal announcements. |
 | **Messages** | Inbox: send to all members, a group, or one member; read and reply to member messages. |
 | **Public Pages** | Publish About Us and Bylaws for prospective members. |
@@ -195,7 +195,7 @@ Click any card to see a detailed table. Common cards:
 | **Distributions Paid** | Profit/interest paid to members. |
 | **Cooperative Net Income** | Income minus expenses. |
 | **Loans Outstanding** | Principal still owed on active loans. |
-| **CD Account / Expected CD Interest** | Certificate of deposit balance and interest (if used). |
+| **CD Account / Expected CD Interest** | Certificate of deposit balance and interest (if used). **Open Record** on either card goes to **Record → CD Account Balance and Term** to update the balance or a new/rolled-over term. |
 | **Active Members/Profiles** | Active members only (profiles on file / member accounts). Resigned, Deceased, Expelled, and Suspended are excluded; the card notes how many former members are not counted. |
 
 Click **Refresh** to reload after imports or manual entries.
@@ -274,7 +274,7 @@ Each form is collapsed until you expand it.
 | **Update Member Profile** | Change phone, email, address, gender, emergency contact, etc. |
 | **Registration Fee** | Post the one-time $100 fee for an existing member. |
 | **Current Bank Balance** | Update checking balance from a bank statement (reference point). |
-| **CD Account Balance** | Update CD balance from a bank statement. |
+| **CD Account Balance and Term** | Update CD balance from a bank statement, and enter term details when a CD is new or rolls over (beginning balance, annual rate, APY, renewal date, maturity date, term length). From Cooperative Books, **Expected CD Interest** → **Open Record** opens this form. |
 | **Member Contributions Account** | Post a **Contribution** or **Withdrawal** for one member. |
 | **Member Distribution** | Credit one member with profit/interest (distribution). |
 | **Bulk Distribution (Excel)** | Upload a sheet with member names and amounts for a batch distribution. |
@@ -406,15 +406,16 @@ Cooperative-wide performance PDF for members.
 
 | Action | What it does |
 |--------|--------------|
-| **Generate Report** | Build PDF from current ledger. |
-| **Publish to Members** | Makes it visible on member portals. |
+| **Generate Report** | Build PDF from current ledger **as at today**. |
+| **Publish to Members** | Makes this month's report visible on member portals, dated **today**. If the draft was stamped as month-end (or another day), it is rebuilt as at today before publishing. |
 | **Download PDF** | Save a copy locally. |
 | **Unpublish** | Remove from member view. |
 
 **Organization & Report Settings** (admin):
 
 - Cooperative **time zone** (default Pacific).
-- **Auto-generate** and **auto-publish** at month-end (on by default).
+- **Auto-generate** and **auto-publish** at month-end (on by default). Those scheduled reports are dated the **last calendar day** of the month.
+- Manual **Generate Report** / **Publish to Members** are dated **the day you run them**.
 - Optional organization website on the cover.
 
 **Operational Expense Labels:** assign report labels to expense lines so the PDF groups them cleanly. Dropdown defaults: Bank Fees, Administrative, Technology, Meeting/Event, Professional Services, Insurance, Other. Use **Add Report Label** or **Add New Label…** in a row to create another label; new labels stay available for every expense.
