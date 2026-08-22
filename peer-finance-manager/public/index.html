@@ -4,10 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Peer Finance Manager</title>
-    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .hidden { display: none !important; }
+    </style>
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div id="loginScreenMember" class="login-screen" data-portal="member">
+    <div id="loginScreenMember" class="login-screen hidden" data-portal="member">
       <div class="login-card">
         <p class="brand org-brand">Peer Finance Manager</p>
         <p class="subtle org-cooperative-name hidden"></p>
@@ -2099,7 +2102,21 @@
       </div>
     </div>
     <div id="appToastStack" class="app-toast-stack" aria-live="polite" aria-atomic="false"></div>
-    <script src="flexxforms-embed.js"></script>
-    <script src="app.js"></script>
+    <script>
+      (function () {
+        var path = location.pathname.replace(/\/+$/, "") || "/member";
+        var map = {
+          "/register": "registerScreen",
+          "/staff": "loginScreenStaff",
+          "/admin": "loginScreenAdmin",
+          "/platform": "loginScreenPlatform",
+          "/member": "loginScreenMember"
+        };
+        var el = document.getElementById(map[path] || "loginScreenMember");
+        if (el) el.classList.remove("hidden");
+      })();
+    </script>
+    <script src="/flexxforms-embed.js"></script>
+    <script src="/app.js"></script>
   </body>
 </html>

@@ -34,10 +34,10 @@ for (const htmlName of ["index.html", "cooperative-public.html"]) {
   if (!fs.existsSync(htmlPath)) continue;
   let html = fs.readFileSync(htmlPath, "utf8");
   html = html
-    .replace(/href="styles\.css"/g, `href="styles.css?v=${cacheBust}"`)
-    .replace(/href="cooperative-public\.css"/g, `href="cooperative-public.css?v=${cacheBust}"`)
-    .replace(/src="app\.js"/g, `src="app.js?v=${cacheBust}"`)
-    .replace(/src="flexxforms-embed\.js"/g, `src="flexxforms-embed.js?v=${cacheBust}"`);
+    .replace(/href="\/?styles\.css(?:\?v=[^"]*)?"/g, `href="/styles.css?v=${cacheBust}"`)
+    .replace(/href="\/?cooperative-public\.css(?:\?v=[^"]*)?"/g, `href="/cooperative-public.css?v=${cacheBust}"`)
+    .replace(/src="\/?app\.js(?:\?v=[^"]*)?"/g, `src="/app.js?v=${cacheBust}"`)
+    .replace(/src="\/?flexxforms-embed\.js(?:\?v=[^"]*)?"/g, `src="/flexxforms-embed.js?v=${cacheBust}"`);
   fs.writeFileSync(htmlPath, html, "utf8");
 }
 

@@ -127,4 +127,4 @@ Full checklist: [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) → **Machine transfer 
 
 ---
 
-*Last updated: August 9, 2026. First-time setup: [DEPLOY-TODAY.md](./DEPLOY-TODAY.md). Data upload: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md). Machine move: [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) Machine transfer snapshot.*
+*Last updated: August 21, 2026. First-time setup: [DEPLOY-TODAY.md](./DEPLOY-TODAY.md). Data upload: [UPLOAD-DATA-TO-PRODUCTION.md](./UPLOAD-DATA-TO-PRODUCTION.md). Machine move: [AGENT_HANDOVER.md](./AGENT_HANDOVER.md) Machine transfer snapshot.*

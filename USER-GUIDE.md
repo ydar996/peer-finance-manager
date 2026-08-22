@@ -47,7 +47,7 @@ This guide explains how to use Peer Finance Manager (PFM) without technical jarg
 | **Member** | `/member` | Organization code, **username**, password |
 | **Staff** | `/staff` | Organization code, email, password |
 | **Administrator** | `/admin` | Organization code, email, password |
-| **New Cooperative** | `/register` | Register a new organization on the platform. Choose **Country** (United States is the default). |
+| **New Cooperative** | `/register` | Styled **Register Cooperative** form: Cooperative name, organization code, **Country** (United States is the default), administrator email, and password. Then sign in at `/admin` with that new organization code. |
 
 **Tip:** If Sign In seems to do nothing, hard-refresh the page (**Ctrl+Shift+R** on Windows). The first visit after idle can take up to 30 seconds while the server wakes up.
 
@@ -682,4 +682,4 @@ It does **not** auto-sync with the live website. See [UPDATE-AND-PUBLISH.md](./U
 
 ---
 
-*Last updated: July 17, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*
+*Last updated: August 21, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*

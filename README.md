@@ -325,7 +325,7 @@ May 2026 had **10 members** with bank deposits; **14** had no May payment. All *
 
 ### Production (live)
 
-- **Netlify** — website (login UI) at `peer-finance-manager.netlify.app`
+- **Netlify** — website (login UI) at `peer-finance-manager.netlify.app`. SPA paths `/member`, `/staff`, `/admin`, `/register` rewrite to `index.html`; CSS/JS must be root-absolute (`/styles.css`, `/app.js`). `/platform` is operator-only (not linked from public UI).
 - **Render** — API + SQLite database on persistent disk (`/var/data`)
 - **GitHub** — `ydar996/peer-finance-manager` — push code to deploy
 

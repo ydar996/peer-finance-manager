@@ -2,12 +2,12 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 21, 2026 (country profiles pushed `ae04579`)  
+**Last updated:** August 21, 2026 (SPA portal CSS on Netlify + private `/platform`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** `ae04579` (country profiles: US default, Nigeria opt-in) — includes CD terms `efd3006`, expense labels `d399bb4`, SaaS **$29.99** `4c31805`
+**Production HEAD (code):** this deploy (root-absolute SPA assets so `/register` styles) — prior: country profiles `ae04579`, CD terms `efd3006`, expense labels `d399bb4`, SaaS **$29.99** `4c31805`
 
 ---
 
@@ -116,8 +116,8 @@ Use this when cloning or continuing on another PC. **Read §0, then §1A/§1B be
 | Item | Value |
 |------|--------|
 | Branch | `main` (tracks `origin/main`) |
-| Latest code on GitHub | `ae04579` (country profiles US default / Nigeria); prior: CD terms `efd3006`, machine-transfer docs `382e588`, expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
-| Working tree | Country profiles are on `origin/main` (`ae04579`). Scratch file `tmp-live-app.js` deleted 2026-08-21. |
+| Latest code on GitHub | this deploy (SPA `/register` CSS fix); prior: country profiles `ae04579`, CD terms `efd3006`, machine-transfer docs `382e588`, expense labels `d399bb4`, SaaS **$29.99** `4c31805` |
+| Working tree | SPA asset-path fix + private `/platform`. Scratch file `tmp-live-app.js` deleted 2026-08-21. |
 | Code deploy path | `git push` → Netlify (UI) + Render (API) auto-deploy |
 | Data deploy path | Live **Admin → Maintenance** (backup/restore) or **Import** (ledger). Never SFTP/WinSCP for routine ops |
 
@@ -131,15 +131,15 @@ Use this when cloning or continuing on another PC. **Read §0, then §1A/§1B be
 
 Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Stripe checkout uses dynamic `price_data` (no fixed Stripe Price IDs). Docs: `USER-GUIDE.md` §19, `STRIPE-SETUP.md`, `STRIPE-PAYMENTS-GUIDE.md`, marketing `product.html`.
 
-### Assurance ops status (user report 2026-08-21; last API verify 2026-08-09)
+### Assurance ops status (verified 2026-08-21 on production API)
 
 | Item | Value |
 |------|--------|
 | Org slug | `assurance` |
-| Subscription | User reported **a year's subscription paid** last week (week of 2026-08-14). Last production API verify (2026-08-09) was still `check_pending` with grace through **2026-08-21**. **Confirm on `/platform`** that the payment is recorded (active/annual), not still pending. |
-| Grace until | **2026-08-21** was the last stored grace date. If payment is recorded, grace is moot. |
-| Access | Keep full access; do not treat Assurance as a Nigeria tenant. |
-| Platform | `/platform` → **Record Check Payment** if the annual check is in hand and not yet posted |
+| Subscription | **Active annual** (check). Recorded 2026-08-21. Period ends **2027-08-22**. |
+| Grace until | Cleared by active paid status (old grace date may still show in the registry until overwritten). |
+| Access | Full access as an active subscriber. Do not change Assurance country. |
+| Platform | Operator-only URL `/platform` (never linked from public UI) shows Assurance as Active / Annual |
 
 ### What moves with Git vs what does not
 
@@ -175,6 +175,8 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-08-21** — **SPA portal CSS on Netlify (all public paths):** `/register`, `/admin`, `/staff`, `/member`, and `/platform` rewrite to `index.html`. Relative `styles.css`/`app.js` then requested `/register/styles.css` (also HTML), so CSS never applied, `.hidden` did nothing, and every login form stacked as raw HTML. Fix: root-absolute `/styles.css`, `/app.js`, `/flexxforms-embed.js`; inline `.hidden`; tiny boot script shows only the screen for the current path; Netlify cache-bust keeps leading slashes. **Platform Administration is never linked** from register/member/staff/admin/product; `robots.txt` disallows `/platform`. Operator-only URL stays in `STRIPE-PAYMENTS-GUIDE.md`. Files: `public/index.html`, `scripts/netlify-build-config.js`, `public/robots.txt`. **Production:** `git push` (Netlify UI; Render API unchanged). Hard-refresh `/register`. No data upload.
+- **2026-08-21** — **Assurance annual subscription activated (ops):** Platform **Record Check Payment** for slug `assurance`, plan **annual**, method **check**. Status `active`. Period end **2027-08-22**. Live registry on Render (also recorded on local registry). No code deploy. Do not change Assurance country.
 - **2026-08-21** — **Country profiles deploy:** Production `ae04579`. Netlify UI + Render API. Hard-refresh after Render finishes. Register a test org at `/register` with **Country: Nigeria**. Leave Assurance on United States. No data upload.
 - **2026-08-21** — **Deleted leftover `tmp-live-app.js`:** Local scratch dump of an old live `app.js`. It was never part of the product, was not in Git, and is gone. Do not recreate it. **Production:** no code impact.
 - **2026-08-21** — **Docs audit vs §0:** Confirmed feature changelog/USER-GUIDE/README for country work were written in the same session. Backfilled stale handover sections: workspace path `C:\Users\ydara\Documents\AssurCoop`; machine-snapshot working tree; Assurance annual-pay user report vs last API verify; outstanding task 2b; §6 test script; §7/§8 next session; §10 grep targets; README key files. **Production:** `ae04579`. No data upload.
@@ -770,7 +772,7 @@ Peer Finance Manager / Assurance Cooperative
 |---|------|-------|
 | 1 | **Load active loans** | Framework exists; bank activity documented. User to provide schedules. |
 | 2 | ~~**Cooperative expenses**~~ | ✅ **Done** (incremental) — Expenses import from bank ledger; Record expense + categories; **Operational Expense Labels** on Monthly Status Report (presets + add-new) deployed `d399bb4`. Remaining polish only if user asks. |
-| 2b | **Assurance subscription check** | User reported (2026-08-21) a **year's subscription paid** last week. Last production verify (2026-08-09) was `check_pending` / grace **2026-08-21**. Confirm on `/platform` that annual payment is recorded. Do not change Assurance country. |
+| 2b | ~~**Assurance subscription check**~~ | ✅ **Done** 2026-08-21 — Annual check recorded. Status **active**, plan **annual**, period through **2027-08-22**. |
 | 3 | **Profile for Kehinde Agboola** | Olawale George added (WPForms row + local import). Kehinde still has no application row. |
 | 4 | ~~**Restore app import file from golden master**~~ | ✅ **Done** 2026-07-09 — Render **457 / $16,241.55**. |
 | 4b | ~~**Fix auto-sync clobber**~~ | ✅ **Done** — xlsx never auto-overwritten; CSV sync cloud-only (§1B). |
@@ -817,6 +819,7 @@ Peer Finance Manager / Assurance Cooperative
 | 14 | **Verify PDF statements on production** | Member monthly download after Puppeteer Chrome deploy. |
 | 14b | **Nigeria bank statement sample** | Country profile, DD/MM/YYYY, header aliases, and searchable bank/state catalogs are **deployed** `ae04579`. When the Nigerian Cooperative provides a real export, tune auto-detect if any columns still miss. Do not change US/Assurance parsers. |
 | 14c | ~~**Country profiles (US default, Nigeria)**~~ | ✅ **Done** 2026-08-21: `country-profile.js` + `country-catalog.js`. Assurance unset country = US. **Deployed** `ae04579`. |
+| 14d | ~~**SPA `/register` unstyled stacked forms**~~ | ✅ **Done** 2026-08-21: root-absolute CSS/JS on Netlify SPA rewrites; platform login not linked on public UI. |
 
 ### Low — engineering hygiene
 
@@ -861,6 +864,10 @@ Peer Finance Manager / Assurance Cooperative
 
 15. **Dashboard Current Bank Balance** — Uses `checking_balance` setting if set, else **ledger sum** from DB (`getLedgerEndingBalance`). Preview balance-check fix (`cd5e05d`) only changes Import **warning text**; it does **not** fix DB or xlsx. Production drift = incomplete Full Ledger Refresh or post-reconcile corruption.
 
+16. **Netlify SPA asset paths** — Rewrites `/register` (and `/admin`, `/staff`, `/member`, `/platform`) to `index.html`. CSS and JS in that file **must** be root-absolute (`/styles.css`, `/app.js`). Relative `styles.css` becomes `/register/styles.css` and also rewrites to HTML, so screens dump unstyled.
+
+17. **Platform Administration URL is private** — Never add a link to `/platform` on register, member, staff, admin, product, or any public page. Only the operator should know the path. Cooperative admin sign-in is `/admin` (different).
+
 ---
 
 ## 6. Verification checklist (after changes)
@@ -895,7 +902,8 @@ npm run test:country-profile
 - User cares about **statement presentation** and Title Case / no em dash UI copy.
 - **Assurance Status** workbook history still matters for April-era statement logic; live books use bank import + master ledger workflows (§1A/§1B).
 - SaaS pricing decision (2026-08-06): **$29.99**/mo, 1% quarterly, 4% annual.
-- Assurance billing: user reported **annual subscription paid** last week (2026-08-21). Confirm recorded on `/platform`. Last API verify (2026-08-09) was still `check_pending` / grace **2026-08-21**.
+- Assurance billing: **active annual** through **2027-08-22** (check recorded 2026-08-21).
+- **Platform Administration URL is private** — Never add a link to `/platform` on register, member, staff, admin, product, or any public page. Only the operator should know the path. Cooperative admin sign-in is `/admin` (different).
 - Next client country: **Nigeria** (same product; Country toggle). Deployed `ae04579`. Do not change Assurance country.
 - Docs rule: update `AGENT_HANDOVER.md` + affected guides in the **same turn** as code (`§0`). The user must never have to ask.
 - Full build history lives in Cursor agent transcripts under `.cursor/projects/.../agent-transcripts/` (not required on the new machine if GitHub + this handover are current).
@@ -904,13 +912,12 @@ npm run test:country-profile
 
 ## 8. Suggested next session plan
 
-1. Confirm Assurance annual payment is recorded on `/platform` (user reported paid last week).
-2. Nigeria test: hard-refresh live `/register`, create an org with **Country: Nigeria**, sign in at `/admin`. Leave Assurance on United States.
-3. Monthly bank work: **Import New Bank Activity** only (append); Full Ledger Refresh only for rebuild (§1B).
-4. Import loan records + schedules when user provides data.
-5. Profile for Kehinde Agboola if application supplied.
-6. Nigeria: wait for a real bank export (task **14b**) before tuning parsers.
-7. SaaS hardening still open: **4i** off-disk backups, **4j** registration gate, **4k** remove default passwords.
+1. Nigeria test: hard-refresh live `/register` (Ctrl+Shift+R). You should see the styled **Register Cooperative** form only (not stacked login pages). Create an org with **Country: Nigeria**, sign in at `/admin`. Leave Assurance on United States.
+2. Monthly bank work: **Import New Bank Activity** only (append); Full Ledger Refresh only for rebuild (§1B).
+3. Import loan records + schedules when user provides data.
+4. Profile for Kehinde Agboola if application supplied.
+5. Nigeria: wait for a real bank export (task **14b**) before tuning parsers.
+6. SaaS hardening still open: **4i** off-disk backups, **4j** registration gate, **4k** remove default passwords.
 
 ---
 
