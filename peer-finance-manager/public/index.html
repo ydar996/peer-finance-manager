@@ -18,7 +18,7 @@
         <p class="subtle org-subtitle">Sign In to View Your Contributions and Loan Accounts</p>
         <form id="loginFormMember" class="entry-form login-form" data-portal="member" method="post" action="#">
           <label>Organization Code
-            <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. assurance" autocomplete="organization" />
+            <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. acme" autocomplete="organization" />
           </label>
           <label>Username
             <input type="text" name="identifier" required autocomplete="username" />
@@ -47,7 +47,7 @@
         <h1>Membership Application</h1>
         <p class="subtle" id="membershipApplyHint">Enter your Cooperative organization code to open the application form.</p>
         <label>Organization Code
-          <input type="text" id="membershipApplyOrgSlug" class="org-slug-input" placeholder="e.g. assurance" />
+          <input type="text" id="membershipApplyOrgSlug" class="org-slug-input" placeholder="e.g. acme" />
         </label>
         <div class="panel-head-actions" style="margin: 12px 0;">
           <button type="button" class="btn primary" id="loadMembershipApplyBtn">Open Application</button>
@@ -67,7 +67,7 @@
         <p class="subtle org-subtitle">Read-Only Cooperative Management Access</p>
         <form id="loginFormStaff" class="entry-form login-form" data-portal="staff" method="post" action="#">
           <label>Organization Code
-            <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. assurance" autocomplete="organization" />
+            <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. acme" autocomplete="organization" />
           </label>
           <label>Email
             <input type="email" name="identifier" required autocomplete="username" />
@@ -89,7 +89,7 @@
         <p class="subtle org-subtitle">Full Cooperative Management Access</p>
         <form id="loginFormAdmin" class="entry-form login-form" data-portal="admin" method="post" action="#">
           <label>Organization Code
-            <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. assurance" autocomplete="organization" />
+            <input type="text" name="organizationSlug" class="org-slug-input" required placeholder="e.g. acme" autocomplete="organization" />
           </label>
           <label>Email
             <input type="email" name="identifier" required autocomplete="username" />
@@ -234,7 +234,7 @@
           <div class="profile-disclosure-body">
             <form id="platformCheckPaymentForm" class="entry-form">
               <label>Organization Code
-                <input type="text" name="slug" required placeholder="e.g. assurance" />
+                <input type="text" name="slug" required placeholder="e.g. acme" />
               </label>
               <label>Plan
                 <select name="plan" required>

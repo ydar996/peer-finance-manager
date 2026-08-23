@@ -7,7 +7,7 @@ This guide explains how to use Peer Finance Manager (PFM) without technical jarg
 **Live app:** https://peer-finance-manager.netlify.app  
 **Product page:** https://peer-finance-manager.netlify.app/product  
 **Brochure:** https://peer-finance-manager.netlify.app/brochure (open the page, then **Download PDF**)  
-**Example organization code:** `assurance` (Assurance Investment and Cooperative Inc.)
+Login placeholders use a sample code (`acme`), not a live Cooperative.
 
 ---
 
@@ -53,7 +53,7 @@ This guide explains how to use Peer Finance Manager (PFM) without technical jarg
 
 **Tip:** If Sign In seems to do nothing, hard-refresh the page (**Ctrl+Shift+R** on Windows). The first visit after idle can take up to 30 seconds while the server wakes up.
 
-Members and staff **cannot** use each other's login page. Each Cooperative has its own organization code (for example `assurance`).
+Members and staff **cannot** use each other's login page. Each Cooperative has its own organization code (for example `acme`).
 
 ---
 
@@ -684,4 +684,4 @@ It does **not** auto-sync with the live website. See [UPDATE-AND-PUBLISH.md](./U
 
 ---
 
-*Last updated: August 22, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*
+*Last updated: August 23, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*

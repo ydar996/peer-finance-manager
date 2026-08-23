@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 22, 2026 (marketing brochure `/brochure`)  
+**Last updated:** August 23, 2026 (login org-code placeholder `acme`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -175,6 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-08-23** — **Login org-code sample is fictional:** Organization Code placeholders on member/staff/admin login, membership apply, and platform check-payment use `e.g. acme` (already used on Register). Stopped pre-filling the live `assurance` slug into login fields (`DEFAULT_ORG_SLUG` is now empty; remembered code from a prior sign-in still works). Files: `public/index.html`, `public/app.js`. **Production:** `git push` (Netlify UI). Hard-refresh login pages. No data upload.
 - **2026-08-22** — **Marketing brochure deploy:** Production `13c1a24`. After Netlify publishes, open https://peer-finance-manager.netlify.app/brochure and hard-refresh. **Download PDF** then Save as PDF. No data upload.
 - **2026-08-22** — **Marketing brochure (webpage + PDF):** Printable two-page Letter brochure at `/brochure`. On-screen toolbar **Download PDF** opens the browser print dialog (choose Save as PDF). Copy matches product features, roles, workflow, and live pricing ($29.99 / $89.07 / $345.48). Linked from `/product`. Files: `public/brochure.html`, `public/brochure.css`, `server.js`, `scripts/netlify-build-config.js`. **Production:** `13c1a24` (`git push`; Netlify UI). Local: http://localhost:3457/brochure. No data upload.
 - **2026-08-21** — **SPA portal CSS deploy:** Production `03d1541`. Hard-refresh `/register`. You should see only the styled **Register Cooperative** form. No data upload.
