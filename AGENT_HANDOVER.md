@@ -7,7 +7,7 @@ This document gives the next developer or AI agent enough context to continue wo
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** `9c10243` (login org-code placeholder `acme`) — prior: brochure `13c1a24`, SPA CSS `03d1541`, country profiles `ae04579`, CD terms `efd3006`, expense labels `d399bb4`, SaaS **$29.99** `4c31805`
+**Production HEAD (code):** `2fa3fd4` (Nigeria product `/productngn`) — prior: login placeholder `9c10243`, brochure `13c1a24`, SPA CSS `03d1541`, country profiles `ae04579`, CD terms `efd3006`, expense labels `d399bb4`, SaaS **$29.99** `4c31805`
 
 ---
 
@@ -175,7 +175,8 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
-- **2026-08-24** — **Nigeria product page (naira display):** Public marketing page at `/productngn` mirrors `/product` with naira hero cards and naira plan prices converted from USD at **₦1,345.21 per $1** (24 August 2026, ExchangeRate-API). Monthly **₦40,343**, quarterly **₦119,818**, annual **₦464,744**. Footnote: subscription billing stays US dollars; naira is display only. US `/product` unchanged. Files: `public/productngn.html`, `product.css`, `product.html` (Naira nav), `server.js`, `scripts/netlify-build-config.js`. **Production:** `git push` (Netlify UI). No data upload. Do not change Assurance country.
+- **2026-08-24** — **Nigeria product page deploy:** Production `2fa3fd4`. Open https://peer-finance-manager.netlify.app/productngn after Netlify publishes. USD page remains https://peer-finance-manager.netlify.app/product. No data upload.
+- **2026-08-24** — **Nigeria product page (naira display):** Public marketing page at `/productngn` mirrors `/product` with naira hero cards and naira plan prices converted from USD at **₦1,345.21 per $1** (24 August 2026, ExchangeRate-API). Monthly **₦40,343**, quarterly **₦119,818**, annual **₦464,744**. Footnote: subscription billing stays US dollars; naira is display only. US `/product` unchanged. Files: `public/productngn.html`, `product.css`, `product.html` (Naira nav), `server.js`, `scripts/netlify-build-config.js`. **Production:** `2fa3fd4` (`git push`; Netlify UI). No data upload. Do not change Assurance country.
 - **2026-08-23** — **Login org-code sample deploy:** Production `9c10243`. Hard-refresh member/staff/admin login. Placeholder is `e.g. acme`. If the field still shows `assurance`, that browser remembered the last successful sign-in; new visitors see `acme`. No data upload.
 - **2026-08-23** — **Login org-code sample is fictional:** Organization Code placeholders on member/staff/admin login, membership apply, and platform check-payment use `e.g. acme` (already used on Register). Stopped pre-filling the live `assurance` slug into login fields (`DEFAULT_ORG_SLUG` is now empty; remembered code from a prior sign-in still works). Files: `public/index.html`, `public/app.js`. **Production:** `9c10243` (`git push`; Netlify UI). Hard-refresh login pages. No data upload.
 - **2026-08-22** — **Marketing brochure deploy:** Production `13c1a24`. After Netlify publishes, open https://peer-finance-manager.netlify.app/brochure and hard-refresh. **Download PDF** then Save as PDF. No data upload.
