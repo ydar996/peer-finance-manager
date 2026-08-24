@@ -236,6 +236,9 @@ app.get("/", (req, res) => res.redirect("/member"));
 app.get("/product", (req, res) => {
   res.sendFile(path.join(getPublicDir(), "product.html"));
 });
+app.get("/productngn", (req, res) => {
+  res.sendFile(path.join(getPublicDir(), "productngn.html"));
+});
 app.get("/brochure", (req, res) => {
   res.sendFile(path.join(getPublicDir(), "brochure.html"));
 });

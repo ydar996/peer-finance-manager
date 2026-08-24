@@ -300,6 +300,11 @@ a {
   line-height: 1;
 }
 
+.pf-mock-value-ngn {
+  font-size: 1.28rem;
+  letter-spacing: -0.03em;
+}
+
 .pf-mock-sub {
   margin: 0;
   font-size: 0.82rem;
@@ -629,6 +634,10 @@ a {
   letter-spacing: -0.02em;
 }
 
+.pf-pricing-ngn .pf-pricing-amount span {
+  font-size: 1.55rem;
+}
+
 .pf-pricing-note {
   margin: 0 0 18px;
   font-size: 0.88rem;
@@ -893,6 +902,10 @@ a {
 
   .pf-mock-value {
     font-size: 1.45rem;
+  }
+
+  .pf-mock-value-ngn {
+    font-size: 1.15rem;
   }
 
   .pf-nav a:not(.pf-nav-cta):not(.pf-nav-ghost) {

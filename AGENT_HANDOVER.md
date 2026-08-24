@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 23, 2026 (login org-code placeholder `acme`)  
+**Last updated:** August 24, 2026 (Nigeria product page `/productngn`)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -175,6 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-08-24** — **Nigeria product page (naira display):** Public marketing page at `/productngn` mirrors `/product` with naira hero cards and naira plan prices converted from USD at **₦1,345.21 per $1** (24 August 2026, ExchangeRate-API). Monthly **₦40,343**, quarterly **₦119,818**, annual **₦464,744**. Footnote: subscription billing stays US dollars; naira is display only. US `/product` unchanged. Files: `public/productngn.html`, `product.css`, `product.html` (Naira nav), `server.js`, `scripts/netlify-build-config.js`. **Production:** `git push` (Netlify UI). No data upload. Do not change Assurance country.
 - **2026-08-23** — **Login org-code sample deploy:** Production `9c10243`. Hard-refresh member/staff/admin login. Placeholder is `e.g. acme`. If the field still shows `assurance`, that browser remembered the last successful sign-in; new visitors see `acme`. No data upload.
 - **2026-08-23** — **Login org-code sample is fictional:** Organization Code placeholders on member/staff/admin login, membership apply, and platform check-payment use `e.g. acme` (already used on Register). Stopped pre-filling the live `assurance` slug into login fields (`DEFAULT_ORG_SLUG` is now empty; remembered code from a prior sign-in still works). Files: `public/index.html`, `public/app.js`. **Production:** `9c10243` (`git push`; Netlify UI). Hard-refresh login pages. No data upload.
 - **2026-08-22** — **Marketing brochure deploy:** Production `13c1a24`. After Netlify publishes, open https://peer-finance-manager.netlify.app/brochure and hard-refresh. **Download PDF** then Save as PDF. No data upload.
@@ -956,7 +957,7 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 | SaaS pricing constants | `peer-finance-manager/lib/platform-billing-constants.js` |
 | Expense report labels | `peer-finance-manager/lib/expense-report-label-service.js` |
 | Platform grace / check payment | `peer-finance-manager/lib/platform-billing-service.js`, `/platform` UI |
-| Marketing product/brochure | `peer-finance-manager/public/product.html`, `brochure.html` (`/product`, `/brochure`) |
+| Marketing product/brochure | `peer-finance-manager/public/product.html`, `productngn.html`, `brochure.html` (`/product`, `/productngn`, `/brochure`) |
 | Golden rebuild script | `peer-finance-manager/scripts/rebuild-ledger-from-bank.js` |
 | Ledger vs stmt audit | `peer-finance-manager/scripts/audit-bank-ledger-discrepancy.js` |
 | CD dashboard | `peer-finance-manager/lib/cooperative-books.js`, `cd-balance-service.js` |
