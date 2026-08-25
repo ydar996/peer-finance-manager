@@ -27,6 +27,7 @@
     "test:ocr-text-repair": "node peer-finance-manager/scripts/test-ocr-text-repair.js",
     "test:loan-applications": "node peer-finance-manager/scripts/test-loan-applications.js",
     "test:country-profile": "node peer-finance-manager/scripts/test-country-profile.js",
+    "test:organization-code": "node peer-finance-manager/scripts/test-organization-code.js",
     "pfm:normalize-profiles": "node peer-finance-manager/scripts/normalize-profiles.js --dry-run",
     "pfm:normalize-profiles:apply": "node peer-finance-manager/scripts/normalize-profiles.js --apply",
     "pfm:status-report": "node peer-finance-manager/scripts/generate-cooperative-status.js",

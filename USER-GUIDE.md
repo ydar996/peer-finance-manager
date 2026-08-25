@@ -51,11 +51,11 @@ Login placeholders use a sample code (`acme`), not a live Cooperative. The app u
 | **Member** | `/member` | Organization code, **username**, password |
 | **Staff** | `/staff` | Organization code, email, password |
 | **Administrator** | `/admin` | Organization code, email, password |
-| **New Cooperative** | `/register` | Styled **Register Cooperative** form: Cooperative name, organization code, **Country** (United States is the default), administrator email, and password. Then sign in at `/admin` with that new organization code. |
+| **New Cooperative** | `/register` | Styled **Register Cooperative** form: Cooperative name, organization code (at least 8 characters, with a letter and a number; hyphens allowed), **Country** (United States is the default), administrator email, and password. Then sign in at `/admin` with that new organization code. Existing Cooperatives keep their current code (Assurance still uses `assurance`). |
 
 **Tip:** If Sign In seems to do nothing, hard-refresh the page (**Ctrl+Shift+R** on Windows). The first visit after idle can take up to 30 seconds while the server wakes up.
 
-Members and staff **cannot** use each other's login page. Each Cooperative has its own organization code (for example `acme`).
+Members and staff **cannot** use each other's login page. Each Cooperative has its own organization code. New signups pick a code with letters and numbers (for example `acme9coop`). Older Cooperatives, including Assurance (`assurance`), keep the code they already use.
 
 ---
 
@@ -643,7 +643,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 
 | Problem | What to try |
 |---------|-------------|
-| Invalid username or password | Check organization code, username/email, and password (case-sensitive). |
+| Invalid username or password | Check organization code, username/email, and password (case-sensitive). Sign-in uses the same message if the organization code is wrong, so a guess does not confirm that a Cooperative exists. |
 | Blank page or login spins | Wait 30 seconds; hard-refresh (**Ctrl+Shift+R**). |
 | PDF download fails | Wait one minute after a deploy; try again. |
 | Birthday or date off by one day | Ensure latest app version is deployed. |

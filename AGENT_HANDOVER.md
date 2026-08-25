@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 24, 2026 (Plantvest admin theme)  
+**Last updated:** August 24, 2026 (theme regression restore: Import/Users + header)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -175,6 +175,8 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-08-24** — **Plantvest theme regressions (Import/Users blank) + layout correction:** An extra `</div>` after Record closed `.app-main` early, so Import, Maintenance, Users, and My Account sat outside the layout grid and looked empty. Restored nesting. Unboxed the admin header (no pill), one `app-content` column (max-width 1320px) for header + views, white cards on `--pv-surface-1` `#F5F6F4`, 52px collapsible rows, green/neutral badges (Excel and Announced no longer blue), styled Statements Choose File (native input kept). Session role is `#sessionRole`; display name stays `#sessionUser`. **Production:** `git push` (Netlify UI). Hard-refresh `/admin`. No data upload.
+- **2026-08-24** — **Stronger organization codes for new signups:** `/register` now requires at least 8 characters with a letter and a number; letters, numbers, and hyphens only (no special characters). Live `assurance` is unchanged (seeded outside Register; login still accepts it). Sign-in returns **Invalid username or password** whether the organization code is unknown or the password is wrong. Files: `organization-service.js`, `auth-service.js`, `public/index.html`. Test: `npm run test:organization-code`. **Production:** `git push` (Netlify UI + Render API). Hard-refresh `/register` and login pages. No data upload.
 - **2026-08-24** — **Plantvest visual theme (operational UI):** Restyled the SPA (sign-in, Cooperative Manager, member portal, SPA public shell) and Cooperative About/Bylaws pages to the Plantvest green design language. Tokens live in `public/theme.css` (loaded after `styles.css`). No API, PDF, email, or FlexxForms logic changes. Highlighted Cooperative Books cards still use `.book-card.accent`. Marketing `/product` and `/brochure` pages are unchanged. **Production:** `a874460` (`git push`; Netlify UI). Hard-refresh after publish. No data upload.
 - **2026-08-24** — **Nigeria brochure (`/brochurengn`):** Printable two-page Letter brochure for Nigerian Cooperatives, same layout as `/brochure`. Naira prices match `/productngn` (₦40,343 / ₦119,818 / ₦464,744). Copy is Nigeria-only (naira, DD/MM/YYYY, Nigerian bank import, Country: Nigeria). Toolbar **Open Product Page** goes to `/productngn`. Linked from `/productngn` Brochure. No cross-links to `/brochure` or `/product`. US `/brochure` chip/trust copy is United States only. Files: `public/brochurengn.html`, `brochure.css`, `brochure.html`, `productngn.html`, `server.js`, `scripts/netlify-build-config.js`. **Production:** `f13f441` (`git push`; Netlify UI). Open https://peer-finance-manager.netlify.app/brochurengn after publish. No data upload.
 - **2026-08-24** — **Share thumbnails for marketing links:** Open Graph and Twitter cards on `/product`, `/productngn`, `/brochure`, and `/brochurengn` so WhatsApp, iMessage, Slack, and Facebook show a preview image. Files: `public/og-product.jpg`, `public/og-productngn.jpg`. **Production:** `git push` (Netlify UI). After publish, refresh the share preview (some apps cache the old blank card). No data upload.
@@ -798,6 +800,7 @@ Peer Finance Manager / Assurance Cooperative
 | 4l | **Per-tenant email FROM** | Store smtp_from / smtp_from_name on registry org; stop global Assurance branding. |
 | 4m | **Disk headroom + idle DB LRU** | Raise `render.yaml` disk; alert usage; evict idle `dbByOrg` handles. |
 | 4n | **Layman import UX** | Single Import Bank Statement path; onboarding wizard; stop Assurance `SEED_ALIASES` on empty tenants. |
+| 4v | ~~**Stronger organization codes for new signups**~~ | ✅ **Done** 2026-08-24 — New Register codes: 8+ characters, letter + number, hyphens allowed, no special characters. `assurance` grandfathered. Login uses one error for unknown org or bad password. `npm run test:organization-code`. **Deploy:** `git push`. |
 | 4o | ~~**Loan Payment Policy (flexible vs strict)**~~ | ✅ **Done** 2026-07-11 — Toggle on Loans tab; snapshot per loan; late fee default $25; `npm run test:loan-policy`. |
 | 4c | **PC ↔ cloud bank ledger** | Monthly: **Import New Bank Activity** only. Full rebuild: **Full Ledger Refresh**. Ops: `restore-ledger-production.js --org <slug>`. |
 | 4e | ~~**Yomi Salami Nov 2025 split (Saheed bank alias)**~~ | ✅ **Done by Coop Admin** 2026-07-12 — Split saved on live; balance **$16,241.55** unchanged; row count 457→458 (expected). Reconcile row-align after classification added so Out of Sync does not false-alarm. |

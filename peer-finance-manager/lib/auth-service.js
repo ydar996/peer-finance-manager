@@ -150,16 +150,18 @@ function portalAllowsUser(portal, user) {
   return false;
 }
 
+const LOGIN_INVALID_CREDENTIALS = "Invalid username or password";
+
 function login(identifier, password, portal = PORTALS.MEMBER, organizationSlug) {
   const slug = normalizeSlug(organizationSlug);
   if (!slug) throw new Error("Organization code is required");
-  if (!organizationExists(slug)) throw new Error("Organization not found");
+  if (!organizationExists(slug)) throw new Error(LOGIN_INVALID_CREDENTIALS);
 
   return runWithOrg(slug, () => {
     const organization = getOrganization(slug);
     const row = getUserRowByIdentifier(identifier);
     if (!row || !verifyPassword(password, row.password_hash)) {
-      throw new Error("Invalid username or password");
+      throw new Error(LOGIN_INVALID_CREDENTIALS);
     }
     const user = mapUser(row, organization);
     if (!portalAllowsUser(portal, user)) {
@@ -815,6 +817,7 @@ module.exports = {
   ASSURANCE_ADMIN_EMAIL,
   ASSURANCE_SLUG,
   ASSURANCE_NAME,
+  LOGIN_INVALID_CREDENTIALS,
   normalizeEmail,
   ensureAssuranceAdminUser,
   registerOrganizationWithAdmin,

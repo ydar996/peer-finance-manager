@@ -450,6 +450,11 @@ function applyOrganizationBranding(organizationName) {
       ? `${orgName} : Cooperative Asset Management : Member Contributions Accounts, Loan Accounts, and Books`
       : "Cooperative Asset Management : Member Contributions Accounts, Loan Accounts, and Books";
   }
+  const sidebarOrg = $("#sidebarOrgName");
+  if (sidebarOrg) {
+    sidebarOrg.textContent = orgName;
+    sidebarOrg.hidden = !orgName;
+  }
 
   document.querySelectorAll(".org-cooperative-name").forEach((el) => {
     if (orgName) {
@@ -629,7 +634,11 @@ function applyRoleUi() {
 
   const sessionUser = $("#sessionUser");
   if (sessionUser && currentUser) {
-    sessionUser.textContent = `${currentUser.displayName || currentUser.email} · ${roleLabel(currentUser.role)}`;
+    sessionUser.textContent = currentUser.displayName || currentUser.email || "";
+  }
+  const sessionRole = $("#sessionRole");
+  if (sessionRole && currentUser) {
+    sessionRole.textContent = roleLabel(currentUser.role);
   }
 
   if (role === "member") switchTab("my-account");
@@ -4632,9 +4641,8 @@ function meetingStatusLabel(status) {
 
 function meetingStatusBadgeClass(meeting) {
   if (meeting.status === "cancelled") return "err";
-  if (meeting.status === "announced" && meeting.upcoming) return "ok";
-  if (meeting.status === "announced") return "";
-  return "";
+  if (meeting.status === "announced") return "ok";
+  return "warn";
 }
 
 function resetCooperativeMeetingForm() {
@@ -4721,16 +4729,16 @@ async function loadCooperativeMeetingsPanel() {
         const actions = [];
         if (isAdmin && meeting.status === "draft") {
           actions.push(
-            `<button type="button" class="btn linkish meeting-edit" data-id="${meeting.id}">Edit</button>`,
-            `<button type="button" class="btn linkish meeting-announce" data-id="${meeting.id}">Announce to Members</button>`,
-            `<button type="button" class="btn linkish meeting-delete" data-id="${meeting.id}">Delete</button>`
+            `<button type="button" class="btn btn-ghost meeting-edit" data-id="${meeting.id}">Edit</button>`,
+            `<button type="button" class="btn btn-ghost meeting-announce" data-id="${meeting.id}">Announce to Members</button>`,
+            `<button type="button" class="btn btn-ghost meeting-delete" data-id="${meeting.id}">Delete</button>`
           );
         }
         if (isAdmin && meeting.status === "announced") {
           actions.push(
-            `<button type="button" class="btn linkish meeting-edit" data-id="${meeting.id}">Edit Details</button>`,
-            `<button type="button" class="btn linkish meeting-resend" data-id="${meeting.id}">Resend Email</button>`,
-            `<button type="button" class="btn linkish meeting-cancel" data-id="${meeting.id}">Cancel Meeting</button>`
+            `<button type="button" class="btn btn-ghost meeting-edit" data-id="${meeting.id}">Edit Details</button>`,
+            `<button type="button" class="btn btn-ghost meeting-resend" data-id="${meeting.id}">Resend Email</button>`,
+            `<button type="button" class="btn btn-ghost meeting-cancel" data-id="${meeting.id}">Cancel Meeting</button>`
           );
         }
         const loc = meeting.location
@@ -4739,13 +4747,15 @@ async function loadCooperativeMeetingsPanel() {
             ? " · Online"
             : "";
         return `<li class="cooperative-meeting-item">
-          <div class="cooperative-meeting-item-head">
+          <div class="meeting-zone-title">
             <strong>${escapeHtml(meeting.title)}</strong>
             <span class="badge ${meetingStatusBadgeClass(meeting)}">${escapeHtml(meetingStatusLabel(meeting.status))}</span>
           </div>
-          <div class="subtle">${escapeHtml(meeting.meetingDateLabel)} at ${escapeHtml(meeting.meetingTimeLabel)} (${escapeHtml(meeting.timezoneLabel)})${loc}</div>
-          ${meeting.agenda ? `<div class="cooperative-meeting-agenda">${escapeHtml(meeting.agenda)}</div>` : ""}
-          ${actions.length ? `<div class="cooperative-meeting-actions">${actions.join(" · ")}</div>` : ""}
+          <div class="meeting-zone-meta">
+            <div class="subtle">${escapeHtml(meeting.meetingDateLabel)} at ${escapeHtml(meeting.meetingTimeLabel)} (${escapeHtml(meeting.timezoneLabel)})${loc}</div>
+            ${meeting.agenda ? `<div class="cooperative-meeting-agenda">${escapeHtml(meeting.agenda)}</div>` : ""}
+          </div>
+          ${actions.length ? `<div class="cooperative-meeting-actions">${actions.join('<span class="sep" aria-hidden="true"> · </span>')}</div>` : ""}
         </li>`;
       })
       .join("");
@@ -4970,7 +4980,7 @@ async function loadEmailSendAudit() {
             <td>${escapeHtml(subject)}${detailHint ? `<div class="subtle">${detailHint}</div>` : ""}</td>
             <td>${sent}</td>
             <td>${failed}</td>
-            <td><button type="button" class="btn linkish email-audit-view" data-id="${batch.id}">View Recipients</button></td>
+            <td><button type="button" class="btn btn-ghost email-audit-view" data-id="${batch.id}">View Recipients</button></td>
           </tr>`;
         })
         .join("");
@@ -6615,7 +6625,7 @@ async function loadStatementFiles() {
     data.files.forEach((f) => {
       const li = document.createElement("li");
       li.dataset.file = f;
-      li.innerHTML = `<span class="badge">Excel</span><span>${escapeHtml(f)}</span>`;
+      li.innerHTML = `<span class="file-list-icon" aria-hidden="true"></span><span class="badge">Excel</span><span class="file-list-name">${escapeHtml(f)}</span><span class="file-list-go" aria-hidden="true">↗</span>`;
       li.addEventListener("click", () => selectStatementFile(f));
       list.appendChild(li);
     });

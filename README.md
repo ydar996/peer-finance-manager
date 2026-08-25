@@ -291,6 +291,7 @@ Exports: `data/organizations/assurance/exports/member-profiles.json`
 | `npm run pfm:import-bank` | Import bank transactions from CSV + All deposits.xlsx |
 | `npm run pfm:build` | Build standalone Windows `.exe` (optional) |
 | `npm run test:country-profile` | US default + Nigeria statement aliases, banks/states, date order |
+| `npm run test:organization-code` | New signup org codes (letter + number, min 8); grandfathered slugs; uniform login errors |
 
 ---
 

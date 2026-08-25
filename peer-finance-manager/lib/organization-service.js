@@ -5,6 +5,21 @@ const { loadBetterSqlite3 } = require("./native-sqlite");
 
 const ASSURANCE_SLUG = "assurance";
 const ASSURANCE_NAME = "Assurance Investment and Cooperative Inc.";
+const NEW_ORG_CODE_MIN_LENGTH = 8;
+const NEW_ORG_CODE_RAW_PATTERN = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
+const RESERVED_ORG_SLUGS = new Set([
+  "admin",
+  "api",
+  "brochure",
+  "c",
+  "login",
+  "member",
+  "platform",
+  "product",
+  "register",
+  "staff",
+  "www",
+]);
 
 let registryDb;
 
@@ -84,6 +99,31 @@ function normalizeSlug(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+function parseOrganizationCodeInput(value) {
+  const raw = String(value || "").trim();
+  if (!raw) throw new Error("Organization code is required");
+  if (!NEW_ORG_CODE_RAW_PATTERN.test(raw)) {
+    throw new Error("Organization code may use letters, numbers, and hyphens only");
+  }
+  const normalized = normalizeSlug(raw);
+  if (!normalized) throw new Error("Organization code is required");
+  return normalized;
+}
+
+function assertNewOrganizationCodeStrength(slug) {
+  const normalized = String(slug || "");
+  if (RESERVED_ORG_SLUGS.has(normalized)) {
+    throw new Error("This organization code is not available");
+  }
+  if (normalized.length < NEW_ORG_CODE_MIN_LENGTH) {
+    throw new Error(`Organization code must be at least ${NEW_ORG_CODE_MIN_LENGTH} characters`);
+  }
+  if (!/[a-z]/.test(normalized) || !/[0-9]/.test(normalized)) {
+    throw new Error("Organization code must include a letter and a number");
+  }
+  return normalized;
+}
+
 function getOrgDataDir(slug) {
   return path.join(getDataDir(), "organizations", normalizeSlug(slug));
 }
@@ -147,12 +187,11 @@ function organizationExists(slug) {
 }
 
 function registerOrganization({ name, slug, countryCode }) {
-  const normalized = normalizeSlug(slug);
   const displayName = String(name || "").trim();
   if (!displayName) throw new Error("Organization name is required");
-  if (!normalized) throw new Error("Organization code is required");
-  if (normalized.length < 2) throw new Error("Organization code must be at least 2 characters");
+  const normalized = parseOrganizationCodeInput(slug);
   if (getOrganization(normalized)) throw new Error("This organization code is already registered");
+  assertNewOrganizationCodeStrength(normalized);
 
   const { normalizeCountryCode, DEFAULT_COUNTRY_CODE } = require("./country-profile");
   const country = normalizeCountryCode(countryCode || DEFAULT_COUNTRY_CODE);
@@ -318,7 +357,10 @@ function migrateLegacyDatabaseIfNeeded() {
 module.exports = {
   ASSURANCE_SLUG,
   ASSURANCE_NAME,
+  NEW_ORG_CODE_MIN_LENGTH,
   normalizeSlug,
+  parseOrganizationCodeInput,
+  assertNewOrganizationCodeStrength,
   getRegistryDb,
   getOrgDataDir,
   listOrganizations,
