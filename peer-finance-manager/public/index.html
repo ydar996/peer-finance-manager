@@ -1699,12 +1699,20 @@
           </summary>
           <div class="profile-disclosure-body">
             <form id="bankAppendForm" class="entry-form">
-              <label class="field-row">Bank account
-                <select id="bankAppendAccountSelect" name="bankAccountId"></select>
+              <label class="field-row">
+                <span>Bank Account</span>
+                <select id="bankAppendAccountSelect" name="bankAccountId">
+                  <option value="">Loading Accounts…</option>
+                </select>
               </label>
-              <label class="field-row">Statement or template file (.csv, .xlsx, .ofx)
-                <input type="file" name="statement" accept=".csv,.xlsx,.xls,.ofx,.qfx" required />
-              </label>
+              <div class="field-row">
+                <span>Statement or Template File (.csv, .xlsx, .ofx)</span>
+                <div class="file-dropzone">
+                  <label class="btn" for="bankAppendFile">Choose File</label>
+                  <input type="file" id="bankAppendFile" name="statement" class="visually-hidden-file" accept=".csv,.xlsx,.xls,.ofx,.qfx" required />
+                  <span class="file-name" id="bankAppendFileName"></span>
+                </div>
+              </div>
               <div class="panel-head-actions">
                 <button type="button" class="btn" id="previewBankAppend">Preview</button>
                 <button type="button" class="btn primary" id="applyBankAppend">Add New Transactions</button>
@@ -1914,7 +1922,7 @@
             <span class="import-panel-hint">Bulk load contributions, withdrawals, fees, and distributions from a workbook.</span>
           </summary>
           <div class="profile-disclosure-body">
-            <form id="spreadsheetForm">
+            <form id="spreadsheetForm" class="entry-form">
               <input type="file" name="file" accept=".xlsx,.xls" required />
               <input type="text" name="sheetName" value="April 2026" placeholder="Sheet Name" />
               <label><input type="checkbox" name="replace" value="true" /> Replace Existing Ledger</label>
@@ -1930,7 +1938,7 @@
             <span class="import-panel-hint">Import biodata and payment names; links applications to ledger accounts.</span>
           </summary>
           <div class="profile-disclosure-body">
-            <form id="wpformsForm">
+            <form id="wpformsForm" class="entry-form">
               <input type="file" name="file" accept=".csv" required />
               <button type="submit" class="btn primary">Import Profiles</button>
             </form>
@@ -1944,7 +1952,7 @@
             <span class="import-panel-hint">Upload installment schedule CSV/xlsx for a specific loan ID.</span>
           </summary>
           <div class="profile-disclosure-body">
-            <form id="scheduleForm">
+            <form id="scheduleForm" class="entry-form">
               <input type="number" name="loanId" placeholder="Loan ID" required min="1" />
               <input type="file" name="file" accept=".xlsx,.xls,.csv" required />
               <button type="submit" class="btn">Import Schedule</button>
@@ -1960,10 +1968,14 @@
           </summary>
           <div class="profile-disclosure-body">
             <form id="bankImportForm" class="entry-form">
-              <label class="field-row">
-                <span>Master ledger file (.csv or .xlsx)</span>
-                <input type="file" name="statement" accept=".csv,.xlsx,.xls" required />
-              </label>
+              <div class="field-row">
+                <span>Master Ledger File (.csv or .xlsx)</span>
+                <div class="file-dropzone">
+                  <label class="btn" for="bankImportFile">Choose File</label>
+                  <input type="file" id="bankImportFile" name="statement" class="visually-hidden-file" accept=".csv,.xlsx,.xls" required />
+                  <span class="file-name" id="bankImportFileName"></span>
+                </div>
+              </div>
               <div class="panel-head-actions action-tips-row">
                 <div class="action-with-tip">
                   <button type="button" class="btn" id="previewBankImport">Preview</button>
@@ -2006,21 +2018,31 @@
           <div class="card accent">
             <h3>Database Backup</h3>
             <p class="subtle">Download a copy of <code>peerfinance.db</code> for this Cooperative. Use before major changes or for off-site archive.</p>
-            <button type="button" class="btn primary" id="downloadDataBackupBtn">Download Database Backup</button>
+            <div class="panel-head-actions">
+              <button type="button" class="btn primary" id="downloadDataBackupBtn">Download Database Backup</button>
+            </div>
             <p id="dataBackupStatus" class="status"></p>
           </div>
           <div class="card danger-zone">
             <h3>Database Restore</h3>
             <p class="subtle">Replace the live database with a <code>.db</code> backup you downloaded earlier. Preview first, then confirm restore.</p>
             <form id="dataRestoreForm" class="entry-form">
-              <label>Backup File (.db)
-                <input type="file" name="database" accept=".db,application/octet-stream" required />
-              </label>
-              <label>I understand this replaces all live Cooperative data for this organization.
+              <div class="field-row">
+                <span>Backup File (.db)</span>
+                <div class="file-dropzone">
+                  <label class="btn" for="dataRestoreFile">Choose File</label>
+                  <input type="file" id="dataRestoreFile" name="database" class="visually-hidden-file" accept=".db,application/octet-stream" required />
+                  <span class="file-name" id="dataRestoreFileName"></span>
+                </div>
+              </div>
+              <label class="toggle-row">
                 <input type="checkbox" name="confirmRestore" />
+                <span>I understand this replaces all live Cooperative data for this organization.</span>
               </label>
-              <button type="button" class="btn" id="previewDataRestoreBtn">Preview Upload</button>
-              <button type="submit" class="btn btn-danger">Restore Database</button>
+              <div class="panel-head-actions">
+                <button type="button" class="btn" id="previewDataRestoreBtn">Preview Upload</button>
+                <button type="submit" class="btn btn-danger">Restore Database</button>
+              </div>
             </form>
             <p id="dataRestoreStatus" class="status"></p>
             <pre id="dataRestorePreview" class="subtle hidden"></pre>
@@ -2028,8 +2050,10 @@
           <div class="card accent">
             <h3>Normalize Profiles (Title Case)</h3>
             <p class="subtle">Backfill member profile and ledger name formatting. Preview first, then apply on production.</p>
-            <button type="button" class="btn" id="previewNormalizeProfilesBtn">Preview Changes</button>
-            <button type="button" class="btn primary" id="applyNormalizeProfilesBtn">Apply Title Case</button>
+            <div class="panel-head-actions">
+              <button type="button" class="btn" id="previewNormalizeProfilesBtn">Preview Changes</button>
+              <button type="button" class="btn primary" id="applyNormalizeProfilesBtn">Apply Title Case</button>
+            </div>
             <p id="normalizeProfilesStatus" class="status"></p>
             <pre id="normalizeProfilesPreview" class="subtle hidden"></pre>
           </div>
@@ -2060,8 +2084,10 @@
           <div class="card accent">
             <h3>Provision All Member Logins</h3>
             <p class="subtle">Creates a Username and Temporary Password for Every Member Without an Account. Passwords Must Be Changed on First Sign-In.</p>
-            <button type="button" class="btn primary" id="provisionMembersBtn">Generate Member Credentials</button>
-            <button type="button" class="btn" id="downloadCredentialsBtn">Download Credentials CSV</button>
+            <div class="panel-head-actions">
+              <button type="button" class="btn primary" id="provisionMembersBtn">Generate Member Credentials</button>
+              <button type="button" class="btn" id="downloadCredentialsBtn">Download Credentials CSV</button>
+            </div>
             <p class="subtle">Saved File: <code>data/exports/member-credentials-*.csv</code></p>
             <p id="provisionMembersStatus" class="status"></p>
           </div>

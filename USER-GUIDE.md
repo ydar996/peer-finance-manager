@@ -158,6 +158,8 @@ After you submit an application, it goes to administrators automatically.
 2. Enter organization code, admin email, and password.
 3. Click **Sign In**.
 
+The top-right shows your **role** (Administrator, Staff, or Member) and your name or email. It does not repeat the role word as the name.
+
 ### Admin tabs at a glance
 
 | Tab | Use it for |
@@ -303,8 +305,8 @@ Every form has its own **Save** or **Record** button. Changes apply immediately 
 Upload a **cumulative** bank export: **period start through today**. PFM skips rows already imported and adds only **New** ones.
 
 1. Open **Import** → expand **Import New Bank Activity**.
-2. Choose **Bank account**.
-3. Upload `.csv`, `.xlsx`, or `.ofx`/`.qfx`.
+2. Choose **Bank Account** (full-width dropdown of this Cooperative's active bank accounts).
+3. **Choose File** for a `.csv`, `.xlsx`, or `.ofx`/`.qfx` statement.
 4. Click **Preview**.
 5. Review the table:
 
@@ -528,7 +530,7 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
 
 | Task | How |
 |------|-----|
-| **Create staff or member login** | **Create Account** form (role, email, password; link member for member role). |
+| **Create staff or member login** | **Create Account** form (role, email, password; link member for member role). On a wide screen this sits beside **Provision All Member Logins**. |
 | **Provision all members at once** | **Generate Member Credentials** → **Download Credentials CSV**. |
 | **Reset one member password** | **Member Portal Accounts** → **Reset Password** (or on the member profile: **Reset Portal Password**). |
 | **Portal URLs** | Listed under **Sign-In Pages** (/member, /staff, /admin). |
@@ -658,8 +660,8 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 
 | Section | Purpose |
 |---------|---------|
-| **Database Backup** | Download `peerfinance.db` for this Cooperative (archive or before risky changes). |
-| **Database Restore** | Upload a `.db` backup, preview row counts, then restore. Replaces live data; no Manual Deploy required. |
+| **Database Backup** | Download `peerfinance.db` for this Cooperative (archive or before risky changes). On a wide screen this sits beside **Database Restore**. |
+| **Database Restore** | **Choose File** to select a `.db` backup, preview row counts, then restore. Replaces live data; no Manual Deploy required. |
 | **Normalize Profiles (Title Case)** | Preview and apply formatting to member profiles and ledger names on production. |
 | **Live Database Status** | Row counts, integrity, and reconcile snapshot. |
 

@@ -405,7 +405,7 @@ th { background: #f8fafc; font-weight: 600; }
 }
 .card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 600; color: #1e293b; }
 .hint { color: #64748b; font-size: 12px; margin: 0 0 12px; line-height: 1.45; }
-.card form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.card form { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
 .status { font-size: 13px; margin-top: 10px; min-height: 20px; }
 .status.ok { color: #047857; }
 .status.err { color: #b91c1c; }

@@ -611,6 +611,13 @@ function roleLabel(role) {
   return role;
 }
 
+function sessionIdentityLabel(user) {
+  const role = roleLabel(user?.role);
+  const name = String(user?.displayName || "").trim();
+  if (name && name.toLowerCase() !== String(role || "").toLowerCase()) return name;
+  return user?.email || user?.username || "";
+}
+
 function applyRoleUi() {
   const role = currentUser?.role || "";
   document.querySelectorAll("#mainTabs .tab").forEach((tab) => {
@@ -634,7 +641,7 @@ function applyRoleUi() {
 
   const sessionUser = $("#sessionUser");
   if (sessionUser && currentUser) {
-    sessionUser.textContent = currentUser.displayName || currentUser.email || "";
+    sessionUser.textContent = sessionIdentityLabel(currentUser);
   }
   const sessionRole = $("#sessionRole");
   if (sessionRole && currentUser) {
@@ -7977,6 +7984,16 @@ async function previewDataRestore() {
     setButtonBusy(btn, false);
   }
 }
+
+function bindChosenFileName(inputId, nameId) {
+  $(`#${inputId}`)?.addEventListener("change", () => {
+    const nameEl = $(`#${nameId}`);
+    if (nameEl) nameEl.textContent = $(`#${inputId}`)?.files?.[0]?.name || "";
+  });
+}
+bindChosenFileName("dataRestoreFile", "dataRestoreFileName");
+bindChosenFileName("bankAppendFile", "bankAppendFileName");
+bindChosenFileName("bankImportFile", "bankImportFileName");
 
 $("#previewDataRestoreBtn")?.addEventListener("click", previewDataRestore);
 

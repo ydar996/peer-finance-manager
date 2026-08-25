@@ -219,7 +219,7 @@ function ensureAssuranceAdminUser() {
   if (existing) {
     db.prepare(
       `UPDATE users
-       SET role = 'admin', active = 1, display_name = 'Administrator', must_change_password = 0
+       SET role = 'admin', active = 1, must_change_password = 0
        WHERE id = ?`
     ).run(existing.id);
   } else {

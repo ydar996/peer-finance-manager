@@ -344,13 +344,11 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(30, 122, 78, 0.18);
 }
 
-input[type="file"] {
-  min-height: 88px;
-  padding: 18px;
-  border: 1.5px dashed var(--pv-green-600);
-  border-radius: var(--pv-radius-md);
-  background: var(--pv-surface-1);
-  color: var(--pv-ink-700);
+.entry-form input[type="file"] {
+  width: auto;
+  max-width: 100%;
+  min-height: 0;
+  padding: 8px 0;
 }
 
 input[type="checkbox"],
@@ -496,6 +494,13 @@ details.profile-disclosure > .profile-disclosure-body {
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: center;
+}
+
+.import-panel-section > summary::before,
+.import-subsection > summary::before,
+details.profile-disclosure > summary::before {
+  content: none;
+  display: none;
 }
 
 .table-wrap,
@@ -900,6 +905,11 @@ td:last-child .btn {
   white-space: nowrap;
 }
 
+.session-role:empty,
+.session-user:empty {
+  display: none;
+}
+
 /* Tabs: sidebar on desktop, pills below 1024px */
 #appShell .tabs {
   display: flex;
@@ -1156,10 +1166,96 @@ td:last-child .btn {
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
   padding: 16px;
   background: var(--pv-surface-1);
   border: 1.5px dashed var(--pv-green-600);
   border-radius: 12px;
+}
+
+.card form {
+  align-items: stretch;
+  width: 100%;
+}
+
+.card .entry-form {
+  flex-wrap: nowrap;
+  flex-direction: column;
+  width: 100%;
+}
+
+.entry-form > label,
+.entry-form > .field-row,
+.entry-form > .panel-head-actions {
+  width: 100%;
+  min-width: 0;
+}
+
+.entry-form .field-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.entry-form select {
+  width: 100%;
+  min-width: 0;
+}
+
+label.toggle-row,
+.entry-form label.toggle-row {
+  flex-direction: row;
+  align-items: flex-start;
+  font-weight: 500;
+}
+
+#panel-users .record-grid,
+#panel-maintenance .record-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  #panel-users .record-grid,
+  #panel-maintenance .record-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+#panel-users .record-grid > .card,
+#panel-maintenance .record-grid > .card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+}
+
+#panel-users .record-grid > .card > h3,
+#panel-maintenance .record-grid > .card > h3,
+#panel-users .record-grid > .card > p,
+#panel-maintenance .record-grid > .card > p {
+  margin: 0;
+}
+
+#panel-users .record-grid .panel-head-actions,
+#panel-maintenance .record-grid .panel-head-actions {
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+#panel-users .record-grid .panel-head-actions .btn,
+#panel-maintenance .record-grid .panel-head-actions .btn {
+  flex: 1 1 16rem;
+  white-space: nowrap;
+}
+
+#panel-users .record-grid .status,
+#panel-maintenance .record-grid .status {
+  margin-top: 0;
 }
 
 .visually-hidden-file {
