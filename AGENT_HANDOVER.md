@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 25, 2026 (Plantvest-crisp type and color)  
+**Last updated:** August 25, 2026 (Members & Accounts 50/50 split)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -175,6 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-08-25** — **Members & Accounts is a half-and-half split:** The profile pane was capped at 360px, so **Edit Profile**, **Reset Portal Password**, and the account cards looked scrunched. List and profile are now equal columns (`1fr 1fr`). Profile photo, buttons, and account cards use the extra width; the list still shows all five columns and can scroll sideways if needed. Files: `public/styles.css`, `public/theme.css`. **Production:** `git push` (Netlify UI). Hard-refresh **Admin → Members & Accounts**. No data upload.
 - **2026-08-25** — **Plantvest-crisp type and color (operational UI):** Headings are neutral near-black (`#14181C`), body is `#2B3136` on white, sidebar text is solid `#FFFFFF` / `#DCE7DF` (no alpha). Inter 400–700 and Plus Jakarta Sans 600–800 load from Google Fonts (latin woff2 preloaded). Body uses antialiased rendering; no opacity/filter/scale on text. Table headers 12.5px 600; readable text ≥14px. Button gradient 0% stop stays `#2A7A44` because spec `#6FBF3F` is 2.28:1 with white. Ink-400 is `#6E787D` because spec `#7B8590` is 3.75:1. Files: `public/theme.css`, `public/styles.css` (body font), `public/index.html` and `public/cooperative-public.html` (font preload). **Production:** `c132206` (`git push`; Netlify UI). Hard-refresh `/admin`. No data upload.
 - **2026-08-25** — **Members & Accounts fits list and profile in view:** The list pane was capped at 38% width, so **Profile** (and sometimes **Loan Account**) clipped to a letter. Layout is now list `1fr` + profile max 360px. On wide screens both panes fill the leftover window and scroll inside the pane (sticky column headers). **Contributions Account** and **Loan Account** cards sit directly under the name so they stay on screen; **Membership Status** is below those cards. Below 1200px the panes stack and the page scrolls. Files: `public/styles.css`, `public/theme.css`, `public/app.js`. **Production:** `c132206` (`git push`; Netlify UI). Hard-refresh **Admin → Members & Accounts**. No data upload.
 - **2026-08-25** — **Record Recent Expenses is readable:** On wide screens `.record-workspace` is a 2-column grid (jump list + forms). **Recent Expenses** and **Recent Distributions** sat as extra grid items, so Expenses was squeezed into the 220px left column under the jump links and cut off. Both lists now live in `.record-grid` with the forms. Jump list includes those two sections. Files: `public/index.html`, `public/theme.css`. **Production:** `c132206` (`git push`; Netlify UI). Hard-refresh **Admin → Record** and open **Recent Expenses**. No data upload.

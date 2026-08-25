@@ -215,7 +215,7 @@ Click **Refresh** to reload after imports or manual entries.
 
 - Search by **name** or **member number** (e.g. AIC-001).
 - Click a row to open their profile on the right.
-- On a wide screen the member list and the profile sit side by side in the window: all five columns (**Member #**, **Member**, **Contributions Account**, **Loan Account**, **Profile**) stay visible, and each pane scrolls if it is taller than the window. **Contributions Account** and **Loan Account** cards sit at the top of the profile so they stay on screen with the list.
+- On a wide screen the member list and the profile share the window **half and half**. All five columns (**Member #**, **Member**, **Contributions Account**, **Loan Account**, **Profile**) stay in the list; if the window is tight, the list scrolls sideways. Each pane scrolls if it is taller than the window. **Contributions Account** and **Loan Account** cards sit at the top of the profile so they stay on screen with the list.
 - On a narrower window the profile moves under the list. Scroll the page as needed.
 - Default list shows **Active** members only.
 - Turn on **Show Former Members** to see Resigned, Deceased, Expelled, or Suspended accounts (ledger history still available).

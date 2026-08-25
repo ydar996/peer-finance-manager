@@ -1603,6 +1603,7 @@ label.toggle-row,
 #panel-members .members-layout {
   flex: 1 1 auto;
   min-height: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .members-list-pane,
@@ -1620,7 +1621,7 @@ label.toggle-row,
 }
 
 .members-list-pane .table-wrap {
-  overflow: visible;
+  overflow-x: auto;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -1658,51 +1659,66 @@ label.toggle-row,
 .member-profile-pane {
   max-height: none;
   min-height: 0;
-  padding: 12px;
+  padding: 16px;
 }
 
 .member-profile-pane .profile-card {
-  gap: 12px;
+  gap: 16px;
 }
 
 .member-profile-pane .profile-header {
-  gap: 12px;
-  flex-wrap: nowrap;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .member-profile-pane .profile-photo-wrap {
-  flex: 0 0 96px;
-  max-width: 96px;
+  flex: 0 0 auto;
+  max-width: none;
 }
 
 .member-profile-pane .profile-photo {
-  width: 72px;
-  height: 72px;
+  width: 120px;
+  height: 120px;
 }
 
 .member-profile-pane .profile-photo-upload input[type="file"] {
-  max-width: 96px;
+  max-width: 220px;
 }
 
 .member-profile-pane .profile-photo-upload .profile-photo-submit-btn {
-  min-height: 32px;
+  min-height: 44px;
   font-size: 15px;
   font-weight: 600;
-  padding: 6px 8px;
+  padding: 8px 18px;
+}
+
+.member-profile-pane .profile-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.member-profile-pane .profile-summary h3,
+.member-profile-pane .profile-summary > p {
+  flex: 1 1 100%;
+}
+
+.member-profile-pane .profile-summary .btn {
+  flex: 0 1 auto;
+  width: auto;
 }
 
 .member-profile-pane .account-cards {
   grid-template-columns: 1fr 1fr;
   margin: 0;
-  gap: 8px;
+  gap: 12px;
 }
 
 .member-profile-pane .account-card {
-  padding: 10px;
-}
-
-.member-profile-pane .account-card > .subtle {
-  display: none;
+  padding: 14px;
 }
 
 .member-profile-pane .account-card-hint {

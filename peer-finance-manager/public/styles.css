@@ -1094,7 +1094,7 @@ body.cooperative-report-viewer-open {
 .book-note { font-size: 11px; color: #94a3b8; margin: 6px 0 0; }
 .members-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
 }
