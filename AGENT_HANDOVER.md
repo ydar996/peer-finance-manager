@@ -7,7 +7,7 @@ This document gives the next developer or AI agent enough context to continue wo
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** `2fa3fd4` (Nigeria product `/productngn`) — prior: login placeholder `9c10243`, brochure `13c1a24`, SPA CSS `03d1541`, country profiles `ae04579`, CD terms `efd3006`, expense labels `d399bb4`, SaaS **$29.99** `4c31805`
+**Production HEAD (code):** `f13f441` (Nigeria brochure `/brochurengn`) — prior: share images `8dcc9f6`, Nigeria product `2fa3fd4`, login placeholder `9c10243`, US brochure `13c1a24`
 
 ---
 
@@ -175,7 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
-- **2026-08-24** — **Nigeria brochure (`/brochurengn`):** Printable two-page Letter brochure for Nigerian Cooperatives, same layout as `/brochure`. Naira prices match `/productngn` (₦40,343 / ₦119,818 / ₦464,744). Copy is Nigeria-only (naira, DD/MM/YYYY, Nigerian bank import, Country: Nigeria). Toolbar **Open Product Page** goes to `/productngn`. Linked from `/productngn` Brochure. No cross-links to `/brochure` or `/product`. US `/brochure` chip/trust copy is United States only. Files: `public/brochurengn.html`, `brochure.css`, `brochure.html`, `productngn.html`, `server.js`, `scripts/netlify-build-config.js`. **Production:** `git push` (Netlify UI). Open https://peer-finance-manager.netlify.app/brochurengn after publish. No data upload.
+- **2026-08-24** — **Nigeria brochure (`/brochurengn`):** Printable two-page Letter brochure for Nigerian Cooperatives, same layout as `/brochure`. Naira prices match `/productngn` (₦40,343 / ₦119,818 / ₦464,744). Copy is Nigeria-only (naira, DD/MM/YYYY, Nigerian bank import, Country: Nigeria). Toolbar **Open Product Page** goes to `/productngn`. Linked from `/productngn` Brochure. No cross-links to `/brochure` or `/product`. US `/brochure` chip/trust copy is United States only. Files: `public/brochurengn.html`, `brochure.css`, `brochure.html`, `productngn.html`, `server.js`, `scripts/netlify-build-config.js`. **Production:** `f13f441` (`git push`; Netlify UI). Open https://peer-finance-manager.netlify.app/brochurengn after publish. No data upload.
 - **2026-08-24** — **Share thumbnails for marketing links:** Open Graph and Twitter cards on `/product`, `/productngn`, `/brochure`, and `/brochurengn` so WhatsApp, iMessage, Slack, and Facebook show a preview image. Files: `public/og-product.jpg`, `public/og-productngn.jpg`. **Production:** `git push` (Netlify UI). After publish, refresh the share preview (some apps cache the old blank card). No data upload.
 - **2026-08-24** — **Product pages stay market-specific:** Removed the Naira link from `/product` and the United States links from `/productngn` (nav and footer). Each marketing page is standalone; no cross-country tabs. **Production:** `git push` (Netlify UI). No data upload.
 - **2026-08-24** — **Nigeria product page copy:** Members sample card is **250**. Removed all USD wording and dollar prices from `/productngn` (that footnote was only explaining that Stripe still charges dollars). Nigeria page now shows naira only. US `/product` unchanged. **Production:** `git push` (Netlify UI). No data upload.
