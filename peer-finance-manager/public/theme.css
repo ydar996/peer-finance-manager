@@ -465,15 +465,18 @@ details.profile-disclosure > .profile-disclosure-body {
   border-top: 1px solid var(--pv-line);
 }
 
-.import-panel-summary,
-.import-subsection-summary {
+details.card > summary.import-panel-summary,
+details.profile-disclosure > summary.import-panel-summary,
+details.profile-disclosure > summary.import-subsection-summary {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) 1.5rem;
   align-items: center;
+  justify-content: stretch;
   column-gap: 12px;
   row-gap: 2px;
   padding-top: 10px;
   padding-bottom: 10px;
+  text-align: left;
 }
 
 .import-panel-title {
@@ -489,10 +492,18 @@ details.profile-disclosure > .profile-disclosure-body {
   color: var(--pv-ink-500);
 }
 
-.import-panel-summary::after,
-.import-subsection-summary::after {
+details.card > summary.import-panel-summary > *,
+details.profile-disclosure > summary.import-panel-summary > *,
+details.profile-disclosure > summary.import-subsection-summary > * {
+  pointer-events: none;
+}
+
+details.card > summary.import-panel-summary::after,
+details.profile-disclosure > summary.import-panel-summary::after,
+details.profile-disclosure > summary.import-subsection-summary::after {
   grid-column: 2;
   grid-row: 1 / span 2;
+  justify-self: end;
   align-self: center;
 }
 
@@ -1168,6 +1179,7 @@ td:last-child .btn {
   gap: 12px;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
   padding: 16px;
   background: var(--pv-surface-1);
   border: 1.5px dashed var(--pv-green-600);
@@ -1258,7 +1270,9 @@ label.toggle-row,
   margin-top: 0;
 }
 
-.visually-hidden-file {
+.visually-hidden-file,
+.file-dropzone input.visually-hidden-file,
+.entry-form input.visually-hidden-file {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -1268,6 +1282,9 @@ label.toggle-row,
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+  min-height: 0;
+  max-width: none;
+  pointer-events: none;
 }
 
 .hint code,

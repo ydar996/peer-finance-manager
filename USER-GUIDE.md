@@ -326,7 +326,7 @@ Upload a **cumulative** bank export: **period start through today**. PFM skips r
 
 ### B. Bank Accounts and Import Settings (first-time setup)
 
-Expand **Bank Accounts and Import Settings**:
+Click **Bank Accounts and Import Settings** (the whole row is the control; the chevron is on the right). **Registered Bank Accounts** opens with it.
 
 1. **Registered Bank Accounts** — see your accounts.
 2. **Add Bank Account** — label, institution (searchable bank names for your Country), currency (USD for United States, NGN for Nigeria), statement format.

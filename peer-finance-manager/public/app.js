@@ -5455,13 +5455,20 @@ async function loadBankAccountsData() {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Could not load bank accounts");
   bankAccountsCache = data.accounts || [];
-  renderBankAccountsTable(bankAccountsCache);
   populateBankAccountSelects(bankAccountsCache);
+  renderBankAccountsTable(bankAccountsCache);
   return bankAccountsCache;
 }
 
 async function loadBankImportPanel() {
-  await Promise.all([loadBankAccountsData(), loadBankImportSettings()]);
+  try {
+    await Promise.all([loadBankAppendAccounts(), loadBankImportSettings()]);
+  } catch (err) {
+    const select = $("#bankAppendAccountSelect");
+    if (select && [...select.options].every((opt) => !opt.value)) {
+      select.innerHTML = `<option value="">Could not load accounts</option>`;
+    }
+  }
 }
 
 async function loadBankAppendAccounts() {
@@ -6190,6 +6197,12 @@ $("#bankAppendForm")?.addEventListener("change", (e) => {
 });
 $("#applyBankAppend")?.addEventListener("click", handleApplyBankAppendClick);
 $("#bankAccountSettingsForm")?.addEventListener("submit", saveBankAccountSettings);
+
+document.querySelectorAll("#panel-import > details.import-panel-section").forEach((section) => {
+  section.addEventListener("toggle", () => {
+    if (section.open && currentUser?.role === "admin") loadBankAppendAccounts();
+  });
+});
 
 const REFERENCE_LEDGER_FILENAMES = {
   csv: "cooperative-bank-ledger-reference.csv",
