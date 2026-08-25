@@ -9,7 +9,7 @@ This guide explains how to use Peer Finance Manager (PFM) without technical jarg
 **Nigeria product page (naira):** https://peer-finance-manager.netlify.app/productngn  
 **Brochure (United States):** https://peer-finance-manager.netlify.app/brochure (open the page, then **Download PDF**)  
 **Brochure (Nigeria, naira):** https://peer-finance-manager.netlify.app/brochurengn (open the page, then **Download PDF**)  
-Login placeholders use a sample code (`acme`), not a live Cooperative.
+Login placeholders use a sample code (`acme`), not a live Cooperative. The app uses a green Plantvest visual theme (sidebar, pill buttons, rounded cards); buttons and tabs work the same as before.
 
 ---
 

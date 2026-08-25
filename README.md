@@ -279,7 +279,7 @@ Exports: `data/organizations/assurance/exports/member-profiles.json`
 | `peer-finance-manager/lib/country-profile.js` | Per-tenant country (US default, Nigeria opt-in) |
 | `peer-finance-manager/lib/country-catalog.js` | Searchable bank and state lists |
 | `peer-finance-manager/lib/money-format.js` | Currency display from Country |
-| `peer-finance-manager/public/` | Web UI |
+| `peer-finance-manager/public/` | Web UI (`styles.css` layout, `theme.css` Plantvest tokens) |
 
 ### npm scripts (PeerFinanceManager)
 
@@ -325,7 +325,7 @@ May 2026 had **10 members** with bank deposits; **14** had no May payment. All *
 
 ### Production (live)
 
-- **Netlify** — website (login UI) at `peer-finance-manager.netlify.app`. SPA paths `/member`, `/staff`, `/admin`, `/register` rewrite to `index.html`; CSS/JS must be root-absolute (`/styles.css`, `/app.js`). `/platform` is operator-only (not linked from public UI). Marketing: `/product` (USD) with brochure `/brochure`; `/productngn` (naira) with brochure `/brochurengn`. Pages do not cross-link between markets.
+- **Netlify** — website (login UI) at `peer-finance-manager.netlify.app`. SPA paths `/member`, `/staff`, `/admin`, `/register` rewrite to `index.html`; CSS/JS must be root-absolute (`/styles.css`, `/theme.css`, `/app.js`). `/platform` is operator-only (not linked from public UI). Marketing: `/product` (USD) with brochure `/brochure`; `/productngn` (naira) with brochure `/brochurengn`. Pages do not cross-link between markets.
 - **Render** — API + SQLite database on persistent disk (`/var/data`)
 - **GitHub** — `ydar996/peer-finance-manager` — push code to deploy
 

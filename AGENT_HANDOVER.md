@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 24, 2026 (Nigeria brochure `/brochurengn`)  
+**Last updated:** August 24, 2026 (Plantvest admin theme)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -175,6 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-08-24** — **Plantvest visual theme (operational UI):** Restyled the SPA (sign-in, Cooperative Manager, member portal, SPA public shell) and Cooperative About/Bylaws pages to the Plantvest green design language. Tokens live in `public/theme.css` (loaded after `styles.css`). No API, PDF, email, or FlexxForms logic changes. Highlighted Cooperative Books cards still use `.book-card.accent`. Marketing `/product` and `/brochure` pages are unchanged. **Production:** `git push` (Netlify UI). Hard-refresh after publish. No data upload.
 - **2026-08-24** — **Nigeria brochure (`/brochurengn`):** Printable two-page Letter brochure for Nigerian Cooperatives, same layout as `/brochure`. Naira prices match `/productngn` (₦40,343 / ₦119,818 / ₦464,744). Copy is Nigeria-only (naira, DD/MM/YYYY, Nigerian bank import, Country: Nigeria). Toolbar **Open Product Page** goes to `/productngn`. Linked from `/productngn` Brochure. No cross-links to `/brochure` or `/product`. US `/brochure` chip/trust copy is United States only. Files: `public/brochurengn.html`, `brochure.css`, `brochure.html`, `productngn.html`, `server.js`, `scripts/netlify-build-config.js`. **Production:** `f13f441` (`git push`; Netlify UI). Open https://peer-finance-manager.netlify.app/brochurengn after publish. No data upload.
 - **2026-08-24** — **Share thumbnails for marketing links:** Open Graph and Twitter cards on `/product`, `/productngn`, `/brochure`, and `/brochurengn` so WhatsApp, iMessage, Slack, and Facebook show a preview image. Files: `public/og-product.jpg`, `public/og-productngn.jpg`. **Production:** `git push` (Netlify UI). After publish, refresh the share preview (some apps cache the old blank card). No data upload.
 - **2026-08-24** — **Product pages stay market-specific:** Removed the Naira link from `/product` and the United States links from `/productngn` (nav and footer). Each marketing page is standalone; no cross-country tabs. **Production:** `git push` (Netlify UI). No data upload.
@@ -875,7 +876,7 @@ Peer Finance Manager / Assurance Cooperative
 
 15. **Dashboard Current Bank Balance** — Uses `checking_balance` setting if set, else **ledger sum** from DB (`getLedgerEndingBalance`). Preview balance-check fix (`cd5e05d`) only changes Import **warning text**; it does **not** fix DB or xlsx. Production drift = incomplete Full Ledger Refresh or post-reconcile corruption.
 
-16. **Netlify SPA asset paths** — Rewrites `/register` (and `/admin`, `/staff`, `/member`, `/platform`) to `index.html`. CSS and JS in that file **must** be root-absolute (`/styles.css`, `/app.js`). Relative `styles.css` becomes `/register/styles.css` and also rewrites to HTML, so screens dump unstyled.
+16. **Netlify SPA asset paths** — Rewrites `/register` (and `/admin`, `/staff`, `/member`, `/platform`) to `index.html`. CSS and JS in that file **must** be root-absolute (`/styles.css`, `/theme.css`, `/app.js`). Relative `styles.css` becomes `/register/styles.css` and also rewrites to HTML, so screens dump unstyled.
 
 17. **Platform Administration URL is private** — Never add a link to `/platform` on register, member, staff, admin, product, or any public page. Only the operator should know the path. Cooperative admin sign-in is `/admin` (different).
 
@@ -962,6 +963,7 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 | SaaS pricing constants | `peer-finance-manager/lib/platform-billing-constants.js` |
 | Expense report labels | `peer-finance-manager/lib/expense-report-label-service.js` |
 | Platform grace / check payment | `peer-finance-manager/lib/platform-billing-service.js`, `/platform` UI |
+| Operational UI theme | `peer-finance-manager/public/theme.css` (tokens + visual overrides; loaded after `styles.css`) |
 | Marketing product/brochure | `peer-finance-manager/public/product.html`, `productngn.html`, `brochure.html`, `brochurengn.html` (`/product`, `/productngn`, `/brochure`, `/brochurengn`) |
 | Golden rebuild script | `peer-finance-manager/scripts/rebuild-ledger-from-bank.js` |
 | Ledger vs stmt audit | `peer-finance-manager/scripts/audit-bank-ledger-discrepancy.js` |

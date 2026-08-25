@@ -37,6 +37,7 @@ for (const htmlName of ["index.html", "cooperative-public.html", "brochure.html"
   if (!fs.existsSync(htmlPath)) continue;
   let html = fs.readFileSync(htmlPath, "utf8");
   html = html
+    .replace(/href="\/?theme\.css(?:\?v=[^"]*)?"/g, `href="/theme.css?v=${cacheBust}"`)
     .replace(/href="\/?styles\.css(?:\?v=[^"]*)?"/g, `href="/styles.css?v=${cacheBust}"`)
     .replace(/href="\/?cooperative-public\.css(?:\?v=[^"]*)?"/g, `href="/cooperative-public.css?v=${cacheBust}"`)
     .replace(/href="\/?brochure\.css(?:\?v=[^"]*)?"/g, `href="/brochure.css?v=${cacheBust}"`)

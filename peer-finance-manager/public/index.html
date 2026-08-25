@@ -7,13 +7,39 @@
     <style>
       .hidden { display: none !important; }
     </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/theme.css" />
   </head>
   <body>
     <div id="loginScreenMember" class="login-screen hidden" data-portal="member">
+      <div class="login-layout">
+      <aside class="login-brand-panel" aria-hidden="true">
+        <div class="login-brand-top">
+          <span class="pv-logo-tile"></span>
+          <p class="login-brand-wordmark">Peer Finance Manager</p>
+        </div>
+        <div class="login-brand-copy">
+          <p class="login-brand-heading">Member Portal</p>
+          <p class="login-brand-sub">Sign In to View Your Contributions and Loan Accounts</p>
+        </div>
+        <p class="login-brand-links public-org-links hidden" data-public-links="member">
+          <a href="#" class="public-about-link">About Us</a>
+          <span aria-hidden="true"> · </span>
+          <a href="#" class="public-bylaws-link">Bylaws</a>
+          <span class="public-apply-sep hidden" aria-hidden="true"> · </span>
+          <a href="#" class="public-apply-link hidden">Apply for Membership</a>
+        </p>
+      </aside>
       <div class="login-card">
         <p class="brand org-brand">Peer Finance Manager</p>
         <p class="subtle org-cooperative-name hidden"></p>
+        <span class="tag-outline">Sign In</span>
         <h1>Member Portal</h1>
         <p class="subtle org-subtitle">Sign In to View Your Contributions and Loan Accounts</p>
         <form id="loginFormMember" class="entry-form login-form" data-portal="member" method="post" action="#">
@@ -39,11 +65,24 @@
         <p class="login-foot subtle"><a href="/register">Register a New Cooperative</a></p>
         <p class="login-status status" data-login-status="member"></p>
       </div>
+      </div>
     </div>
 
     <div id="membershipApplyScreen" class="login-screen hidden">
+      <div class="login-layout">
+      <aside class="login-brand-panel" aria-hidden="true">
+        <div class="login-brand-top">
+          <span class="pv-logo-tile"></span>
+          <p class="login-brand-wordmark">Peer Finance Manager</p>
+        </div>
+        <div class="login-brand-copy">
+          <p class="login-brand-heading">Membership Application</p>
+          <p class="login-brand-sub">Enter your Cooperative organization code to open the application form.</p>
+        </div>
+      </aside>
       <div class="login-card flexxforms-apply-card">
         <p class="brand org-brand">Peer Finance Manager</p>
+        <span class="tag-outline">Apply</span>
         <h1>Membership Application</h1>
         <p class="subtle" id="membershipApplyHint">Enter your Cooperative organization code to open the application form.</p>
         <label>Organization Code
@@ -57,12 +96,25 @@
         <p id="membershipApplySuccess" class="status ok hidden" role="status"></p>
         <div id="membershipApplyEmbed" class="flexxforms-embed-host hidden"></div>
       </div>
+      </div>
     </div>
 
     <div id="loginScreenStaff" class="login-screen hidden" data-portal="staff">
+      <div class="login-layout">
+      <aside class="login-brand-panel" aria-hidden="true">
+        <div class="login-brand-top">
+          <span class="pv-logo-tile"></span>
+          <p class="login-brand-wordmark">Peer Finance Manager</p>
+        </div>
+        <div class="login-brand-copy">
+          <p class="login-brand-heading">Staff Sign In</p>
+          <p class="login-brand-sub">Read-Only Cooperative Management Access</p>
+        </div>
+      </aside>
       <div class="login-card">
         <p class="brand org-brand">Peer Finance Manager</p>
         <p class="subtle org-cooperative-name hidden"></p>
+        <span class="tag-outline">Sign In</span>
         <h1>Staff Sign In</h1>
         <p class="subtle org-subtitle">Read-Only Cooperative Management Access</p>
         <form id="loginFormStaff" class="entry-form login-form" data-portal="staff" method="post" action="#">
@@ -79,12 +131,32 @@
         </form>
         <p class="login-status status" data-login-status="staff"></p>
       </div>
+      </div>
     </div>
 
     <div id="loginScreenAdmin" class="login-screen hidden" data-portal="admin">
+      <div class="login-layout">
+      <aside class="login-brand-panel" aria-hidden="true">
+        <div class="login-brand-top">
+          <span class="pv-logo-tile"></span>
+          <p class="login-brand-wordmark">Peer Finance Manager</p>
+        </div>
+        <div class="login-brand-copy">
+          <p class="login-brand-heading">Administrator Sign In</p>
+          <p class="login-brand-sub">Full Cooperative Management Access</p>
+        </div>
+        <p class="login-brand-links public-org-links hidden" data-public-links="admin">
+          <a href="#" class="public-about-link">About Us</a>
+          <span aria-hidden="true"> · </span>
+          <a href="#" class="public-bylaws-link">Bylaws</a>
+          <span class="public-apply-sep hidden" aria-hidden="true"> · </span>
+          <a href="#" class="public-apply-link hidden">Apply for Membership</a>
+        </p>
+      </aside>
       <div class="login-card">
         <p class="brand org-brand">Peer Finance Manager</p>
         <p class="subtle org-cooperative-name hidden"></p>
+        <span class="tag-outline">Sign In</span>
         <h1>Administrator Sign In</h1>
         <p class="subtle org-subtitle">Full Cooperative Management Access</p>
         <form id="loginFormAdmin" class="entry-form login-form" data-portal="admin" method="post" action="#">
@@ -109,11 +181,24 @@
         <p class="login-foot subtle"><a href="/register">Register a New Cooperative</a></p>
         <p class="login-status status" data-login-status="admin"></p>
       </div>
+      </div>
     </div>
 
     <div id="loginScreenPlatform" class="login-screen hidden" data-portal="platform">
+      <div class="login-layout">
+      <aside class="login-brand-panel" aria-hidden="true">
+        <div class="login-brand-top">
+          <span class="pv-logo-tile"></span>
+          <p class="login-brand-wordmark">Peer Finance Manager</p>
+        </div>
+        <div class="login-brand-copy">
+          <p class="login-brand-heading">Platform Administration</p>
+          <p class="login-brand-sub">Oversee All Cooperatives and Subscriptions</p>
+        </div>
+      </aside>
       <div class="login-card">
         <p class="brand org-brand">Peer Finance Manager</p>
+        <span class="tag-outline">Sign In</span>
         <h1>Platform Administration</h1>
         <p class="subtle org-subtitle">Oversee All Cooperatives and Subscriptions</p>
         <form id="loginFormPlatform" class="entry-form login-form" data-portal="platform" method="post" action="#">
@@ -128,11 +213,24 @@
         <p class="login-foot subtle"><a href="/admin">Cooperative Administrator Sign In</a></p>
         <p class="login-status status" data-login-status="platform"></p>
       </div>
+      </div>
     </div>
 
     <div id="registerScreen" class="login-screen hidden">
+      <div class="login-layout">
+      <aside class="login-brand-panel" aria-hidden="true">
+        <div class="login-brand-top">
+          <span class="pv-logo-tile"></span>
+          <p class="login-brand-wordmark">Peer Finance Manager</p>
+        </div>
+        <div class="login-brand-copy">
+          <p class="login-brand-heading">Register Cooperative</p>
+          <p class="login-brand-sub">Create a New Organization and Administrator Account</p>
+        </div>
+      </aside>
       <div class="login-card">
         <p class="brand">Peer Finance Manager</p>
+        <span class="tag-outline">Register</span>
         <h1>Register Cooperative</h1>
         <p class="subtle">Create a New Organization and Administrator Account</p>
         <form id="registerOrganizationForm" class="entry-form">
@@ -163,11 +261,24 @@
         <p class="login-foot subtle"><a href="/admin">Back to Sign In</a></p>
         <p id="registerStatus" class="status"></p>
       </div>
+      </div>
     </div>
 
     <div id="changePasswordScreen" class="login-screen hidden">
+      <div class="login-layout">
+      <aside class="login-brand-panel" aria-hidden="true">
+        <div class="login-brand-top">
+          <span class="pv-logo-tile"></span>
+          <p class="login-brand-wordmark">Peer Finance Manager</p>
+        </div>
+        <div class="login-brand-copy">
+          <p class="login-brand-heading">Set Your Password</p>
+          <p class="login-brand-sub">For Security, Choose a New Password Before Continuing.</p>
+        </div>
+      </aside>
       <div class="login-card">
         <p class="brand org-brand">Peer Finance Manager</p>
+        <span class="tag-outline">Password</span>
         <h1>Set Your Password</h1>
         <p class="subtle">For Security, Choose a New Password Before Continuing.</p>
         <form id="changePasswordForm" class="entry-form">
@@ -183,6 +294,7 @@
           <button type="submit" class="btn primary">Save Password &amp; Continue</button>
         </form>
         <p id="changePasswordStatus" class="status"></p>
+      </div>
       </div>
     </div>
 
@@ -286,6 +398,49 @@
     </div>
 
     <div id="appShell" class="app hidden">
+      <aside class="app-sidebar" aria-label="Workspace">
+        <div class="sidebar-brand">
+          <span class="pv-logo-tile" aria-hidden="true"></span>
+          <span class="sidebar-brand-name">Peer Finance Manager</span>
+        </div>
+      <nav class="tabs" id="mainTabs">
+        <div class="nav-group" data-nav-group="finance">
+          <p class="nav-group-label">Finance</p>
+        <button type="button" class="tab active" data-tab="books" data-roles="admin,staff">Cooperative Books</button>
+        <button type="button" class="tab" data-tab="members" data-roles="admin,staff">Members &amp; Accounts</button>
+        <button type="button" class="tab" data-tab="statements" data-roles="admin,staff">Statements</button>
+        <button type="button" class="tab" data-tab="loans" data-roles="admin,staff">Loans</button>
+        <button type="button" class="tab" data-tab="record" data-roles="admin">Record</button>
+        <button type="button" class="tab" data-tab="import" data-roles="admin">Import</button>
+        </div>
+        <div class="nav-group" data-nav-group="reporting">
+          <p class="nav-group-label">Reporting</p>
+        <button type="button" class="tab" data-tab="status-report" data-roles="admin,staff">Status Report</button>
+        </div>
+        <div class="nav-group" data-nav-group="community">
+          <p class="nav-group-label">Community</p>
+        <button type="button" class="tab" data-tab="meetings" data-roles="admin,staff">Meetings</button>
+        <button type="button" class="tab" data-tab="messages" data-roles="admin">
+          Messages
+          <span class="badge tab-attention-badge hidden" id="messagesTabUnreadBadge">0</span>
+        </button>
+        <button type="button" class="tab" data-tab="public-pages" data-roles="admin">Public Pages</button>
+        <button type="button" class="tab" data-tab="member-messages" data-roles="member">Messages</button>
+        <button type="button" class="tab" data-tab="forms" data-roles="admin">
+          Forms &amp; Documents
+          <span class="badge tab-attention-badge hidden" id="formsTabPendingBadge">0</span>
+        </button>
+        </div>
+        <div class="nav-group" data-nav-group="administration">
+          <p class="nav-group-label">Administration</p>
+        <button type="button" class="tab" data-tab="subscription" data-roles="admin">Subscription</button>
+        <button type="button" class="tab" data-tab="users" data-roles="admin">Users</button>
+        <button type="button" class="tab" data-tab="maintenance" data-roles="admin">Maintenance</button>
+        <button type="button" class="tab" data-tab="my-account" data-roles="member">My Account</button>
+        </div>
+      </nav>
+      </aside>
+      <div class="app-main">
       <header class="topbar">
         <div>
           <p class="brand org-brand" id="appOrgBrand">Peer Finance Manager</p>
@@ -302,31 +457,6 @@
           </button>
         </div>
       </header>
-
-      <nav class="tabs" id="mainTabs">
-        <button type="button" class="tab active" data-tab="books" data-roles="admin,staff">Cooperative Books</button>
-        <button type="button" class="tab" data-tab="members" data-roles="admin,staff">Members &amp; Accounts</button>
-        <button type="button" class="tab" data-tab="statements" data-roles="admin,staff">Statements</button>
-        <button type="button" class="tab" data-tab="loans" data-roles="admin,staff">Loans</button>
-        <button type="button" class="tab" data-tab="record" data-roles="admin">Record</button>
-        <button type="button" class="tab" data-tab="import" data-roles="admin">Import</button>
-        <button type="button" class="tab" data-tab="status-report" data-roles="admin,staff">Status Report</button>
-        <button type="button" class="tab" data-tab="meetings" data-roles="admin,staff">Meetings</button>
-        <button type="button" class="tab" data-tab="messages" data-roles="admin">
-          Messages
-          <span class="badge tab-attention-badge hidden" id="messagesTabUnreadBadge">0</span>
-        </button>
-        <button type="button" class="tab" data-tab="public-pages" data-roles="admin">Public Pages</button>
-        <button type="button" class="tab" data-tab="member-messages" data-roles="member">Messages</button>
-        <button type="button" class="tab" data-tab="forms" data-roles="admin">
-          Forms &amp; Documents
-          <span class="badge tab-attention-badge hidden" id="formsTabPendingBadge">0</span>
-        </button>
-        <button type="button" class="tab" data-tab="subscription" data-roles="admin">Subscription</button>
-        <button type="button" class="tab" data-tab="users" data-roles="admin">Users</button>
-        <button type="button" class="tab" data-tab="maintenance" data-roles="admin">Maintenance</button>
-        <button type="button" class="tab" data-tab="my-account" data-roles="member">My Account</button>
-      </nav>
 
       <div id="adminMembershipAppsNag" class="admin-attention-nag hidden" role="status">
         <button type="button" class="admin-attention-nag-btn" id="adminMembershipAppsNagBtn">
@@ -924,10 +1054,21 @@
         <div id="platformSubscriptionPanel" class="platform-subscription-body">
           <p class="subtle">Peer Finance Manager SaaS fee for your Cooperative. Pay by credit/debit card (Stripe) or mail a check.</p>
           <div id="platformSubscriptionSummary" class="platform-subscription-summary">Loading…</div>
-          <div class="panel-head-actions platform-subscription-actions">
-            <button type="button" class="btn primary" id="payMonthlyStripe">Pay Monthly</button>
-            <button type="button" class="btn primary" id="payQuarterlyStripe">Pay Quarterly</button>
-            <button type="button" class="btn primary" id="payAnnualStripe">Pay Annual</button>
+          <div class="subscription-plan-grid">
+            <article class="subscription-plan-card">
+              <span class="tag-outline">Monthly</span>
+              <button type="button" class="btn primary" id="payMonthlyStripe">Pay Monthly</button>
+            </article>
+            <article class="subscription-plan-card">
+              <span class="tag-outline">Quarterly</span>
+              <button type="button" class="btn primary" id="payQuarterlyStripe">Pay Quarterly</button>
+            </article>
+            <article class="subscription-plan-card">
+              <span class="tag-outline">Annual</span>
+              <button type="button" class="btn primary" id="payAnnualStripe">Pay Annual</button>
+            </article>
+          </div>
+          <div class="panel-head-actions platform-subscription-actions subscription-extra-actions">
             <button type="button" class="btn" id="openStripePortal" hidden>Manage Card on File</button>
             <button type="button" class="btn" id="requestCheckPayment">Request Check Payment</button>
           </div>
@@ -1027,12 +1168,12 @@
           <summary>Loan Payment Policy</summary>
           <div class="profile-disclosure-body">
             <p class="hint">Choose how this Cooperative treats repayment timing. The setting applies only to <strong>new loans</strong> started after you save. Existing loans keep the policy they were started under.</p>
-            <label class="toggle-row">
+            <label class="toggle-row policy-option-card">
               <input type="radio" name="loanPaymentPolicyMode" id="loanPolicyFlexible" value="flexible" checked />
               Flexible: Pay Within Loan Term (No Late Fee)
             </label>
             <p class="hint subtle">Payments apply to the agreed schedule whenever they arrive during the loan term. No late fee.</p>
-            <label class="toggle-row">
+            <label class="toggle-row policy-option-card">
               <input type="radio" name="loanPaymentPolicyMode" id="loanPolicyStrict" value="strict" />
               Strict Timelines: Late Fee When Past Due
             </label>
@@ -1085,6 +1226,20 @@
         </div>
         <p class="hint">Register Members, Record Contributions, Withdrawals, Distributions, Membership Fees, Loans, Loan Repayments, CD Balance Updates, and Expenses : All Without Excel. Use the Import Tab Only When You Have a Spreadsheet or Application File.</p>
 
+        <div class="record-workspace">
+        <nav class="record-index" aria-label="Record sections">
+          <a href="#recordSectionRegisterMember">Register New Member</a>
+          <a href="#recordSectionUpdateProfile">Update Member Profile</a>
+          <a href="#recordSectionMembershipFee">Registration Fee</a>
+          <a href="#recordSectionCheckingBalance">Current Bank Balance</a>
+          <a href="#recordSectionCdBalance">CD Account</a>
+          <a href="#recordSectionDeposit">Contributions Account</a>
+          <a href="#recordSectionDistribution">Distribution</a>
+          <a href="#recordSectionBulkDistribution">Bulk Distribution</a>
+          <a href="#recordSectionNewLoan">New Loan</a>
+          <a href="#recordSectionLoanRepayment">Loan Repayment</a>
+          <a href="#recordSectionExpense">Expense</a>
+        </nav>
         <div class="record-grid">
           <details class="card accent profile-disclosure record-section" id="recordSectionRegisterMember">
             <summary class="record-section-summary">Register New Member</summary>
@@ -1525,6 +1680,8 @@
           </div>
           </div>
         </details>
+        </div>
+        </div>
       </section>
 
       <section id="panel-import" class="panel">
@@ -1848,7 +2005,7 @@
             <button type="button" class="btn primary" id="downloadDataBackupBtn">Download Database Backup</button>
             <p id="dataBackupStatus" class="status"></p>
           </div>
-          <div class="card accent">
+          <div class="card danger-zone">
             <h3>Database Restore</h3>
             <p class="subtle">Replace the live database with a <code>.db</code> backup you downloaded earlier. Preview first, then confirm restore.</p>
             <form id="dataRestoreForm" class="entry-form">
@@ -1859,7 +2016,7 @@
                 <input type="checkbox" name="confirmRestore" />
               </label>
               <button type="button" class="btn" id="previewDataRestoreBtn">Preview Upload</button>
-              <button type="submit" class="btn primary">Restore Database</button>
+              <button type="submit" class="btn btn-danger">Restore Database</button>
             </form>
             <p id="dataRestoreStatus" class="status"></p>
             <pre id="dataRestorePreview" class="subtle hidden"></pre>
@@ -2060,6 +2217,7 @@
           </details>
         </div>
       </section>
+      </div>
     </div>
     <div id="cooperativeReportViewer" class="cooperative-report-viewer hidden" role="dialog" aria-modal="true" aria-labelledby="cooperativeReportViewerTitle">
       <div class="cooperative-report-viewer-toolbar">
