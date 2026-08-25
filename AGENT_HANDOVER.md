@@ -7,7 +7,7 @@ This document gives the next developer or AI agent enough context to continue wo
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** `f13f441` (Nigeria brochure `/brochurengn`) — prior: share images `8dcc9f6`, Nigeria product `2fa3fd4`, login placeholder `9c10243`, US brochure `13c1a24`
+**Production HEAD (code):** `a874460` (Plantvest admin theme) — prior: Nigeria brochure `f13f441`, share images `8dcc9f6`, Nigeria product `2fa3fd4`
 
 ---
 
@@ -175,7 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
-- **2026-08-24** — **Plantvest visual theme (operational UI):** Restyled the SPA (sign-in, Cooperative Manager, member portal, SPA public shell) and Cooperative About/Bylaws pages to the Plantvest green design language. Tokens live in `public/theme.css` (loaded after `styles.css`). No API, PDF, email, or FlexxForms logic changes. Highlighted Cooperative Books cards still use `.book-card.accent`. Marketing `/product` and `/brochure` pages are unchanged. **Production:** `git push` (Netlify UI). Hard-refresh after publish. No data upload.
+- **2026-08-24** — **Plantvest visual theme (operational UI):** Restyled the SPA (sign-in, Cooperative Manager, member portal, SPA public shell) and Cooperative About/Bylaws pages to the Plantvest green design language. Tokens live in `public/theme.css` (loaded after `styles.css`). No API, PDF, email, or FlexxForms logic changes. Highlighted Cooperative Books cards still use `.book-card.accent`. Marketing `/product` and `/brochure` pages are unchanged. **Production:** `a874460` (`git push`; Netlify UI). Hard-refresh after publish. No data upload.
 - **2026-08-24** — **Nigeria brochure (`/brochurengn`):** Printable two-page Letter brochure for Nigerian Cooperatives, same layout as `/brochure`. Naira prices match `/productngn` (₦40,343 / ₦119,818 / ₦464,744). Copy is Nigeria-only (naira, DD/MM/YYYY, Nigerian bank import, Country: Nigeria). Toolbar **Open Product Page** goes to `/productngn`. Linked from `/productngn` Brochure. No cross-links to `/brochure` or `/product`. US `/brochure` chip/trust copy is United States only. Files: `public/brochurengn.html`, `brochure.css`, `brochure.html`, `productngn.html`, `server.js`, `scripts/netlify-build-config.js`. **Production:** `f13f441` (`git push`; Netlify UI). Open https://peer-finance-manager.netlify.app/brochurengn after publish. No data upload.
 - **2026-08-24** — **Share thumbnails for marketing links:** Open Graph and Twitter cards on `/product`, `/productngn`, `/brochure`, and `/brochurengn` so WhatsApp, iMessage, Slack, and Facebook show a preview image. Files: `public/og-product.jpg`, `public/og-productngn.jpg`. **Production:** `git push` (Netlify UI). After publish, refresh the share preview (some apps cache the old blank card). No data upload.
 - **2026-08-24** — **Product pages stay market-specific:** Removed the Naira link from `/product` and the United States links from `/productngn` (nav and footer). Each marketing page is standalone; no cross-country tabs. **Production:** `git push` (Netlify UI). No data upload.
