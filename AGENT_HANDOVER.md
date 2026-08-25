@@ -175,6 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-08-24** — **Nigeria product page copy:** Members sample card is **250**. Removed all USD wording and dollar prices from `/productngn` (that footnote was only explaining that Stripe still charges dollars). Nigeria page now shows naira only. US `/product` unchanged. **Production:** `git push` (Netlify UI). No data upload.
 - **2026-08-24** — **Nigeria product page deploy:** Production `2fa3fd4`. Open https://peer-finance-manager.netlify.app/productngn after Netlify publishes. USD page remains https://peer-finance-manager.netlify.app/product. No data upload.
 - **2026-08-24** — **Nigeria product page (naira display):** Public marketing page at `/productngn` mirrors `/product` with naira hero cards and naira plan prices converted from USD at **₦1,345.21 per $1** (24 August 2026, ExchangeRate-API). Monthly **₦40,343**, quarterly **₦119,818**, annual **₦464,744**. Footnote: subscription billing stays US dollars; naira is display only. US `/product` unchanged. Files: `public/productngn.html`, `product.css`, `product.html` (Naira nav), `server.js`, `scripts/netlify-build-config.js`. **Production:** `2fa3fd4` (`git push`; Netlify UI). No data upload. Do not change Assurance country.
 - **2026-08-23** — **Login org-code sample deploy:** Production `9c10243`. Hard-refresh member/staff/admin login. Placeholder is `e.g. acme`. If the field still shows `assurance`, that browser remembered the last successful sign-in; new visitors see `acme`. No data upload.
