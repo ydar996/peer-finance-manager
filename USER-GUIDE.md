@@ -7,7 +7,8 @@ This guide explains how to use Peer Finance Manager (PFM) without technical jarg
 **Live app:** https://peer-finance-manager.netlify.app  
 **Product page:** https://peer-finance-manager.netlify.app/product  
 **Nigeria product page (naira):** https://peer-finance-manager.netlify.app/productngn  
-**Brochure:** https://peer-finance-manager.netlify.app/brochure (open the page, then **Download PDF**)  
+**Brochure (United States):** https://peer-finance-manager.netlify.app/brochure (open the page, then **Download PDF**)  
+**Brochure (Nigeria, naira):** https://peer-finance-manager.netlify.app/brochurengn (open the page, then **Download PDF**)  
 Login placeholders use a sample code (`acme`), not a live Cooperative.
 
 ---

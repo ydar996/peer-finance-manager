@@ -19,6 +19,7 @@ const redirects = [
   "/product  /product.html  200",
   "/productngn  /productngn.html  200",
   "/brochure  /brochure.html  200",
+  "/brochurengn  /brochurengn.html  200",
   "/c/*/about  /cooperative-public.html  200",
   "/c/*/bylaws  /cooperative-public.html  200",
   "/c/*/apply  /cooperative-public.html  200",
@@ -31,7 +32,7 @@ fs.writeFileSync(path.join(publicDir, "_redirects"), `${redirects}\n`, "utf8");
 
 const buildId = process.env.NETLIFY_DEPLOY_ID || String(Date.now());
 const cacheBust = buildId.slice(0, 12);
-for (const htmlName of ["index.html", "cooperative-public.html", "brochure.html", "product.html", "productngn.html"]) {
+for (const htmlName of ["index.html", "cooperative-public.html", "brochure.html", "brochurengn.html", "product.html", "productngn.html"]) {
   const htmlPath = path.join(publicDir, htmlName);
   if (!fs.existsSync(htmlPath)) continue;
   let html = fs.readFileSync(htmlPath, "utf8");
