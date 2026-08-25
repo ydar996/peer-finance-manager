@@ -3608,7 +3608,7 @@ async function loadLoans() {
   body.innerHTML = loans
     .map((l) => {
       const isLedger = l.source === "bank_ledger";
-      const loanLabel = isLedger ? `Loan ${l.loan_number}` : `#${l.id}`;
+      const loanLabel = isLedger ? `Loan\u00A0${l.loan_number}` : `#${l.id}`;
       const rowId = escapeHtml(String(l.id));
       const agreementsBtn =
         !isLedger && currentUser?.role === "admin"
@@ -3616,7 +3616,7 @@ async function loadLoans() {
           : ":";
       return `
     <tr class="loan-row" data-loan-key="${rowId}" data-member-id="${l.borrower_id || ""}" data-loan-number="${l.loan_number || ""}" data-ledger="${isLedger ? "1" : "0"}">
-      <td>${loanLabel}</td>
+      <td class="loan-id-cell">${loanLabel}</td>
       <td>${escapeHtml(l.borrower_name)}</td>
       <td>${isLedger ? formatDate(l.start_date) : l.start_date || ":"}</td>
       <td class="money">${fmt.format(l.principal)}</td>

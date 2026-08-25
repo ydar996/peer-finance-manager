@@ -9,7 +9,7 @@ This guide explains how to use Peer Finance Manager (PFM) without technical jarg
 **Nigeria product page (naira):** https://peer-finance-manager.netlify.app/productngn  
 **Brochure (United States):** https://peer-finance-manager.netlify.app/brochure (open the page, then **Download PDF**)  
 **Brochure (Nigeria, naira):** https://peer-finance-manager.netlify.app/brochurengn (open the page, then **Download PDF**)  
-Login placeholders use a sample code (`acme`), not a live Cooperative. The app uses a green Plantvest visual theme with Inter and Plus Jakarta Sans, neutral near-black headings, and solid (not translucent) text colors. Buttons and tabs work the same as before.
+Login placeholders use a sample code (`acme`), not a live Cooperative. The app uses a green Plantvest visual theme with Inter and Plus Jakarta Sans, neutral near-black headings, and solid (not translucent) text colors. Signed-in screens use the full width beside the sidebar. Buttons and tabs work the same as before.
 
 ---
 
@@ -158,7 +158,7 @@ After you submit an application, it goes to administrators automatically.
 2. Enter organization code, admin email, and password.
 3. Click **Sign In**.
 
-The top-right shows your **role** (Administrator, Staff, or Member) and your name or email. It does not repeat the role word as the name.
+The top-right shows your **role** (Administrator, Staff, or Member) and your name or email. It does not repeat the role word as the name. After you sign in, tables and cards use the full width beside the sidebar (they are not locked to a narrow center column).
 
 ### Admin tabs at a glance
 
@@ -384,7 +384,7 @@ Generate monthly **Contributions Account** PDF statements for all members.
 
 ## 12. Loans Tab
 
-View the full **Loan Portfolio**:
+View the full **Loan Portfolio**. Each **Loan** label stays on one line (Loan 1, Loan 2). If the table is wider than the window, scroll sideways.
 
 | Column | Meaning |
 |--------|---------|

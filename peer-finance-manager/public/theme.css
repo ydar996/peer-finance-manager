@@ -50,7 +50,8 @@
   --pv-space: 4px;
   --pv-motion: 160ms ease-out;
   --pv-sidebar: 248px;
-  --pv-content-max: 1320px;
+  /* Operational views fill the pane beside the sidebar. Login cards keep their own max-width. */
+  --pv-content-max: none;
   --pv-logo-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' shape-rendering='geometricPrecision'%3E%3Cpath d='M5 19V10'/%3E%3Cpath d='M10 19V6'/%3E%3Cpath d='M15 19v-6'/%3E%3Cpath d='M13 8l6-5v6'/%3E%3C/svg%3E");
 }
 
@@ -78,9 +79,8 @@ body {
   font-size: 15px;
   font-weight: 400;
   line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+  font-optical-sizing: none;
+  text-rendering: auto;
   font-synthesis: none;
 }
 
@@ -95,7 +95,7 @@ h4,
 .account-card h4 {
   font-family: var(--pv-font-display);
   color: var(--pv-ink-900);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.15;
 }
 
@@ -673,6 +673,16 @@ td:last-child .btn {
   }
 }
 
+#panel-loans table {
+  min-width: 70rem;
+}
+
+#panel-loans th.loan-id-col,
+#panel-loans th:first-child,
+#panel-loans td.loan-id-cell {
+  white-space: nowrap;
+}
+
 /* --- Badges --- */
 .badge {
   display: inline-flex;
@@ -860,8 +870,9 @@ td:last-child .btn {
 }
 
 .app-content {
-  max-width: var(--pv-content-max);
-  margin: 0 auto;
+  max-width: none;
+  width: 100%;
+  margin: 0;
   padding: 0 32px 40px;
 }
 
@@ -923,7 +934,7 @@ td:last-child .btn {
   margin: 0;
   font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.15;
   color: var(--pv-ink-900);
 }
@@ -1411,7 +1422,7 @@ label.toggle-row,
   font-family: var(--pv-font-display);
   font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .login-brand-sub {
