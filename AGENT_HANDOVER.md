@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** August 24, 2026 (Nigeria product page `/productngn`)  
+**Last updated:** August 24, 2026 (share thumbnails for product links)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -175,6 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-08-24** — **Share thumbnails for marketing links:** Open Graph and Twitter cards on `/product`, `/productngn`, and `/brochure` so WhatsApp, iMessage, Slack, and Facebook show a preview image. Files: `public/og-product.jpg`, `public/og-productngn.jpg`. **Production:** `git push` (Netlify UI). After publish, refresh the share preview (some apps cache the old blank card). No data upload.
 - **2026-08-24** — **Product pages stay market-specific:** Removed the Naira link from `/product` and the United States links from `/productngn` (nav and footer). Each marketing page is standalone; no cross-country tabs. **Production:** `git push` (Netlify UI). No data upload.
 - **2026-08-24** — **Nigeria product page copy:** Members sample card is **250**. Removed all USD wording and dollar prices from `/productngn` (that footnote was only explaining that Stripe still charges dollars). Nigeria page now shows naira only. US `/product` unchanged. **Production:** `git push` (Netlify UI). No data upload.
 - **2026-08-24** — **Nigeria product page deploy:** Production `2fa3fd4`. Open https://peer-finance-manager.netlify.app/productngn after Netlify publishes. USD page remains https://peer-finance-manager.netlify.app/product. No data upload.
