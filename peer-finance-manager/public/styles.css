@@ -1,7 +1,7 @@
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: Inter, sans-serif;
   background: #f1f5f9;
   color: #0f172a;
   font-size: 15px;
@@ -1094,17 +1094,12 @@ body.cooperative-report-viewer-open {
 .book-note { font-size: 11px; color: #94a3b8; margin: 6px 0 0; }
 .members-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 38%) 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: 16px;
-  align-items: start;
-}
-@media (max-width: 900px) {
-  .members-layout { grid-template-columns: 1fr; }
+  align-items: stretch;
 }
 .members-list-pane {
-  /* Full member list on the page: scroll the window, not an inner pane. */
-  max-height: none;
-  overflow: visible;
+  min-width: 0;
 }
 .members-list-pane .member-row { cursor: pointer; }
 .members-list-pane .member-row.selected { background: #eaf6ee; }
@@ -1223,6 +1218,7 @@ body.cooperative-report-viewer-open {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px;
+  min-width: 0;
   min-height: 400px;
   overflow: visible;
 }

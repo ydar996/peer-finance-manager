@@ -9,7 +9,7 @@ This guide explains how to use Peer Finance Manager (PFM) without technical jarg
 **Nigeria product page (naira):** https://peer-finance-manager.netlify.app/productngn  
 **Brochure (United States):** https://peer-finance-manager.netlify.app/brochure (open the page, then **Download PDF**)  
 **Brochure (Nigeria, naira):** https://peer-finance-manager.netlify.app/brochurengn (open the page, then **Download PDF**)  
-Login placeholders use a sample code (`acme`), not a live Cooperative. The app uses a green Plantvest visual theme (sidebar, pill buttons, rounded cards); buttons and tabs work the same as before.
+Login placeholders use a sample code (`acme`), not a live Cooperative. The app uses a green Plantvest visual theme with Inter and Plus Jakarta Sans, neutral near-black headings, and solid (not translucent) text colors. Buttons and tabs work the same as before.
 
 ---
 
@@ -215,7 +215,8 @@ Click **Refresh** to reload after imports or manual entries.
 
 - Search by **name** or **member number** (e.g. AIC-001).
 - Click a row to open their profile on the right.
-- The full member list shows on the page (scroll the page if needed; there is no separate short scroll box for the list).
+- On a wide screen the member list and the profile sit side by side in the window: all five columns (**Member #**, **Member**, **Contributions Account**, **Loan Account**, **Profile**) stay visible, and each pane scrolls if it is taller than the window. **Contributions Account** and **Loan Account** cards sit at the top of the profile so they stay on screen with the list.
+- On a narrower window the profile moves under the list. Scroll the page as needed.
 - Default list shows **Active** members only.
 - Turn on **Show Former Members** to see Resigned, Deceased, Expelled, or Suspended accounts (ledger history still available).
 
@@ -288,7 +289,7 @@ Each form is collapsed until you expand it.
 | **New Loan** | Create a loan (borrower, two guarantors, principal, rate, term). |
 | **Loan Repayment** | Record a payment against a specific loan. |
 | **Cooperative Expense** | Record an operating expense (category, description, amount, date). |
-| **Recent Expenses / Recent Distributions** | Quick view of latest entries. |
+| **Recent Expenses / Recent Distributions** | Quick view of latest entries. These lists sit in the main Record column under the forms (not in the left jump list column). |
 
 Every form has its own **Save** or **Record** button. Changes apply immediately when you submit.
 

@@ -3475,15 +3475,6 @@ async function showProfile(memberId) {
               : "former"
           }">${escapeHtml(formatAccountStatus(p.cooperative_account_status))}</span></p>
           <div id="profilePasswordResetResult" class="member-password-reset-result hidden"></div>
-          ${
-            currentUser?.role === "admin"
-              ? profileDisclosureHtml(
-                  "Membership Status",
-                  membershipStatusFormHtml(p, memberId),
-                  { extraClass: "membership-status-disclosure" }
-                )
-              : ""
-          }
         </div>
       </div>
 
@@ -3504,6 +3495,16 @@ async function showProfile(memberId) {
           <p class="account-card-hint">Click for Loans and Repayments</p>
         </button>
       </div>
+
+      ${
+        currentUser?.role === "admin"
+          ? profileDisclosureHtml(
+              "Membership Status",
+              membershipStatusFormHtml(p, memberId),
+              { extraClass: "membership-status-disclosure" }
+            )
+          : ""
+      }
 
       <div id="memberAccountDetail" class="account-detail-wrap hidden">
         <div data-account-panel-body="deposit">${depositActivityPanelHtml(p, memberId)}</div>
