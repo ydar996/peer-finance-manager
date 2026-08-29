@@ -276,6 +276,8 @@ Exports: `data/organizations/assurance/exports/member-profiles.json`
 | `peer-finance-manager/lib/member-self-service.js` | Member portal profile, photo, emergency contact |
 | `peer-finance-manager/lib/cooperative-books.js` | Cooperative Books dashboard |
 | `peer-finance-manager/lib/bank-import.js` | Bank import preview (UI) |
+| `peer-finance-manager/lib/organization-service.js` | Tenant registry; generated organization codes for new signups |
+| `peer-finance-manager/lib/portal-urls.js` | Member portal URLs with `?org=` pre-fill |
 | `peer-finance-manager/lib/country-profile.js` | Per-tenant country (US default, Nigeria opt-in) |
 | `peer-finance-manager/lib/country-catalog.js` | Searchable bank and state lists |
 | `peer-finance-manager/lib/money-format.js` | Currency display from Country |
@@ -291,7 +293,7 @@ Exports: `data/organizations/assurance/exports/member-profiles.json`
 | `npm run pfm:import-bank` | Import bank transactions from CSV + All deposits.xlsx |
 | `npm run pfm:build` | Build standalone Windows `.exe` (optional) |
 | `npm run test:country-profile` | US default + Nigeria statement aliases, banks/states, date order |
-| `npm run test:organization-code` | New signup org codes (letter + number, min 8); grandfathered slugs; uniform login errors |
+| `npm run test:organization-code` | Generated signup org codes; grandfathered slugs; member login `?org=` pre-fill; uniform login errors |
 
 ---
 

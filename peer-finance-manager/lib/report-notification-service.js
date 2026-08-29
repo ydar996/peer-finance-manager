@@ -4,6 +4,7 @@ const { sendEmail, isEmailConfigured } = require("./email-service");
 const { trace } = require("./trace-log");
 const { getOrganization } = require("./organization-service");
 const { getOrgSlug } = require("./org-context");
+const { getMemberPortalLoginUrl } = require("./portal-urls");
 const {
   parseAsOfDate,
   defaultReportAsOfToday,
@@ -47,16 +48,8 @@ function ensureNotificationLogTable(db) {
   ensureEmailAuditTables(db);
 }
 
-function getMemberPortalUrl() {
-  if (process.env.MEMBER_PORTAL_URL) {
-    return process.env.MEMBER_PORTAL_URL.replace(/\/$/, "");
-  }
-  const origins = process.env.ALLOWED_ORIGINS;
-  if (origins) {
-    const first = origins.split(",")[0].trim();
-    if (first) return `${first.replace(/\/$/, "")}/member`;
-  }
-  return "https://peer-finance-manager.netlify.app/member";
+function getMemberPortalUrl(slug) {
+  return getMemberPortalLoginUrl(slug);
 }
 
 function listMemberNotificationRecipients() {

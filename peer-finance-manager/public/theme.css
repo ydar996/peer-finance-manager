@@ -1472,6 +1472,51 @@ label.toggle-row,
   width: 100%;
 }
 
+.register-name-confirm,
+.register-details-after-name {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.register-name-confirm-prompt {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pv-ink-700);
+}
+
+.register-name-confirm-value {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--pv-line);
+  border-radius: var(--pv-radius-sm);
+  background: var(--pv-surface-1);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pv-ink-900);
+  word-break: break-word;
+}
+
+.register-step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.register-step-actions .btn,
+.login-card .register-step-actions .btn.primary {
+  width: auto;
+  flex: 1 1 140px;
+  margin-top: 0;
+}
+
+#registerOrgSlug[readonly] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.02em;
+  background: var(--pv-surface-1);
+}
+
 .login-foot a[href="/register"],
 .login-foot a[href="/admin"] {
   display: inline-flex;

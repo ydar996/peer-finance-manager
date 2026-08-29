@@ -13,6 +13,7 @@ const {
   ASSURANCE_SLUG,
   ASSURANCE_NAME,
 } = require("./organization-service");
+const { getMemberPortalLoginUrl } = require("./portal-urls");
 
 const ROLES = {
   ADMIN: "admin",
@@ -403,18 +404,6 @@ function resolveMemberNotifyEmail(profileEmail, loginEmail) {
   return null;
 }
 
-function getMemberPortalLoginUrl() {
-  if (process.env.MEMBER_PORTAL_URL) {
-    return process.env.MEMBER_PORTAL_URL.replace(/\/$/, "");
-  }
-  const origins = process.env.ALLOWED_ORIGINS;
-  if (origins) {
-    const first = origins.split(",")[0].trim();
-    if (first) return `${first.replace(/\/$/, "")}/member`;
-  }
-  return "https://peer-finance-manager.netlify.app/member";
-}
-
 async function emailMemberTempPassword({
   to,
   memberName,
@@ -432,7 +421,7 @@ async function emailMemberTempPassword({
     return { sent: false, skipped: true, reason: "no_email" };
   }
 
-  const portalUrl = getMemberPortalLoginUrl();
+  const portalUrl = getMemberPortalLoginUrl(organizationSlug);
   const orgLabel = organizationName || "Your Cooperative";
   const isWelcome = purpose === "welcome";
   const subject = isWelcome
@@ -613,7 +602,7 @@ async function resetMemberPortalPassword({
     }
   }
 
-  const portalUrl = getMemberPortalLoginUrl();
+  const portalUrl = getMemberPortalLoginUrl(orgSlug);
   const purpose = emailPurpose === "welcome" ? "welcome" : "reset";
   return {
     memberId: member.id,

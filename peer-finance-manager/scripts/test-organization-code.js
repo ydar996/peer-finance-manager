@@ -14,12 +14,15 @@ process.env.PFM_DATA_DIR = tmpRoot;
 
 const {
   parseOrganizationCodeInput,
+  generateOrganizationCodeFromName,
+  allocateOrganizationCode,
   assertNewOrganizationCodeStrength,
   registerOrganization,
   getOrganization,
   getRegistryDb,
   NEW_ORG_CODE_MIN_LENGTH,
 } = require("../lib/organization-service");
+const { appendOrgQuery, getMemberPortalLoginUrl } = require("../lib/portal-urls");
 const {
   login,
   registerOrganizationWithAdmin,
@@ -39,6 +42,42 @@ function throwsMessage(fn, snippet) {
     String(err.message).includes(snippet),
     `expected "${snippet}" in "${err.message}"`
   );
+}
+
+function testGenerateFromName() {
+  assert.strictEqual(
+    generateOrganizationCodeFromName("Acme Cooperative", { suffix: "482" }),
+    "acme-cooperative-482"
+  );
+  assert.strictEqual(generateOrganizationCodeFromName("Coop 2026", { suffix: "111" }), "coop-2026");
+  const generated = generateOrganizationCodeFromName("Acme Cooperative");
+  assert.ok(generated.startsWith("acme-cooperative-"));
+  assert.ok(/[0-9]/.test(generated));
+  assert.ok(generated.length >= NEW_ORG_CODE_MIN_LENGTH);
+  const auto = registerOrganization({
+    name: "Sunset Valley Cooperative",
+    countryCode: "US",
+  });
+  assert.ok(auto.slug.startsWith("sunset-valley-cooperative-"));
+  assert.ok(getOrganization(auto.slug));
+  const preferred = allocateOrganizationCode("Another Cooperative", "another9coop");
+  assert.strictEqual(preferred, "another9coop");
+  console.log("  generate from name: OK");
+}
+
+function testMemberLoginUrlIncludesOrg() {
+  assert.strictEqual(
+    appendOrgQuery("https://peer-finance-manager.netlify.app/member", "acme-cooperative-482"),
+    "https://peer-finance-manager.netlify.app/member?org=acme-cooperative-482"
+  );
+  assert.strictEqual(
+    appendOrgQuery("https://peer-finance-manager.netlify.app/member?org=acme-cooperative-482", "other"),
+    "https://peer-finance-manager.netlify.app/member?org=acme-cooperative-482"
+  );
+  assert.ok(
+    getMemberPortalLoginUrl("acme-cooperative-482").endsWith("/member?org=acme-cooperative-482")
+  );
+  console.log("  member login url: OK");
 }
 
 function testParseAndStrength() {
@@ -125,6 +164,8 @@ function testLoginHidesMissingOrganization() {
 }
 
 testParseAndStrength();
+testGenerateFromName();
+testMemberLoginUrlIncludesOrg();
 testRegisterRejectsWeakAndAcceptsStrong();
 testGrandfatheredShortSlugStaysInRegistry();
 testLoginHidesMissingOrganization();

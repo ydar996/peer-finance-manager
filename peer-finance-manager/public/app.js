@@ -475,9 +475,9 @@ function preferredOrgSlug() {
   return localStorage.getItem(ORG_SLUG_KEY) || DEFAULT_ORG_SLUG;
 }
 
-function fillOrgSlugInputs(slug = preferredOrgSlug()) {
+function fillOrgSlugInputs(slug = preferredOrgSlug(), { force = false } = {}) {
   document.querySelectorAll(".org-slug-input").forEach((input) => {
-    if (!input.value) input.value = slug;
+    if (force || !input.value) input.value = slug || "";
   });
   refreshOrganizationPreview(slug);
 }
@@ -568,6 +568,7 @@ function showLoginForPortal(portal = getPortalFromPath(), message = "") {
   if (portal === "register") {
     hideAllScreens();
     $("#registerScreen")?.classList.remove("hidden");
+    resetRegisterOrganizationForm();
     loadCountryCatalog();
     return;
   }
@@ -1173,7 +1174,7 @@ function showMemberPasswordResetResult(data, container = null) {
     <p class="subtle">${escapeHtml(emailNote)}</p>
     <dl class="member-password-reset-dl">
       <dt>Organization Code</dt><dd>${escapeHtml(data.organizationSlug || ":")}</dd>
-      <dt>Sign-In Page</dt><dd>${escapeHtml(data.portalUrl || "/member")}</dd>
+      <dt>Sign-In Page</dt><dd><a href="${escapeHtml(data.portalUrl || "/member")}" target="_blank" rel="noopener">${escapeHtml(data.portalUrl || "/member")}</a></dd>
       <dt>Username</dt><dd><code>${escapeHtml(data.username || ":")}</code></dd>
       <dt>Temporary Password</dt><dd><code>${escapeHtml(data.tempPassword || ":")}</code></dd>
     </dl>
@@ -7758,29 +7759,212 @@ document.querySelectorAll(".org-slug-input").forEach((input) => {
   input.addEventListener("blur", () => refreshOrganizationPreview(input.value));
 });
 
-$("#registerOrganizationForm")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
+function generateOrganizationCodeFromName(name, suffix) {
+  const base = String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (!base) return "";
+  const digits = String(suffix || "").replace(/\D/g, "") || String(100 + Math.floor(Math.random() * 900));
+  let candidate = /[0-9]/.test(base) ? base : `${base}-${digits}`;
+  if (!/[a-z]/.test(candidate)) candidate = `coop-${candidate}`;
+  if (candidate.length < 8) candidate = `${candidate}-${digits}`.replace(/-+/g, "-");
+  if (candidate.length > 64) {
+    const keep = Math.max(4, 64 - digits.length - 1);
+    candidate = `${base.slice(0, keep)}-${digits}`.replace(/-+$/g, "");
+  }
+  return candidate;
+}
+
+function resetRegisterOrganizationForm() {
+  const form = $("#registerOrganizationForm");
+  if (!form) return;
+  form.reset();
+  const nameInput = $("#registerCoopName");
+  if (nameInput) nameInput.readOnly = false;
+  $("#registerNameContinueBtn")?.classList.remove("hidden");
+  $("#registerEditNameAfterConfirm")?.classList.add("hidden");
+  $("#registerNameConfirm")?.classList.add("hidden");
+  $("#registerDetailsAfterName")?.classList.add("hidden");
+  const codeStatus = $("#registerCodeActionStatus");
+  if (codeStatus) {
+    codeStatus.textContent = "";
+    codeStatus.className = "status";
+  }
+  const status = $("#registerStatus");
+  if (status) {
+    status.textContent = "";
+    status.className = "status";
+  }
+}
+
+function promptRegisterNameConfirm() {
+  const name = String($("#registerCoopName")?.value || "").trim();
+  const status = $("#registerStatus");
+  if (!name) {
+    if (status) setFormStatus(status, "Enter the Cooperative name first.", false);
+    $("#registerCoopName")?.focus();
+    return;
+  }
+  if (status) {
+    status.textContent = "";
+    status.className = "status";
+  }
+  const valueEl = $("#registerNameConfirmValue");
+  if (valueEl) valueEl.textContent = name;
+  $("#registerNameContinueBtn")?.classList.add("hidden");
+  $("#registerEditNameAfterConfirm")?.classList.add("hidden");
+  $("#registerDetailsAfterName")?.classList.add("hidden");
+  $("#registerNameConfirm")?.classList.remove("hidden");
+}
+
+function confirmRegisterCooperativeName() {
+  const nameInput = $("#registerCoopName");
+  const slugInput = $("#registerOrgSlug");
+  const name = String(nameInput?.value || "").trim();
+  if (!name || !slugInput) {
+    promptRegisterNameConfirm();
+    return;
+  }
+  nameInput.value = name;
+  nameInput.readOnly = true;
+  slugInput.value = generateOrganizationCodeFromName(name);
+  $("#registerNameConfirm")?.classList.add("hidden");
+  $("#registerNameContinueBtn")?.classList.add("hidden");
+  $("#registerEditNameAfterConfirm")?.classList.remove("hidden");
+  $("#registerDetailsAfterName")?.classList.remove("hidden");
+  const codeStatus = $("#registerCodeActionStatus");
+  if (codeStatus) {
+    codeStatus.textContent = "";
+    codeStatus.className = "status";
+  }
+}
+
+function editRegisterCooperativeName() {
+  const nameInput = $("#registerCoopName");
+  if (nameInput) {
+    nameInput.readOnly = false;
+    nameInput.focus();
+    nameInput.select();
+  }
+  $("#registerNameConfirm")?.classList.add("hidden");
+  $("#registerDetailsAfterName")?.classList.add("hidden");
+  $("#registerNameContinueBtn")?.classList.remove("hidden");
+  $("#registerEditNameAfterConfirm")?.classList.add("hidden");
+  const slugInput = $("#registerOrgSlug");
+  if (slugInput) slugInput.value = "";
+}
+
+function registerOrgCodeSaveText(name, slug) {
+  const origin = window.location.origin;
+  return [
+    `Cooperative: ${name}`,
+    `Organization Code: ${slug}`,
+    `Administrator Sign In: ${origin}/admin?org=${encodeURIComponent(slug)}`,
+    `Member Sign In: ${origin}/member?org=${encodeURIComponent(slug)}`,
+  ].join("\n");
+}
+
+async function copyRegisterOrganizationCode() {
+  const slug = String($("#registerOrgSlug")?.value || "").trim();
+  const status = $("#registerCodeActionStatus");
+  if (!slug) {
+    setFormStatus(status, "Confirm the Cooperative name to create a code.", false);
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(slug);
+    setFormStatus(status, "Organization Code Copied.", true);
+  } catch {
+    setFormStatus(status, "Could not copy. Select the code and copy it manually.", false);
+  }
+}
+
+function saveRegisterOrganizationCode() {
+  const name = String($("#registerCoopName")?.value || "").trim();
+  const slug = String($("#registerOrgSlug")?.value || "").trim();
+  const status = $("#registerCodeActionStatus");
+  if (!slug) {
+    setFormStatus(status, "Confirm the Cooperative name to create a code.", false);
+    return;
+  }
+  const blob = new Blob([registerOrgCodeSaveText(name, slug)], { type: "text/plain" });
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = `${slug}-organization-code.txt`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(href);
+  setFormStatus(status, "Organization Code Saved to Your Device.", true);
+}
+
+function goToAdminSignInAfterRegister(slug, message) {
+  rememberOrgSlug(slug);
+  window.history.pushState({}, "", `/admin?org=${encodeURIComponent(slug)}`);
+  showLoginForPortal("admin");
+  fillOrgSlugInputs(slug, { force: true });
+  initLoginFromUrlParams();
+  const status = document.querySelector('[data-login-status="admin"]');
+  if (status && message) setFormStatus(status, message, true);
+}
+
+async function submitRegisterOrganization(form, { retryOnTaken = true } = {}) {
   const status = $("#registerStatus");
   status.textContent = "Creating Cooperative…";
   status.className = "status";
+  const payload = Object.fromEntries(new FormData(form).entries());
+  const res = await nativeFetch("/api/auth/register-organization", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    if (retryOnTaken && /already registered/i.test(data.error || "")) {
+      const slugInput = $("#registerOrgSlug");
+      if (slugInput) slugInput.value = generateOrganizationCodeFromName(payload.name);
+      return submitRegisterOrganization(form, { retryOnTaken: false });
+    }
+    throw new Error(data.error);
+  }
+  return data;
+}
+
+$("#registerNameContinueBtn")?.addEventListener("click", promptRegisterNameConfirm);
+$("#registerNameConfirmYes")?.addEventListener("click", confirmRegisterCooperativeName);
+$("#registerNameConfirmEdit")?.addEventListener("click", editRegisterCooperativeName);
+$("#registerEditNameAfterConfirm")?.addEventListener("click", editRegisterCooperativeName);
+$("#copyRegisterOrgCode")?.addEventListener("click", copyRegisterOrganizationCode);
+$("#saveRegisterOrgCode")?.addEventListener("click", saveRegisterOrganizationCode);
+
+$("#registerCoopName")?.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  if ($("#registerDetailsAfterName")?.classList.contains("hidden")) {
+    promptRegisterNameConfirm();
+  }
+});
+
+$("#registerOrganizationForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if ($("#registerDetailsAfterName")?.classList.contains("hidden")) {
+    promptRegisterNameConfirm();
+    return;
+  }
+  const status = $("#registerStatus");
   try {
-    const payload = Object.fromEntries(new FormData(e.target).entries());
-    const res = await nativeFetch("/api/auth/register-organization", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+    const data = await submitRegisterOrganization(e.target);
     rememberOrgSlug(data.organization.slug);
-    let msg = `Created ${data.organization.name}. Sign in at /admin with organization code "${data.organization.slug}".`;
+    let msg = "Cooperative Created. Your Organization Code Is Filled In.";
     if (data.flexxforms?.provisioned) {
       msg += " FlexxForms workspace is ready under Manage Forms & Documents.";
     } else if (data.flexxforms?.provisionError || data.flexxforms?.message) {
       msg += ` ${data.flexxforms.message || "FlexxForms setup failed: use Retry FlexxForms Setup in Manage Forms & Documents."}`;
     }
-    setFormStatus(status, msg, true);
-    e.target.reset();
+    goToAdminSignInAfterRegister(data.organization.slug, msg);
   } catch (err) {
     setFormStatus(status, err.message, false);
   }

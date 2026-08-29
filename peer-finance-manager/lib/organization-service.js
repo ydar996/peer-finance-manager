@@ -110,6 +110,51 @@ function parseOrganizationCodeInput(value) {
   return normalized;
 }
 
+function randomOrganizationCodeSuffix() {
+  return String(100 + Math.floor(Math.random() * 900));
+}
+
+function generateOrganizationCodeFromName(name, options = {}) {
+  const base = normalizeSlug(name);
+  if (!base) throw new Error("Organization name is required");
+  const suffixRaw = options.suffix != null ? String(options.suffix).replace(/\D/g, "") : "";
+  const suffix = suffixRaw || randomOrganizationCodeSuffix();
+  let candidate = /[0-9]/.test(base) ? base : `${base}-${suffix}`;
+  if (!/[a-z]/.test(candidate)) {
+    candidate = `coop-${candidate}`;
+  }
+  if (candidate.length < NEW_ORG_CODE_MIN_LENGTH) {
+    candidate = `${candidate}-${suffix}`.replace(/-+/g, "-");
+  }
+  if (candidate.length > 64) {
+    const keep = Math.max(4, 64 - suffix.length - 1);
+    candidate = `${base.slice(0, keep)}-${suffix}`.replace(/-+$/g, "");
+  }
+  return candidate;
+}
+
+function allocateOrganizationCode(name, preferredSlug) {
+  const preferred = String(preferredSlug || "").trim();
+  if (preferred) {
+    const normalized = parseOrganizationCodeInput(preferred);
+    if (getOrganization(normalized)) {
+      throw new Error("This organization code is already registered");
+    }
+    assertNewOrganizationCodeStrength(normalized);
+    return normalized;
+  }
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const generated = generateOrganizationCodeFromName(name);
+    try {
+      assertNewOrganizationCodeStrength(generated);
+    } catch (_) {
+      continue;
+    }
+    if (!getOrganization(generated)) return generated;
+  }
+  throw new Error("Could not create a unique organization code. Try a more specific Cooperative name.");
+}
+
 function assertNewOrganizationCodeStrength(slug) {
   const normalized = String(slug || "");
   if (RESERVED_ORG_SLUGS.has(normalized)) {
@@ -189,9 +234,7 @@ function organizationExists(slug) {
 function registerOrganization({ name, slug, countryCode }) {
   const displayName = String(name || "").trim();
   if (!displayName) throw new Error("Organization name is required");
-  const normalized = parseOrganizationCodeInput(slug);
-  if (getOrganization(normalized)) throw new Error("This organization code is already registered");
-  assertNewOrganizationCodeStrength(normalized);
+  const normalized = allocateOrganizationCode(displayName, slug);
 
   const { normalizeCountryCode, DEFAULT_COUNTRY_CODE } = require("./country-profile");
   const country = normalizeCountryCode(countryCode || DEFAULT_COUNTRY_CODE);
@@ -360,6 +403,8 @@ module.exports = {
   NEW_ORG_CODE_MIN_LENGTH,
   normalizeSlug,
   parseOrganizationCodeInput,
+  generateOrganizationCodeFromName,
+  allocateOrganizationCode,
   assertNewOrganizationCodeStrength,
   getRegistryDb,
   getOrgDataDir,

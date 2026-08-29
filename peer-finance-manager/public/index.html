@@ -249,29 +249,44 @@
         <p class="subtle">Create a New Organization and Administrator Account</p>
         <form id="registerOrganizationForm" class="entry-form">
           <label>Cooperative Name
-            <input type="text" name="name" required placeholder="e.g. Acme Cooperative" />
+            <input type="text" name="name" id="registerCoopName" required placeholder="e.g. Acme Cooperative" autocomplete="organization" />
           </label>
-          <label>Organization Code
-            <input type="text" name="slug" required minlength="8" maxlength="64" placeholder="e.g. acme9coop" pattern="(?=.*[A-Za-z])(?=.*[0-9])[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*" title="Use at Least 8 Characters With a Letter and a Number. Hyphens Are Allowed." autocomplete="off" spellcheck="false" />
-          </label>
-          <p class="hint subtle">Use at Least 8 Characters With a Letter and a Number. Hyphens Are Allowed. No Special Characters. Existing Cooperatives (Including Assurance) Keep Their Current Code.</p>
-          <label>Country
-            <select name="countryCode" required>
-              <option value="US" selected>United States</option>
-              <option value="NG">Nigeria</option>
-            </select>
-          </label>
-          <p class="hint subtle">Sets currency, time zone, and bank statement date order. United States Cooperatives keep US dollars. You can change this later under Organization &amp; Report Settings.</p>
-          <label>Administrator Email
-            <input type="email" name="adminEmail" required autocomplete="username" />
-          </label>
-          <label>Administrator Password
-            <input type="password" name="adminPassword" minlength="8" required autocomplete="new-password" />
-          </label>
-          <label>Administrator Name (Optional)
-            <input type="text" name="adminDisplayName" />
-          </label>
-          <button type="submit" class="btn primary">Create Cooperative</button>
+          <button type="button" class="btn primary" id="registerNameContinueBtn">Continue</button>
+          <button type="button" class="btn hidden" id="registerEditNameAfterConfirm">Edit Name</button>
+          <div id="registerNameConfirm" class="register-name-confirm hidden">
+            <p class="register-name-confirm-prompt">Is This the Correct Cooperative Name?</p>
+            <p id="registerNameConfirmValue" class="register-name-confirm-value"></p>
+            <div class="register-step-actions">
+              <button type="button" class="btn primary" id="registerNameConfirmYes">Yes, Use This Name</button>
+              <button type="button" class="btn" id="registerNameConfirmEdit">Edit Name</button>
+            </div>
+          </div>
+          <div id="registerDetailsAfterName" class="register-details-after-name hidden">
+            <label>Organization Code
+              <input type="text" name="slug" id="registerOrgSlug" required readonly maxlength="64" autocomplete="off" spellcheck="false" />
+            </label>
+            <div class="register-step-actions">
+              <button type="button" class="btn" id="copyRegisterOrgCode">Copy Code</button>
+              <button type="button" class="btn" id="saveRegisterOrgCode">Save to Device</button>
+            </div>
+            <p id="registerCodeActionStatus" class="status"></p>
+            <label>Select Country of Business Location
+              <select name="countryCode" required>
+                <option value="US" selected>United States</option>
+                <option value="NG">Nigeria</option>
+              </select>
+            </label>
+            <label>Administrator Email
+              <input type="email" name="adminEmail" required autocomplete="username" />
+            </label>
+            <label>Administrator Password
+              <input type="password" name="adminPassword" minlength="8" required autocomplete="new-password" />
+            </label>
+            <label>Administrator Name (Optional)
+              <input type="text" name="adminDisplayName" />
+            </label>
+            <button type="submit" class="btn primary">Create Cooperative</button>
+          </div>
         </form>
         <p class="login-foot subtle"><a href="/admin">Back to Sign In</a></p>
         <p id="registerStatus" class="status"></p>

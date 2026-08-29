@@ -51,11 +51,11 @@ Login placeholders use a sample code (`acme`), not a live Cooperative. The app u
 | **Member** | `/member` | Organization code, **username**, password |
 | **Staff** | `/staff` | Organization code, email, password |
 | **Administrator** | `/admin` | Organization code, email, password |
-| **New Cooperative** | `/register` | Styled **Register Cooperative** form: Cooperative name, organization code (at least 8 characters, with a letter and a number; hyphens allowed), **Country** (United States is the default), administrator email, and password. Then sign in at `/admin` with that new organization code. Existing Cooperatives keep their current code (Assurance still uses `assurance`). |
+| **New Cooperative** | `/register` | Enter the Cooperative name, confirm it is correct, then PFM generates the organization code. Copy the code or save it to your device. Select the country of business location, then add the administrator email and password. After create, you go to `/admin` with that code already filled in. |
 
 **Tip:** If Sign In seems to do nothing, hard-refresh the page (**Ctrl+Shift+R** on Windows). The first visit after idle can take up to 30 seconds while the server wakes up.
 
-Members and staff **cannot** use each other's login page. Each Cooperative has its own organization code. New signups pick a code with letters and numbers (for example `acme9coop`). Older Cooperatives, including Assurance (`assurance`), keep the code they already use.
+Members and staff **cannot** use each other's login page. Each Cooperative has its own organization code. New Cooperatives get a generated code after they confirm the Cooperative name. Member welcome emails and sign-in links include that code so the Organization Code field is filled in.
 
 ---
 
@@ -89,7 +89,7 @@ Members and staff **cannot** use each other's login page. Each Cooperative has i
 ### Sign in
 
 1. Open **https://peer-finance-manager.netlify.app/member**
-2. Enter your **Organization Code**, **Username**, and **Password** (from credentials your Cooperative sent).
+2. Enter your **Organization Code**, **Username**, and **Password** (from credentials your Cooperative sent). If you opened a welcome or sign-in link from your Cooperative, the organization code is already filled in.
 3. Click **Sign In**.
 
 First-time users must change the temporary password when prompted.
@@ -155,7 +155,7 @@ After you submit an application, it goes to administrators automatically.
 ### Sign in
 
 1. Open **https://peer-finance-manager.netlify.app/admin**
-2. Enter organization code, admin email, and password.
+2. Enter organization code, admin email, and password. After you register a Cooperative, the organization code is already filled in.
 3. Click **Sign In**.
 
 The top-right shows your **role** (Administrator, Staff, or Member) and your name or email. It does not repeat the role word as the name. After you sign in, tables and cards use the full width beside the sidebar (they are not locked to a narrow center column).
