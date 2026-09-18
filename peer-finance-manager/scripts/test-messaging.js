@@ -25,7 +25,7 @@ const {
   listRecipientOptions,
 } = require("../lib/messaging-service");
 const { renderMarkdownToSafeHtml } = require("../lib/markdown-lite");
-const { sanitizeRichHtml } = require("../lib/html-sanitize-lite");
+const { sanitizeRichHtml, htmlToPlainPreview } = require("../lib/html-sanitize-lite");
 
 const ORG = "messaging-test-coop";
 
@@ -120,6 +120,23 @@ function run() {
     assert.ok(wordish.includes("<ul>"));
     assert.ok(!wordish.includes("<script"));
 
+    const ampersandOnce = sanitizeRichHtml("<p>Roots &amp; Rhythm</p>");
+    assert.ok(ampersandOnce.includes("Roots &amp; Rhythm"));
+    assert.ok(!ampersandOnce.includes("&amp;amp;"));
+    const ampersandRaw = sanitizeRichHtml("<p>Roots & Rhythm</p>");
+    assert.ok(ampersandRaw.includes("Roots &amp; Rhythm"));
+    assert.ok(!ampersandRaw.includes("&amp;amp;"));
+    const ampersandDouble = sanitizeRichHtml("<p>Roots &amp;amp;amp; Rhythm</p>");
+    assert.ok(ampersandDouble.includes("Roots &amp; Rhythm"));
+    assert.ok(!ampersandDouble.includes("&amp;amp;"));
+    assert.strictEqual(sanitizeRichHtml(ampersandOnce), ampersandOnce);
+
+    const { formatMessageBody } = require("../lib/messaging-service");
+    const repaired = formatMessageBody("<p>Quick update on Roots &amp;amp;amp; Rhythm</p>", "html");
+    assert.ok(repaired.bodyHtml.includes("Roots &amp; Rhythm"));
+    assert.ok(!repaired.bodyHtml.includes("&amp;amp;"));
+    assert.strictEqual(htmlToPlainPreview(repaired.bodyHtml), "Quick update on Roots & Rhythm");
+
     const broadcast = createAdminThread(ctx.adminUser, {
       subject: "Meeting Minutes",
       body: "<h2>Meeting Minutes</h2><p><b>Budget</b> review</p><ul><li>Call to order</li></ul>",
@@ -133,7 +150,6 @@ function run() {
     assert.ok(broadcast.messages[0].bodyHtml.includes("<ul>"));
 
     // HTML body mislabeled as markdown (production default) must still render.
-    const { formatMessageBody } = require("../lib/messaging-service");
     const recovered = formatMessageBody(
       "<p><b>MEETING MINUTES</b></p><p>Date: July 16, 2026</p>",
       "markdown"

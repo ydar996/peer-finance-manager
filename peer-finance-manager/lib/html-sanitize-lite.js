@@ -5,6 +5,63 @@
 
 const { escapeHtml } = require("./markdown-lite");
 
+const NAMED_ENTITIES = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: "\u00a0",
+  rsquo: "\u2019",
+  lsquo: "\u2018",
+  rdquo: "\u201d",
+  ldquo: "\u201c",
+  ndash: "\u2013",
+  mdash: "\u2014",
+  hellip: "\u2026",
+};
+
+function codePointToChar(code) {
+  if (!Number.isInteger(code) || code < 0 || code > 0x10ffff) return null;
+  try {
+    return String.fromCodePoint(code);
+  } catch (_) {
+    return null;
+  }
+}
+
+function decodeOneEntity(body) {
+  const key = String(body || "").toLowerCase();
+  if (key.startsWith("#x")) {
+    return codePointToChar(parseInt(key.slice(2), 16));
+  }
+  if (key.startsWith("#")) {
+    return codePointToChar(Number(key.slice(1)));
+  }
+  return Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, key) ? NAMED_ENTITIES[key] : null;
+}
+
+/**
+ * Decode HTML entities, repeating so already double-encoded text
+ * (`&amp;amp;`) becomes a real `&` before we escape once on output.
+ */
+function decodeHtmlEntities(value) {
+  let prev = String(value || "");
+  for (let i = 0; i < 8; i += 1) {
+    const next = prev.replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]+);/gi, (match, body) => {
+      const decoded = decodeOneEntity(body);
+      return decoded == null ? match : decoded;
+    });
+    if (next === prev) break;
+    prev = next;
+  }
+  return prev;
+}
+
+function escapeHtmlTextNode(value) {
+  return escapeHtml(decodeHtmlEntities(value));
+}
+
 const ALLOWED = new Set([
   "p",
   "br",
@@ -56,7 +113,7 @@ function stripWordChrome(html) {
 }
 
 function sanitizeHref(raw) {
-  const href = String(raw || "").trim();
+  const href = decodeHtmlEntities(String(raw || "")).trim();
   if (/^https?:\/\//i.test(href)) return href;
   if (/^mailto:/i.test(href)) return href;
   return null;
@@ -95,15 +152,15 @@ function sanitizeRichHtml(html) {
   while (i < len) {
     const lt = input.indexOf("<", i);
     if (lt === -1) {
-      out += escapeHtml(input.slice(i));
+      out += escapeHtmlTextNode(input.slice(i));
       break;
     }
     if (lt > i) {
-      out += escapeHtml(input.slice(i, lt));
+      out += escapeHtmlTextNode(input.slice(i, lt));
     }
     const gt = input.indexOf(">", lt + 1);
     if (gt === -1) {
-      out += escapeHtml(input.slice(lt));
+      out += escapeHtmlTextNode(input.slice(lt));
       break;
     }
     const rawTag = input.slice(lt + 1, gt).trim();
@@ -160,15 +217,12 @@ function sanitizeRichHtml(html) {
 }
 
 function htmlToPlainPreview(html, max = 160) {
-  const text = String(html || "")
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<\/p>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
+  const text = decodeHtmlEntities(
+    String(html || "")
+      .replace(/<br\s*\/?>/gi, " ")
+      .replace(/<\/p>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+  )
     .replace(/\s+/g, " ")
     .trim();
   if (text.length <= max) return text;
@@ -184,4 +238,5 @@ module.exports = {
   htmlToPlainPreview,
   isProbablyHtml,
   stripWordChrome,
+  decodeHtmlEntities,
 };

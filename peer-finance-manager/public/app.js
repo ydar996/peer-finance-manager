@@ -1476,6 +1476,9 @@ function switchTab(name, options = {}) {
     initMemberPickers();
     loadUsers();
   }
+  if (activeTab === "import" && name !== "import") {
+    resetImportTabSession();
+  }
   if (name === "my-account" && currentUser?.role === "member" && !sameTab) loadMyAccount();
   if (name === "member-messages" && currentUser?.role === "member" && !sameTab) loadMemberMessagesPanel();
   if (name === "messages" && currentUser?.role === "admin" && !sameTab) loadAdminMessagesPanel();
@@ -5705,6 +5708,45 @@ function resetBankAppendPreview() {
   updateApplyBankAppendButton();
 }
 
+function clearChosenFileInput(inputId, nameId) {
+  const input = $(`#${inputId}`);
+  if (input) input.value = "";
+  const nameEl = $(`#${nameId}`);
+  if (nameEl) nameEl.textContent = "";
+}
+
+function resetBankAppendImportSession() {
+  const applyBtn = $("#applyBankAppend");
+  if (applyBtn) delete applyBtn.dataset.busyLabel;
+  resetBankAppendPreview();
+  clearChosenFileInput("bankAppendFile", "bankAppendFileName");
+  const status = $("#bankAppendStatus");
+  if (status) {
+    status.textContent = "";
+    status.className = "status";
+  }
+  const summary = $("#bankAppendSummary");
+  if (summary) summary.textContent = "";
+}
+
+function resetBankImportRefreshSession() {
+  clearChosenFileInput("bankImportFile", "bankImportFileName");
+  clearBankImportPreview();
+  clearBankImportConflicts();
+  const status = $("#bankImportStatus");
+  if (status) {
+    status.textContent = "";
+    status.className = "status";
+  }
+  const summary = $("#bankImportSummary");
+  if (summary) summary.textContent = "";
+}
+
+function resetImportTabSession() {
+  resetBankAppendImportSession();
+  resetBankImportRefreshSession();
+}
+
 function renderBankAppendPreview(preview) {
   const panel = $("#bankAppendPreview");
   if (!panel) return;
@@ -5998,7 +6040,9 @@ async function applyBankAppendImport(form) {
       status.className = "status err";
     }
   } finally {
+    if (applyBtn) delete applyBtn.dataset.busyLabel;
     setButtonBusy(applyBtn, false);
+    updateApplyBankAppendButton();
   }
 }
 

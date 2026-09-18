@@ -323,6 +323,8 @@ Upload a **cumulative** bank export: **period start through today**. PFM skips r
 7. Click **Add New Transactions**.
 8. Check **Cooperative Books** : **Bank Reconcile Status** should show **Reconciled** after a successful import.
 
+When you leave **Import** (any other tab), the last preview, chosen file, and status clear. Coming back starts a new upload session.
+
 **Re-upload the same file anytime.** Duplicates are never added twice.
 
 ### B. Bank Accounts and Import Settings (first-time setup)
@@ -458,7 +460,7 @@ Admins compose in a **rich text box**: paste from Microsoft Word and keep basic 
 | **Read replies** | Open a conversation in **Inbox**. Formatted body and attachments appear. Reply at the bottom (admins may paste from Word and attach on reply too). |
 | **Member → admin** | Members use **Messages** on My Account → **Message Cooperative Admin**. |
 
-**Tip for Word minutes with figures:** Paste the text into Messages for a readable summary, and **Save as PDF** + attach for the full document with images. No Markdown tools required.
+**Tip for Word minutes with figures:** Paste the text into Messages for a readable summary, and **Save as PDF** + attach for the full document with images. Ampersands (`&`) and other punctuation stay as you typed them. No Markdown tools required.
 
 **Note:** Only members who already have a portal login can receive inbox messages. Create logins on the **Users** tab first.
 
