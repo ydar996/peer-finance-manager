@@ -3,11 +3,13 @@
   --ink-soft: #334155;
   --muted: #64748b;
   --paper: #ffffff;
-  --stage: #dbe4ee;
+  --stage: #f4f7fb;
   --navy: #0c4a6e;
   --teal: #0f766e;
   --accent: #14b8a6;
-  --line: rgba(15, 23, 42, 0.1);
+  --hero: linear-gradient(135deg, #0c4a6e 0%, #0f766e 48%, #134e4a 100%);
+  --line: rgba(15, 23, 42, 0.08);
+  --shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
   --font: "Plus Jakarta Sans", system-ui, sans-serif;
   --display: "Instrument Serif", Georgia, serif;
 }
@@ -26,7 +28,10 @@ body {
 body {
   font-family: var(--font);
   color: var(--ink);
-  background: var(--stage);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(20, 184, 166, 0.07), transparent 30%),
+    radial-gradient(circle at 100% 0%, rgba(14, 165, 233, 0.06), transparent 28%),
+    var(--stage);
   line-height: 1.45;
 }
 
@@ -44,23 +49,26 @@ a {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 14px 22px;
-  background: rgba(255, 255, 255, 0.94);
+  padding: 14px 24px;
+  backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.82);
   border-bottom: 1px solid var(--line);
 }
 
 .toolbar-brand {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 12px;
 }
 
 .toolbar-brand strong {
-  font-size: 0.95rem;
+  display: block;
+  font-size: 1rem;
 }
 
-.toolbar-brand span {
-  font-size: 0.78rem;
+.toolbar-brand small {
+  display: block;
+  font-size: 0.75rem;
   color: var(--muted);
   font-weight: 500;
 }
@@ -76,18 +84,19 @@ a {
   align-items: center;
   justify-content: center;
   min-height: 40px;
-  padding: 0 14px;
-  border-radius: 10px;
+  padding: 0 16px;
+  border-radius: 12px;
   border: 1px solid transparent;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
 }
 
 .btn-primary {
-  background: var(--navy);
+  background: var(--hero);
   color: #fff;
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.3);
 }
 
 .btn-ghost {
@@ -110,7 +119,8 @@ a {
   height: 11in;
   background: var(--paper);
   overflow: hidden;
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.14);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
 }
 
 .sheet-rail {
@@ -119,7 +129,7 @@ a {
   top: 0;
   bottom: 0;
   width: 0.16in;
-  background: var(--navy);
+  background: var(--hero);
 }
 
 .sheet-inner {
@@ -130,12 +140,22 @@ a {
 }
 
 .masthead {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 0.16in;
-  border-bottom: 2px solid var(--navy);
+}
+
+.masthead::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #0c4a6e, #14b8a6);
 }
 
 .brand {
@@ -147,12 +167,13 @@ a {
 .brand-mark {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
-  background: var(--navy);
+  border-radius: 14px;
+  background: var(--hero);
   color: #fff;
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.28);
 }
 
 .brand-mark svg {
@@ -212,8 +233,9 @@ a {
 .chip {
   padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #f8fafc;
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  background: #f0fdfa;
 }
 
 .chip strong,
@@ -250,7 +272,7 @@ h2 {
 .features {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
+  gap: 8px;
   margin-bottom: 0.18in;
 }
 
@@ -259,12 +281,17 @@ h2 {
   grid-template-columns: 28px 1fr;
   gap: 8px;
   align-items: start;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
 .feature-icon {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #ecfeff;
   color: var(--teal);
   display: grid;
@@ -298,7 +325,9 @@ h2 {
 .role {
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
 .role h3 {
@@ -345,9 +374,10 @@ h2 {
 
 .step {
   padding: 10px 11px;
-  border-radius: 10px;
-  background: #f8fafc;
+  border-radius: 16px;
+  background: #fff;
   border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
 .step-num {
@@ -357,7 +387,7 @@ h2 {
   height: 22px;
   margin-bottom: 6px;
   border-radius: 999px;
-  background: var(--navy);
+  background: var(--hero);
   color: #fff;
   font-size: 0.72rem;
   font-weight: 800;
@@ -397,8 +427,10 @@ h2 {
 
 .trust-list li {
   padding: 7px 10px;
-  border-left: 3px solid var(--teal);
-  background: #f0fdfa;
+  border: 1px solid rgba(20, 184, 166, 0.28);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.14), rgba(20, 184, 166, 0.05));
   font-size: 0.74rem;
   font-weight: 700;
 }
@@ -413,12 +445,15 @@ h2 {
 .plan {
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
 .plan-featured {
-  border-color: var(--navy);
-  background: #f8fafc;
+  border-color: rgba(15, 118, 110, 0.35);
+  background: linear-gradient(180deg, #f0fdfa, #fff);
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.12);
 }
 
 .plan .badge {
@@ -426,7 +461,7 @@ h2 {
   margin-bottom: 6px;
   padding: 2px 7px;
   border-radius: 999px;
-  background: var(--navy);
+  background: var(--hero);
   color: #fff;
   font-size: 0.62rem;
   font-weight: 800;
@@ -478,7 +513,8 @@ h2 {
   padding: 12px 14px;
   margin-bottom: 0.14in;
   border: 1px dashed rgba(12, 74, 110, 0.28);
-  border-radius: 10px;
+  border-radius: 16px;
+  background: #fff;
 }
 
 .enterprise h3 {
@@ -498,14 +534,17 @@ h2 {
   gap: 16px;
   align-items: center;
   padding: 14px 16px;
-  border-radius: 12px;
-  background: var(--navy);
+  border-radius: 20px;
+  background: var(--hero);
   color: #fff;
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.22);
 }
 
 .cta h2 {
   margin: 0 0 4px;
   color: #fff;
+  font-family: var(--display);
+  font-weight: 400;
 }
 
 .cta p {
@@ -558,6 +597,7 @@ h2 {
     width: 8.5in;
     height: 11in;
     box-shadow: none;
+    border-radius: 0;
     page-break-after: always;
     break-after: page;
   }

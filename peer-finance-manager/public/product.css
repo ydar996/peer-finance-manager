@@ -794,6 +794,12 @@ a {
   border-left: 4px solid #f43f5e;
 }
 
+.pf-trust-item--emerald {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(16, 185, 129, 0.05));
+  border-color: rgba(16, 185, 129, 0.28);
+  border-left: 4px solid #10b981;
+}
+
 .pf-cta-band {
   padding: 56px 24px 80px;
 }

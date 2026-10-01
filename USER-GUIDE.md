@@ -7,8 +7,11 @@ This guide explains how to use Peer Finance Manager (PFM) without technical jarg
 **Live app:** https://peer-finance-manager.netlify.app  
 **Product page:** https://peer-finance-manager.netlify.app/product  
 **Nigeria product page (naira):** https://peer-finance-manager.netlify.app/productngn  
-**Brochure (United States):** https://peer-finance-manager.netlify.app/brochure (open the page, then **Download PDF**)  
-**Brochure (Nigeria, naira):** https://peer-finance-manager.netlify.app/brochurengn (open the page, then **Download PDF**)  
+**Brochure (United States):** https://peer-finance-manager.netlify.app/brochure (nav **Brochure**, hero **View Brochure**, then **Download PDF**)  
+**Brochure (Nigeria, naira):** https://peer-finance-manager.netlify.app/brochurengn (nav **Brochure**, hero **View Brochure**, then **Download PDF**)  
+
+Both country product pages and brochures list **E-Loan Application/Guarantee/Approval** (member apply, two guarantors, admin review and approve), public **Membership Applications**, **Messages Inbox**, and monthly bank-append import, along with Cooperative Books, statements, and meetings. Brochure pages use the same navy-teal marketing look as the product pages.
+
 Login placeholders use a sample code (`acme`), not a live Cooperative. The app uses a green Plantvest visual theme with Inter and Plus Jakarta Sans, neutral near-black headings, and solid (not translucent) text colors. Signed-in screens use the full width beside the sidebar. Buttons and tabs work the same as before.
 
 ---
