@@ -7,7 +7,7 @@ This document gives the next developer or AI agent enough context to continue wo
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
 **GitHub:** `ydar996/peer-finance-manager`  
-**Production HEAD (code):** `154f6ec` (marketing e-loan + brochure design) — prior: ampersand + Import session `50f454e`, register auto org code `64da149`
+**Production HEAD (code):** `db20706` (brochure original design restored) — prior: marketing e-loan `154f6ec`, ampersand + Import `50f454e`
 
 ---
 
@@ -175,7 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
-- **2026-09-30** — **Brochure look restored to the original Letter print design:** User preferred the former brochure chrome over the product-page restyle. `brochure.css` and the brochure toolbars are back to the navy rail, compact feature rows, and print-first cards. E-loan copy, four highlight chips, and product-page **View Brochure** stay. **Production:** `git push` (Netlify UI). Hard-refresh `/brochure` and `/brochurengn`. No data upload.
+- **2026-09-30** — **Brochure look restored to the original Letter print design:** User preferred the former brochure chrome over the product-page restyle. `brochure.css` and the brochure toolbars are back to the navy rail, compact feature rows, and print-first cards. E-loan copy, four highlight chips, and product-page **View Brochure** stay. **Production:** `db20706` (`git push`; Netlify UI). Hard-refresh `/brochure` and `/brochurengn`. No data upload.
 - **2026-09-30** — **Marketing lists the full e-loan flow:** `/product`, `/productngn`, `/brochure`, and `/brochurengn` no longer describe loans as tracking-only. Hero, Capabilities, Roles, workflow, and trust include **E-Loan Application/Guarantee/Approval**, plus **Membership Applications**, **Messages Inbox**, monthly bank-append import, and auto-generated organization codes. Brochures keep four highlight chips. Hero **View Brochure** buttons open `/brochure` or `/brochurengn`. No FlexxForms vendor name on marketing. **Production:** `154f6ec` (`git push`; Netlify UI). Hard-refresh `/productngn` and `/brochurengn`. No data upload.
 - **2026-09-18** — **Import preview does not linger after you leave the tab:** Import is a single-page view, so the last statement preview (file name, skipped rows, status) stayed on screen after switching to Books/Members and back. Leaving **Import** now clears **Import New Bank Activity** and **Full Ledger Refresh** upload state for a fresh session. Also stop **Add New Transactions (N)** from sticking after apply (busy-label restore). Files: `public/app.js`. **Production:** `50f454e` (`git push`; Netlify UI). Hard-refresh **Admin → Import**. No data upload.
 - **2026-09-18** — **Messages no longer corrupt ampersands:** Admin Word-paste/HTML sanitizer was escaping text that was already HTML (`&` → `&amp;` → `&amp;amp;`), then doing it again when the thread opened, so members saw `&amp;amp;`. It now decodes entities (including already double-encoded text) and escapes once. Existing messages repair on open; no data upload. Files: `html-sanitize-lite.js`, `test-messaging.js`. Test: `npm run test:messaging`. **Production:** `50f454e` (`git push`; Netlify UI + Render API). Hard-refresh **Messages**. No data upload.
