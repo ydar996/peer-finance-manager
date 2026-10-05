@@ -19,6 +19,7 @@ const {
   approveMembershipApplication,
   verifyMembershipDeposits,
   summarizeMembershipApplications,
+  rejectMembershipApplication,
   getApplicantPaymentReadiness,
 } = require("../lib/flexxforms-membership-service");
 const { listActiveDirectoryMembers } = require("../lib/membership-status-service");
@@ -108,6 +109,81 @@ async function run() {
       .prepare(`SELECT subject FROM coop_message_threads WHERE subject LIKE '%Deposits Have Been Verified%'`)
       .get();
     assert.ok(notice, "Portal notice is posted after deposit verification");
+
+    assert.throws(
+      () => rejectMembershipApplication(applicationId),
+      /cannot be disregarded/,
+      "Accepted applications cannot be disregarded"
+    );
+
+    const wrongInserted = db
+      .prepare(
+        `INSERT INTO flexxforms_applications (kind, flexxforms_submission_id, form_id, payload_json, status)
+         VALUES ('membership', 'sub-wrong', 'form-1', ?, 'pending')`
+      )
+      .run(JSON.stringify(payloadFor("Wrong", "Dob", "wrong-dob@example.com")));
+    const wrongId = wrongInserted.lastInsertRowid;
+    const wrong = processMembershipFormSubmission(
+      wrongId,
+      payloadFor("Wrong", "Dob", "wrong-dob@example.com")
+    );
+    assert.equal(summarizeMembershipApplications().pendingCount, 1);
+    const disregarded = rejectMembershipApplication(wrongId);
+    assert.equal(disregarded.status, "rejected");
+    assert.equal(disregarded.memberRemoved, true);
+    assert.equal(summarizeMembershipApplications().pendingCount, 0);
+    assert.equal(
+      db.prepare(`SELECT id FROM members WHERE id = ?`).get(wrong.memberId),
+      undefined,
+      "Unused pending profile is removed when the only application is disregarded"
+    );
+
+    const adaPayload = payloadFor("Ada", "Okeke", "ada@example.com");
+    const adaFirst = db
+      .prepare(
+        `INSERT INTO flexxforms_applications (kind, flexxforms_submission_id, form_id, payload_json, status)
+         VALUES ('membership', 'sub-ada-1', 'form-1', ?, 'pending')`
+      )
+      .run(JSON.stringify(adaPayload));
+    const adaSecond = db
+      .prepare(
+        `INSERT INTO flexxforms_applications (kind, flexxforms_submission_id, form_id, payload_json, status)
+         VALUES ('membership', 'sub-ada-2', 'form-1', ?, 'pending')`
+      )
+      .run(JSON.stringify(adaPayload));
+    const ada1 = processMembershipFormSubmission(adaFirst.lastInsertRowid, adaPayload);
+    const ada2 = processMembershipFormSubmission(adaSecond.lastInsertRowid, adaPayload);
+    assert.equal(ada1.memberId, ada2.memberId);
+    assert.equal(summarizeMembershipApplications().pendingCount, 2);
+    const adaDisregarded = rejectMembershipApplication(adaFirst.lastInsertRowid);
+    assert.equal(adaDisregarded.memberRemoved, false);
+    assert.equal(summarizeMembershipApplications().pendingCount, 1);
+    assert.ok(db.prepare(`SELECT id FROM members WHERE id = ?`).get(ada1.memberId));
+    await approveMembershipApplication(adaSecond.lastInsertRowid, 1);
+    assert.equal(summarizeMembershipApplications().pendingCount, 0);
+
+    const benPayload = payloadFor("Ben", "Okeke", "ben@example.com");
+    const benFirst = db
+      .prepare(
+        `INSERT INTO flexxforms_applications (kind, flexxforms_submission_id, form_id, payload_json, status)
+         VALUES ('membership', 'sub-ben-1', 'form-1', ?, 'pending')`
+      )
+      .run(JSON.stringify(benPayload));
+    const benSecond = db
+      .prepare(
+        `INSERT INTO flexxforms_applications (kind, flexxforms_submission_id, form_id, payload_json, status)
+         VALUES ('membership', 'sub-ben-2', 'form-1', ?, 'pending')`
+      )
+      .run(JSON.stringify(benPayload));
+    processMembershipFormSubmission(benFirst.lastInsertRowid, benPayload);
+    processMembershipFormSubmission(benSecond.lastInsertRowid, benPayload);
+    assert.equal(summarizeMembershipApplications().pendingCount, 2);
+    await approveMembershipApplication(benSecond.lastInsertRowid, 1);
+    const benClosed = db
+      .prepare(`SELECT status FROM flexxforms_applications WHERE id = ?`)
+      .get(benFirst.lastInsertRowid);
+    assert.equal(benClosed.status, "rejected");
+    assert.equal(summarizeMembershipApplications().pendingCount, 0);
 
     console.log("membership applications tests: ok");
   });

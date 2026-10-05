@@ -899,6 +899,9 @@ async function approveMembershipApplication(applicationId, approvedByUserId) {
   if (["approved", "accepted", "deposits_verified"].includes(app.status)) {
     throw new Error("Application is already accepted");
   }
+  if (app.status === "rejected") {
+    throw new Error("Disregarded applications cannot be accepted. Use a later correct application.");
+  }
 
   const joinedAt = new Date().toISOString().slice(0, 10);
   db.prepare(
@@ -913,6 +916,11 @@ async function approveMembershipApplication(applicationId, approvedByUserId) {
          updated_at = datetime('now')
      WHERE id = ?`
   ).run(approvedByUserId || null, applicationId);
+  closeSiblingOpenMembershipApplications(
+    app.member_id,
+    applicationId,
+    "Closed because another application for this applicant was accepted"
+  );
 
   const { resetMemberPortalPassword } = require("./auth-service");
   let login = null;
@@ -1197,6 +1205,118 @@ function reprocessMembershipApplication(applicationId, payloadOverride = null) {
   };
 }
 
+const CLOSED_MEMBERSHIP_STATUSES = [
+  "approved",
+  "accepted",
+  "deposits_verified",
+  "duplicate",
+  "rejected",
+];
+const DEFAULT_DISREGARD_REASON = "Disregarded as an erroneous or duplicate submission";
+
+function countOpenMembershipApplicationsForMember(memberId, exceptApplicationId) {
+  const db = getDb();
+  const placeholders = CLOSED_MEMBERSHIP_STATUSES.map(() => "?").join(", ");
+  const params = [memberId, ...CLOSED_MEMBERSHIP_STATUSES];
+  let sql = `SELECT COUNT(*) AS count FROM flexxforms_applications
+     WHERE member_id = ? AND kind = 'membership' AND status NOT IN (${placeholders})`;
+  if (exceptApplicationId) {
+    sql += " AND id != ?";
+    params.push(exceptApplicationId);
+  }
+  return db.prepare(sql).get(...params)?.count || 0;
+}
+
+function closeSiblingOpenMembershipApplications(memberId, keptApplicationId, reason) {
+  if (!memberId || !keptApplicationId) return 0;
+  const db = getDb();
+  const placeholders = CLOSED_MEMBERSHIP_STATUSES.map(() => "?").join(", ");
+  const info = db
+    .prepare(
+      `UPDATE flexxforms_applications
+       SET status = 'rejected', processing_error = ?, updated_at = datetime('now')
+       WHERE member_id = ? AND id != ? AND kind = 'membership'
+         AND status NOT IN (${placeholders})`
+    )
+    .run(reason || DEFAULT_DISREGARD_REASON, memberId, keptApplicationId, ...CLOSED_MEMBERSHIP_STATUSES);
+  return info.changes || 0;
+}
+
+function rejectMembershipApplication(applicationId, reason) {
+  const db = getDb();
+  ensureMembershipApplicationSchema(db);
+  const app = db
+    .prepare(
+      `SELECT id, kind, status, member_id AS memberId
+       FROM flexxforms_applications WHERE id = ?`
+    )
+    .get(applicationId);
+  if (!app) throw new Error("Application not found");
+  if (app.kind !== "membership") {
+    throw new Error("Only membership applications can be disregarded here");
+  }
+  if (["approved", "accepted", "deposits_verified"].includes(app.status)) {
+    throw new Error(
+      "Accepted applications cannot be disregarded. Manage the member under Members & Accounts."
+    );
+  }
+
+  const note = String(reason || DEFAULT_DISREGARD_REASON).trim() || DEFAULT_DISREGARD_REASON;
+  if (app.status === "rejected") {
+    return {
+      ok: true,
+      alreadyRejected: true,
+      applicationId,
+      memberId: app.memberId || null,
+      status: "rejected",
+      memberRemoved: false,
+      profileKept: Boolean(app.memberId),
+    };
+  }
+
+  db.prepare(
+    `UPDATE flexxforms_applications
+     SET status = 'rejected', processing_error = ?, updated_at = datetime('now')
+     WHERE id = ?`
+  ).run(note, applicationId);
+
+  let memberRemoved = false;
+  let profileKept = Boolean(app.memberId);
+  let profileKeptReason = null;
+  const memberId = app.memberId || null;
+
+  if (memberId) {
+    const remainingOpen = countOpenMembershipApplicationsForMember(memberId, applicationId);
+    if (remainingOpen > 0) {
+      profileKeptReason = "Other open applications still use this profile.";
+    } else {
+      const blocker = getProspectiveMemberDeleteBlockers(memberId);
+      if (blocker) {
+        profileKeptReason = blocker;
+      } else {
+        db.prepare(
+          `UPDATE flexxforms_applications SET member_id = NULL, updated_at = datetime('now')
+           WHERE member_id = ? AND status IN ('rejected', 'duplicate')`
+        ).run(memberId);
+        deleteProspectiveMember(memberId);
+        memberRemoved = true;
+        profileKept = false;
+      }
+    }
+  }
+
+  return {
+    ok: true,
+    alreadyRejected: false,
+    applicationId,
+    memberId: memberRemoved ? null : memberId,
+    status: "rejected",
+    memberRemoved,
+    profileKept,
+    profileKeptReason,
+  };
+}
+
 function getProspectiveMemberDeleteBlockers(memberId) {
   const db = getDb();
   const profile = db
@@ -1319,10 +1439,7 @@ function listMembershipApplications() {
   return rows.map((row) => {
     const readiness = row.memberId ? getApplicantPaymentReadiness(row.memberId) : null;
     let status = row.status;
-    if (
-      row.memberId &&
-      !["approved", "accepted", "deposits_verified", "duplicate", "rejected"].includes(status)
-    ) {
+    if (row.memberId && !CLOSED_MEMBERSHIP_STATUSES.includes(status)) {
       status = readiness?.canApprove ? "awaiting_approval" : "awaiting_payment";
     }
     return { ...row, status, readiness };
@@ -1356,6 +1473,7 @@ module.exports = {
   assertReliableSubmissionPayload,
   processMembershipFormSubmission,
   reprocessMembershipApplication,
+  rejectMembershipApplication,
   deleteMembershipApplication,
   refreshMembershipApplicationStatus,
   approveMembershipApplication,

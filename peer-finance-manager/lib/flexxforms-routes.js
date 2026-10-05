@@ -239,6 +239,25 @@ function registerFlexxFormsRoutes(app) {
   );
 
   app.post(
+    "/api/flexxforms/applications/:id/reject",
+    requireAuth,
+    requireAdmin,
+    (req, res) => {
+      try {
+        const slug = requestOrgSlug(req);
+        const { rejectMembershipApplication } = require("./flexxforms-membership-service");
+        const { runWithOrg } = require("./org-context");
+        const result = runWithOrg(slug, () =>
+          rejectMembershipApplication(Number(req.params.id), req.body?.reason || null)
+        );
+        res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
     "/api/flexxforms/applications/:id/reprocess",
     requireAuth,
     requireAdmin,

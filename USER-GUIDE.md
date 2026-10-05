@@ -527,7 +527,9 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
    - Clears the Forms & Documents (1) badge
 5. After Accept, click **Verify Deposits** to record the standard membership fee and initial contribution (if they are not already on the books) and to email the member plus post a portal notice to log in and check balances. If you prefer the bank file, **Import New Bank Activity** can post the deposit; PFM then sends the same verified-deposits email and portal notice automatically.
 
-**Delete** removes a test or mistaken application (only if not yet accepted, with no ledger activity).
+**Disregard Application** closes a mistaken or duplicate submission (for example a wrong date of birth, then a second form with the correct details). The disregarded application stays on the list as **Disregarded**, drops off the (1) badge, and is not accepted. If that submission was the only pending profile and it has no ledger activity, the unused profile is removed. A later correct application can still be **Accept Member**. Accepting one application also closes other open applications for the same applicant.
+
+**Delete** removes a test or leftover application from the list (only if not yet accepted). Prefer **Disregard Application** when you want a record of the erroneous submission.
 
 ---
 
@@ -585,7 +587,7 @@ Pay by card (Stripe) or request check payment to Work Chop Inc. Larger Cooperati
 ### Approve a new member
 
 1. Open **Forms & Documents**.
-2. Click **Accept Member** (do not wait for the bank import).
+2. Click **Accept Member** on the correct application (do not wait for the bank import). If an earlier form was wrong, click **Disregard Application** on that row first.
 3. Later click **Verify Deposits**, or import the bank statement so the deposit posts.
 
 ### Disburse a loan
@@ -654,6 +656,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 | PDF download fails | Wait one minute after a deploy; try again. |
 | Birthday or date off by one day | Ensure latest app version is deployed. |
 | Applicant not on Members list | They stay **Pending Approval** until you click **Accept Member** on **Forms & Documents**. Saving the profile is not enough. |
+| Wrong or duplicate membership application | **Forms & Documents** → **Disregard Application**. Accept the later correct submission. |
 | Dropdown change did nothing | You may have clicked **Cancel** on the reclassify confirm dialog. |
 
 ---

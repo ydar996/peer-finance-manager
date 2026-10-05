@@ -2393,7 +2393,7 @@ function formatFlexxFormsApplicationStatus(status) {
     deposits_verified: "Deposits Verified",
     approved: "Approved",
     duplicate: "Duplicate",
-    rejected: "Rejected",
+    rejected: "Disregarded",
     error: "Processing Error",
   };
   return map[status] || formatAccountStatus(status);
@@ -9045,8 +9045,12 @@ async function loadFlexxFormsApplications() {
           ? `<button type="button" class="btn small ff-verify-deposits" data-id="${a.id}">Verify Deposits</button>`
           : "";
         const reprocessBtn =
-          !["accepted", "deposits_verified", "approved"].includes(a.status)
+          !["accepted", "deposits_verified", "approved", "rejected"].includes(a.status)
             ? `<button type="button" class="btn small ff-reprocess-application" data-id="${a.id}">Reprocess Data</button>`
+            : "";
+        const disregardBtn =
+          !["accepted", "deposits_verified", "approved", "rejected"].includes(a.status)
+            ? `<button type="button" class="btn small ff-reject-application" data-id="${a.id}">Disregard Application</button>`
             : "";
         const deleteBtn =
           !["accepted", "deposits_verified", "approved"].includes(a.status)
@@ -9069,7 +9073,12 @@ async function loadFlexxFormsApplications() {
                 </ul>`
               : `<p class="status err">${escapeHtml(a.processingError || "Profile not created yet")}</p>`
           }
-          <div class="flexxforms-application-actions">${approveBtn}${verifyBtn}${reprocessBtn}${viewBtn}${deleteBtn}</div>
+          ${
+            a.status === "rejected" && a.processingError
+              ? `<p class="hint">${escapeHtml(a.processingError)}</p>`
+              : ""
+          }
+          <div class="flexxforms-application-actions">${approveBtn}${verifyBtn}${reprocessBtn}${disregardBtn}${viewBtn}${deleteBtn}</div>
         </article>`;
       })
       .join("");
@@ -9082,6 +9091,9 @@ async function loadFlexxFormsApplications() {
     list.querySelectorAll(".ff-reprocess-application").forEach((btn) => {
       btn.addEventListener("click", () => reprocessFlexxFormsApplication(btn.dataset.id));
     });
+    list.querySelectorAll(".ff-reject-application").forEach((btn) => {
+      btn.addEventListener("click", () => rejectFlexxFormsApplication(btn.dataset.id));
+    });
     list.querySelectorAll(".ff-delete-application").forEach((btn) => {
       btn.addEventListener("click", () => deleteFlexxFormsApplication(btn.dataset.id));
     });
@@ -9093,6 +9105,36 @@ async function loadFlexxFormsApplications() {
     await refreshAdminAttentionBadges();
   } catch {
     list.innerHTML = '<p class="hint">Unable to load applications</p>';
+  }
+}
+
+async function rejectFlexxFormsApplication(applicationId) {
+  const status = $("#flexxformsFormsStatus");
+  if (!applicationId) return;
+  if (
+    !(await appConfirm(
+      "Disregard this membership application?\n\nUse this for a mistaken or duplicate submission, such as a wrong date of birth. The application is closed and no longer needs attention. If a pending profile exists only for this application and has no ledger activity, that profile is removed. A later correct application can still be accepted.",
+      { title: "Disregard Application", variant: "warning", confirmLabel: "Disregard Application" }
+    ))
+  ) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/flexxforms/applications/${applicationId}/reject`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not disregard application");
+    const message = data.memberRemoved
+      ? "Application disregarded. The unused pending profile was removed."
+      : "Application disregarded. A later correct application can still be accepted.";
+    setFormStatus(status, message, true);
+    await loadFlexxFormsApplications();
+    if (typeof loadMembers === "function") await loadMembers();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
   }
 }
 
