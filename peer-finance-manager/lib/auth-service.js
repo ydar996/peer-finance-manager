@@ -428,7 +428,7 @@ async function emailMemberTempPassword({
     ? `${orgLabel}: Your Member Portal Login`
     : `${orgLabel}: Temporary Member Portal Password`;
   const intro = isWelcome
-    ? `Your membership with ${orgLabel} has been approved. Here are your Peer Finance Manager member portal login details.`
+    ? `Welcome to ${orgLabel}. Your membership has been accepted. Here are your Peer Finance Manager member portal login details.`
     : `An administrator reset your Peer Finance Manager member portal password.`;
   const text =
     `Hello ${memberName},\n\n` +
@@ -466,7 +466,7 @@ function buildMemberLoginCopyText({
   if (purpose === "welcome") {
     return (
       `${greeting}\n\n` +
-      `Your membership is approved. Sign in here:\n` +
+      `Your membership has been accepted. Sign in here:\n` +
       `${portalUrl}\n` +
       `Organization: ${organizationSlug}\n` +
       `Username: ${username}\n` +

@@ -221,6 +221,24 @@ function registerFlexxFormsRoutes(app) {
   );
 
   app.post(
+    "/api/flexxforms/applications/:id/verify-deposits",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const slug = requestOrgSlug(req);
+        const { verifyMembershipDeposits } = require("./flexxforms-service");
+        const result = await verifyMembershipDeposits(slug, req.params.id, {
+          recordPayments: req.body?.recordPayments !== false,
+        });
+        res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
     "/api/flexxforms/applications/:id/reprocess",
     requireAuth,
     requireAdmin,

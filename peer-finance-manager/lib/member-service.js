@@ -164,6 +164,12 @@ function recordMembershipFee(memberId, { feeDate, amount } = {}) {
     `UPDATE members SET membership_fee_paid = 1, joined_at = COALESCE(joined_at, ?) WHERE id = ?`
   ).run(txDate, memberId);
 
+  try {
+    require("./flexxforms-membership-service").maybeNotifyDepositsVerified(memberId);
+  } catch (_) {
+    /* optional follow-up email */
+  }
+
   return { transactionId: txId, amount: signedAmount };
 }
 

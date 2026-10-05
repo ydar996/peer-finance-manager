@@ -731,6 +731,15 @@ async function handleFormSubmitted(slug, payload) {
         } catch (_) {
           /* notice is best-effort */
         }
+        try {
+          const { emailApplicantApplicationReceived } = require("./membership-application-notify");
+          emailApplicantApplicationReceived({
+            to: parsed.email,
+            memberName: parsed.displayName,
+          }).catch(() => {});
+        } catch (_) {
+          /* applicant email is best-effort */
+        }
         return {
           ok: true,
           kind,
@@ -910,5 +919,10 @@ module.exports = {
     runWithOrg(slug, () => {
       const { approveMembershipApplication } = require("./flexxforms-membership-service");
       return approveMembershipApplication(applicationId, userId);
+    }),
+  verifyMembershipDeposits: async (slug, applicationId, options) =>
+    runWithOrg(slug, () => {
+      const { verifyMembershipDeposits } = require("./flexxforms-membership-service");
+      return verifyMembershipDeposits(applicationId, options);
     }),
 };

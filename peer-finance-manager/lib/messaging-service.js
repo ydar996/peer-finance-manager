@@ -664,6 +664,56 @@ function createSystemAdminNotice({
   return { id: threadId, created: true };
 }
 
+/**
+ * Unread portal notice for one member. Does not send a separate email
+ * (callers that need email send a dedicated message).
+ */
+function postMemberSystemNotice({ memberId, subject, body } = {}) {
+  const db = getDb();
+  ensureMessagingSchema(db);
+  const id = Number(memberId);
+  if (!Number.isInteger(id) || id <= 0) return null;
+
+  const memberUser = db
+    .prepare(
+      `SELECT id AS userId FROM users
+       WHERE member_id = ? AND role = 'member' AND active = 1
+       LIMIT 1`
+    )
+    .get(id);
+  if (!memberUser) return { created: false, reason: "no_portal_login" };
+
+  const admins = listActiveAdminUsers(db);
+  const creatorId = admins[0]?.userId || memberUser.userId;
+  const cleanSubject = trimText(assertNonEmpty(subject, "Subject"), MAX_SUBJECT);
+  const prepared = prepareStoredBody(body, "html", []);
+  const now = new Date().toISOString();
+  const insert = db
+    .prepare(
+      `INSERT INTO coop_message_threads
+        (subject, created_by_user_id, created_by_role, audience, created_at, updated_at)
+       VALUES (?, ?, 'system', 'direct', ?, ?)`
+    )
+    .run(cleanSubject, creatorId, now, now);
+  const threadId = insert.lastInsertRowid;
+
+  addAdminParticipants(db, threadId, { markReadForUserId: creatorId });
+  insertParticipant(db, {
+    threadId,
+    userId: memberUser.userId,
+    memberId: id,
+    role: ROLES.MEMBER,
+    lastReadAt: null,
+  });
+  db.prepare(
+    `INSERT INTO coop_messages
+      (thread_id, sender_user_id, sender_role, sender_member_id, body, body_format, created_at)
+     VALUES (?, ?, 'system', NULL, ?, ?, ?)`
+  ).run(threadId, creatorId, prepared.body, prepared.bodyFormat, now);
+
+  return { id: threadId, created: true };
+}
+
 function notifyAdminsOfMembershipApplication({
   applicationId,
   applicantName,
@@ -928,6 +978,7 @@ module.exports = {
   createMemberThread,
   createSystemAdminNotice,
   notifyAdminsOfMembershipApplication,
+  postMemberSystemNotice,
   listInbox,
   getUnreadSummary,
   getThreadDetail,

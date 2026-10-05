@@ -233,7 +233,7 @@ Click **Refresh** to reload after imports or manual entries.
 | **Loan Account** | Active and paid loans with repayment history. |
 | **Upload Photo** | Admin can add or change profile photo. |
 
-**Pending Approval** applicants do **not** appear here until approved (see [Forms & Documents](#16-forms--documents-tab)).
+**Pending Approval** applicants do **not** appear here until you click **Accept Member** (see [Forms & Documents](#17-forms--documents-tab)).
 
 ### Membership ends (resign, death, expulsion, suspension)
 
@@ -489,14 +489,15 @@ Public links appear at the top of this tab to copy and share.
 ### FlexxForms integration
 
 - **Open FlexxForms** to build membership and loan forms.
-- Assign **Membership Form Id**, **Loan Form Id**, and agreement document ids.
+- **Load Forms & Documents.** Each published form appears once: membership forms under **Membership Form**, loan forms under **Loan Form**.
+- Click **Use as Membership Application** or **Use as Loan Application** on that row. A form cannot be linked as both.
 - Click **Save Form & Document Ids**.
 
 ### Link a loan form to Apply for a Loan (member portal)
 
 1. Publish the loan application form in FlexxForms (standalone public form).
 2. In PFM **Forms & Documents**, click **Load Forms & Documents**.
-3. Assign the form to **Loan Application** (or paste the UUID into **Loan Form Id**).
+3. Click **Use as Loan Application** on the loan form row (or paste the UUID into **Loan Form Id**).
 4. Click **Save Form & Document Ids**.
 5. Members see **Apply for a Loan** on **My Account** and can submit the form.
 
@@ -513,22 +514,20 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
 
 ### Membership applications workflow
 
-1. Applicant submits via public **Apply for Membership** link.
+1. Applicant submits via public **Apply for Membership** link. They immediately receive an email: the Cooperative received the application, they are welcome, and they will get another email with transaction details after deposits are verified.
 2. Cooperative admins are notified in three ways:
    - Flashing badge on the **Forms & Documents** tab
    - A flashing banner under the main tabs (click it to open Forms & Documents)
    - An unread **System Notice** in **Messages** (and an email tip when email is configured)
-3. Application appears under **Membership Applications** as **Pending Approval**.
-4. Applicant does **not** appear on **Members & Accounts** yet.
-5. Before **Approve Member**, record on their profile:
-   - **Membership fee** ($100) — **Record** tab or fee workflow.
-   - **Initial contribution** ($100 deposit) — **Record** → **Member Contributions Account**.
-6. When both are recorded, status becomes **Ready for Approval**.
-7. Click **Approve Member** to activate the account.
-8. PFM creates their portal login and **emails** the temporary password when email is configured and an address is on file.
-9. A short login message appears so you can **Copy Welcome Message** (or copy just the temporary password) and send it yourself if needed.
+3. Application appears under **Membership Applications** as **Awaiting Acceptance**. A pending profile is created, but the applicant does **not** appear on the active **Members & Accounts** list yet. **Save Profile** only updates biodata. It does not accept the member, does not create a login, and does not clear the (1) badge.
+4. Click **Accept Member**. That:
+   - Adds them to the active membership list
+   - Creates their portal login
+   - Emails a welcome message with the temporary password when email is configured
+   - Clears the Forms & Documents (1) badge
+5. After Accept, click **Verify Deposits** to record the standard membership fee and initial contribution (if they are not already on the books) and to email the member plus post a portal notice to log in and check balances. If you prefer the bank file, **Import New Bank Activity** can post the deposit; PFM then sends the same verified-deposits email and portal notice automatically.
 
-**Delete** removes a test or mistaken application (only if still Pending Approval with no ledger activity).
+**Delete** removes a test or mistaken application (only if not yet accepted, with no ledger activity).
 
 ---
 
@@ -585,10 +584,9 @@ Pay by card (Stripe) or request check payment to Work Chop Inc. Larger Cooperati
 
 ### Approve a new member
 
-1. Confirm application in **Forms & Documents**.
-2. **Record** registration fee and initial contribution.
-3. **Approve Member**.
-4. **Users** → ensure they have login credentials (or **Generate Member Credentials**).
+1. Open **Forms & Documents**.
+2. Click **Accept Member** (do not wait for the bank import).
+3. Later click **Verify Deposits**, or import the bank statement so the deposit posts.
 
 ### Disburse a loan
 
@@ -655,7 +653,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 | Blank page or login spins | Wait 30 seconds; hard-refresh (**Ctrl+Shift+R**). |
 | PDF download fails | Wait one minute after a deploy; try again. |
 | Birthday or date off by one day | Ensure latest app version is deployed. |
-| Applicant not on Members list | They are **Pending Approval** until you approve them. |
+| Applicant not on Members list | They stay **Pending Approval** until you click **Accept Member** on **Forms & Documents**. Saving the profile is not enough. |
 | Dropdown change did nothing | You may have clicked **Cancel** on the reclassify confirm dialog. |
 
 ---

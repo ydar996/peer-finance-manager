@@ -868,7 +868,9 @@ function refreshMembershipApplicationStatus(applicationId) {
     .prepare(`SELECT id, member_id, status FROM flexxforms_applications WHERE id = ?`)
     .get(applicationId);
   if (!row?.member_id) return null;
-  if (row.status === "approved" || row.status === "duplicate" || row.status === "rejected") {
+  if (
+    ["approved", "accepted", "deposits_verified", "duplicate", "rejected"].includes(row.status)
+  ) {
     return row;
   }
   const readiness = getApplicantPaymentReadiness(row.member_id);
@@ -887,19 +889,15 @@ async function approveMembershipApplication(applicationId, approvedByUserId) {
   ensureMembershipApplicationSchema(db);
   const app = db
     .prepare(
-      `SELECT id, kind, member_id, status FROM flexxforms_applications WHERE id = ?`
+      `SELECT id, kind, member_id, status, applicant_name, applicant_email
+       FROM flexxforms_applications WHERE id = ?`
     )
     .get(applicationId);
   if (!app) throw new Error("Application not found");
   if (app.kind !== "membership") throw new Error("Only membership applications can be approved here");
   if (!app.member_id) throw new Error("Application has no linked member profile yet");
-  if (app.status === "approved") throw new Error("Application is already approved");
-
-  const readiness = getApplicantPaymentReadiness(app.member_id);
-  if (!readiness.canApprove) {
-    throw new Error(
-      `Cannot approve yet. Record membership fee ($${MEMBERSHIP_FEE}) and initial contribution ($${INITIAL_MEMBERSHIP_CONTRIBUTION} deposit) for this applicant first.`
-    );
+  if (["approved", "accepted", "deposits_verified"].includes(app.status)) {
+    throw new Error("Application is already accepted");
   }
 
   const joinedAt = new Date().toISOString().slice(0, 10);
@@ -911,12 +909,11 @@ async function approveMembershipApplication(applicationId, approvedByUserId) {
   db.prepare(`UPDATE members SET joined_at = COALESCE(joined_at, ?) WHERE id = ?`).run(joinedAt, app.member_id);
   db.prepare(
     `UPDATE flexxforms_applications
-     SET status = 'approved', approved_at = datetime('now'), approved_by_user_id = ?,
+     SET status = 'accepted', approved_at = datetime('now'), approved_by_user_id = ?,
          updated_at = datetime('now')
      WHERE id = ?`
   ).run(approvedByUserId || null, applicationId);
 
-  // Create/reset portal login and email welcome credentials to the new member.
   const { resetMemberPortalPassword } = require("./auth-service");
   let login = null;
   try {
@@ -932,11 +929,167 @@ async function approveMembershipApplication(applicationId, approvedByUserId) {
     };
   }
 
+  let deposits = null;
+  try {
+    deposits = await completeDepositVerificationIfReady(applicationId);
+  } catch (_) {
+    deposits = null;
+  }
+
   return {
     memberId: app.member_id,
-    status: "approved",
+    status: deposits?.status || "accepted",
     login,
+    deposits,
   };
+}
+
+async function completeDepositVerificationIfReady(applicationId) {
+  const db = getDb();
+  ensureMembershipApplicationSchema(db);
+  const app = db
+    .prepare(
+      `SELECT id, kind, member_id AS memberId, status, applicant_name AS applicantName,
+              applicant_email AS applicantEmail
+       FROM flexxforms_applications WHERE id = ?`
+    )
+    .get(applicationId);
+  if (!app || app.kind !== "membership" || !app.memberId) return null;
+  if (app.status === "deposits_verified" || app.status === "approved") {
+    return { status: app.status, alreadyVerified: true };
+  }
+  if (app.status !== "accepted") return null;
+
+  const readiness = getApplicantPaymentReadiness(app.memberId);
+  if (!readiness.canApprove) return null;
+
+  db.prepare(
+    `UPDATE flexxforms_applications
+     SET status = 'deposits_verified', updated_at = datetime('now')
+     WHERE id = ?`
+  ).run(applicationId);
+
+  const profile = db
+    .prepare(
+      `SELECT display_name AS displayName, email FROM member_profiles WHERE member_id = ?`
+    )
+    .get(app.memberId);
+  const memberName = profile?.displayName || app.applicantName || "Member";
+  const to = profile?.email || app.applicantEmail || null;
+  const {
+    emailApplicantDepositsVerified,
+    notifyMemberPortalDepositsVerified,
+  } = require("./membership-application-notify");
+
+  let emailResult = { sent: false, skipped: true, reason: "not_attempted" };
+  try {
+    emailResult = await emailApplicantDepositsVerified({
+      to,
+      memberName,
+      feeAmount: readiness.membershipFeeRequired,
+      contributionAmount: readiness.depositTotal || readiness.initialContributionRequired,
+    });
+  } catch (err) {
+    emailResult = { sent: false, skipped: false, reason: "send_failed", error: err.message };
+  }
+
+  let portalNotice = null;
+  try {
+    portalNotice = notifyMemberPortalDepositsVerified({
+      memberId: app.memberId,
+      memberName,
+    });
+  } catch (err) {
+    portalNotice = { created: false, error: err.message };
+  }
+
+  return {
+    status: "deposits_verified",
+    alreadyVerified: false,
+    emailResult,
+    portalNotice,
+    readiness,
+  };
+}
+
+function maybeNotifyDepositsVerified(memberId) {
+  const id = Number(memberId);
+  if (!Number.isInteger(id) || id <= 0) return;
+  try {
+    const db = getDb();
+    ensureMembershipApplicationSchema(db);
+    const app = db
+      .prepare(
+        `SELECT id FROM flexxforms_applications
+         WHERE member_id = ? AND kind = 'membership' AND status = 'accepted'
+         ORDER BY id DESC LIMIT 1`
+      )
+      .get(id);
+    if (!app) return;
+    completeDepositVerificationIfReady(app.id).catch(() => {});
+  } catch (_) {
+    /* best-effort after Record or import */
+  }
+}
+
+async function verifyMembershipDeposits(applicationId, { recordPayments = false } = {}) {
+  const db = getDb();
+  ensureMembershipApplicationSchema(db);
+  const app = db
+    .prepare(
+      `SELECT id, kind, member_id AS memberId, status FROM flexxforms_applications WHERE id = ?`
+    )
+    .get(applicationId);
+  if (!app) throw new Error("Application not found");
+  if (app.kind !== "membership") throw new Error("Only membership applications can be verified here");
+  if (!app.memberId) throw new Error("Application has no linked member profile yet");
+  if (app.status === "deposits_verified" || app.status === "approved") {
+    return { memberId: app.memberId, status: app.status, alreadyVerified: true };
+  }
+  if (app.status !== "accepted") {
+    throw new Error("Accept Member first. Then record or verify the deposits.");
+  }
+
+  if (recordPayments) {
+    const readiness = getApplicantPaymentReadiness(app.memberId);
+    const today = new Date().toISOString().slice(0, 10);
+    if (!readiness.membershipFeePaid) {
+      const { recordMembershipFee } = require("./member-service");
+      recordMembershipFee(app.memberId, { feeDate: today, amount: MEMBERSHIP_FEE });
+    }
+    const afterFee = getApplicantPaymentReadiness(app.memberId);
+    if (!afterFee.initialContributionMet) {
+      const needed = Number(afterFee.initialContributionRequired) - Number(afterFee.depositTotal || 0);
+      if (needed > 0) {
+        const { recordMemberDepositEntry } = require("./manual-entry-service");
+        recordMemberDepositEntry({
+          memberId: app.memberId,
+          type: TRANSACTION_TYPES.DEPOSIT,
+          amount: needed,
+          transactionDate: today,
+          description: "Initial membership contribution",
+        });
+      }
+    }
+  }
+
+  const result = await completeDepositVerificationIfReady(applicationId);
+  if (!result) {
+    const readiness = getApplicantPaymentReadiness(app.memberId);
+    throw new Error(
+      `Deposits are not on the books yet. Record membership fee (${formatMoneySafe(readiness.membershipFeeRequired)}) and initial contribution (${formatMoneySafe(readiness.initialContributionRequired)}) on Record, or click Verify Deposits to record the standard amounts.`
+    );
+  }
+  return { memberId: app.memberId, ...result, alreadyVerified: false };
+}
+
+function formatMoneySafe(amount) {
+  try {
+    const { formatMoney } = require("./money-format");
+    return formatMoney(amount);
+  } catch (_) {
+    return `$${Number(amount || 0).toFixed(0)}`;
+  }
 }
 
 function reprocessMembershipApplication(applicationId, payloadOverride = null) {
@@ -954,8 +1107,8 @@ function reprocessMembershipApplication(applicationId, payloadOverride = null) {
   if (!row.payloadJson && !payloadOverride) {
     throw new Error("Application has no stored submission payload");
   }
-  if (row.status === "approved") {
-    throw new Error("Approved applications cannot be reprocessed automatically");
+  if (["approved", "accepted", "deposits_verified"].includes(row.status)) {
+    throw new Error("Accepted applications cannot be reprocessed automatically");
   }
 
   let storedPayload = null;
@@ -1104,8 +1257,8 @@ function deleteMembershipApplication(applicationId) {
   if (app.kind !== "membership") {
     throw new Error("Only membership applications can be deleted here");
   }
-  if (app.status === "approved") {
-    throw new Error("Approved applications cannot be deleted. Manage the member under Members & Accounts.");
+  if (["approved", "accepted", "deposits_verified"].includes(app.status)) {
+    throw new Error("Accepted applications cannot be deleted. Manage the member under Members & Accounts.");
   }
 
   const memberId = app.memberId || null;
@@ -1166,7 +1319,10 @@ function listMembershipApplications() {
   return rows.map((row) => {
     const readiness = row.memberId ? getApplicantPaymentReadiness(row.memberId) : null;
     let status = row.status;
-    if (row.memberId && !["approved", "duplicate", "rejected"].includes(status)) {
+    if (
+      row.memberId &&
+      !["approved", "accepted", "deposits_verified", "duplicate", "rejected"].includes(status)
+    ) {
       status = readiness?.canApprove ? "awaiting_approval" : "awaiting_payment";
     }
     return { ...row, status, readiness };
@@ -1203,6 +1359,8 @@ module.exports = {
   deleteMembershipApplication,
   refreshMembershipApplicationStatus,
   approveMembershipApplication,
+  verifyMembershipDeposits,
+  maybeNotifyDepositsVerified,
   getApplicantPaymentReadiness,
   listMembershipApplications,
   summarizeMembershipApplications,

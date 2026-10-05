@@ -67,6 +67,13 @@ function recordMemberDepositEntry({
   });
 
   queueCooperativeBankLedgerCsvSync("manual_deposit_entry");
+  if (type === TRANSACTION_TYPES.DEPOSIT) {
+    try {
+      require("./flexxforms-membership-service").maybeNotifyDepositsVerified(memberId);
+    } catch (_) {
+      /* optional follow-up email */
+    }
+  }
   return { transactionId: txId, amount: signedAmount };
 }
 

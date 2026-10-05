@@ -2387,8 +2387,10 @@ function bindMembershipStatusForm(el, memberId) {
 function formatFlexxFormsApplicationStatus(status) {
   const map = {
     pending: "Received",
-    awaiting_payment: "Awaiting Payment",
-    awaiting_approval: "Ready for Approval",
+    awaiting_payment: "Awaiting Acceptance",
+    awaiting_approval: "Awaiting Acceptance",
+    accepted: "Accepted",
+    deposits_verified: "Deposits Verified",
     approved: "Approved",
     duplicate: "Duplicate",
     rejected: "Rejected",
@@ -8722,19 +8724,54 @@ let activeLoanAgreementsId = null;
 let flexxFormsProvisioned = false;
 
 const FLEXXFORMS_FORM_ASSIGN_TARGETS = [
-  { inputId: "ffMembershipFormId", label: "Membership Application" },
-  { inputId: "ffLoanFormId", label: "Loan Application" },
+  { inputId: "ffMembershipFormId", label: "Membership Application", kind: "membership" },
+  { inputId: "ffLoanFormId", label: "Loan Application", kind: "loan" },
 ];
 
 const FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS = [
-  { inputId: "ffGuarantorMasterDocId", label: "Guarantor Master Document" },
-  { inputId: "ffBorrowerMasterDocId", label: "Borrower Master Document" },
+  { inputId: "ffGuarantorMasterDocId", label: "Guarantor Master Document", kind: "guarantor" },
+  { inputId: "ffBorrowerMasterDocId", label: "Borrower Master Document", kind: "borrower" },
 ];
 
 const FLEXXFORMS_ASSIGN_TARGETS = [
   ...FLEXXFORMS_FORM_ASSIGN_TARGETS,
   ...FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS,
 ];
+
+function inferPublishedFormKind(name) {
+  const n = String(name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  const hasLoan = /\bloan\b/.test(n) || n.includes("e loan") || n.includes("eloan");
+  const hasJoin =
+    /\bjoin\b/.test(n) ||
+    /\bmembership\b/.test(n) ||
+    /\bmember\b/.test(n) ||
+    /\bcooperative\b/.test(n);
+  if (hasLoan && !hasJoin) return "loan";
+  if (hasJoin && !hasLoan) return "membership";
+  if (hasLoan) return "loan";
+  return "unknown";
+}
+
+function inferPublishedDocumentKind(name) {
+  const n = String(name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  if (/\bguarantor\b|\bguarantee\b/.test(n)) return "guarantor";
+  if (/\bborrower\b/.test(n)) return "borrower";
+  return "unknown";
+}
+
+function siblingAssignInputIds(inputId) {
+  const formIds = FLEXXFORMS_FORM_ASSIGN_TARGETS.map((t) => t.inputId);
+  const docIds = FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS.map((t) => t.inputId);
+  if (formIds.includes(inputId)) return formIds.filter((id) => id !== inputId);
+  if (docIds.includes(inputId)) return docIds.filter((id) => id !== inputId);
+  return [];
+}
 
 function getFlexxFormsFieldValues() {
   return Object.fromEntries(
@@ -8749,7 +8786,7 @@ function refreshFlexxFormsAssignButtons() {
     const formId = btn.dataset.formId;
     const linked = Boolean(formId && values[inputId] === formId);
     btn.classList.toggle("is-linked", linked);
-    btn.textContent = linked ? `${btn.dataset.label} · Linked` : btn.dataset.label;
+    btn.textContent = linked ? `${btn.dataset.label}: Linked` : `Use as ${btn.dataset.label}`;
   });
 }
 
@@ -8757,34 +8794,47 @@ function assignFlexxFormToField(inputId, formId, label, statusEl) {
   const input = $("#" + inputId);
   if (!input) return;
   input.value = formId;
+  for (const otherId of siblingAssignInputIds(inputId)) {
+    const other = $("#" + otherId);
+    if (other && String(other.value || "").trim() === formId) {
+      other.value = "";
+    }
+  }
   input.classList.add("is-assigned");
   window.setTimeout(() => input.classList.remove("is-assigned"), 1600);
   refreshFlexxFormsAssignButtons();
   if (statusEl) {
-    setFormStatus(statusEl, `Assigned to ${label}. Click Save Form & Document Ids when you are done.`, true);
+    setFormStatus(
+      statusEl,
+      `This form is set as ${label}. Click Save Form & Document Ids when you are done.`,
+      true
+    );
   }
 }
 
-function renderFlexxFormsCatalogItem(item, typeLabel, assignTargets) {
+function renderFlexxFormsCatalogItem(item, typeLabel, assignTarget) {
   const id = item.id || item.formId || item.form_id || item.templateId || "";
   const name = item.name || item.title || item.slug || "Untitled";
-  const assignButtons = assignTargets
-    .map(
-      ({ inputId, label }) =>
-        `<button type="button" class="btn small flexxforms-assign-btn" data-input-id="${escapeHtml(inputId)}" data-form-id="${escapeHtml(id)}" data-label="${escapeHtml(label)}">${escapeHtml(label)}</button>`
-    )
-    .join("");
+  const assignButton = assignTarget
+    ? `<button type="button" class="btn small flexxforms-assign-btn" data-input-id="${escapeHtml(assignTarget.inputId)}" data-form-id="${escapeHtml(id)}" data-label="${escapeHtml(assignTarget.label)}">Use as ${escapeHtml(assignTarget.label)}</button>`
+    : "";
   return `<article class="flexxforms-catalog-item">
     <div class="flexxforms-catalog-item-main">
       <strong class="flexxforms-catalog-item-title">${escapeHtml(name)}</strong>
       <span class="badge">${escapeHtml(typeLabel)}</span>
-      <code class="flexxforms-catalog-item-id">${escapeHtml(id)}</code>
     </div>
     <div class="flexxforms-catalog-item-actions">
-      <span class="hint">Assign to</span>
-      ${assignButtons}
+      ${assignButton}
     </div>
   </article>`;
+}
+
+function renderFlexxFormsCatalogGroup(title, items, typeLabel, kind, targets) {
+  if (!items.length) return "";
+  const target = targets.find((t) => t.kind === kind) || null;
+  return `<p class="subtle flexxforms-catalog-group-title">${escapeHtml(title)}</p>${items
+    .map((item) => renderFlexxFormsCatalogItem(item, typeLabel, target))
+    .join("")}`;
 }
 
 function renderFlexxFormsCatalog(forms, templates, statusEl) {
@@ -8802,32 +8852,89 @@ function renderFlexxFormsCatalog(forms, templates, statusEl) {
     return;
   }
 
+  const membershipForms = formItems.filter((f) => inferPublishedFormKind(f.name || f.title) === "membership");
+  const loanForms = formItems.filter((f) => inferPublishedFormKind(f.name || f.title) === "loan");
+  const otherForms = formItems.filter((f) => inferPublishedFormKind(f.name || f.title) === "unknown");
+  const guarantorDocs = templateItems.filter(
+    (t) => inferPublishedDocumentKind(t.name || t.title) === "guarantor"
+  );
+  const borrowerDocs = templateItems.filter(
+    (t) => inferPublishedDocumentKind(t.name || t.title) === "borrower"
+  );
+  const otherDocs = templateItems.filter((t) => inferPublishedDocumentKind(t.name || t.title) === "unknown");
+
   const chunks = [];
-  if (formItems.length) {
-    chunks.push('<p class="subtle flexxforms-catalog-group-title">Application Forms</p>');
+  chunks.push(renderFlexxFormsCatalogGroup("Membership Form", membershipForms, "Membership", "membership", FLEXXFORMS_FORM_ASSIGN_TARGETS));
+  chunks.push(renderFlexxFormsCatalogGroup("Loan Form", loanForms, "Loan", "loan", FLEXXFORMS_FORM_ASSIGN_TARGETS));
+  if (otherForms.length) {
+    chunks.push('<p class="subtle flexxforms-catalog-group-title">Other Published Forms</p>');
     chunks.push(
-      formItems
-        .map((f) => renderFlexxFormsCatalogItem(f, "Form", FLEXXFORMS_FORM_ASSIGN_TARGETS))
+      otherForms
+        .map((f) => {
+          const id = f.id || f.formId || f.form_id || "";
+          const name = f.name || f.title || "Untitled";
+          const options = FLEXXFORMS_FORM_ASSIGN_TARGETS.map(
+            (t) => `<option value="${escapeHtml(t.inputId)}">${escapeHtml(t.label)}</option>`
+          ).join("");
+          return `<article class="flexxforms-catalog-item">
+            <div class="flexxforms-catalog-item-main">
+              <strong class="flexxforms-catalog-item-title">${escapeHtml(name)}</strong>
+              <span class="badge">Form</span>
+            </div>
+            <div class="flexxforms-catalog-item-actions">
+              <label class="flexxforms-use-as">Use as
+                <select class="flexxforms-use-as-select" data-form-id="${escapeHtml(id)}">${options}</select>
+              </label>
+              <button type="button" class="btn small flexxforms-use-as-btn" data-form-id="${escapeHtml(id)}">Use This Form</button>
+            </div>
+          </article>`;
+        })
         .join("")
     );
   }
-  if (templateItems.length) {
-    chunks.push('<p class="subtle flexxforms-catalog-group-title">Master Documents</p>');
+  chunks.push(
+    renderFlexxFormsCatalogGroup(
+      "Guarantor Agreement",
+      guarantorDocs,
+      "Guarantor",
+      "guarantor",
+      FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS
+    )
+  );
+  chunks.push(
+    renderFlexxFormsCatalogGroup(
+      "Borrower Agreement",
+      borrowerDocs,
+      "Borrower",
+      "borrower",
+      FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS
+    )
+  );
+  if (otherDocs.length) {
     chunks.push(
-      templateItems
-        .map((t) => renderFlexxFormsCatalogItem(t, "Master Document", FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS))
+      otherDocs
+        .map((t) => renderFlexxFormsCatalogItem(t, "Master Document", FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS[0]))
         .join("")
     );
-  } else if (formItems.length) {
+  } else if (formItems.length && !templateItems.length) {
     chunks.push(
       '<p class="flexxforms-catalog-empty hint">No master documents yet. In FlexxForms, create guarantor and borrower templates, mark them Master document, publish, then load again.</p>'
     );
   }
 
-  picker.innerHTML = chunks.join("");
+  picker.innerHTML = chunks.filter(Boolean).join("");
   picker.querySelectorAll(".flexxforms-assign-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       assignFlexxFormToField(btn.dataset.inputId, btn.dataset.formId, btn.dataset.label, statusEl);
+    });
+  });
+  picker.querySelectorAll(".flexxforms-use-as-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const select = picker.querySelector(`.flexxforms-use-as-select[data-form-id="${btn.dataset.formId}"]`);
+      const inputId = select?.value;
+      const target = FLEXXFORMS_FORM_ASSIGN_TARGETS.find((t) => t.inputId === inputId);
+      if (!target) return;
+      assignFlexxFormToField(target.inputId, btn.dataset.formId, target.label, statusEl);
     });
   });
   refreshFlexxFormsAssignButtons();
@@ -8927,16 +9034,22 @@ async function loadFlexxFormsApplications() {
         const depositLabel = readiness.initialContributionMet
           ? `Met ($${Number(readiness.depositTotal || 0).toFixed(2)})`
           : `$${Number(readiness.depositTotal || 0).toFixed(2)} of $${Number(readiness.initialContributionRequired || 0).toFixed(2)}`;
-        const canApprove = a.status === "awaiting_approval" && readiness.canApprove;
-        const approveBtn = canApprove
-          ? `<button type="button" class="btn primary small ff-approve-application" data-id="${a.id}">Approve Member</button>`
+        const canAccept =
+          Boolean(a.memberId) &&
+          !["accepted", "deposits_verified", "approved", "duplicate", "rejected"].includes(a.status);
+        const canVerifyDeposits = a.status === "accepted";
+        const approveBtn = canAccept
+          ? `<button type="button" class="btn primary small ff-approve-application" data-id="${a.id}">Accept Member</button>`
+          : "";
+        const verifyBtn = canVerifyDeposits
+          ? `<button type="button" class="btn small ff-verify-deposits" data-id="${a.id}">Verify Deposits</button>`
           : "";
         const reprocessBtn =
-          a.status !== "approved"
+          !["accepted", "deposits_verified", "approved"].includes(a.status)
             ? `<button type="button" class="btn small ff-reprocess-application" data-id="${a.id}">Reprocess Data</button>`
             : "";
         const deleteBtn =
-          a.status !== "approved"
+          !["accepted", "deposits_verified", "approved"].includes(a.status)
             ? `<button type="button" class="btn linkish small ff-delete-application" data-id="${a.id}">Delete</button>`
             : "";
         const viewBtn = a.memberId
@@ -8956,12 +9069,15 @@ async function loadFlexxFormsApplications() {
                 </ul>`
               : `<p class="status err">${escapeHtml(a.processingError || "Profile not created yet")}</p>`
           }
-          <div class="flexxforms-application-actions">${approveBtn}${reprocessBtn}${viewBtn}${deleteBtn}</div>
+          <div class="flexxforms-application-actions">${approveBtn}${verifyBtn}${reprocessBtn}${viewBtn}${deleteBtn}</div>
         </article>`;
       })
       .join("");
     list.querySelectorAll(".ff-approve-application").forEach((btn) => {
       btn.addEventListener("click", () => approveFlexxFormsApplication(btn.dataset.id));
+    });
+    list.querySelectorAll(".ff-verify-deposits").forEach((btn) => {
+      btn.addEventListener("click", () => verifyFlexxFormsDeposits(btn.dataset.id));
     });
     list.querySelectorAll(".ff-reprocess-application").forEach((btn) => {
       btn.addEventListener("click", () => reprocessFlexxFormsApplication(btn.dataset.id));
@@ -9301,8 +9417,8 @@ async function approveFlexxFormsApplication(applicationId) {
   if (!applicationId) return;
   if (
     !(await appConfirm(
-      "Approve this applicant as an active member? Membership fee and initial contribution must already be recorded. Login details will be emailed when possible.",
-      { title: "Approve Member", variant: "warning", confirmLabel: "Approve" }
+      "Accept this applicant as a member? A portal login will be created and emailed when possible. You can verify deposits after that.",
+      { title: "Accept Member", variant: "warning", confirmLabel: "Accept Member" }
     ))
   ) {
     return;
@@ -9318,22 +9434,57 @@ async function approveFlexxFormsApplication(applicationId) {
       const emailNote = describePasswordEmailResult(login.emailResult, login.notifyEmail);
       setFormStatus(
         status,
-        `Member approved and account activated. ${emailNote}`,
+        `Member accepted and portal login created. ${emailNote}`,
         true
       );
       showMemberPasswordResetResult(login, $("#memberApprovalLoginResult"));
     } else if (login?.error) {
       setFormStatus(
         status,
-        `Member approved, but login setup failed: ${login.error}`,
+        `Member accepted, but login setup failed: ${login.error}`,
         false
       );
     } else {
-      setFormStatus(status, "Member approved and account activated.", true);
+      setFormStatus(status, "Member accepted and account activated.", true);
     }
     await loadFlexxFormsApplications();
     if (typeof loadMembers === "function") await loadMembers();
     if (typeof loadUsers === "function") await loadUsers();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+}
+
+async function verifyFlexxFormsDeposits(applicationId) {
+  const status = $("#flexxformsFormsStatus");
+  if (!applicationId) return;
+  if (
+    !(await appConfirm(
+      "Verify this member's deposits? If the membership fee and initial contribution are not on the books yet, PFM will record the standard amounts as of today, then email the member and post a portal notice.",
+      { title: "Verify Deposits", variant: "warning", confirmLabel: "Verify Deposits" }
+    ))
+  ) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/flexxforms/applications/${applicationId}/verify-deposits`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recordPayments: true }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Verify deposits failed");
+    if (data.alreadyVerified) {
+      setFormStatus(status, "Deposits were already verified for this member.", true);
+    } else {
+      setFormStatus(
+        status,
+        "Deposits verified. The member was emailed and a portal notice was posted.",
+        true
+      );
+    }
+    await loadFlexxFormsApplications();
+    if (typeof loadMembers === "function") await loadMembers();
   } catch (err) {
     setFormStatus(status, err.message, false);
   }

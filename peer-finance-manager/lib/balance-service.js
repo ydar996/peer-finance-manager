@@ -171,7 +171,15 @@ function addTransaction({
       bankImportId ?? null,
       source
     );
-  return result.lastInsertRowid;
+  const txId = result.lastInsertRowid;
+  if (type === TRANSACTION_TYPES.DEPOSIT && memberId) {
+    try {
+      require("./flexxforms-membership-service").maybeNotifyDepositsVerified(memberId);
+    } catch (_) {
+      /* optional follow-up email */
+    }
+  }
+  return txId;
 }
 
 function creditTypes() {
