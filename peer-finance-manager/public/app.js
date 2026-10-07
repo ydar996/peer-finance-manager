@@ -9986,6 +9986,18 @@ function updateMembershipAppsNag(summary) {
   }
 }
 
+let depositAlertBackfillStarted = false;
+
+function maybeBackfillRecentDepositAlerts() {
+  if (depositAlertBackfillStarted || currentUser?.role !== "admin") return;
+  depositAlertBackfillStarted = true;
+  fetch("/api/bank-import/deposits/notify-latest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ maxAgeHours: 72 }),
+  }).catch(() => {});
+}
+
 async function refreshAdminAttentionBadges() {
   if (currentUser?.role !== "admin") {
     updateMembershipAppsNag({ pendingCount: 0 });
@@ -9993,6 +10005,7 @@ async function refreshAdminAttentionBadges() {
     updateTabAttentionBadge($("#messagesTabUnreadBadge"), 0, '.tab[data-tab="messages"]');
     return;
   }
+  maybeBackfillRecentDepositAlerts();
   try {
     const [appsRes, msgRes] = await Promise.all([
       fetch("/api/flexxforms/applications/summary"),

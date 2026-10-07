@@ -980,7 +980,7 @@ app.post(
   requireAdmin,
   upload.single("statement"),
   restoreOrgContext,
-  (req, res) => {
+  async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "Upload a statement or template file." });
       const { applyBankStatementAppend } = require("./lib/bank-import-append");
@@ -999,6 +999,18 @@ app.post(
         allowPartial: req.body?.allowPartial !== "false",
         rowOverrides,
       });
+      if (result.applied && result.insertedRows?.length) {
+        try {
+          const {
+            notifyImportedMemberDeposits,
+            formatDepositAlertStatus,
+          } = require("./lib/deposit-credit-alert");
+          result.depositAlerts = await notifyImportedMemberDeposits(result.insertedRows);
+          result.message = `${result.message || ""}${formatDepositAlertStatus(result.depositAlerts)}`.trim();
+        } catch (_alertErr) {
+          result.depositAlerts = { sent: 0, failed: 1, skipped: 0 };
+        }
+      }
       res.json({ success: true, result });
     } catch (err) {
       res.status(400).json({ error: err.message, preview: err.preview || null });
@@ -1013,6 +1025,31 @@ app.get("/api/bank-imports", requireCooperativeView, (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.post(
+  "/api/bank-import/deposits/notify-latest",
+  requireAdmin,
+  restoreOrgContext,
+  async (req, res) => {
+    try {
+      const {
+        notifyLatestImportedDeposits,
+        formatDepositAlertStatus,
+      } = require("./lib/deposit-credit-alert");
+      const maxAgeHours = Number(req.body?.maxAgeHours);
+      const depositAlerts = await notifyLatestImportedDeposits({
+        maxAgeHours: Number.isFinite(maxAgeHours) && maxAgeHours > 0 ? maxAgeHours : 72,
+      });
+      res.json({
+        success: true,
+        result: depositAlerts,
+        message: formatDepositAlertStatus(depositAlerts).trim() || "No new deposit alerts to send.",
+      });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
 
 app.post(
   "/api/bank-ledger/reference/sort-upload",

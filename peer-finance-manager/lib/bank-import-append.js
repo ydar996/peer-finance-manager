@@ -347,7 +347,7 @@ function insertAppendTransaction({
   counts,
 }) {
   const type = mapLedgerType(tx.ledgerType);
-  if (!type) return false;
+  if (!type) return { inserted: false };
 
   const [year, month] = (tx.date || "").split("-").map(Number);
   const reference = `append:${tx.date}:${tx.amount}:${fingerprint.slice(-24)}`;
@@ -371,7 +371,7 @@ function insertAppendTransaction({
     );
     counts.expenses += 1;
     counts.inserted += 1;
-    return true;
+    return { inserted: true, type };
   }
 
   if (
@@ -396,13 +396,13 @@ function insertAppendTransaction({
     if (type === TRANSACTION_TYPES.CD_PURCHASE) counts.cdPurchases += 1;
     if (type === TRANSACTION_TYPES.CD_LIQUIDATION) counts.cdLiquidations += 1;
     if (type === TRANSACTION_TYPES.INVESTMENT) counts.investments += 1;
-    return true;
+    return { inserted: true, type };
   }
 
-  if (!MEMBER_LEDGER_TYPES.has(type)) return false;
+  if (!MEMBER_LEDGER_TYPES.has(type)) return { inserted: false };
 
   const memberId = tx.member ? nameToId[tx.member] : null;
-  if (!memberId && memberRequiredForType(type)) return false;
+  if (!memberId && memberRequiredForType(type)) return { inserted: false };
 
   let signedAmount = tx.amount;
   if (type === TRANSACTION_TYPES.WITHDRAWAL && signedAmount > 0) {
@@ -442,7 +442,16 @@ function insertAppendTransaction({
   if (type === TRANSACTION_TYPES.LOAN_REPAYMENT) counts.loanRepayments += 1;
   if (type === TRANSACTION_TYPES.LOAN_DISBURSEMENT) counts.loanDisbursements += 1;
   if (type === TRANSACTION_TYPES.DISTRIBUTION) counts.distributions += 1;
-  return true;
+  return {
+    inserted: true,
+    transactionId: Number(insertInfo.lastInsertRowid) || null,
+    memberId: memberId || null,
+    type,
+    date: tx.date,
+    amount: signedAmount,
+    description: tx.description,
+    member: tx.member || null,
+  };
 }
 
 function applyBankStatementAppend({
@@ -561,7 +570,7 @@ function applyBankStatementAppend({
         ledgerType: row.ledgerType || parsed.ledgerType,
         member: row.member != null ? row.member : parsed.member,
       };
-      const ok = insertAppendTransaction({
+      const inserted = insertAppendTransaction({
         db,
         insertTx,
         insertExpense,
@@ -572,13 +581,15 @@ function applyBankStatementAppend({
         fingerprint: row.fingerprint,
         counts,
       });
-      if (ok) {
+      if (inserted?.inserted) {
         insertedRows.push({
-          date: tx.date,
-          amount: tx.amount,
-          member: tx.member,
-          description: tx.description,
-          type: tx.ledgerType,
+          transactionId: inserted.transactionId || null,
+          date: inserted.date || tx.date,
+          amount: inserted.amount != null ? inserted.amount : tx.amount,
+          member: inserted.member || tx.member || null,
+          memberId: inserted.memberId || null,
+          description: inserted.description || tx.description,
+          type: inserted.type || tx.ledgerType,
         });
       }
     }
@@ -623,6 +634,7 @@ function applyBankStatementAppend({
     ...preview,
     applied: counts.inserted > 0,
     inserted: counts.inserted,
+    importId,
     counts,
     insertedRows,
     archived,

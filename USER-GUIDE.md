@@ -324,7 +324,8 @@ Upload a **cumulative** bank export: **period start through today**. PFM skips r
    - **Red Blocked:** fix the issue before applying (see [When Numbers Look Wrong](#21-when-numbers-look-wrong)).
    - **Green note** (ledger above statement beginning): normal for re-uploads; duplicates will be Skipped.
 7. Click **Add New Transactions**.
-8. Check **Cooperative Books** : **Bank Reconcile Status** should show **Reconciled** after a successful import.
+8. Members whose **Member Deposit** or **Loan Repayment** rows were added are emailed an acknowledgment for that payment date (one email per member, listing each item). This happens automatically for every Cooperative. Re-uploading the same file does not email again (those rows are Skipped). **Full Ledger Refresh** does not send these emails.
+9. Check **Cooperative Books** : **Bank Reconcile Status** should show **Reconciled** after a successful import.
 
 When you leave **Import** (any other tab), the last preview, chosen file, and status clear. Coming back starts a new upload session.
 
@@ -577,7 +578,7 @@ Pay by card (Stripe) or request check payment to Work Chop Inc. Larger Cooperati
 
 1. **Import New Bank Activity** — cumulative statement through today.
 2. Fix any **Review** rows in preview; confirm balance check is green.
-3. Click **Add New Transactions**.
+3. Click **Add New Transactions**. Members with new deposits or loan repayments are emailed automatically.
 4. Open **Cooperative Books** → confirm **Ledger Checking Balance** matches your bank.
 5. Spot-check a few members on **Members & Accounts**.
 6. **Generate PDF Statements** (Statements tab).
