@@ -175,28 +175,37 @@ async function sendMeetingAnnouncedEmails(meetingOrId, options = {}) {
   if (!meeting || meeting.status !== "announced") {
     return { skipped: true, reason: "not_announced" };
   }
+  const { renderAutomatedEmail } = require("./automated-message-service");
   const branding = getOrganizationBranding();
   const portalUrl = getMemberPortalUrl();
   const dedupeKey = options.bypassDedupe
     ? `meeting_announced_manual:${meeting.id}:${Date.now()}`
     : `meeting_announced:${meeting.id}:${meeting.announcedAt || meeting.updatedAt}`;
-  const subject = `${branding.organizationName} : Meeting Announcement: ${meeting.title}`;
+  const vars = {
+    orgName: branding.organizationName,
+    portalUrl,
+    meetingTitle: meeting.title,
+    meetingDetails: meetingDetailsText(meeting),
+  };
+  const sample = renderAutomatedEmail("meeting_announced", {
+    ...vars,
+    memberName: "Member",
+  });
 
   return sendMemberBroadcastEmail({
     triggerType: "meeting_announced",
     dedupeKey,
-    subject,
+    subject: sample.subject,
     textFor: (recipient) =>
-      `Hello ${recipient.memberName},\n` +
-      `A Cooperative meeting has been scheduled:\n` +
-      meetingDetailsText(meeting) +
-      `\n` +
-      meetingEmailClosingText(branding, portalUrl),
+      renderAutomatedEmail("meeting_announced", {
+        ...vars,
+        memberName: recipient.memberName,
+      }).text,
     htmlFor: (recipient) =>
-      `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
-      `<p>A Cooperative meeting has been scheduled:</p>` +
-      meetingDetailsHtml(meeting) +
-      meetingEmailClosingHtml(branding, portalUrl),
+      renderAutomatedEmail("meeting_announced", {
+        ...vars,
+        memberName: recipient.memberName,
+      }).html,
   });
 }
 
@@ -206,25 +215,33 @@ async function sendMeetingCancelledEmails(meetingOrId) {
   if (!meeting || meeting.status !== "cancelled") {
     return { skipped: true, reason: "not_cancelled" };
   }
+  const { renderAutomatedEmail } = require("./automated-message-service");
   const branding = getOrganizationBranding();
   const dedupeKey = `meeting_cancelled:${meeting.id}:${meeting.cancelledAt || meeting.updatedAt}`;
-  const subject = `${branding.organizationName} : Meeting Cancelled: ${meeting.title}`;
+  const vars = {
+    orgName: branding.organizationName,
+    meetingTitle: meeting.title,
+    meetingWhen: `${meeting.meetingDateLabel} at ${meeting.meetingTimeLabel}`,
+  };
+  const sample = renderAutomatedEmail("meeting_cancelled", {
+    ...vars,
+    memberName: "Member",
+  });
 
   return sendMemberBroadcastEmail({
     triggerType: "meeting_cancelled",
     dedupeKey,
-    subject,
+    subject: sample.subject,
     textFor: (recipient) =>
-      `Hello ${recipient.memberName},\n\n` +
-      `The following Cooperative meeting has been cancelled:\n\n` +
-      `${meeting.title} : ${meeting.meetingDateLabel} at ${meeting.meetingTimeLabel}\n\n` +
-      `${branding.organizationName}`,
+      renderAutomatedEmail("meeting_cancelled", {
+        ...vars,
+        memberName: recipient.memberName,
+      }).text,
     htmlFor: (recipient) =>
-      `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
-      `<p>The following Cooperative meeting has been cancelled:</p>` +
-      `<p><strong>${escapeHtml(meeting.title)}</strong><br>` +
-      `${escapeHtml(meeting.meetingDateLabel)} at ${escapeHtml(meeting.meetingTimeLabel)}</p>` +
-      `<p>${escapeHtml(branding.organizationName)}</p>`,
+      renderAutomatedEmail("meeting_cancelled", {
+        ...vars,
+        memberName: recipient.memberName,
+      }).html,
   });
 }
 
@@ -234,26 +251,35 @@ async function sendMeetingReminderEmails(meetingOrId) {
   if (!meeting || meeting.status !== "announced") {
     return { skipped: true, reason: "not_announced" };
   }
+  const { renderAutomatedEmail } = require("./automated-message-service");
   const branding = getOrganizationBranding();
   const portalUrl = getMemberPortalUrl();
   const dedupeKey = `meeting_reminder:${meeting.id}:${meeting.meetingDate}:${meeting.meetingTime}`;
-  const subject = `${branding.organizationName} : Meeting Reminder: ${meeting.title}`;
+  const vars = {
+    orgName: branding.organizationName,
+    portalUrl,
+    meetingTitle: meeting.title,
+    meetingDetails: meetingDetailsText(meeting),
+  };
+  const sample = renderAutomatedEmail("meeting_reminder", {
+    ...vars,
+    memberName: "Member",
+  });
 
   return sendMemberBroadcastEmail({
     triggerType: "meeting_reminder",
     dedupeKey,
-    subject,
+    subject: sample.subject,
     textFor: (recipient) =>
-      `Hello ${recipient.memberName},\n` +
-      `Reminder : Cooperative meeting coming up:\n` +
-      meetingDetailsText(meeting) +
-      `\n` +
-      meetingEmailClosingText(branding, portalUrl),
+      renderAutomatedEmail("meeting_reminder", {
+        ...vars,
+        memberName: recipient.memberName,
+      }).text,
     htmlFor: (recipient) =>
-      `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
-      `<p>Reminder : Cooperative meeting coming up:</p>` +
-      meetingDetailsHtml(meeting) +
-      meetingEmailClosingHtml(branding, portalUrl),
+      renderAutomatedEmail("meeting_reminder", {
+        ...vars,
+        memberName: recipient.memberName,
+      }).html,
   });
 }
 

@@ -371,10 +371,17 @@ function senderDisplayName(user) {
 
 function queueNewMessageEmails({ thread, messagePreview, recipientUserIds, senderUserId }) {
   if (!isEmailConfigured()) return { queued: false, reason: "email_not_configured" };
+  const { renderAutomatedEmail } = require("./automated-message-service");
   const db = getDb();
   const portalUrl = getMemberPortalUrl();
-  const subject = `New Message: ${thread.subject}`;
   const preview = trimText(messagePreview, 280);
+  const sample = renderAutomatedEmail("inbox_new_message", {
+    memberName: "Member",
+    messageSubject: thread.subject,
+    messagePreview: preview,
+    portalUrl,
+  });
+  const subject = sample.subject;
   let sent = 0;
   let failed = 0;
 
@@ -392,26 +399,18 @@ function queueNewMessageEmails({ thread, messagePreview, recipientUserIds, sende
       .get(userId);
     const email = String(row?.email || row?.userEmail || "").trim();
     if (!email) continue;
-    const text = [
-      `Hello ${row.name || ""},`,
-      "",
-      `You have a new message in your Cooperative portal.`,
-      "",
-      `Subject: ${thread.subject}`,
-      "",
-      preview,
-      "",
-      `Sign in to read and reply: ${portalUrl}`,
-      "",
-    ].join("\n");
-    const html = `
-      <p>Hello ${escapeHtml(row.name || "")},</p>
-      <p>You have a new message in your Cooperative portal.</p>
-      <p><strong>Subject:</strong> ${escapeHtml(thread.subject)}</p>
-      <p>${escapeHtml(preview).replace(/\n/g, "<br>")}</p>
-      <p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>
-    `;
-    sendEmail({ to: email, subject, text, html }).then(
+    const message = renderAutomatedEmail("inbox_new_message", {
+      memberName: row.name || "Member",
+      messageSubject: thread.subject,
+      messagePreview: preview,
+      portalUrl,
+    });
+    sendEmail({
+      to: email,
+      subject: message.subject || subject,
+      text: message.text,
+      html: message.html,
+    }).then(
       () => {
         sent += 1;
       },

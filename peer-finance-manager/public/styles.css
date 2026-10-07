@@ -1539,7 +1539,8 @@ tr.loan-row:hover { background: #f8fafc; }
   min-width: 0;
 }
 .entry-form input,
-.entry-form select {
+.entry-form select,
+.entry-form textarea {
   font-weight: 400;
   padding: 8px 10px;
   border: 1px solid #cbd5e1;
@@ -2744,4 +2745,38 @@ tr.loan-row:hover { background: #f8fafc; }
   .messages-thread-view.messages-mobile-focus .messages-reply-form textarea {
     min-height: 120px;
   }
+}
+
+.automated-messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.automated-message-placeholders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.automated-message-placeholders code {
+  font-size: 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.automated-message-preview {
+  white-space: pre-wrap;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+.automated-message-form textarea {
+  min-height: 220px;
+  resize: vertical;
+  font-family: inherit;
 }

@@ -189,29 +189,36 @@ async function sendCooperativeReportPublishedEmails(periodSlug) {
   if (!record?.is_published) return { skipped: true, reason: "not_published" };
 
   const period = parseAsOfDate(record.as_of_date);
+  const { renderAutomatedEmail } = require("./automated-message-service");
   const branding = getOrganizationBrandingForReport();
   const portalUrl = getMemberPortalUrl();
   const dedupeKey = `published:${periodSlug}:${record.published_at || record.generated_at}`;
-  const subject = `${branding.organizationName} : Cooperative Status Report Published`;
+  const vars = {
+    orgName: branding.organizationName,
+    portalUrl,
+    periodLabel: period.periodLabel,
+    asOfDate: period.labelUs,
+  };
+  const sample = renderAutomatedEmail("report_published", {
+    ...vars,
+    memberName: "Member",
+  });
 
   return sendReportReminderEmails({
     triggerType: "report_published",
     dedupeKey,
     periodSlug,
-    subject,
+    subject: sample.subject,
     textFor: (recipient) =>
-      `Hello ${recipient.memberName},\n\n` +
-      `The Cooperative monthly status report for ${period.periodLabel} (as at ${period.labelUs}) is now available on the member portal. ` +
-      `You can also review your personal account statements there.\n\n` +
-      `Sign in: ${portalUrl}\n\n` +
-      `${branding.organizationName}`,
+      renderAutomatedEmail("report_published", {
+        ...vars,
+        memberName: recipient.memberName,
+      }).text,
     htmlFor: (recipient) =>
-      `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
-      `<p>The Cooperative monthly status report for <strong>${escapeHtml(period.periodLabel)}</strong> ` +
-      `(as at ${escapeHtml(period.labelUs)}) is now available on the member portal. ` +
-      `You can also review your personal account statements there.</p>` +
-      `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>` +
-      `<p>${escapeHtml(branding.organizationName)}</p>`,
+      renderAutomatedEmail("report_published", {
+        ...vars,
+        memberName: recipient.memberName,
+      }).html,
   });
 }
 
@@ -221,26 +228,34 @@ async function sendMonthEndReportReminderEmails(date = new Date()) {
   const period = defaultReportAsOfToday(date);
   const dateIso = period.dateIso;
   const dedupeKey = `month_end:${dateIso}`;
+  const { renderAutomatedEmail } = require("./automated-message-service");
   const branding = getOrganizationBrandingForReport();
   const portalUrl = getMemberPortalUrl();
-  const subject = `${branding.organizationName} : Review Your Monthly Reports`;
+  const vars = {
+    orgName: branding.organizationName,
+    portalUrl,
+    periodLabel: period.periodLabel,
+  };
+  const sample = renderAutomatedEmail("month_end", {
+    ...vars,
+    memberName: "Member",
+  });
 
   return sendReportReminderEmails({
     triggerType: "month_end",
     dedupeKey,
     periodSlug: period.slug,
-    subject,
+    subject: sample.subject,
     textFor: (recipient) =>
-      `Hello ${recipient.memberName},\n\n` +
-      `Today is the last day of ${period.periodLabel}. Please sign in to the member portal to review your personal account statements and the Cooperative monthly status report.\n\n` +
-      `Sign in: ${portalUrl}\n\n` +
-      `${branding.organizationName}`,
+      renderAutomatedEmail("month_end", {
+        ...vars,
+        memberName: recipient.memberName,
+      }).text,
     htmlFor: (recipient) =>
-      `<p>Hello ${escapeHtml(recipient.memberName)},</p>` +
-      `<p>Today is the last day of <strong>${escapeHtml(period.periodLabel)}</strong>. ` +
-      `Please sign in to the member portal to review your personal account statements and the Cooperative monthly status report.</p>` +
-      `<p><a href="${escapeHtml(portalUrl)}">Sign In to the Member Portal</a></p>` +
-      `<p>${escapeHtml(branding.organizationName)}</p>`,
+      renderAutomatedEmail("month_end", {
+        ...vars,
+        memberName: recipient.memberName,
+      }).html,
   });
 }
 

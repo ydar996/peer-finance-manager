@@ -421,37 +421,28 @@ async function emailMemberTempPassword({
     return { sent: false, skipped: true, reason: "no_email" };
   }
 
+  const { renderAutomatedEmail } = require("./automated-message-service");
   const portalUrl = getMemberPortalLoginUrl(organizationSlug);
   const orgLabel = organizationName || "Your Cooperative";
   const isWelcome = purpose === "welcome";
-  const subject = isWelcome
-    ? `${orgLabel}: Your Member Portal Login`
-    : `${orgLabel}: Temporary Member Portal Password`;
-  const intro = isWelcome
-    ? `Welcome to ${orgLabel}. Your membership has been accepted. Here are your Peer Finance Manager member portal login details.`
-    : `An administrator reset your Peer Finance Manager member portal password.`;
-  const text =
-    `Hello ${memberName},\n\n` +
-    `${intro}\n\n` +
-    `Organization code: ${organizationSlug}\n` +
-    `Sign-in page: ${portalUrl}\n` +
-    `Username: ${username}\n` +
-    `Temporary password: ${tempPassword}\n\n` +
-    `You must change this password after you sign in.\n\n` +
-    `If you did not expect this email, contact your Cooperative administrator.\n`;
-  const html =
-    `<p>Hello ${escapeHtmlAuth(memberName)},</p>` +
-    `<p>${escapeHtmlAuth(intro)}</p>` +
-    `<ul>` +
-    `<li><strong>Organization Code:</strong> ${escapeHtmlAuth(organizationSlug)}</li>` +
-    `<li><strong>Sign-In Page:</strong> <a href="${escapeHtmlAuth(portalUrl)}">${escapeHtmlAuth(portalUrl)}</a></li>` +
-    `<li><strong>Username:</strong> ${escapeHtmlAuth(username)}</li>` +
-    `<li><strong>Temporary Password:</strong> ${escapeHtmlAuth(tempPassword)}</li>` +
-    `</ul>` +
-    `<p>You must change this password after you sign in.</p>` +
-    `<p>If you did not expect this email, contact your Cooperative administrator.</p>`;
+  const message = renderAutomatedEmail(
+    isWelcome ? "member_welcome_login" : "member_password_reset",
+    {
+      memberName,
+      orgName: orgLabel,
+      organizationCode: organizationSlug,
+      username,
+      tempPassword,
+      portalUrl,
+    }
+  );
 
-  return sendEmail({ to, subject, text, html });
+  return sendEmail({
+    to,
+    subject: message.subject,
+    text: message.text,
+    html: message.html,
+  });
 }
 
 function buildMemberLoginCopyText({

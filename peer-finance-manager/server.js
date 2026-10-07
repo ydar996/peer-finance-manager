@@ -1406,6 +1406,47 @@ app.post("/api/books/meetings/:id/resend-announcement", requireAdmin, async (req
   }
 });
 
+app.get("/api/cooperative/automated-messages", requireAdmin, restoreOrgContext, (_req, res) => {
+  try {
+    const { listAutomatedMessages } = require("./lib/automated-message-service");
+    res.json({ messages: listAutomatedMessages() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/cooperative/automated-messages/:id", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { getAutomatedMessage } = require("./lib/automated-message-service");
+    res.json({ message: getAutomatedMessage(req.params.id) });
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+app.put("/api/cooperative/automated-messages/:id", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { saveAutomatedMessage } = require("./lib/automated-message-service");
+    res.json({
+      message: saveAutomatedMessage(req.params.id, {
+        subject: req.body?.subject,
+        body: req.body?.body,
+      }),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/cooperative/automated-messages/:id/reset", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { resetAutomatedMessage } = require("./lib/automated-message-service");
+    res.json({ message: resetAutomatedMessage(req.params.id) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.get("/api/books/email-audit", requireAdmin, (req, res) => {
   try {
     const {
@@ -1594,6 +1635,18 @@ function startServer(port, callback) {
       setInterval(() => {
         runScheduledMeetingJobsForAllOrganizations().catch((err) => {
           trace.info("Meeting reminder scheduler error", { error: err.message });
+        });
+      }, 6 * 60 * 60 * 1000);
+
+      const {
+        runScheduledLoanDueNoticesForAllOrganizations,
+      } = require("./lib/loan-due-notice");
+      runScheduledLoanDueNoticesForAllOrganizations().catch((err) => {
+        trace.info("Loan due notice scheduler error", { error: err.message });
+      });
+      setInterval(() => {
+        runScheduledLoanDueNoticesForAllOrganizations().catch((err) => {
+          trace.info("Loan due notice scheduler error", { error: err.message });
         });
       }, 6 * 60 * 60 * 1000);
 

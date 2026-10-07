@@ -1491,6 +1491,9 @@ function switchTab(name, options = {}) {
   if (name === "public-pages" && currentUser?.role === "admin" && !sameTab) loadPublicPagesPanel();
   if (name === "forms" && currentUser?.role === "admin" && !sameTab) loadFlexxFormsSettings();
   if (name === "subscription" && currentUser?.role === "admin" && !sameTab) loadPlatformSubscriptionPanel();
+  if (name === "automated-messages" && currentUser?.role === "admin" && !sameTab) {
+    loadAutomatedMessagesPanel();
+  }
   if (name === "maintenance" && currentUser?.role === "admin" && !sameTab) loadMaintenancePanel();
   if (name === "books" && (currentUser?.role === "admin" || currentUser?.role === "staff") && !sameTab) {
     loadBooks();
@@ -5138,6 +5141,163 @@ async function loadMyMeetings() {
     card.classList.add("hidden");
   }
 }
+
+function fillAutomatedMessagePreview(template, values) {
+  return String(template || "").replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, key) => {
+    if (!Object.prototype.hasOwnProperty.call(values || {}, key)) return `{{${key}}}`;
+    const value = values[key];
+    return value == null ? "" : String(value);
+  });
+}
+
+function updateAutomatedMessagePreview(card) {
+  const preview = card.querySelector(".automated-message-preview");
+  if (!preview) return;
+  let values = {};
+  try {
+    values = JSON.parse(card.dataset.sampleValues || "{}");
+  } catch {
+    values = {};
+  }
+  const subject = card.querySelector("[name='subject']")?.value || "";
+  const body = card.querySelector("[name='body']")?.value || "";
+  preview.textContent =
+    `${fillAutomatedMessagePreview(subject, values)}\n\n${fillAutomatedMessagePreview(body, values)}`.trim();
+}
+
+function renderAutomatedMessageCard(tpl) {
+  const card = document.createElement("details");
+  card.className = "card profile-disclosure automated-message-card";
+  card.dataset.messageId = tpl.id;
+  card.dataset.sampleValues = JSON.stringify(tpl.sampleValues || {});
+  const customized = tpl.customized
+    ? `<span class="badge">Customized</span>`
+    : "";
+  const placeholders = (tpl.placeholders || [])
+    .map(
+      (item) =>
+        `<code title="${escapeHtml(item.meaning)}">{{${escapeHtml(item.token)}}}</code>`
+    )
+    .join("");
+  card.innerHTML = `
+    <summary>${escapeHtml(tpl.title)} ${customized}</summary>
+    <div class="profile-disclosure-body">
+      <p class="subtle">${escapeHtml(tpl.description)}</p>
+      <p class="hint">Placeholders</p>
+      <div class="automated-message-placeholders">${placeholders}</div>
+      <form class="entry-form automated-message-form">
+        <label>Subject
+          <input type="text" name="subject" maxlength="200" required />
+        </label>
+        <label>Message
+          <textarea name="body" rows="12" maxlength="8000" required></textarea>
+        </label>
+        <p class="hint">Preview with Sample Values</p>
+        <pre class="automated-message-preview"></pre>
+        <div class="panel-head-actions">
+          <button type="submit" class="btn primary">Save Message</button>
+          <button type="button" class="btn automated-message-reset">Restore Default</button>
+        </div>
+        <p class="status automated-message-status"></p>
+      </form>
+    </div>
+  `;
+  const subjectInput = card.querySelector("[name='subject']");
+  const bodyInput = card.querySelector("[name='body']");
+  if (subjectInput) subjectInput.value = tpl.subject || "";
+  if (bodyInput) bodyInput.value = tpl.body || "";
+  updateAutomatedMessagePreview(card);
+  card.querySelector("[name='subject']")?.addEventListener("input", () => updateAutomatedMessagePreview(card));
+  card.querySelector("[name='body']")?.addEventListener("input", () => updateAutomatedMessagePreview(card));
+  card.querySelector(".automated-message-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveAutomatedMessageCard(card);
+  });
+  card.querySelector(".automated-message-reset")?.addEventListener("click", () => {
+    resetAutomatedMessageCard(card);
+  });
+  return card;
+}
+
+async function loadAutomatedMessagesPanel() {
+  const list = $("#automatedMessagesList");
+  const status = $("#automatedMessagesStatus");
+  if (!list || currentUser?.role !== "admin") return;
+  if (status) {
+    status.textContent = "";
+    status.className = "status";
+  }
+  try {
+    const res = await fetch("/api/cooperative/automated-messages");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load automated messages");
+    list.innerHTML = "";
+    for (const tpl of data.messages || []) {
+      list.appendChild(renderAutomatedMessageCard(tpl));
+    }
+    if (!data.messages?.length) {
+      list.innerHTML = `<p class="subtle">No automated messages found.</p>`;
+    }
+  } catch (err) {
+    list.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+async function saveAutomatedMessageCard(card) {
+  const id = card.dataset.messageId;
+  const status = card.querySelector(".automated-message-status");
+  try {
+    const res = await fetch(`/api/cooperative/automated-messages/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: card.querySelector("[name='subject']")?.value || "",
+        body: card.querySelector("[name='body']")?.value || "",
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed");
+    if (status) {
+      status.textContent = "Saved. The next send uses this wording.";
+      status.className = "status ok";
+    }
+    await loadAutomatedMessagesPanel();
+    const next = document.querySelector(`[data-message-id="${id}"]`);
+    if (next) next.open = true;
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+}
+
+async function resetAutomatedMessageCard(card) {
+  const id = card.dataset.messageId;
+  const status = card.querySelector(".automated-message-status");
+  try {
+    const res = await fetch(
+      `/api/cooperative/automated-messages/${encodeURIComponent(id)}/reset`,
+      { method: "POST" }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Restore failed");
+    if (status) {
+      status.textContent = "Restored the default wording.";
+      status.className = "status ok";
+    }
+    await loadAutomatedMessagesPanel();
+    const next = document.querySelector(`[data-message-id="${id}"]`);
+    if (next) next.open = true;
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+}
+
+$("#refreshAutomatedMessages")?.addEventListener("click", loadAutomatedMessagesPanel);
 
 $("#cooperativeMeetingForm")?.addEventListener("submit", saveCooperativeMeetingDraft);
 $("#resetCooperativeMeetingForm")?.addEventListener("click", resetCooperativeMeetingForm);

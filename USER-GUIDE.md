@@ -36,14 +36,15 @@ Login placeholders use a sample code (`acme`), not a live Cooperative. The app u
 16. [Public Pages Tab](#16-public-pages-tab)
 17. [Forms & Documents Tab](#17-forms--documents-tab)
 18. [Users Tab — Logins and Passwords](#18-users-tab--logins-and-passwords)
-19. [Subscription Tab](#19-subscription-tab)
-20. [Common Monthly Workflows](#20-common-monthly-workflows)
-21. [Fix a Misclassified Bank Entry](#21-fix-a-misclassified-bank-entry)
-22. [When Numbers Look Wrong](#22-when-numbers-look-wrong)
-23. [Common Problems](#23-common-problems)
-24. [Maintenance Tab (Backup, Restore, Profile Tools)](#24-maintenance-tab-backup-restore-profile-tools)
-25. [Offline App on Your PC](#25-offline-app-on-your-pc)
-26. [Getting Help](#26-getting-help)
+19. [Automated Messages Tab](#19-automated-messages-tab)
+20. [Subscription Tab](#20-subscription-tab)
+21. [Common Monthly Workflows](#21-common-monthly-workflows)
+22. [Fix a Misclassified Bank Entry](#22-fix-a-misclassified-bank-entry)
+23. [When Numbers Look Wrong](#23-when-numbers-look-wrong)
+24. [Common Problems](#24-common-problems)
+25. [Maintenance Tab (Backup, Restore, Profile Tools)](#25-maintenance-tab-backup-restore-profile-tools)
+26. [Offline App on Your PC](#26-offline-app-on-your-pc)
+27. [Getting Help](#27-getting-help)
 
 ---
 
@@ -180,6 +181,7 @@ The top-right shows your **role** (Administrator, Staff, or Member) and your nam
 | **Forms & Documents** | FlexxForms setup; review and approve membership applications. |
 | **Subscription** | PFM platform billing (Stripe or check). |
 | **Users** | Member logins, staff accounts, download credentials. |
+| **Automated Messages** | View and edit the wording of emails members receive automatically. |
 | **Maintenance** | Download/restore database backup; normalize profiles. |
 
 Most sections use **expandable panels** (click the header to open). You only open what you need.
@@ -321,7 +323,7 @@ Upload a **cumulative** bank export: **period start through today**. PFM skips r
 | **Review** | Confirm the row. Change **Type**/**Member** if wrong, or click **Approve as Is** (or **Approve Suggested Rows**) when the suggestion is already correct. |
 
 6. Read the **balance check** line:
-   - **Red Blocked:** fix the issue before applying (see [When Numbers Look Wrong](#21-when-numbers-look-wrong)).
+   - **Red Blocked:** fix the issue before applying (see [When Numbers Look Wrong](#23-when-numbers-look-wrong)).
    - **Green note** (ledger above statement beginning): normal for re-uploads; duplicates will be Skipped.
 7. Click **Add New Transactions**.
 8. Members whose **Member Deposit** or **Loan Repayment** rows were added are emailed an acknowledgment for that payment date (one email per member, listing each item). This happens automatically for every Cooperative. Re-uploading the same file does not email again (those rows are Skipped). **Full Ledger Refresh** does not send these emails.
@@ -414,6 +416,8 @@ Create new loans on the **Record** tab → **New Loan**.
 
 Record repayments on **Record** → **Loan Repayment**, or via bank import when classified as **Loan Repayment**.
 
+**Due Date Emails:** On the installment due date (the same calendar day as disbursement, each month after that date; for example a 5/22 disbursement is due every 22nd after), each borrower is emailed the payment amount due and the outstanding loan balance as of that date. If they have already sent the payment, the notice says to disregard it pending bank reconciliation. After the repayment is confirmed, they receive the usual payment acknowledgment with the transaction date. Admins can open **Automated Messages** at any time to adjust this wording.
+
 ---
 
 ## 13. Monthly Status Report Tab
@@ -446,7 +450,8 @@ Cooperative-wide performance PDF for members.
 | **Schedule a meeting** | Expand **Schedule a Meeting** → title, date, time, location, agenda → **Save Draft** → announce when ready. |
 | **Member view** | Announced meetings appear on every member's portal. |
 | **Email reminders** | Configure under **Meeting Reminder Settings** (requires email setup). |
-| **Email Send Audit** | **Refresh Audit** to see which notification emails were sent or failed. |
+| **Email Send Audit** | **Refresh Audit** to see which notification emails were sent or failed, including meeting notices, deposit/loan repayment acknowledgments, and loan payment due notices. |
+| **Automated Messages** | Open the **Automated Messages** tab to view every automatic email and adjust the subject or wording. |
 
 ---
 
@@ -556,7 +561,21 @@ Temporary passwords must be changed on first member sign-in. Former members cann
 
 ---
 
-## 19. Subscription Tab
+## 19. Automated Messages Tab
+
+Open **Automated Messages** any time to read and edit the emails members receive automatically (loan payment due, deposit/loan repayment confirmed, membership received, deposits verified, welcome login, password reset, meeting notices, published reports, month-end reminder, and new portal message tips).
+
+| Action | What it does |
+|--------|--------------|
+| **Open a message** | Shows the current subject, body, placeholders, and a sample preview. |
+| **Save Message** | Stores your wording for this Cooperative. The next send uses it. |
+| **Restore Default** | Returns that message to the original PFM wording. |
+
+Placeholders such as `{{memberName}}`, `{{paymentAmount}}`, and `{{dueDate}}` are filled in when the email is sent. Do not remove a placeholder if you still want that value in the message.
+
+---
+
+## 20. Subscription Tab
 
 Manage your Cooperative's **Peer Finance Manager** platform subscription (Stripe or check payment). Admin only.
 
@@ -572,7 +591,7 @@ Pay by card (Stripe) or request check payment to Work Chop Inc. Larger Cooperati
 
 ---
 
-## 20. Common Monthly Workflows
+## 21. Common Monthly Workflows
 
 ### Treasurer month-end checklist
 
@@ -599,7 +618,7 @@ Pay by card (Stripe) or request check payment to Work Chop Inc. Larger Cooperati
 
 ---
 
-## 21. Fix a Misclassified Bank Entry
+## 22. Fix a Misclassified Bank Entry
 
 On **Members & Accounts**, open the member → expand **Contributions Account** or **Loan Account**.
 
@@ -634,21 +653,21 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 
 ---
 
-## 22. When Numbers Look Wrong
+## 23. When Numbers Look Wrong
 
 | Situation | What to do |
 |-----------|------------|
 | **Bank balance wrong after import** | Check preview **Review** rows. Re-upload cumulative stmt; Skipped rows are fine. |
 | **Import blocked (ledger below statement beginning)** | Ledger is missing history. **Full Ledger Refresh** with master file, then import stmt again. |
 | **Import blocked (ending mismatch)** | Fix **Type**/**Member** on **New** rows in preview, or fix base ledger first. |
-| **One member's row wrong** | [Reclassify or split](#20-fix-a-misclassified-bank-entry) on **Contributions Account** or **Loan Account** (Bank Ledger Rows). |
+| **One member's row wrong** | [Reclassify or split](#22-fix-a-misclassified-bank-entry) on **Contributions Account** or **Loan Account** (Bank Ledger Rows). |
 | **Payment covers loan and contribution** | **Split** on the full bank row: set lines and **Save Split** (Coop Admin). |
 | **Whole ledger corrupted** | **Full Ledger Refresh** (master) + **Import New Bank Activity** (current month stmt). |
 | **Bank Reconcile Status: Out of Sync** | Cash balance at the verified date drifted, or an older build flagged a split’s extra ledger row. Prefer **Full Ledger Refresh** + cumulative stmt import if the **balance** is wrong. If only the row count changed after a Split and the bank balance is still correct, deploy the classification row-align fix (or Refresh Cooperative Books after that deploy). |
 
 ---
 
-## 23. Common Problems
+## 24. Common Problems
 
 | Problem | What to try |
 |---------|-------------|
@@ -662,7 +681,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 
 ---
 
-## 24. Maintenance Tab (Backup, Restore, Profile Tools)
+## 25. Maintenance Tab (Backup, Restore, Profile Tools)
 
 **Admin → Maintenance** is where Cooperative admins back up, restore, and normalize profiles on the live site.
 
@@ -677,7 +696,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 
 ---
 
-## 25. Offline App on Your PC
+## 26. Offline App on Your PC
 
 **PeerFinanceManager.exe** in the AssurCoop folder works without internet for desk work.
 
@@ -685,15 +704,15 @@ It does **not** auto-sync with the live website. See [UPDATE-AND-PUBLISH.md](./U
 
 ---
 
-## 26. Getting Help
+## 27. Getting Help
 
 | Need | Contact |
 |------|---------|
 | **Technical / admin issues** | Your Cooperative administrator (e.g. Yinka Daramola: `yinka@eworkchop.com` for Assurance). |
 | **Deploy and publish app changes** | [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) |
-| **Database backup or restore** | **Admin → Maintenance** (see §24) |
+| **Database backup or restore** | **Admin → Maintenance** (see §25) |
 | **Email notifications setup** | [EMAIL-NOTIFICATIONS-SETUP.md](./EMAIL-NOTIFICATIONS-SETUP.md) or [BLUEHOST-EMAIL-RELAY-SETUP.md](./BLUEHOST-EMAIL-RELAY-SETUP.md) |
 
 ---
 
-*Last updated: August 24, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*
+*Last updated: October 7, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*

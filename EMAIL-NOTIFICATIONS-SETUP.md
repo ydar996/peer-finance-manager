@@ -14,7 +14,11 @@ The app can email members automatically when:
 
 1. **You publish** a cooperative monthly status report, or  
 2. It is the **last day of the month** (reminder to sign in and check their reports), or  
-3. **You announce a cooperative meeting** (and again as an automatic reminder before the meeting, if enabled under Meetings & Announcements).
+3. **You announce a cooperative meeting** (and again as an automatic reminder before the meeting, if enabled under Meetings & Announcements), or  
+4. **A loan installment is due** (same calendar day as disbursement, each month after; for example a 5/22 disbursement is due every 22nd after), with the amount due, outstanding balance, and a note to disregard the email if payment was already sent, or  
+5. **A Member Deposit or Loan Repayment is confirmed** (acknowledgment with the transaction date).
+
+Administrators can open **Automated Messages** in the app at any time to read and adjust the wording of these emails.
 
 Emails go to members who have an **email on file** (profile email or member login email).
 

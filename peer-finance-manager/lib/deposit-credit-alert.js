@@ -176,51 +176,28 @@ function alertSubjectKind(items) {
 }
 
 function buildDepositAlertEmail({ memberName, deposits, branding }) {
+  const { renderAutomatedEmail } = require("./automated-message-service");
   const greeting = memberName || "Member";
   const items = deposits || [];
-  const plural = items.length > 1;
-  const subject = `${branding.name}: ${alertSubjectKind(items)}`;
-
   const lines = items.map((d) => {
     const dateLabel = formatCooperativeDate(d.date) || d.date;
     const amountLabel = formatMoney(d.amount);
     const kindLabel = creditAlertLabel(d.type);
     return { dateLabel, amountLabel, kindLabel };
   });
+  const details =
+    lines.length > 1
+      ? "Your Cooperative has recorded the following:\n" +
+        lines.map((line) => `- ${line.dateLabel}: ${line.kindLabel} ${line.amountLabel}`).join("\n")
+      : `Your Cooperative has recorded your ${lines[0]?.kindLabel} of ${lines[0]?.amountLabel} on ${lines[0]?.dateLabel}.`;
 
-  let bodyLead;
-  if (!plural) {
-    bodyLead = `Your Cooperative has recorded your ${lines[0].kindLabel} of ${lines[0].amountLabel} on ${lines[0].dateLabel}.`;
-  } else {
-    bodyLead = "Your Cooperative has recorded the following:";
-  }
-
-  const listText = plural
-    ? lines.map((line) => `- ${line.dateLabel}: ${line.kindLabel} ${line.amountLabel}`).join("\n")
-    : "";
-  const listHtml = plural
-    ? `<ul>${lines
-        .map(
-          (line) =>
-            `<li>${escapeHtml(line.dateLabel)}: ${escapeHtml(line.kindLabel)} ${escapeHtml(line.amountLabel)}</li>`
-        )
-        .join("")}</ul>`
-    : "";
-
-  const text =
-    `Hello ${greeting},\n\n` +
-    `${bodyLead}\n` +
-    (listText ? `${listText}\n\n` : "\n") +
-    `You can also view this in the member portal:\n${branding.portalUrl}\n`;
-
-  const html =
-    `<p>Hello ${escapeHtml(greeting)},</p>` +
-    `<p>${escapeHtml(bodyLead)}</p>` +
-    listHtml +
-    `<p>You can also view this in the member portal:<br>` +
-    `<a href="${escapeHtml(branding.portalUrl)}">${escapeHtml(branding.portalUrl)}</a></p>`;
-
-  return { subject, text, html };
+  return renderAutomatedEmail("deposit_credit_alert", {
+    memberName: greeting,
+    orgName: branding.name,
+    portalUrl: branding.portalUrl,
+    alertKind: alertSubjectKind(items),
+    details,
+  });
 }
 
 function formatDepositAlertStatus(alerts) {

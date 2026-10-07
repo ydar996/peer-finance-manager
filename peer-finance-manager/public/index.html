@@ -465,6 +465,7 @@
           <p class="nav-group-label">Administration</p>
         <button type="button" class="tab" data-tab="subscription" data-roles="admin">Subscription</button>
         <button type="button" class="tab" data-tab="users" data-roles="admin">Users</button>
+        <button type="button" class="tab" data-tab="automated-messages" data-roles="admin">Automated Messages</button>
         <button type="button" class="tab" data-tab="maintenance" data-roles="admin">Maintenance</button>
         <button type="button" class="tab" data-tab="my-account" data-roles="member">My Account</button>
         </div>
@@ -2037,6 +2038,18 @@
             <p id="bankImportSummary" class="subtle"></p>
           </div>
         </details>
+      </section>
+
+      <section id="panel-automated-messages" class="panel">
+        <div class="panel-head">
+          <h2>Automated Messages</h2>
+          <button type="button" class="btn" id="refreshAutomatedMessages">Refresh</button>
+        </div>
+        <p class="hint">Open Any Message to Adjust the Subject and Wording. Placeholders such as {{memberName}} Are Filled in When the Email is Sent. Restore Default Returns the Original Copy.</p>
+        <p id="automatedMessagesStatus" class="status"></p>
+        <div id="automatedMessagesList" class="automated-messages-list">
+          <p class="subtle">Loading…</p>
+        </div>
       </section>
 
       <section id="panel-maintenance" class="panel">

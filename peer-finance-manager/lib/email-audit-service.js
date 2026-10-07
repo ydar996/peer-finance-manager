@@ -9,6 +9,7 @@ const TRIGGER_LABELS = {
   report_published: "Status Report Published",
   month_end: "Month-End Report Reminder",
   deposit_credit_alert: "Deposit/Loan Repayment Received",
+  loan_due_notice: "Loan Payment Due",
 };
 
 function ensureEmailAuditTables(db = getDb()) {
