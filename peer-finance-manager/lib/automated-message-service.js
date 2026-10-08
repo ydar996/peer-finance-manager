@@ -181,7 +181,7 @@ const CATALOG = [
     defaultBody:
       "Hello {{memberName}},\n\n" +
       "Your first deposit of {{depositAmount}} has been verified for {{orgName}}.\n\n" +
-      "The membership fee ({{feeAmount}}) was added to membership fee income. The remaining {{contributionAmount}} is in your contributions account.\n\n" +
+      "The agreed membership application fee of {{feeAmount}} has been deducted from your initial deposit. The remaining {{contributionAmount}} has been credited to your contributions account as your first deposit.\n\n" +
       "Please sign in to the member portal to check your balances and continue using the portal going forward.\n" +
       "{{portalUrl}}",
     sample: {

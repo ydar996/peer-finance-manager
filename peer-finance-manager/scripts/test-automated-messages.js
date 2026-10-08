@@ -61,6 +61,12 @@ function testDefaults() {
   assert.match(verified.text, /\$150\.00/);
   assert.match(verified.text, /\$50\.00/);
   assert.match(verified.text, /\$100\.00/);
+  assert.match(verified.text, /agreed membership application fee of \$100\.00/);
+  assert.match(
+    verified.text,
+    /remaining \$50\.00 has been credited to your contributions account as your first deposit/
+  );
+  assert.doesNotMatch(verified.text, /membership fee income/i);
   assert.doesNotMatch(verified.text, /initial contribution/i);
 
   const built = buildLoanDueNoticeEmail({

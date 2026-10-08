@@ -164,6 +164,14 @@ async function run() {
       notice.body.includes(formatMoney(150)),
       "Verified notice states the leftover contributions balance after the fee"
     );
+    assert.match(
+      notice.body,
+      /agreed membership application fee/i
+    );
+    assert.match(
+      notice.body,
+      /has been credited to your contributions account as your first deposit/i
+    );
     assert.equal(
       /initial contribution \(\$100/.test(notice.body),
       false,

@@ -155,7 +155,10 @@ function noticeHasVerifiedAmounts(body, amounts) {
   const text = String(body || "");
   const extraLabel = formatMoney(amounts.contributionAmount);
   const depositLabel = formatMoney(amounts.depositAmount);
-  return text.includes(extraLabel) && text.includes(depositLabel);
+  const hasNewWording =
+    /agreed membership application fee/i.test(text) &&
+    /has been credited to your contributions account/i.test(text);
+  return text.includes(extraLabel) && text.includes(depositLabel) && hasNewWording;
 }
 
 function rewriteDepositsVerifiedNotice(notice, html) {
@@ -199,7 +202,7 @@ async function sendDepositsVerifiedCorrectionEmail({
     depositTotal: depositAmount,
     extraAfterFee: contributionAmount,
   });
-  const dedupeKey = `deposits-verified-correction:v1:${memberId}:${amounts.depositAmount}:${amounts.feeAmount}:${amounts.contributionAmount}`;
+  const dedupeKey = `deposits-verified-correction:v2:${memberId}:${amounts.depositAmount}:${amounts.feeAmount}:${amounts.contributionAmount}`;
   if (correctionAlreadySent(dedupeKey)) {
     return { sent: false, skipped: true, reason: "already_sent", dedupeKey };
   }
