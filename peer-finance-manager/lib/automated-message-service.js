@@ -168,24 +168,27 @@ const CATALOG = [
     id: "deposits_verified",
     title: "Deposits Have Been Verified",
     description:
-      "Sent when membership fee and initial contribution are verified (Verify Deposits or a later bank confirmation).",
+      "Sent when a first deposit is verified: membership fee deducted, leftover in the contributions account.",
     placeholders: [
       { token: "memberName", meaning: "Member name" },
       { token: "orgName", meaning: "Cooperative name" },
-      { token: "feeAmount", meaning: "Membership fee" },
-      { token: "contributionAmount", meaning: "Initial contribution" },
+      { token: "feeAmount", meaning: "Membership fee deducted" },
+      { token: "depositAmount", meaning: "First deposit total" },
+      { token: "contributionAmount", meaning: "Amount remaining in the contributions account after the fee" },
       { token: "portalUrl", meaning: "Member portal sign-in link" },
     ],
     defaultSubject: "{{orgName}}: Your Deposits Have Been Verified",
     defaultBody:
       "Hello {{memberName}},\n\n" +
-      "Your membership fee ({{feeAmount}}) and initial contribution ({{contributionAmount}}) have been verified for {{orgName}}.\n\n" +
+      "Your first deposit of {{depositAmount}} has been verified for {{orgName}}.\n\n" +
+      "The membership fee ({{feeAmount}}) was added to membership fee income. The remaining {{contributionAmount}} is in your contributions account.\n\n" +
       "Please sign in to the member portal to check your balances and continue using the portal going forward.\n" +
       "{{portalUrl}}",
     sample: {
       memberName: "Ada Okeke",
       feeAmount: "$100.00",
-      contributionAmount: "$1,000.00",
+      depositAmount: "$150.00",
+      contributionAmount: "$50.00",
     },
   },
   {

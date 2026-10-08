@@ -1011,7 +1011,8 @@ async function completeDepositVerificationIfReady(applicationId) {
       to,
       memberName,
       feeAmount: readiness.membershipFeeRequired,
-      contributionAmount: readiness.depositTotal || readiness.initialContributionRequired,
+      depositAmount: readiness.depositTotal,
+      contributionAmount: readiness.extraAfterFee,
     });
   } catch (err) {
     emailResult = { sent: false, skipped: false, reason: "send_failed", error: err.message };
@@ -1022,6 +1023,9 @@ async function completeDepositVerificationIfReady(applicationId) {
     portalNotice = notifyMemberPortalDepositsVerified({
       memberId: app.memberId,
       memberName,
+      feeAmount: readiness.membershipFeeRequired,
+      depositAmount: readiness.depositTotal,
+      contributionAmount: readiness.extraAfterFee,
     });
   } catch (err) {
     portalNotice = { created: false, error: err.message };
@@ -1103,6 +1107,77 @@ async function verifyMembershipDeposits(applicationId, { recordPayments = false 
     );
   }
   return { memberId: app.memberId, ...result, alreadyVerified: false };
+}
+
+async function correctMismatchedDepositsVerifiedNotices() {
+  const db = getDb();
+  ensureMembershipApplicationSchema(db);
+  let apps = [];
+  try {
+    apps = db
+      .prepare(
+        `SELECT id, member_id AS memberId, applicant_name AS applicantName,
+                applicant_email AS applicantEmail
+         FROM flexxforms_applications
+         WHERE kind = 'membership'
+           AND status IN ('deposits_verified', 'approved')
+           AND member_id IS NOT NULL`
+      )
+      .all();
+  } catch (_) {
+    return { scanned: 0, rewritten: 0, emailed: 0 };
+  }
+
+  const {
+    depositsVerifiedAmounts,
+    renderDepositsVerifiedMessage,
+    findDepositsVerifiedNotice,
+    noticeHasVerifiedAmounts,
+    rewriteDepositsVerifiedNotice,
+    sendDepositsVerifiedCorrectionEmail,
+  } = require("./membership-application-notify");
+
+  let rewritten = 0;
+  let emailed = 0;
+  for (const app of apps) {
+    const readiness = getApplicantPaymentReadiness(app.memberId);
+    if (!readiness.membershipFeePaid || Number(readiness.depositTotal) <= 0) continue;
+    const amounts = depositsVerifiedAmounts(readiness);
+    const notice = findDepositsVerifiedNotice(app.memberId);
+    if (notice && noticeHasVerifiedAmounts(notice.body, amounts)) continue;
+    if (!notice) {
+      const leftoverDiffers =
+        Math.abs(amounts.contributionAmount - INITIAL_MEMBERSHIP_CONTRIBUTION) > 0.005;
+      const depositDiffers =
+        Math.abs(amounts.depositAmount - INITIAL_MEMBERSHIP_CONTRIBUTION) > 0.005;
+      if (!leftoverDiffers && !depositDiffers) continue;
+    }
+
+    const profile = db
+      .prepare(
+        `SELECT display_name AS displayName, email FROM member_profiles WHERE member_id = ?`
+      )
+      .get(app.memberId);
+    const memberName = profile?.displayName || app.applicantName || "Member";
+    const to = profile?.email || app.applicantEmail || null;
+    const { message } = renderDepositsVerifiedMessage({
+      memberName,
+      ...amounts,
+    });
+    if (notice) {
+      rewriteDepositsVerifiedNotice(notice, message.html);
+      rewritten += 1;
+    }
+
+    const emailResult = await sendDepositsVerifiedCorrectionEmail({
+      to,
+      memberId: app.memberId,
+      memberName,
+      ...amounts,
+    });
+    if (emailResult.sent) emailed += 1;
+  }
+  return { scanned: apps.length, rewritten, emailed };
 }
 
 function formatMoneySafe(amount) {
@@ -1493,6 +1568,7 @@ module.exports = {
   approveMembershipApplication,
   verifyMembershipDeposits,
   maybeNotifyDepositsVerified,
+  correctMismatchedDepositsVerifiedNotices,
   getApplicantPaymentReadiness,
   listMembershipApplications,
   summarizeMembershipApplications,

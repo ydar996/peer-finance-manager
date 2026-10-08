@@ -10,6 +10,7 @@ const TRIGGER_LABELS = {
   month_end: "Month-End Report Reminder",
   deposit_credit_alert: "Deposit/Loan Repayment Received",
   loan_due_notice: "Loan Payment Due",
+  deposits_verified_correction: "Deposits Verified (Corrected Amounts)",
 };
 
 function ensureEmailAuditTables(db = getDb()) {

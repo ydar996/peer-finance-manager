@@ -1675,6 +1675,25 @@ function startServer(port, callback) {
               error: err.message,
             });
           }
+          const {
+            correctMismatchedDepositsVerifiedNotices,
+          } = require("./lib/flexxforms-membership-service");
+          correctMismatchedDepositsVerifiedNotices()
+            .then((result) => {
+              if (result.rewritten || result.emailed) {
+                trace.info("Deposits verified notice amounts corrected", {
+                  orgSlug: org.slug,
+                  rewritten: result.rewritten,
+                  emailed: result.emailed,
+                });
+              }
+            })
+            .catch((err) => {
+              trace.info("Deposits verified notice correction skipped", {
+                orgSlug: org.slug,
+                error: err.message,
+              });
+            });
         });
       }
     } catch (err) {

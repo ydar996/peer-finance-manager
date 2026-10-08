@@ -21,7 +21,9 @@ const {
   summarizeMembershipApplications,
   rejectMembershipApplication,
   getApplicantPaymentReadiness,
+  correctMismatchedDepositsVerifiedNotices,
 } = require("../lib/flexxforms-membership-service");
+const { formatMoney } = require("../lib/money-format");
 const { listActiveDirectoryMembers } = require("../lib/membership-status-service");
 const { recordMemberDepositEntry } = require("../lib/manual-entry-service");
 const { getMemberDepositAccountBalance } = require("../lib/balance-service");
@@ -144,9 +146,41 @@ async function run() {
     );
 
     const notice = db
-      .prepare(`SELECT subject FROM coop_message_threads WHERE subject LIKE '%Deposits Have Been Verified%'`)
+      .prepare(
+        `SELECT t.subject, m.body, m.id AS messageId
+         FROM coop_message_threads t
+         JOIN coop_messages m ON m.thread_id = t.id
+         WHERE t.subject LIKE '%Deposits Have Been Verified%'
+         ORDER BY m.id DESC
+         LIMIT 1`
+      )
       .get();
     assert.ok(notice, "Portal notice is posted after deposit verification");
+    assert.ok(
+      notice.body.includes(formatMoney(250)),
+      "Verified notice states the actual $250 deposit"
+    );
+    assert.ok(
+      notice.body.includes(formatMoney(150)),
+      "Verified notice states the leftover contributions balance after the fee"
+    );
+    assert.equal(
+      /initial contribution \(\$100/.test(notice.body),
+      false,
+      "Verified notice does not treat leftover as a second $100 contribution"
+    );
+
+    db.prepare(`UPDATE coop_messages SET body = ? WHERE id = ?`).run(
+      "Your membership fee ($100.00) and initial contribution ($100.00) have been verified.",
+      notice.messageId
+    );
+    const corrected = await correctMismatchedDepositsVerifiedNotices();
+    assert.ok(corrected.rewritten >= 1, "Mismatched $100/$100 copy is rewritten");
+    const rewritten = db
+      .prepare(`SELECT body FROM coop_messages WHERE id = ?`)
+      .get(notice.messageId);
+    assert.ok(rewritten.body.includes(formatMoney(250)));
+    assert.ok(rewritten.body.includes(formatMoney(150)));
 
     assert.throws(
       () => rejectMembershipApplication(applicationId),

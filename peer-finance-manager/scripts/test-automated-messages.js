@@ -51,6 +51,18 @@ function testDefaults() {
   assert.match(due.text, /as soon as it is confirmed/);
   assert.doesNotMatch(due.text, /imported/i);
 
+  const verified = renderAutomatedEmail("deposits_verified", {
+    memberName: "Olayemi Daramola",
+    orgName: "Test Cooperative",
+    feeAmount: "$100.00",
+    depositAmount: "$150.00",
+    contributionAmount: "$50.00",
+  });
+  assert.match(verified.text, /\$150\.00/);
+  assert.match(verified.text, /\$50\.00/);
+  assert.match(verified.text, /\$100\.00/);
+  assert.doesNotMatch(verified.text, /initial contribution/i);
+
   const built = buildLoanDueNoticeEmail({
     memberName: "Ada Okeke",
     dueDate: "2026-06-22",
