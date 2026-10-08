@@ -735,8 +735,17 @@ function getApplicantPaymentReadiness(memberId) {
       )
       .get(memberId, TRANSACTION_TYPES.DEPOSIT)?.total || 0;
 
-  const membershipFeePaid = Boolean(member?.membership_fee_paid);
-  const initialContributionMet = Number(depositTotal) >= INITIAL_MEMBERSHIP_CONTRIBUTION;
+  const membershipFeePaid =
+    Boolean(member?.membership_fee_paid) ||
+    Boolean(
+      db
+        .prepare(`SELECT 1 FROM transactions WHERE member_id = ? AND type = ? LIMIT 1`)
+        .get(memberId, TRANSACTION_TYPES.MEMBERSHIP_FEE)
+    );
+  const extraAfterFee = membershipFeePaid
+    ? Number(depositTotal) - MEMBERSHIP_FEE
+    : Number(depositTotal);
+  const initialContributionMet = extraAfterFee + 0.005 >= 0 && Number(depositTotal) > 0;
 
   return {
     membershipFeePaid,
@@ -744,7 +753,8 @@ function getApplicantPaymentReadiness(memberId) {
     initialContributionMet,
     initialContributionRequired: INITIAL_MEMBERSHIP_CONTRIBUTION,
     depositTotal: Number(depositTotal),
-    canApprove: membershipFeePaid && initialContributionMet,
+    extraAfterFee: Math.round(extraAfterFee * 100) / 100,
+    canApprove: membershipFeePaid && Number(depositTotal) > 0,
   };
 }
 
@@ -937,6 +947,12 @@ async function approveMembershipApplication(applicationId, approvedByUserId) {
     };
   }
 
+  try {
+    require("./member-service").applyMembershipFeeFromFirstDeposit(app.member_id);
+  } catch (_) {
+    /* fee applies when a first deposit is already on the books */
+  }
+
   let deposits = null;
   try {
     deposits = await completeDepositVerificationIfReady(applicationId);
@@ -1059,25 +1075,23 @@ async function verifyMembershipDeposits(applicationId, { recordPayments = false 
   }
 
   if (recordPayments) {
+    const { applyMembershipFeeFromFirstDeposit, recordMembershipFee } = require("./member-service");
+    applyMembershipFeeFromFirstDeposit(app.memberId);
     const readiness = getApplicantPaymentReadiness(app.memberId);
     const today = new Date().toISOString().slice(0, 10);
     if (!readiness.membershipFeePaid) {
-      const { recordMembershipFee } = require("./member-service");
       recordMembershipFee(app.memberId, { feeDate: today, amount: MEMBERSHIP_FEE });
     }
     const afterFee = getApplicantPaymentReadiness(app.memberId);
-    if (!afterFee.initialContributionMet) {
-      const needed = Number(afterFee.initialContributionRequired) - Number(afterFee.depositTotal || 0);
-      if (needed > 0) {
-        const { recordMemberDepositEntry } = require("./manual-entry-service");
-        recordMemberDepositEntry({
-          memberId: app.memberId,
-          type: TRANSACTION_TYPES.DEPOSIT,
-          amount: needed,
-          transactionDate: today,
-          description: "Initial membership contribution",
-        });
-      }
+    if (!afterFee.depositTotal) {
+      const { recordMemberDepositEntry } = require("./manual-entry-service");
+      recordMemberDepositEntry({
+        memberId: app.memberId,
+        type: TRANSACTION_TYPES.DEPOSIT,
+        amount: INITIAL_MEMBERSHIP_CONTRIBUTION,
+        transactionDate: today,
+        description: "Initial membership contribution",
+      });
     }
   }
 

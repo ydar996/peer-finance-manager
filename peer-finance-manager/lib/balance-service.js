@@ -174,6 +174,11 @@ function addTransaction({
   const txId = result.lastInsertRowid;
   if (type === TRANSACTION_TYPES.DEPOSIT && memberId) {
     try {
+      require("./member-service").applyMembershipFeeFromFirstDeposit(memberId);
+    } catch (_) {
+      /* fee split is best-effort; deposit still posts */
+    }
+    try {
       require("./flexxforms-membership-service").maybeNotifyDepositsVerified(memberId);
     } catch (_) {
       /* optional follow-up email */

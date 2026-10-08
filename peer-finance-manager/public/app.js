@@ -9191,9 +9191,12 @@ async function loadFlexxFormsApplications() {
       .map((a) => {
         const readiness = a.readiness || {};
         const feeLabel = readiness.membershipFeePaid ? "Paid" : "Not recorded";
-        const depositLabel = readiness.initialContributionMet
-          ? `Met ($${Number(readiness.depositTotal || 0).toFixed(2)})`
-          : `$${Number(readiness.depositTotal || 0).toFixed(2)} of $${Number(readiness.initialContributionRequired || 0).toFixed(2)}`;
+        const extraAfterFee = Number(readiness.extraAfterFee ?? 0);
+        const depositLabel = readiness.membershipFeePaid
+          ? `$${extraAfterFee.toFixed(2)} After Fee`
+          : Number(readiness.depositTotal)
+            ? `$${Number(readiness.depositTotal).toFixed(2)} On File (Fee Not Yet Deducted)`
+            : "Not Recorded";
         const canAccept =
           Boolean(a.memberId) &&
           !["accepted", "deposits_verified", "approved", "duplicate", "rejected"].includes(a.status);
@@ -9229,7 +9232,7 @@ async function loadFlexxFormsApplications() {
             a.memberId
               ? `<ul class="flexxforms-application-checklist">
                   <li>Membership fee ($${Number(readiness.membershipFeeRequired || 0).toFixed(0)}): <strong>${feeLabel}</strong></li>
-                  <li>Initial contribution: <strong>${depositLabel}</strong></li>
+                  <li>Contributions Account: <strong>${depositLabel}</strong></li>
                 </ul>`
               : `<p class="status err">${escapeHtml(a.processingError || "Profile not created yet")}</p>`
           }
@@ -10497,19 +10500,156 @@ function syncAdminAudiencePicker() {
   $("#adminMessageRecipientPicker")?.classList.toggle("hidden", !selected);
 }
 
+let adminMessagesFolder = "inbox";
+
+function syncAdminMessagesFolderUi() {
+  const folder = adminMessagesFolder || "inbox";
+  document.querySelectorAll(".messages-folder-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.folder === folder);
+  });
+  const title = $("#adminMessagesFolderTitle");
+  const hint = $("#adminMessagesFolderHint");
+  const list = $("#adminMessagesThreadList");
+  const emailView = $("#adminMessagesEmailNoticesView");
+  const isEmail = folder === "email";
+  list?.classList.toggle("hidden", isEmail);
+  emailView?.classList.toggle("hidden", !isEmail);
+  if (title) {
+    title.textContent =
+      folder === "sent" ? "Sent" : folder === "email" ? "Email Notices" : "Inbox";
+  }
+  if (hint) {
+    hint.textContent =
+      folder === "sent"
+        ? "Portal Messages This Cooperative Has Sent to Members."
+        : folder === "email"
+          ? "Automatic and Broadcast Emails Sent to Members. Open Recipients for Each Send."
+          : "Open a Conversation to Read and Reply.";
+  }
+}
+
+async function loadMessagesEmailNotices() {
+  const summaryEl = $("#messagesEmailAuditSummary");
+  const statusEl = $("#messagesEmailAuditStatus");
+  const body = $("#messagesEmailAuditBody");
+  if (!body || currentUser?.role !== "admin") return;
+  try {
+    if (statusEl) {
+      statusEl.textContent = "Loading email notices…";
+      statusEl.className = "status";
+    }
+    const res = await fetch("/api/books/email-audit?limit=50");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load email notices");
+    const summary = data.summary || {};
+    const batches = data.batches || [];
+    if (summaryEl) {
+      const configured = summary.emailConfigured ? "Configured" : "Not Configured";
+      const last = summary.lastBatchAt ? formatEmailAuditWhen(summary.lastBatchAt) : "None Yet";
+      summaryEl.textContent =
+        `Email: ${configured}. Eligible Recipients: ${summary.recipientCount ?? 0}. ` +
+        `Sends Logged: ${summary.batchCount ?? 0}. Last Send: ${last}.`;
+    }
+    if (!batches.length) {
+      body.innerHTML =
+        `<tr><td colspan="6" class="hint">No Email Notices Yet. Meeting Announcements, Loan Payment Due Notices, and Deposit Confirmations Appear Here After They Send.</td></tr>`;
+    } else {
+      body.innerHTML = batches
+        .map((batch) => {
+          const failed = Number(batch.detailFailedCount) || 0;
+          const sent = batch.hasRecipientDetails
+            ? Number(batch.detailSentCount) || 0
+            : Number(batch.recipientCount) || 0;
+          const subject = batch.subject || batch.triggerLabel || ":";
+          return `<tr>
+            <td>${escapeHtml(formatEmailAuditWhen(batch.sentAt))}</td>
+            <td>${escapeHtml(batch.triggerLabel || batch.triggerType || ":")}</td>
+            <td>${escapeHtml(subject)}</td>
+            <td>${sent}</td>
+            <td>${failed}</td>
+            <td><button type="button" class="btn btn-ghost messages-email-audit-view" data-id="${batch.id}">View Recipients</button></td>
+          </tr>`;
+        })
+        .join("");
+      body.querySelectorAll(".messages-email-audit-view").forEach((btn) => {
+        btn.addEventListener("click", () => loadMessagesEmailAuditBatch(btn.dataset.id));
+      });
+    }
+    if (statusEl) {
+      statusEl.textContent = "";
+      statusEl.className = "status";
+    }
+  } catch (err) {
+    if (body) {
+      body.innerHTML = `<tr><td colspan="6" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    }
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    }
+  }
+}
+
+async function loadMessagesEmailAuditBatch(batchId) {
+  const detail = $("#messagesEmailAuditDetail");
+  const meta = $("#messagesEmailAuditDetailMeta");
+  const body = $("#messagesEmailAuditDetailBody");
+  if (!body) return;
+  try {
+    const res = await fetch(`/api/books/email-audit/batches/${encodeURIComponent(batchId)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load recipients");
+    detail?.classList.remove("hidden");
+    const batch = data.batch || {};
+    if (meta) {
+      meta.textContent = `${batch.triggerLabel || batch.triggerType || "Email"}: ${
+        batch.subject || "No Subject"
+      }`;
+    }
+    const deliveries = data.deliveries || [];
+    body.innerHTML = deliveries.length
+      ? deliveries
+          .map(
+            (row) => `<tr>
+              <td>${escapeHtml(row.memberName || ":")}</td>
+              <td>${escapeHtml(row.email || ":")}</td>
+              <td>${escapeHtml(statusLabelForDelivery(row.status))}</td>
+              <td>${escapeHtml(row.errorMessage || ":")}</td>
+            </tr>`
+          )
+          .join("")
+      : `<tr><td colspan="4" class="hint">No recipient rows for this send.</td></tr>`;
+  } catch (err) {
+    detail?.classList.remove("hidden");
+    if (body) {
+      body.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+}
+
 async function loadAdminMessagesPanel() {
   showAdminMessagesList();
   initAdminRichComposers();
   await loadAdminMessageRecipients();
   syncAdminAudiencePicker();
+  syncAdminMessagesFolderUi();
   const list = $("#adminMessagesThreadList");
+  if (adminMessagesFolder === "email") {
+    await loadMessagesEmailNotices();
+    await refreshAdminAttentionBadges();
+    return;
+  }
   try {
-    const res = await fetch("/api/messages/inbox");
+    const res = await fetch(`/api/messages/inbox?folder=${encodeURIComponent(adminMessagesFolder)}`);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to load inbox");
+    if (!res.ok) throw new Error(data.error || "Failed to load messages");
     updateUnreadBadge($("#adminMessagesUnreadBadge"), data.unread);
+    const emptyText =
+      adminMessagesFolder === "sent"
+        ? "No Sent Messages Yet. Compose a Note Above to See It Here."
+        : "No Messages Yet. Send Minutes or a Note to Members Above.";
     renderThreadList(list, data.threads || [], {
-      emptyText: "No Messages Yet. Send Minutes or a Note to Members Above.",
+      emptyText,
       onOpen: openAdminMessageThread,
     });
     await refreshAdminAttentionBadges();
@@ -10597,6 +10737,13 @@ $("#openMyMessagesBtn")?.addEventListener("click", () => {
 
 $("#memberMessagesBackToAccount")?.addEventListener("click", () => {
   switchTab("my-account");
+});
+
+document.querySelectorAll(".messages-folder-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    adminMessagesFolder = btn.dataset.folder || "inbox";
+    loadAdminMessagesPanel();
+  });
 });
 
 $("#refreshAdminMessages")?.addEventListener("click", () => loadAdminMessagesPanel());

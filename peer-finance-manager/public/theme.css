@@ -1065,7 +1065,8 @@ td:last-child .btn {
 }
 
 .books-detail-view-tabs,
-.messages-audience-seg {
+.messages-audience-seg,
+.messages-folder-seg {
   display: flex;
   gap: 8px;
   margin: 8px 0 16px;
@@ -1073,7 +1074,8 @@ td:last-child .btn {
 }
 
 .books-detail-view-tabs [data-book-view],
-.messages-audience-option {
+.messages-audience-option,
+.messages-folder-btn {
   padding: 8px 4px;
   border: none;
   background: none;
@@ -1082,7 +1084,8 @@ td:last-child .btn {
 }
 
 .books-detail-view-tabs [data-book-view].active,
-.messages-audience-option:has(input:checked) {
+.messages-audience-option:has(input:checked),
+.messages-folder-btn.active {
   color: var(--pv-green-600);
   border-bottom-color: var(--pv-green-600);
   font-weight: 700;

@@ -795,6 +795,27 @@ function listInbox(user) {
   });
 }
 
+function isOutgoingAdminThread(thread) {
+  if (thread.createdByRole === "admin") return true;
+  if (thread.createdByRole === "system" && thread.audience !== "admins") return true;
+  return false;
+}
+
+function isIncomingAdminThread(thread) {
+  if (thread.createdByRole === "member") return true;
+  if (thread.createdByRole === "system" && thread.audience === "admins") return true;
+  if (thread.lastSenderRole === "member") return true;
+  return false;
+}
+
+function listMailbox(user, folder = "inbox") {
+  const all = listInbox(user);
+  const key = String(folder || "inbox").toLowerCase();
+  if (key === "sent") return all.filter(isOutgoingAdminThread);
+  if (key === "inbox") return all.filter(isIncomingAdminThread);
+  return all;
+}
+
 function getUnreadSummary(user) {
   const inbox = listInbox(user);
   const unreadThreads = inbox.filter((t) => t.hasUnread).length;
@@ -979,6 +1000,7 @@ module.exports = {
   notifyAdminsOfMembershipApplication,
   postMemberSystemNotice,
   listInbox,
+  listMailbox,
   getUnreadSummary,
   getThreadDetail,
   replyToThread,

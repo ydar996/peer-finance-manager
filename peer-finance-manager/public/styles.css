@@ -2310,6 +2310,34 @@ tr.loan-row:hover { background: #f8fafc; }
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
 }
+.messages-folder-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.45rem;
+  margin: 0 0 0.85rem;
+  padding: 0.3rem;
+  border-radius: 14px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+.messages-folder-btn {
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #334155;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.messages-folder-btn.active {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.messages-email-notices {
+  min-width: 0;
+}
 .messages-audience-option {
   position: relative;
   margin: 0;

@@ -701,7 +701,7 @@
                       <th>Subject</th>
                       <th>Sent</th>
                       <th>Failed</th>
-                      <th></th>
+                      <th>Recipients</th>
                     </tr>
                   </thead>
                   <tbody id="emailSendAuditBody">
@@ -756,7 +756,7 @@
         <div class="panel-head messages-panel-head">
           <div>
             <h2>Messages</h2>
-            <p class="hint panel-intro-hint messages-panel-lead">Send Minutes and Notes to Members. Read Replies in Your Inbox.</p>
+            <p class="hint panel-intro-hint messages-panel-lead">Compose, Read Replies in Inbox, Review What You Sent, and See Email Notices.</p>
           </div>
           <div class="panel-head-actions">
             <span class="badge" id="adminMessagesUnreadBadge">:</span>
@@ -834,16 +834,61 @@
           <div class="messages-inbox card messages-surface">
             <div class="messages-inbox-list-view" id="adminMessagesListView">
               <div class="messages-card-head">
-                <h3>Inbox</h3>
-                <p class="subtle">Open a Conversation to Read and Reply.</p>
+                <h3 id="adminMessagesFolderTitle">Inbox</h3>
+                <p class="subtle" id="adminMessagesFolderHint">Open a Conversation to Read and Reply.</p>
+              </div>
+              <div class="messages-folder-seg" role="tablist" aria-label="Message Folders">
+                <button type="button" class="messages-folder-btn active" data-folder="inbox" id="adminMessagesFolderInbox">Inbox</button>
+                <button type="button" class="messages-folder-btn" data-folder="sent" id="adminMessagesFolderSent">Sent</button>
+                <button type="button" class="messages-folder-btn" data-folder="email" id="adminMessagesFolderEmail">Email Notices</button>
               </div>
               <ul class="messages-thread-list" id="adminMessagesThreadList">
                 <li class="hint">Loading…</li>
               </ul>
+              <div class="messages-email-notices hidden" id="adminMessagesEmailNoticesView">
+                <p class="subtle" id="messagesEmailAuditSummary">Email notices this Cooperative has sent to members.</p>
+                <p id="messagesEmailAuditStatus" class="status"></p>
+                <div class="table-wrap compact">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>When</th>
+                        <th>Type</th>
+                        <th>Subject</th>
+                        <th>Sent</th>
+                        <th>Failed</th>
+                        <th>Recipients</th>
+                      </tr>
+                    </thead>
+                    <tbody id="messagesEmailAuditBody">
+                      <tr><td colspan="6" class="hint">Loading…</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div id="messagesEmailAuditDetail" class="hidden" style="margin-top: 1rem;">
+                  <h3 class="section-title" style="margin-top: 0;">Recipients for Selected Send</h3>
+                  <p id="messagesEmailAuditDetailMeta" class="subtle"></p>
+                  <div class="table-wrap compact">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Member</th>
+                          <th>Email</th>
+                          <th>Status</th>
+                          <th>Note</th>
+                        </tr>
+                      </thead>
+                      <tbody id="messagesEmailAuditDetailBody">
+                        <tr><td colspan="4" class="hint">Select a send above.</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="messages-thread-view hidden" id="adminMessagesThreadView">
               <div class="messages-thread-toolbar">
-                <button type="button" class="btn small messages-back-btn" id="adminMessagesBackBtn">← Inbox</button>
+                <button type="button" class="btn small messages-back-btn" id="adminMessagesBackBtn">← Messages</button>
               </div>
               <div class="messages-thread-head">
                 <h3 id="adminMessagesThreadSubject">Message</h3>
@@ -1067,7 +1112,7 @@
             <button type="submit" class="btn primary">Save Form &amp; Document Ids</button>
           </form>
           <p class="subtle" style="margin-top: 12px;">Membership Applications</p>
-          <p class="subtle">When You Click Accept Member, PFM Creates Their Portal Login, Emails a Welcome Message with the Temporary Password When Possible, and Adds Them to Members &amp; Accounts. Verify Deposits later to email balances and post a portal notice. Use Disregard Application for a mistaken or duplicate submission. Saving a profile does not accept the member or clear the (1) badge.</p>
+          <p class="subtle">When You Click Accept Member, PFM Creates Their Portal Login, Emails a Welcome Message with the Temporary Password When Possible, and Adds Them to Members &amp; Accounts. The First Deposit Automatically Deducts the Agreed Membership Fee; the Contributions Account Keeps the Extra. Verify Deposits only if no deposit is on the books yet. Use Disregard Application for a mistaken or duplicate submission. Saving a profile does not accept the member or clear the (1) badge.</p>
           <div id="memberApprovalLoginResult" class="member-password-reset-result hidden"></div>
           <div id="flexxformsApplicationsList" class="flexxforms-applications-list"><p class="hint">None yet</p></div>
           <p class="subtle" style="margin-top: 1.25rem;">Loan Applications</p>

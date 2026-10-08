@@ -19,6 +19,7 @@ const {
   createMemberThread,
   createSystemAdminNotice,
   listInbox,
+  listMailbox,
   getUnreadSummary,
   getThreadDetail,
   replyToThread,
@@ -186,6 +187,13 @@ function run() {
     });
     const adminInbox = listInbox(ctx.adminUser);
     assert.ok(adminInbox.some((t) => t.id === fromMember.id && t.hasUnread));
+    const adminIncoming = listMailbox(ctx.adminUser, "inbox");
+    const adminSent = listMailbox(ctx.adminUser, "sent");
+    assert.ok(adminIncoming.some((t) => t.id === fromMember.id));
+    assert.ok(!adminSent.some((t) => t.id === fromMember.id));
+    assert.ok(adminSent.some((t) => t.id === broadcast.id));
+    assert.ok(adminSent.some((t) => t.id === targeted.id));
+    assert.ok(!adminIncoming.some((t) => t.id === broadcast.id));
 
     const notice = createSystemAdminNotice({
       subject: "New Membership Application #99: Test Applicant",
@@ -201,6 +209,8 @@ function run() {
         (t) => t.id === notice.id && t.hasUnread && /Membership Application/.test(t.subject)
       )
     );
+    assert.ok(listMailbox(ctx.adminUser, "inbox").some((t) => t.id === notice.id));
+    assert.ok(!listMailbox(ctx.adminUser, "sent").some((t) => t.id === notice.id));
     const dup = createSystemAdminNotice({
       subject: "New Membership Application #99: Test Applicant",
       body: "<p>Duplicate should not create another thread.</p>",

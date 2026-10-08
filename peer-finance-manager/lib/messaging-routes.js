@@ -4,6 +4,7 @@ const {
   createAdminThread,
   createMemberThread,
   listInbox,
+  listMailbox,
   getUnreadSummary,
   getThreadDetail,
   replyToThread,
@@ -74,7 +75,10 @@ function registerMessagingRoutes(
 
   app.get("/api/messages/inbox", requireAuth, requireCooperativeView, (req, res) => {
     try {
-      res.json({ threads: listInbox(req.user), unread: getUnreadSummary(req.user) });
+      const folder = String(req.query.folder || "inbox").toLowerCase();
+      const threads =
+        req.user?.role === "admin" ? listMailbox(req.user, folder) : listInbox(req.user);
+      res.json({ threads, folder, unread: getUnreadSummary(req.user) });
     } catch (err) {
       res.status(err.status || 500).json({ error: err.message });
     }

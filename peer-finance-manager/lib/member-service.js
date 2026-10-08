@@ -173,6 +173,130 @@ function recordMembershipFee(memberId, { feeDate, amount } = {}) {
   return { transactionId: txId, amount: signedAmount };
 }
 
+function isoDaysAgo(days) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - Number(days || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+function memberHasMembershipFeeTransaction(memberId) {
+  const db = getDb();
+  return Boolean(
+    db
+      .prepare(`SELECT 1 FROM transactions WHERE member_id = ? AND type = ? LIMIT 1`)
+      .get(memberId, TRANSACTION_TYPES.MEMBERSHIP_FEE)
+  );
+}
+
+function memberEligibleForFirstDepositFee(memberId) {
+  const id = Number(memberId);
+  if (!Number.isInteger(id) || id <= 0) return false;
+  const db = getDb();
+  const member = db.prepare(`SELECT membership_fee_paid, joined_at FROM members WHERE id = ?`).get(id);
+  if (!member) return false;
+  if (member.membership_fee_paid) return false;
+  if (memberHasMembershipFeeTransaction(id)) return false;
+
+  const cutoff = isoDaysAgo(180);
+  const joined = String(member.joined_at || "").slice(0, 10);
+  if (joined && joined >= cutoff) return true;
+
+  let hasApplication = false;
+  try {
+    hasApplication = Boolean(
+      db
+        .prepare(
+          `SELECT 1 FROM flexxforms_applications
+           WHERE member_id = ? AND kind = 'membership'
+           LIMIT 1`
+        )
+        .get(id)
+    );
+  } catch (_) {
+    hasApplication = false;
+  }
+  if (hasApplication) return true;
+
+  const firstDeposit = db
+    .prepare(
+      `SELECT substr(transaction_date, 1, 10) AS depositDate
+       FROM transactions
+       WHERE member_id = ? AND type = ? AND amount > 0
+       ORDER BY transaction_date ASC, id ASC
+       LIMIT 1`
+    )
+    .get(id, TRANSACTION_TYPES.DEPOSIT);
+  return Boolean(firstDeposit?.depositDate && firstDeposit.depositDate >= cutoff);
+}
+
+function applyMembershipFeeFromFirstDeposit(memberId) {
+  const id = Number(memberId);
+  if (!Number.isInteger(id) || id <= 0) {
+    return { applied: false, reason: "invalid_member" };
+  }
+  if (!memberEligibleForFirstDepositFee(id)) {
+    return { applied: false, reason: "not_eligible" };
+  }
+
+  const db = getDb();
+  const deposits = db
+    .prepare(
+      `SELECT COALESCE(SUM(amount), 0) AS total
+       FROM transactions
+       WHERE member_id = ? AND type = ? AND amount > 0`
+    )
+    .get(id, TRANSACTION_TYPES.DEPOSIT);
+  const depositTotal = Number(deposits?.total || 0);
+  if (depositTotal + 0.005 < MEMBERSHIP_FEE) {
+    return { applied: false, reason: "deposit_below_fee", depositTotal };
+  }
+
+  const firstDeposit = db
+    .prepare(
+      `SELECT transaction_date AS transactionDate
+       FROM transactions
+       WHERE member_id = ? AND type = ? AND amount > 0
+       ORDER BY transaction_date ASC, id ASC
+       LIMIT 1`
+    )
+    .get(id, TRANSACTION_TYPES.DEPOSIT);
+
+  try {
+    const result = recordMembershipFee(id, {
+      feeDate: String(firstDeposit?.transactionDate || "").slice(0, 10) || undefined,
+      amount: MEMBERSHIP_FEE,
+    });
+    return {
+      applied: true,
+      memberId: id,
+      feeAmount: MEMBERSHIP_FEE,
+      depositTotal,
+      extraBalance: Math.round((depositTotal - MEMBERSHIP_FEE) * 100) / 100,
+      ...result,
+    };
+  } catch (err) {
+    if (/already recorded/i.test(err.message || "")) {
+      return { applied: false, reason: "already_recorded" };
+    }
+    throw err;
+  }
+}
+
+function backfillMembershipFeesFromFirstDeposits() {
+  const db = getDb();
+  const rows = db.prepare(`SELECT id AS memberId FROM members`).all();
+  const applied = [];
+  for (const row of rows) {
+    try {
+      const outcome = applyMembershipFeeFromFirstDeposit(row.memberId);
+      if (outcome.applied) applied.push(outcome);
+    } catch (_) {
+      /* skip members who cannot take a fee (inactive, locked, etc.) */
+    }
+  }
+  return { scanned: rows.length, appliedCount: applied.length, applied };
+}
+
 function createMember(payload = {}) {
   const ledgerName = resolveLedgerName(payload);
   const db = getDb();
@@ -296,4 +420,6 @@ module.exports = {
   createMember,
   updateMemberProfile,
   recordMembershipFee,
+  applyMembershipFeeFromFirstDeposit,
+  backfillMembershipFeesFromFirstDeposits,
 };

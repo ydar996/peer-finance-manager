@@ -1653,12 +1653,27 @@ function startServer(port, callback) {
       const { listOrganizations } = require("./lib/organization-service");
       const { runWithOrg } = require("./lib/org-context");
       const { queueCooperativeBankLedgerCsvSync } = require("./lib/cooperative-bank-ledger-csv");
+      const { backfillMembershipFeesFromFirstDeposits } = require("./lib/member-service");
       for (const org of listOrganizations()) {
         runWithOrg(org.slug, () => {
           try {
             queueCooperativeBankLedgerCsvSync("server_startup");
           } catch (err) {
             trace.info("Ledger CSV export skipped", { orgSlug: org.slug, error: err.message });
+          }
+          try {
+            const feeBackfill = backfillMembershipFeesFromFirstDeposits();
+            if (feeBackfill.appliedCount) {
+              trace.info("Membership fee backfill from first deposits", {
+                orgSlug: org.slug,
+                appliedCount: feeBackfill.appliedCount,
+              });
+            }
+          } catch (err) {
+            trace.info("Membership fee backfill skipped", {
+              orgSlug: org.slug,
+              error: err.message,
+            });
           }
         });
       }

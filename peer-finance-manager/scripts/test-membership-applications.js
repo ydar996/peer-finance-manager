@@ -23,6 +23,9 @@ const {
   getApplicantPaymentReadiness,
 } = require("../lib/flexxforms-membership-service");
 const { listActiveDirectoryMembers } = require("../lib/membership-status-service");
+const { recordMemberDepositEntry } = require("../lib/manual-entry-service");
+const { getMemberDepositAccountBalance } = require("../lib/balance-service");
+const { MEMBERSHIP_FEE, TRANSACTION_TYPES } = require("../lib/constants");
 
 const ORG = "membership-apps-test-coop";
 
@@ -97,13 +100,48 @@ async function run() {
     const beforeVerify = getApplicantPaymentReadiness(processed.memberId);
     assert.equal(beforeVerify.canApprove, false);
 
+    recordMemberDepositEntry({
+      memberId: processed.memberId,
+      type: TRANSACTION_TYPES.DEPOSIT,
+      amount: 250,
+      transactionDate: "2026-10-07",
+      description: "First membership deposit",
+    });
+    const feeTx = db
+      .prepare(`SELECT amount FROM transactions WHERE member_id = ? AND type = ?`)
+      .get(processed.memberId, TRANSACTION_TYPES.MEMBERSHIP_FEE);
+    assert.ok(feeTx, "First deposit deducts the agreed membership fee");
+    assert.equal(Number(feeTx.amount), -MEMBERSHIP_FEE);
+    assert.equal(getMemberDepositAccountBalance(processed.memberId), 150);
+    const depositRows = db
+      .prepare(`SELECT COUNT(*) AS n FROM transactions WHERE member_id = ? AND type = ?`)
+      .get(processed.memberId, TRANSACTION_TYPES.DEPOSIT);
+    assert.equal(Number(depositRows.n), 1, "Fee split does not rewrite or add a second deposit");
+    assert.equal(
+      db.prepare(`SELECT status FROM flexxforms_applications WHERE id = ?`).get(applicationId)
+        .status,
+      "deposits_verified",
+      "First deposit plus fee split verifies the application automatically"
+    );
+
     const verified = await verifyMembershipDeposits(applicationId, { recordPayments: true });
     assert.equal(verified.status, "deposits_verified");
-    assert.equal(verified.alreadyVerified, false);
+    assert.equal(verified.alreadyVerified, true);
 
     const afterVerify = getApplicantPaymentReadiness(processed.memberId);
     assert.equal(afterVerify.membershipFeePaid, true);
     assert.equal(afterVerify.initialContributionMet, true);
+    assert.equal(afterVerify.extraAfterFee, 150);
+    assert.equal(getMemberDepositAccountBalance(processed.memberId), 150);
+    assert.equal(
+      Number(
+        db
+          .prepare(`SELECT COUNT(*) AS n FROM transactions WHERE member_id = ? AND type = ?`)
+          .get(processed.memberId, TRANSACTION_TYPES.DEPOSIT).n
+      ),
+      1,
+      "Verify Deposits does not add a second contribution on top of the bank deposit"
+    );
 
     const notice = db
       .prepare(`SELECT subject FROM coop_message_threads WHERE subject LIKE '%Deposits Have Been Verified%'`)

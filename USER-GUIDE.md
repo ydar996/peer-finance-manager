@@ -176,7 +176,7 @@ The top-right shows your **role** (Administrator, Staff, or Member) and your nam
 | **Import** | Bank statements, bulk spreadsheets, Full Ledger Refresh (advanced). |
 | **Status Report** | Cooperative performance PDF; publish to members (manual reports dated today; auto reports dated month-end). |
 | **Meetings** | Schedule meetings; email and portal announcements. |
-| **Messages** | Inbox: send to all members, a group, or one member; read and reply to member messages. |
+| **Messages** | Compose, **Inbox**, **Sent**, and **Email Notices** (automatic emails and recipients). |
 | **Public Pages** | Publish About Us and Bylaws for prospective members. |
 | **Forms & Documents** | FlexxForms setup; review and approve membership applications. |
 | **Subscription** | PFM platform billing (Stripe or check). |
@@ -450,23 +450,30 @@ Cooperative-wide performance PDF for members.
 | **Schedule a meeting** | Expand **Schedule a Meeting** → title, date, time, location, agenda → **Save Draft** → announce when ready. |
 | **Member view** | Announced meetings appear on every member's portal. |
 | **Email reminders** | Configure under **Meeting Reminder Settings** (requires email setup). |
-| **Email Send Audit** | **Refresh Audit** to see which notification emails were sent or failed, including meeting notices, deposit/loan repayment acknowledgments, and loan payment due notices. |
+| **Email Send Audit** | **Refresh Audit** to see which notification emails were sent or failed. The same history is also on **Messages → Email Notices**. |
 | **Automated Messages** | Open the **Automated Messages** tab to view every automatic email and adjust the subject or wording. |
 
 ---
 
 ## 15. Messages Tab
 
-Two-way inbox for **every Cooperative** (not email-only broadcasts). Messages live in the portal so members can re-read them later. When email is configured, recipients also get a short email that a new portal message is waiting.
+Two-way messaging for **every Cooperative** (not email-only broadcasts). Messages live in the portal so members can re-read them later. When email is configured, recipients also get a short email that a new portal message is waiting.
 
 Admins compose in a **rich text box**: paste from Microsoft Word and keep basic formatting (headings, bold, italics, lists). Optional **attachments** (PDF, images, Word) are viewable or downloadable in the member inbox.
 
+| Folder | What you see |
+|--------|----------------|
+| **Inbox** | Messages members sent you, system notices, and replies to notes you sent. |
+| **Sent** | Portal messages this Cooperative sent to members (minutes, notes, deposit-verified notices). |
+| **Email Notices** | Automatic emails (loan payment due, deposit/loan repayment confirmed, meetings, reports) with recipient send status. |
+
 | Action | Steps |
 |--------|-------|
-| **Send formatted minutes to everyone** | **Messages** → **Compose** → **All Members** → paste from Word (or type) into **Message** → optional format toolbar (Bold/Italic/lists/Heading) → attach PDF if you want figures preserved exactly → **Send Message**. |
+| **Send formatted minutes to everyone** | **Messages** → **Compose** → **All Members** → paste from Word (or type) into **Message** → optional format toolbar (Bold/Italic/lists/Heading) → attach PDF if you want figures preserved exactly → **Send Message**. The send then appears under **Sent**. |
 | **Send to one member or a group** | Choose **Selected Members**, tick the names (or **Select All**), then send. Example: action items after a meeting. |
 | **Attachments** | PDF and images open in the browser (**View**). Word (.docx) is downloadable. Up to 8 files, 12 MB each. |
 | **Read replies** | Open a conversation in **Inbox**. Formatted body and attachments appear. Reply at the bottom (admins may paste from Word and attach on reply too). |
+| **See what was emailed** | Open **Email Notices**, then **View Recipients** for a send. |
 | **Member → admin** | Members use **Messages** on My Account → **Message Cooperative Admin**. |
 
 **Tip for Word minutes with figures:** Paste the text into Messages for a readable summary, and **Save as PDF** + attach for the full document with images. Ampersands (`&`) and other punctuation stay as you typed them. No Markdown tools required.
@@ -531,7 +538,7 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
    - Creates their portal login
    - Emails a welcome message with the temporary password when email is configured
    - Clears the Forms & Documents (1) badge
-5. After Accept, click **Verify Deposits** to record the standard membership fee and initial contribution (if they are not already on the books) and to email the member plus post a portal notice to log in and check balances. If you prefer the bank file, **Import New Bank Activity** can post the deposit; PFM then sends the same verified-deposits email and portal notice automatically.
+5. After Accept, the first bank (or Record) deposit automatically deducts the agreed membership fee ($100) into membership fee income. The member's contributions account keeps whatever extra was deposited. **Verify Deposits** is still available if you need to record the fee/contribution when no deposit is on the books yet. When the fee has been taken from a deposit, PFM emails the member and posts a portal notice to log in and check balances.
 
 **Disregard Application** closes a mistaken or duplicate submission (for example a wrong date of birth, then a second form with the correct details). The disregarded application stays on the list as **Disregarded**, drops off the (1) badge, and is not accepted. If that submission was the only pending profile and it has no ledger activity, the unused profile is removed. A later correct application can still be **Accept Member**. Accepting one application also closes other open applications for the same applicant.
 
@@ -608,7 +615,7 @@ Pay by card (Stripe) or request check payment to Work Chop Inc. Larger Cooperati
 
 1. Open **Forms & Documents**.
 2. Click **Accept Member** on the correct application (do not wait for the bank import). If an earlier form was wrong, click **Disregard Application** on that row first.
-3. Later click **Verify Deposits**, or import the bank statement so the deposit posts.
+3. Import the bank statement (or Record the deposit). The agreed membership fee is deducted automatically; the contributions account keeps the extra. Click **Verify Deposits** only if no deposit is on the books yet.
 
 ### Disburse a loan
 
@@ -715,4 +722,4 @@ It does **not** auto-sync with the live website. See [UPDATE-AND-PUBLISH.md](./U
 
 ---
 
-*Last updated: October 7, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*
+*Last updated: October 8, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*
