@@ -295,18 +295,44 @@ async function sendLoanDueNoticesForToday(date = new Date()) {
       skipped += 1;
       continue;
     }
-    if (!recipient.email) {
-      skipped += 1;
-      continue;
-    }
     const message = buildLoanDueNoticeEmail({
       memberName: recipient.memberName,
       dueDate,
       loans: notice.loans,
       branding,
     });
-    if (!isEmailConfigured()) {
+    const { postMemberNoticeFromAutomatedEmail } = require("./messaging-service");
+    const portal = postMemberNoticeFromAutomatedEmail({
+      memberId: recipient.memberId,
+      message,
+    });
+    const deliveryBase = {
+      memberId: recipient.memberId,
+      memberName: recipient.memberName,
+      email: recipient.email || "none",
+      subject: message.subject,
+      bodyText: message.text,
+      bodyHtml: message.html,
+    };
+    if (!recipient.email || !isEmailConfigured()) {
       skipped += 1;
+      recordDeliveryBatch({
+        triggerType: TRIGGER_TYPE,
+        dedupeKey,
+        deliveries: [
+          {
+            ...deliveryBase,
+            status: portal?.created ? "sent" : "skipped",
+            errorMessage: !recipient.email
+              ? portal?.created
+                ? "portal_only"
+                : "no_email"
+              : portal?.created
+                ? "portal_only:not_configured"
+                : "not_configured",
+          },
+        ],
+      });
       continue;
     }
     try {
@@ -323,10 +349,7 @@ async function sendLoanDueNoticesForToday(date = new Date()) {
           dedupeKey,
           deliveries: [
             {
-              memberId: recipient.memberId,
-              memberName: recipient.memberName,
-              email: recipient.email,
-              subject: message.subject,
+              ...deliveryBase,
               status: "sent",
             },
           ],
@@ -334,9 +357,31 @@ async function sendLoanDueNoticesForToday(date = new Date()) {
         deliveries.push({ memberId: recipient.memberId, status: "sent" });
       } else {
         skipped += 1;
+        recordDeliveryBatch({
+          triggerType: TRIGGER_TYPE,
+          dedupeKey,
+          deliveries: [
+            {
+              ...deliveryBase,
+              status: portal?.created ? "sent" : "skipped",
+              errorMessage: result?.reason || "not_sent",
+            },
+          ],
+        });
       }
     } catch (err) {
       failed += 1;
+      recordDeliveryBatch({
+        triggerType: TRIGGER_TYPE,
+        dedupeKey,
+        deliveries: [
+          {
+            ...deliveryBase,
+            status: "failed",
+            errorMessage: err.message,
+          },
+        ],
+      });
       deliveries.push({ memberId: recipient.memberId, status: "failed", error: err.message });
     }
   }

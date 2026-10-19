@@ -713,6 +713,21 @@ function postMemberSystemNotice({ memberId, subject, body } = {}) {
   return { id: threadId, created: true };
 }
 
+function postMemberNoticeFromAutomatedEmail({ memberId, message } = {}) {
+  if (!message?.subject) return { created: false, reason: "missing_message" };
+  try {
+    return (
+      postMemberSystemNotice({
+        memberId,
+        subject: message.subject,
+        body: message.html || message.text || "",
+      }) || { created: false, reason: "not_posted" }
+    );
+  } catch (err) {
+    return { created: false, error: err.message };
+  }
+}
+
 function notifyAdminsOfMembershipApplication({
   applicationId,
   applicantName,
@@ -999,6 +1014,7 @@ module.exports = {
   createSystemAdminNotice,
   notifyAdminsOfMembershipApplication,
   postMemberSystemNotice,
+  postMemberNoticeFromAutomatedEmail,
   listInbox,
   listMailbox,
   getUnreadSummary,

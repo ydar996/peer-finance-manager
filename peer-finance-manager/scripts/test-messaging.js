@@ -18,6 +18,7 @@ const {
   createAdminThread,
   createMemberThread,
   createSystemAdminNotice,
+  postMemberNoticeFromAutomatedEmail,
   listInbox,
   listMailbox,
   getUnreadSummary,
@@ -211,6 +212,20 @@ function run() {
     );
     assert.ok(listMailbox(ctx.adminUser, "inbox").some((t) => t.id === notice.id));
     assert.ok(!listMailbox(ctx.adminUser, "sent").some((t) => t.id === notice.id));
+    const portalNotice = postMemberNoticeFromAutomatedEmail({
+      memberId: ctx.ada.memberId,
+      message: {
+        subject: "Test Cooperative: Deposit Received",
+        html: "<p>Your Cooperative has recorded your Member Deposit of $120.00 on 10/08/2026.</p>",
+        text: "Your Cooperative has recorded your Member Deposit of $120.00 on 10/08/2026.",
+      },
+    });
+    assert.ok(portalNotice?.created);
+    assert.ok(
+      listInbox(ctx.ada.user).some((t) => t.id === portalNotice.id && /Deposit Received/.test(t.subject))
+    );
+    assert.ok(listMailbox(ctx.adminUser, "sent").some((t) => t.id === portalNotice.id));
+
     const dup = createSystemAdminNotice({
       subject: "New Membership Application #99: Test Applicant",
       body: "<p>Duplicate should not create another thread.</p>",

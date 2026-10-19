@@ -199,7 +199,7 @@ If **`false`:** check that `SMTP_FROM` and `EMAIL_RELAY_URL` are set on Render, 
 1. Admin → **Meetings**
 2. Expand **Email Send Audit**
 3. Click **Refresh Audit**
-4. Click **View Recipients** on the latest batch to see each member email and Sent/Failed status
+4. Click **View Message** on the latest batch to see the exact copy, each member email, and Sent/Failed status
 
 Older sends (before this feature) may show only a total count, not every recipient name.
 

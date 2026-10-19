@@ -239,6 +239,8 @@ async function sendDepositsVerifiedCorrectionEmail({
         memberName,
         email: to,
         subject: message.subject,
+        bodyText: message.text,
+        bodyHtml: message.html,
         status: delivery.status,
         errorMessage: delivery.errorMessage,
       },

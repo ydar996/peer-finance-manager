@@ -116,12 +116,14 @@ async function sendReportReminderEmails({ triggerType, dedupeKey, periodSlug, su
 
   const deliveries = [];
   for (const recipient of recipients) {
+    const text = textFor(recipient);
+    const html = htmlFor(recipient);
     try {
       const result = await sendEmail({
         to: recipient.email,
         subject,
-        text: textFor(recipient),
-        html: htmlFor(recipient),
+        text,
+        html,
       });
       if (result.sent) {
         deliveries.push({
@@ -129,6 +131,8 @@ async function sendReportReminderEmails({ triggerType, dedupeKey, periodSlug, su
           memberName: recipient.memberName,
           email: recipient.email,
           subject,
+          bodyText: text,
+          bodyHtml: html,
           status: "sent",
         });
       } else {
@@ -137,6 +141,8 @@ async function sendReportReminderEmails({ triggerType, dedupeKey, periodSlug, su
           memberName: recipient.memberName,
           email: recipient.email,
           subject,
+          bodyText: text,
+          bodyHtml: html,
           status: "skipped",
           errorMessage: result.reason || "skipped",
         });
@@ -147,6 +153,8 @@ async function sendReportReminderEmails({ triggerType, dedupeKey, periodSlug, su
         memberName: recipient.memberName,
         email: recipient.email,
         subject,
+        bodyText: text,
+        bodyHtml: html,
         status: "failed",
         errorMessage: err.message || "send failed",
       });

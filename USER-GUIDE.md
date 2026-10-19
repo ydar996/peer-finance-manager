@@ -116,7 +116,7 @@ First-time users must change the temporary password when prompted.
 
 1. On **My Account**, tap **Messages** (or **Unread Messages** when the badge flashes).
 2. You leave My Account and open a dedicated **Messages** inbox: list newest conversations first.
-3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished.
+3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished. Deposit and loan repayment acknowledgements, and loan payment due notices, also appear here after they are confirmed or due.
 4. Use **Message Cooperative Admin** to start a new conversation with your administrator. You can also reply inside an open conversation.
 
 When email is configured, you may also get an email tip that a new portal message is waiting.
@@ -176,7 +176,7 @@ The top-right shows your **role** (Administrator, Staff, or Member) and your nam
 | **Import** | Bank statements, bulk spreadsheets, Full Ledger Refresh (advanced). |
 | **Status Report** | Cooperative performance PDF; publish to members (manual reports dated today; auto reports dated month-end). |
 | **Meetings** | Schedule meetings; email and portal announcements. |
-| **Messages** | Compose, **Inbox**, **Sent**, and **Email Notices** (automatic emails and recipients). |
+| **Messages** | Compose, **Inbox**, **Sent**, and **Email Notices** (exact wording of automatic notices, plus recipients). |
 | **Public Pages** | Publish About Us and Bylaws for prospective members. |
 | **Forms & Documents** | FlexxForms setup; review and approve membership applications. |
 | **Subscription** | PFM platform billing (Stripe or check). |
@@ -326,7 +326,7 @@ Upload a **cumulative** bank export: **period start through today**. PFM skips r
    - **Red Blocked:** fix the issue before applying (see [When Numbers Look Wrong](#23-when-numbers-look-wrong)).
    - **Green note** (ledger above statement beginning): normal for re-uploads; duplicates will be Skipped.
 7. Click **Add New Transactions**.
-8. Members whose **Member Deposit** or **Loan Repayment** rows were added are emailed an acknowledgment for that payment date (one email per member, listing each item). This happens automatically for every Cooperative. Re-uploading the same file does not email again (those rows are Skipped). **Full Ledger Refresh** does not send these emails.
+8. Members whose **Member Deposit** or **Loan Repayment** rows were added receive an acknowledgment for that payment date in the member portal inbox (and by email when email is configured). One notice per member, listing each item. This happens automatically for every Cooperative. Re-uploading the same file does not send again (those rows are Skipped). **Full Ledger Refresh** does not send these notices. Admins can re-read the exact copy under **Messages → Sent** and **Email Notices**.
 9. Check **Cooperative Books** : **Bank Reconcile Status** should show **Reconciled** after a successful import.
 
 When you leave **Import** (any other tab), the last preview, chosen file, and status clear. Coming back starts a new upload session.
@@ -450,7 +450,7 @@ Cooperative-wide performance PDF for members.
 | **Schedule a meeting** | Expand **Schedule a Meeting** → title, date, time, location, agenda → **Save Draft** → announce when ready. |
 | **Member view** | Announced meetings appear on every member's portal. |
 | **Email reminders** | Configure under **Meeting Reminder Settings** (requires email setup). |
-| **Email Send Audit** | **Refresh Audit** to see which notification emails were sent or failed. The same history is also on **Messages → Email Notices**. |
+| **Email Send Audit** | **Refresh Audit** then **View Message** to read the exact wording and which members were sent or failed. The same history is also on **Messages → Email Notices**. |
 | **Automated Messages** | Open the **Automated Messages** tab to view every automatic email and adjust the subject or wording. |
 
 ---
@@ -464,8 +464,8 @@ Admins compose in a **rich text box**: paste from Microsoft Word and keep basic 
 | Folder | What you see |
 |--------|----------------|
 | **Inbox** | Messages members sent you, system notices, and replies to notes you sent. |
-| **Sent** | Portal messages this Cooperative sent to members (minutes, notes, deposit-verified notices). |
-| **Email Notices** | Automatic emails (loan payment due, deposit/loan repayment confirmed, meetings, reports) with recipient send status. |
+| **Sent** | Portal messages this Cooperative sent to members (minutes, notes, deposit/loan repayment acknowledgements, loan payment due notices). |
+| **Email Notices** | Automatic notices (loan payment due, deposit/loan repayment confirmed, meetings, reports) with the exact wording each member received and send status. |
 
 | Action | Steps |
 |--------|-------|
@@ -473,7 +473,7 @@ Admins compose in a **rich text box**: paste from Microsoft Word and keep basic 
 | **Send to one member or a group** | Choose **Selected Members**, tick the names (or **Select All**), then send. Example: action items after a meeting. |
 | **Attachments** | PDF and images open in the browser (**View**). Word (.docx) is downloadable. Up to 8 files, 12 MB each. |
 | **Read replies** | Open a conversation in **Inbox**. Formatted body and attachments appear. Reply at the bottom (admins may paste from Word and attach on reply too). |
-| **See what was emailed** | Open **Email Notices**, then **View Recipients** for a send. |
+| **See what was sent** | Open **Email Notices**, then **View Message** for a send. You will see the exact copy each member received, plus Sent/Failed. The same notice is in **Sent** and in the member portal inbox. |
 | **Member → admin** | Members use **Messages** on My Account → **Message Cooperative Admin**. |
 
 **Tip for Word minutes with figures:** Paste the text into Messages for a readable summary, and **Save as PDF** + attach for the full document with images. Ampersands (`&`) and other punctuation stay as you typed them. No Markdown tools required.
@@ -570,7 +570,7 @@ Temporary passwords must be changed on first member sign-in. Former members cann
 
 ## 19. Automated Messages Tab
 
-Open **Automated Messages** any time to read and edit the emails members receive automatically (loan payment due, deposit/loan repayment confirmed, membership received, deposits verified, welcome login, password reset, meeting notices, published reports, month-end reminder, and new portal message tips).
+Open **Automated Messages** any time to read and edit the emails members receive automatically (loan payment due, deposit/loan repayment confirmed, membership received, deposits verified, welcome login, password reset, meeting notices, published reports, month-end reminder, and new portal message tips). Deposit/loan repayment acknowledgements and loan payment due notices are also posted to the member portal inbox so members and administrators can re-read the same wording later.
 
 | Action | What it does |
 |--------|--------------|

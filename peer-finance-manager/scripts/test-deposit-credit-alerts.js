@@ -19,6 +19,8 @@ const {
   notifyImportedMemberDeposits,
   notifyLatestImportedDeposits,
 } = require("../lib/deposit-credit-alert");
+const { listInbox, listMailbox } = require("../lib/messaging-service");
+const { listEmailDeliveriesForBatch, listEmailSendBatches } = require("../lib/email-audit-service");
 
 const ORG = "deposit-alert-test-coop";
 
@@ -122,10 +124,54 @@ async function run() {
     assert.equal(latest.reason, "not_configured");
 
     db.prepare(
-      `INSERT INTO deposit_credit_alert_log (transaction_id, member_id, status) VALUES (?, ?, 'sent')`
+      `INSERT INTO deposit_credit_alert_log (transaction_id, member_id, status)
+       VALUES (?, ?, 'sent')
+       ON CONFLICT(transaction_id) DO UPDATE SET status = 'sent'`
     ).run(txId, adaId);
     const again = await notifyLatestImportedDeposits({ maxAgeHours: 72 });
     assert.equal(again.alreadySent, true);
+
+    const admin = db
+      .prepare(
+        `INSERT INTO users (email, username, password_hash, role, display_name, active)
+         VALUES ('admin@example.com', 'admin', 'x', 'admin', 'Test Admin', 1)`
+      )
+      .run();
+    const adaLogin = db
+      .prepare(
+        `INSERT INTO users (email, username, password_hash, role, member_id, display_name, active)
+         VALUES (?, ?, 'x', 'member', ?, ?, 1)`
+      )
+      .run("ada@example.com", "ada", adaId, "Ada Okeke");
+    const portalNotify = await notifyImportedMemberDeposits([
+      { memberId: adaId, type: "deposit", amount: 120, date: "2026-10-08", transactionId: 21 },
+    ]);
+    assert.equal(portalNotify.depositCount, 1);
+    const adaInbox = listInbox({
+      id: Number(adaLogin.lastInsertRowid),
+      role: "member",
+      memberId: adaId,
+    });
+    assert.ok(
+      adaInbox.some((thread) => /Deposit Received/i.test(thread.subject)),
+      "Member portal inbox shows the deposit acknowledgement"
+    );
+    const adminSent = listMailbox(
+      { id: Number(admin.lastInsertRowid), role: "admin" },
+      "sent"
+    );
+    assert.ok(
+      adminSent.some((thread) => /Deposit Received/i.test(thread.subject)),
+      "Admin Sent shows the same deposit acknowledgement"
+    );
+    const batches = listEmailSendBatches(10);
+    const latestBatch = batches.find((batch) => batch.triggerType === "deposit_credit_alert");
+    assert.ok(latestBatch, "Email Notices logs the deposit acknowledgement");
+    const copies = listEmailDeliveriesForBatch(latestBatch.id);
+    assert.ok(
+      copies.some((row) => /Member Deposit/i.test(row.bodyText || "")),
+      "Email Notices stores the exact message copy"
+    );
 
     console.log("deposit credit alerts tests: ok");
   });

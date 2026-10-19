@@ -1112,6 +1112,28 @@ td:last-child .btn {
   gap: 4px;
 }
 
+.email-notice-copy {
+  margin: 0 0 1rem;
+}
+
+.email-notice-copy-card {
+  border: 1px solid var(--pv-line);
+  background: var(--pv-surface-0);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.email-notice-body {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+  overflow: auto;
+  max-height: 240px;
+}
+
 .sep {
   display: none;
 }

@@ -203,7 +203,7 @@ function buildDepositAlertEmail({ memberName, deposits, branding }) {
 function formatDepositAlertStatus(alerts) {
   if (!alerts) return "";
   if (alerts.reason === "not_configured" && alerts.wouldEmail > 0) {
-    return " Deposit/loan repayment alerts were not emailed because email is not configured.";
+    return " Deposit/loan repayment notices were posted to the member portal. Email was not sent because email is not configured.";
   }
   if (alerts.alreadySent) {
     return " Deposit/loan repayment alerts for this import were already emailed.";
@@ -281,33 +281,46 @@ async function notifyImportedMemberDeposits(insertedRows = []) {
       markDepositsAlerted(deposits.map((d) => ({ ...d, memberId })), "skipped");
       continue;
     }
-    if (!recipient.email) {
-      skipped += 1;
-      markDepositsAlerted(deposits.map((d) => ({ ...d, memberId })), "skipped");
-      deliveries.push({
-        memberId,
-        memberName: recipient.memberName,
-        email: "none",
-        status: "skipped",
-        errorMessage: "no_email",
-      });
-      continue;
-    }
-    wouldEmail += 1;
     const message = buildDepositAlertEmail({
       memberName: recipient.memberName,
       deposits,
       branding,
     });
+    const { postMemberNoticeFromAutomatedEmail } = require("./messaging-service");
+    const portal = postMemberNoticeFromAutomatedEmail({ memberId, message });
+    const portalNote = portal?.created
+      ? "portal"
+      : portal?.reason === "no_portal_login"
+        ? "no_portal_login"
+        : portal?.error || null;
+    if (!recipient.email) {
+      skipped += 1;
+      markDepositsAlerted(deposits.map((d) => ({ ...d, memberId })), portal?.created ? "sent" : "skipped");
+      deliveries.push({
+        memberId,
+        memberName: recipient.memberName,
+        email: "none",
+        subject: message.subject,
+        bodyText: message.text,
+        bodyHtml: message.html,
+        status: portal?.created ? "sent" : "skipped",
+        errorMessage: portal?.created ? "portal_only" : portalNote || "no_email",
+      });
+      continue;
+    }
+    wouldEmail += 1;
     if (!isEmailConfigured()) {
       skipped += 1;
+      markDepositsAlerted(deposits.map((d) => ({ ...d, memberId })), portal?.created ? "sent" : "skipped");
       deliveries.push({
         memberId,
         memberName: recipient.memberName,
         email: recipient.email,
         subject: message.subject,
-        status: "skipped",
-        errorMessage: "not_configured",
+        bodyText: message.text,
+        bodyHtml: message.html,
+        status: portal?.created ? "sent" : "skipped",
+        errorMessage: portal?.created ? "portal_only:not_configured" : "not_configured",
       });
       continue;
     }
@@ -326,26 +339,35 @@ async function notifyImportedMemberDeposits(insertedRows = []) {
           memberName: recipient.memberName,
           email: recipient.email,
           subject: message.subject,
+          bodyText: message.text,
+          bodyHtml: message.html,
           status: "sent",
+          errorMessage: portalNote === "portal" ? null : portalNote,
         });
       } else {
         skipped += 1;
+        markDepositsAlerted(deposits.map((d) => ({ ...d, memberId })), portal?.created ? "sent" : "skipped");
         deliveries.push({
           memberId,
           memberName: recipient.memberName,
           email: recipient.email,
           subject: message.subject,
-          status: "skipped",
+          bodyText: message.text,
+          bodyHtml: message.html,
+          status: portal?.created ? "sent" : "skipped",
           errorMessage: result?.reason || "not_sent",
         });
       }
     } catch (err) {
       failed += 1;
+      markDepositsAlerted(deposits.map((d) => ({ ...d, memberId })), portal?.created ? "sent" : "failed");
       deliveries.push({
         memberId,
         memberName: recipient.memberName,
         email: recipient.email,
         subject: message.subject,
+        bodyText: message.text,
+        bodyHtml: message.html,
         status: "failed",
         errorMessage: err.message,
       });
@@ -361,13 +383,12 @@ async function notifyImportedMemberDeposits(insertedRows = []) {
     }
   }
 
-  const auditDeliveries = deliveries.filter((d) => d.email && d.email !== "none");
-  if (auditDeliveries.length) {
+  if (deliveries.length) {
     try {
       recordDeliveryBatch({
         triggerType: TRIGGER_TYPE,
-        dedupeKey: `deposit-alert:${Date.now()}:${sent}:${failed}`,
-        deliveries: auditDeliveries,
+        dedupeKey: `deposit-alert:${Date.now()}:${sent}:${failed}:${deliveries.length}`,
+        deliveries,
       });
     } catch (_) {
       /* audit is best-effort */

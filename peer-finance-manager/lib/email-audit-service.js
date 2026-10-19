@@ -13,6 +13,15 @@ const TRIGGER_LABELS = {
   deposits_verified_correction: "Deposits Verified (Corrected Amounts)",
 };
 
+function tableHasColumn(db, table, column) {
+  return db.prepare(`PRAGMA table_info(${table})`).all().some((row) => row.name === column);
+}
+
+function addColumnIfMissing(db, table, column, sqlType) {
+  if (tableHasColumn(db, table, column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${sqlType}`);
+}
+
 function ensureEmailAuditTables(db = getDb()) {
   ensureSettingsTable(db);
   db.exec(`
@@ -45,6 +54,8 @@ function ensureEmailAuditTables(db = getDb()) {
     CREATE INDEX IF NOT EXISTS idx_email_delivery_dedupe
       ON member_email_delivery_log(dedupe_key);
   `);
+  addColumnIfMissing(db, "member_email_delivery_log", "body_text", "TEXT");
+  addColumnIfMissing(db, "member_email_delivery_log", "body_html", "TEXT");
 }
 
 function triggerLabel(triggerType) {
@@ -83,8 +94,8 @@ function recordDeliveryBatch({
 
   const insertDelivery = db.prepare(
     `INSERT INTO member_email_delivery_log
-      (batch_id, trigger_type, dedupe_key, period_slug, member_id, member_name, email, subject, status, error_message)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (batch_id, trigger_type, dedupe_key, period_slug, member_id, member_name, email, subject, status, error_message, body_text, body_html)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
   const insertMany = db.transaction((rows) => {
@@ -96,10 +107,12 @@ function recordDeliveryBatch({
         periodSlug || null,
         row.memberId ?? null,
         row.memberName || null,
-        String(row.email || "").trim().toLowerCase(),
+        String(row.email || "").trim().toLowerCase() || "none",
         row.subject || subject || null,
         row.status || "sent",
-        row.errorMessage || null
+        row.errorMessage || null,
+        row.bodyText || null,
+        row.bodyHtml || null
       );
     }
   });
@@ -183,6 +196,8 @@ function listEmailDeliveriesForBatch(batchId, limit = 500) {
               subject,
               status,
               error_message AS errorMessage,
+              body_text AS bodyText,
+              body_html AS bodyHtml,
               sent_at AS sentAt
        FROM member_email_delivery_log
        WHERE batch_id = ?

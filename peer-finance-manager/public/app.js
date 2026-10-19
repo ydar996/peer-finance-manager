@@ -4952,6 +4952,43 @@ function statusLabelForDelivery(status) {
   return status || ":";
 }
 
+function renderEmailNoticeCopies(container, deliveries) {
+  if (!container) return;
+  const rows = Array.isArray(deliveries) ? deliveries : [];
+  const withCopy = rows.filter((row) => String(row.bodyText || "").trim());
+  if (!withCopy.length) {
+    container.innerHTML =
+      `<p class="subtle">Copy Was Not Stored for This Send. New Notices Keep the Exact Wording Here.</p>`;
+    return;
+  }
+  container.innerHTML = withCopy
+    .map((row) => {
+      const note = emailDeliveryNoteLabel(row);
+      return `<article class="email-notice-copy-card">
+        <p class="subtle">${escapeHtml(row.memberName || "Member")} · ${escapeHtml(
+          row.email || ":"
+        )} · ${escapeHtml(statusLabelForDelivery(row.status))}${
+          note ? ` · ${escapeHtml(note)}` : ""
+        }</p>
+        <pre class="email-notice-body">${escapeHtml(row.bodyText)}</pre>
+      </article>`;
+    })
+    .join("");
+}
+
+function emailDeliveryNoteLabel(row) {
+  const raw = String(row?.errorMessage || "").trim();
+  if (!raw) return "";
+  if (raw === "portal_only" || raw.startsWith("portal_only:")) {
+    return "Posted to Portal; Email Not Sent";
+  }
+  if (raw === "not_configured") return "Email Not Configured";
+  if (raw === "no_email") return "No Email on File";
+  if (raw === "no_portal_login") return "No Portal Login";
+  if (row.status === "sent") return "";
+  return raw;
+}
+
 async function loadEmailSendAudit() {
   const summaryEl = $("#emailSendAuditSummary");
   const statusEl = $("#emailSendAuditStatus");
@@ -4997,7 +5034,7 @@ async function loadEmailSendAudit() {
             <td>${escapeHtml(subject)}${detailHint ? `<div class="subtle">${detailHint}</div>` : ""}</td>
             <td>${sent}</td>
             <td>${failed}</td>
-            <td><button type="button" class="btn btn-ghost email-audit-view" data-id="${batch.id}">View Recipients</button></td>
+            <td><button type="button" class="btn btn-ghost email-audit-view" data-id="${batch.id}">View Message</button></td>
           </tr>`;
         })
         .join("");
@@ -5045,6 +5082,7 @@ async function loadEmailSendAuditBatch(batchId) {
     if (!res.ok) throw new Error(data.error || "Failed to load recipients");
     const batch = data.batch || {};
     const deliveries = data.deliveries || [];
+    renderEmailNoticeCopies($("#emailSendAuditCopy"), deliveries);
     if (meta) {
       meta.textContent = deliveries.length
         ? `${batch.triggerLabel || "Send"} : ${formatEmailAuditWhen(batch.sentAt)} · ${deliveries.length} recipient row(s)`
@@ -10524,7 +10562,7 @@ function syncAdminMessagesFolderUi() {
       folder === "sent"
         ? "Portal Messages This Cooperative Has Sent to Members."
         : folder === "email"
-          ? "Automatic and Broadcast Emails Sent to Members. Open Recipients for Each Send."
+          ? "Automatic Notices Sent to Members. Open a Send to Read the Exact Copy and Recipients."
           : "Open a Conversation to Read and Reply.";
   }
 }
@@ -10568,7 +10606,7 @@ async function loadMessagesEmailNotices() {
             <td>${escapeHtml(subject)}</td>
             <td>${sent}</td>
             <td>${failed}</td>
-            <td><button type="button" class="btn btn-ghost messages-email-audit-view" data-id="${batch.id}">View Recipients</button></td>
+            <td><button type="button" class="btn btn-ghost messages-email-audit-view" data-id="${batch.id}">View Message</button></td>
           </tr>`;
         })
         .join("");
@@ -10602,12 +10640,13 @@ async function loadMessagesEmailAuditBatch(batchId) {
     if (!res.ok) throw new Error(data.error || "Failed to load recipients");
     detail?.classList.remove("hidden");
     const batch = data.batch || {};
+    const deliveries = data.deliveries || [];
+    renderEmailNoticeCopies($("#messagesEmailAuditCopy"), deliveries);
     if (meta) {
       meta.textContent = `${batch.triggerLabel || batch.triggerType || "Email"}: ${
         batch.subject || "No Subject"
       }`;
     }
-    const deliveries = data.deliveries || [];
     body.innerHTML = deliveries.length
       ? deliveries
           .map(
