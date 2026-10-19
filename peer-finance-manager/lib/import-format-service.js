@@ -157,6 +157,10 @@ function classifyRow({ description, amount, member, memberNames, rules }) {
   if (!resolvedMember) {
     resolvedMember = resolveMemberFromPaymentAliases(description, memberNames);
   }
+  if (!resolvedMember) {
+    const { resolveMemberFromBankDescription } = require("./member-name-match");
+    resolvedMember = resolveMemberFromBankDescription(description, memberNames);
+  }
   if (aliasMatch?.defaultLedgerType && !ruleType) {
     ledgerType = aliasMatch.defaultLedgerType;
   }

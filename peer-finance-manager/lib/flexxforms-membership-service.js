@@ -948,6 +948,12 @@ async function approveMembershipApplication(applicationId, approvedByUserId) {
   }
 
   try {
+    require("./member-payment-alias-service").seedPaymentAliasesForMember(app.member_id);
+  } catch (_) {
+    /* bank name mappings are best-effort */
+  }
+
+  try {
     require("./member-service").applyMembershipFeeFromFirstDeposit(app.member_id);
   } catch (_) {
     /* fee applies when a first deposit is already on the books */

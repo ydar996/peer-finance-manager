@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** October 8, 2026 (Deposits-verified email: fee deducted from initial deposit)  
+**Last updated:** October 19, 2026 (New-member bank attach: unique first name + fee on import)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -175,6 +175,7 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-10-19** — **New-member bank attach pipeline:** Skipped import rows that are already on the books no longer show "Member is required" (they show the ledger member). Zelle "payment from" names attach when the first name is unique among members (Olayemi Idowu → Olayemi Daramola). Bank import now deducts the $100 membership fee from a first deposit. Payment name mappings are learned from attached deposits and seeded on Accept Member. Tests: `npm run test:member-bank-attach`, `npm run test:bank-append`. **Production:** `git push` (Netlify UI + Render API). Hard-refresh **Import**. No data upload. Startup learns existing Zelle names from deposits (including OLAYEMI IDOWU → Olayemi Daramola).
 - **2026-10-08** — **Deposits-verified email wording:** The notice now says the agreed membership application fee was deducted from the initial deposit, and the remaining amount was credited to the contributions account as the first deposit. Startup v2 correction rewrites the prior "membership fee income" sentence and resends once. Test: `npm run test:automated-messages`. **Production:** `04d2fe3` (`git push`; Netlify UI + Render API). If the Cooperative saved custom wording, Restore Default on **Automated Messages**. No data upload. Olayemi's v2 correction email sends on Render restart.
 - **2026-10-08** — **Deposits-verified notice uses actual deposit leftover:** The verified-deposits email and portal notice no longer hardcode a $100 initial contribution. They state the first deposit, the $100 membership fee, and the leftover in the contributions account ($150 deposited → fee $100, leftover $50). Startup rewrites mismatched $100/$100 notices and resends a corrected email once (Olayemi Daramola after Render restart). Test: `npm run test:membership-applications`. **Production:** `9b9fee5` (`git push`; Netlify UI + Render API). Hard-refresh **Automated Messages** if you had saved the old wording (or Restore Default). No data upload. Olayemi's corrected email sends on Render restart.
 - **2026-10-08** — **Admin Messages Sent + Email Notices; first-deposit membership fee:** The Messages tab now has **Inbox**, **Sent**, and **Email Notices** so administrators can see portal messages they sent and automatic member emails (with recipients). A new member's first deposit automatically records the agreed $100 membership fee as fee income; the contributions account keeps the extra. Startup backfill applies this for recent joins who already have a deposit but no fee row (including Olayemi Daramola on Assurance after Render restarts). Tests: `npm run test:messaging`, `npm run test:membership-applications`. **Production:** `38f9252` (`git push`; Netlify UI + Render API). Hard-refresh **Messages**. No data upload (fee posts on the live API after Render restarts).
@@ -493,7 +494,7 @@ node scripts/build-master-ledger.js "C:\Users\yinka\Downloads\pre 2025.xlsx" "C:
 2. **Cumulative re-upload (allowed — every tenant):** when the ledger is **above** statement beginning because rows from the same period are already imported (normal for in-month interim uploads), append is **not** blocked. Re-upload the statement from **period start through today** as often as needed. Rows already in the ledger show **Skipped**; only **New** rows apply.
 3. **Ending block:** refuse apply when **ready** rows exist and **projected ledger** after new rows ≠ statement **ending**.
 4. **Preview corrections:** admin sets **Type** and **Member** on New/Review rows before apply.
-5. **Payment name mappings:** each row can set **Default Type** when bank text has no contribution/loan keyword (e.g. Zelle payer name only).
+5. **Payment name mappings:** each row can set **Default Type** when bank text has no contribution/loan keyword (e.g. Zelle payer name only). PFM also learns Zelle/bank payer names from attached deposits and matches a unique first name to a ledger member (tenant-agnostic; not a hardcoded alias list).
 6. **Dedup:** fingerprints + `INSERT OR IGNORE` on `import_fingerprint` (unique index). Re-uploading the same statement never creates duplicate rows.
 
 ### Auto-sync (local vs cloud)
@@ -505,11 +506,12 @@ node scripts/build-master-ledger.js "C:\Users\yinka\Downloads\pre 2025.xlsx" "C:
 
 ```powershell
 npm run test:bank-append
+npm run test:member-bank-attach
 # Optional live preview for any org:
 node peer-finance-manager/scripts/test-bank-append-balance.js --org <slug> --stmt <path.csv>
 ```
 
-Asserts alias classification, cumulative re-upload (ledger above statement beginning), ending tie-out when new rows exist, and idempotent re-upload when all rows skipped.
+Asserts alias classification, unique first-name Zelle attach, first-deposit membership fee on bank import, skipped preview member/notes, cumulative re-upload (ledger above statement beginning), ending tie-out when new rows exist, and idempotent re-upload when all rows skipped.
 
 ### Bank Reconcile Status (every tenant)
 
@@ -840,6 +842,7 @@ Peer Finance Manager / Assurance Cooperative
 | 5b | ~~**Automated Messages wording editor**~~ | ✅ **Done** 2026-10-07 — Admin **Automated Messages** tab to view/edit all automatic member emails on demand. `npm run test:automated-messages`. **Deploy:** `9c92d02`. |
 | 5c | ~~**First-deposit membership fee (automatic)**~~ | ✅ **Done** 2026-10-08 — First deposit posts a separate -$100 `membership_fee` (Registration Income); contributions account keeps the extra. Startup backfill for recent joins with a deposit and no fee row (Olayemi Daramola on Assurance after Render restart). `npm run test:membership-applications`. **Deploy:** `38f9252`. |
 | 5d | ~~**Deposits-verified email leftover amounts**~~ | ✅ **Done** 2026-10-08 — Notice/email uses actual deposit and leftover, not a second $100 contribution. **2026-10-08:** Wording is now "agreed membership application fee deducted from initial deposit; remaining credited as first deposit." Startup v2 correction resend. **Deploy:** `04d2fe3`. |
+| 5e | ~~**New-member first deposit attach**~~ | ✅ **Done** 2026-10-19 — Unique first-name Zelle match, learn payment names from deposits, $100 fee on bank import, skipped preview no longer flags "Member is required". `npm run test:member-bank-attach`. **Production:** `git push`. |
 | 6 | ~~**Persist Title Case in database (backfill)**~~ | ✅ **Done** 2026-07-11 — **Admin → Maintenance → Normalize Profiles** on production (or CLI with `--org`). Display/save formatters already live. |
 | 7 | **Reprocess July 6 Assurance membership application** | FlexxForms shipped `answers[]` + GET submission API. PFM parser updated locally (`flexxforms-membership-service.js`, `flexxforms-service.js`). **Deploy** (`git push`), then Admin → Forms & Documents → Membership Applications → **Reprocess Data** on kept test row. Confirm applicant (not Mia Testy), email, address. Do not Approve until correct. New submits should work from webhook automatically. |
 | 8 | ~~**Finish email notifications (Bluehost relay)**~~ | ✅ Relays live (`emailConfigured: true`; admin confirmed meeting send to 25). Keep **[BLUEHOST-EMAIL-RELAY-SETUP.md](BLUEHOST-EMAIL-RELAY-SETUP.md)** for ops. **Email Send Audit** now available on Meetings tab for on-demand verification. |

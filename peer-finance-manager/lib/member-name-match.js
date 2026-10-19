@@ -86,12 +86,47 @@ function zelleNameFromApplication(first, middle, last) {
   return parts.join(" ").toUpperCase();
 }
 
+function extractBankPayerName(description) {
+  const text = String(description || "").replace(/\s+/g, " ").trim();
+  if (!text) return null;
+  const fromMatch = text.match(
+    /(?:zelle\s+(?:payment|transfer)\s+from|payment\s+from)\s+(.+?)(?:\s+for\s+|\s*;|\s+Conf#|$)/i
+  );
+  if (fromMatch) return fromMatch[1].replace(/\s+/g, " ").trim();
+  const confSemi = text.match(/zelle\s+transfer\s+conf#[^;]*;\s*(.+)$/i);
+  if (confSemi) return confSemi[1].replace(/\s+/g, " ").trim();
+  return null;
+}
+
+function uniqueFirstNameMember(payerName, memberNames) {
+  const payerFirst = normalizeName(payerName).split(" ").filter(Boolean)[0];
+  if (!payerFirst || payerFirst.length < 3) return null;
+  const matches = (memberNames || []).filter((name) => {
+    const first = normalizeName(name).split(" ").filter(Boolean)[0];
+    return first === payerFirst;
+  });
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function resolveMemberFromBankDescription(description, memberNames) {
+  const proxyOrSpecial = resolveDepositMemberFromDescription(description, memberNames);
+  if (proxyOrSpecial) return proxyOrSpecial;
+  const payer = extractBankPayerName(description);
+  if (!payer) return null;
+  const byLedger = resolveLedgerMemberName(payer, memberNames);
+  if (byLedger) return byLedger;
+  return uniqueFirstNameMember(payer, memberNames);
+}
+
 module.exports = {
   APPLICATION_TO_LEDGER,
   buildFullName,
   resolveLedgerMemberName,
   resolveProxyBeneficiaryFromDescription,
   resolveDepositMemberFromDescription,
+  resolveMemberFromBankDescription,
+  extractBankPayerName,
+  uniqueFirstNameMember,
   zelleNameFromApplication,
   normalizeName,
 };

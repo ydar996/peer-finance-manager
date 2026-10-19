@@ -1675,6 +1675,23 @@ function startServer(port, callback) {
               error: err.message,
             });
           }
+          try {
+            const {
+              backfillPaymentAliasesFromDeposits,
+            } = require("./lib/member-payment-alias-service");
+            const aliasBackfill = backfillPaymentAliasesFromDeposits();
+            if (aliasBackfill.created) {
+              trace.info("Payment name mappings learned from deposits", {
+                orgSlug: org.slug,
+                created: aliasBackfill.created,
+              });
+            }
+          } catch (err) {
+            trace.info("Payment name mapping backfill skipped", {
+              orgSlug: org.slug,
+              error: err.message,
+            });
+          }
           const {
             correctMismatchedDepositsVerifiedNotices,
           } = require("./lib/flexxforms-membership-service");

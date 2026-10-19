@@ -1,5 +1,10 @@
 const { getDb } = require("../db/database");
-const { resolveLedgerMemberName, normalizeName } = require("./member-name-match");
+const {
+  resolveLedgerMemberName,
+  normalizeName,
+  extractBankPayerName,
+  buildFullName,
+} = require("./member-name-match");
 
 const SEED_ALIASES = [
   {
@@ -229,6 +234,117 @@ function resolveMemberFromPaymentAliases(text, memberNames) {
   return match?.member || null;
 }
 
+function aliasAlreadyCoversName(memberName, bankPaymentName) {
+  const db = getDb();
+  ensurePaymentAliasSchema(db);
+  const hay = String(bankPaymentName || "").trim();
+  if (!hay) return false;
+  const rows = db
+    .prepare(
+      `SELECT alias_pattern AS aliasPattern FROM member_payment_aliases WHERE member_name = ?`
+    )
+    .all(memberName);
+  for (const row of rows) {
+    try {
+      if (new RegExp(row.aliasPattern, "i").test(hay)) return true;
+    } catch (_) {}
+  }
+  return false;
+}
+
+function upsertPaymentAliasForMember(memberId, memberName, bankPaymentName, defaultLedgerType = null) {
+  const name = String(bankPaymentName || "").trim();
+  const ledgerName = String(memberName || "").trim();
+  if (!name || !ledgerName) return { created: false, reason: "missing_name" };
+  const db = getDb();
+  ensurePaymentAliasSchema(db);
+  if (aliasAlreadyCoversName(ledgerName, name)) {
+    return { created: false, reason: "already_covered" };
+  }
+  const pattern = bankPaymentNamesToPattern(name);
+  if (!pattern) return { created: false, reason: "no_pattern" };
+  const member =
+    (Number(memberId) > 0
+      ? db.prepare(`SELECT id, name FROM members WHERE id = ?`).get(Number(memberId))
+      : null) || db.prepare(`SELECT id, name FROM members WHERE name = ?`).get(ledgerName);
+  db.prepare(
+    `INSERT INTO member_payment_aliases
+      (member_id, member_name, bank_payment_names, alias_pattern, default_ledger_type)
+     VALUES (?, ?, ?, ?, ?)`
+  ).run(
+    member?.id || Number(memberId) || null,
+    member?.name || ledgerName,
+    name,
+    pattern,
+    normalizeDefaultLedgerType(defaultLedgerType)
+  );
+  return { created: true, memberName: member?.name || ledgerName, bankPaymentName: name };
+}
+
+function learnPaymentAliasFromDescription(memberId, memberName, description) {
+  const payer = extractBankPayerName(description);
+  if (!payer) return { created: false, reason: "no_payer" };
+  return upsertPaymentAliasForMember(memberId, memberName, payer);
+}
+
+function seedPaymentAliasesForMember(memberId) {
+  const id = Number(memberId);
+  if (!Number.isInteger(id) || id <= 0) return { created: 0 };
+  const db = getDb();
+  const member = db.prepare(`SELECT id, name FROM members WHERE id = ?`).get(id);
+  if (!member) return { created: 0 };
+  const profile = db
+    .prepare(
+      `SELECT first_name AS firstName, middle_name AS middleName, last_name AS lastName,
+              zelle_bank_name AS zelleBankName, display_name AS displayName
+       FROM member_profiles WHERE member_id = ?`
+    )
+    .get(id);
+  const names = [
+    member.name,
+    profile?.displayName,
+    profile?.zelleBankName,
+    buildFullName(profile?.firstName, profile?.middleName, profile?.lastName),
+    buildFullName(profile?.firstName, null, profile?.lastName),
+  ];
+  let created = 0;
+  const seen = new Set();
+  for (const raw of names) {
+    const name = String(raw || "").trim();
+    if (!name) continue;
+    const key = normalizeName(name);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    const result = upsertPaymentAliasForMember(id, member.name, name);
+    if (result.created) created += 1;
+  }
+  return { created };
+}
+
+function backfillPaymentAliasesFromDeposits() {
+  const db = getDb();
+  ensurePaymentAliasSchema(db);
+  const rows = db
+    .prepare(
+      `SELECT t.member_id AS memberId, m.name AS memberName, t.description
+       FROM transactions t
+       INNER JOIN members m ON m.id = t.member_id
+       WHERE t.type = 'deposit' AND t.description IS NOT NULL AND t.description != ''`
+    )
+    .all();
+  let created = 0;
+  for (const row of rows) {
+    const result = learnPaymentAliasFromDescription(row.memberId, row.memberName, row.description);
+    if (result.created) created += 1;
+  }
+  const members = db.prepare(`SELECT id FROM members`).all();
+  for (const row of members) {
+    const seeded = seedPaymentAliasesForMember(row.id);
+    created += seeded.created || 0;
+  }
+  return { scanned: rows.length, created };
+}
+
 module.exports = {
   ensurePaymentAliasSchema,
   seedDefaultAliasesIfEmpty,
@@ -237,6 +353,10 @@ module.exports = {
   replacePaymentAliases,
   resolveMemberFromPaymentAliases,
   resolvePaymentAliasMatch,
+  upsertPaymentAliasForMember,
+  learnPaymentAliasFromDescription,
+  seedPaymentAliasesForMember,
+  backfillPaymentAliasesFromDeposits,
   ensureAliasDefaultTypes,
   VALID_DEFAULT_LEDGER_TYPES,
   normalizeDefaultLedgerType,

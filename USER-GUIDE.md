@@ -319,7 +319,7 @@ Upload a **cumulative** bank export: **period start through today**. PFM skips r
 | Status | Meaning |
 |--------|---------|
 | **New** | Will be added. Fix **Type** and **Member** dropdowns if wrong. |
-| **Skipped** | Already in the ledger. Safe to ignore on re-upload. |
+| **Skipped** | Already in the ledger. Safe to ignore on re-upload. Notes stay blank; PFM will not add the row again. |
 | **Review** | Confirm the row. Change **Type**/**Member** if wrong, or click **Approve as Is** (or **Approve Suggested Rows**) when the suggestion is already correct. |
 
 6. Read the **balance check** line:
@@ -341,7 +341,7 @@ Click **Bank Accounts and Import Settings** (the whole row is the control; the c
 2. **Add Bank Account** — label, institution (searchable bank names for your Country), currency (USD for United States, NGN for Nigeria), statement format.
 3. **Edit Selected Account** — institution, format, active dates, and:
    - **Classification Rules** — keywords PFM uses to recognize contributions and loans on bank lines.
-   - **Payment Name Mappings** — map Zelle/bank names (United States) or bank transfer names (Nigeria) to members. Set **Default Type** when the bank line has no keyword (e.g. payer name only → Loan Repayment).
+   - **Payment Name Mappings** — map Zelle/bank names (United States) or bank transfer names (Nigeria) to members. Set **Default Type** when the bank line has no keyword (e.g. payer name only → Loan Repayment). PFM also learns the name on a deposit after it attaches, and matches a unique first name (for example Olayemi on Zelle to Olayemi Daramola on the books).
 
 Nigerian statements that use Trans Date/Narration/Debit/Credit are auto-detected and read as **DD/MM/YYYY**. United States Date/Description/Amount files still use **MM/DD/YYYY**. You can confirm the date order under Bank Accounts and Import Settings.
 
@@ -538,7 +538,7 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
    - Creates their portal login
    - Emails a welcome message with the temporary password when email is configured
    - Clears the Forms & Documents (1) badge
-5. After Accept, the first bank (or Record) deposit automatically deducts the agreed membership fee ($100) into membership fee income. The member's contributions account keeps whatever extra was deposited. **Verify Deposits** is still available if you need to record the fee/contribution when no deposit is on the books yet. When the fee has been taken from a deposit, PFM emails the member and posts a portal notice: the agreed membership application fee was deducted from the initial deposit, and the remaining amount was credited to the contributions account as the first deposit.
+5. After Accept, import the bank statement (or Record the deposit). PFM attaches the payment to the new member even when the Zelle name is not identical to the ledger name, as long as the first name is unique. The agreed membership fee ($100) is deducted from that first deposit into membership fee income; the contributions account keeps the extra. **Verify Deposits** is still available if you need to record the fee/contribution when no deposit is on the books yet. When the fee has been taken from a deposit, PFM emails the member and posts a portal notice: the agreed membership application fee was deducted from the initial deposit, and the remaining amount was credited to the contributions account as the first deposit.
 
 **Disregard Application** closes a mistaken or duplicate submission (for example a wrong date of birth, then a second form with the correct details). The disregarded application stays on the list as **Disregarded**, drops off the (1) badge, and is not accepted. If that submission was the only pending profile and it has no ledger activity, the unused profile is removed. A later correct application can still be **Accept Member**. Accepting one application also closes other open applications for the same applicant.
 
@@ -722,4 +722,4 @@ It does **not** auto-sync with the live website. See [UPDATE-AND-PUBLISH.md](./U
 
 ---
 
-*Last updated: October 8, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*
+*Last updated: October 19, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*

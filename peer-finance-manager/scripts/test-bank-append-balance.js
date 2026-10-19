@@ -21,6 +21,11 @@ const {
 } = require("../lib/bank-import-append");
 const { classifyRow } = require("../lib/import-format-service");
 const { getImportRules } = require("../lib/import-rules-service");
+const {
+  extractBankPayerName,
+  uniqueFirstNameMember,
+  resolveMemberFromBankDescription,
+} = require("../lib/member-name-match");
 
 const coopRoot = path.join(__dirname, "..", "..");
 initPaths(coopRoot);
@@ -35,6 +40,31 @@ function parseArgs(argv) {
     else if (argv[i] === "--stmt" && argv[i + 1]) out.stmt = path.resolve(argv[++i]);
   }
   return out;
+}
+
+function testBankPayerNameMatching() {
+  assert.strictEqual(
+    extractBankPayerName(
+      "Zelle payment from OLAYEMI IDOWU for Membership fee and first contribution; Conf"
+    ),
+    "OLAYEMI IDOWU"
+  );
+  assert.strictEqual(
+    uniqueFirstNameMember("OLAYEMI IDOWU", ["Olayemi Daramola", "Olawale George"]),
+    "Olayemi Daramola"
+  );
+  assert.strictEqual(
+    uniqueFirstNameMember("OLAYEMI IDOWU", ["Olayemi Daramola", "Olayemi Idowu"]),
+    null
+  );
+  assert.strictEqual(
+    resolveMemberFromBankDescription(
+      "Zelle payment from OLAYEMI IDOWU for Membership fee and first contribution; Conf",
+      ["Olayemi Daramola", "Yinka Daramola"]
+    ),
+    "Olayemi Daramola"
+  );
+  console.log("  unique first-name bank payer matching: OK");
 }
 
 function testGenericKeywordClassification(memberNames) {
@@ -136,6 +166,7 @@ function testComputeAppendBalanceCheck() {
 
 const args = parseArgs(process.argv);
 
+testBankPayerNameMatching();
 testComputeAppendBalanceCheck();
 
 if (!args.org || !args.stmt) {

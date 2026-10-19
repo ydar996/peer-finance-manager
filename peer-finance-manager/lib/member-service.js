@@ -343,6 +343,12 @@ function createMember(payload = {}) {
     };
   })();
 
+  try {
+    require("./member-payment-alias-service").seedPaymentAliasesForMember(result.memberId);
+  } catch (_) {
+    /* aliases are best-effort so bank names attach on import */
+  }
+
   return result;
 }
 
@@ -411,6 +417,12 @@ function updateMemberProfile(memberId, payload = {}) {
     : null;
   if (newEmail && newEmail !== priorEmail) {
     syncMemberPortalLoginEmail(db, memberId, profileFields.email);
+  }
+
+  try {
+    require("./member-payment-alias-service").seedPaymentAliasesForMember(memberId);
+  } catch (_) {
+    /* aliases are best-effort */
   }
 
   return { memberId, ledgerName: payload.name?.trim() || member.name };

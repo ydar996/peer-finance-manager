@@ -69,7 +69,31 @@ function loadExistingFingerprintSet(db, bankAccountId) {
     }
   }
 
-  return { fingerprints, legacyKeys };
+  const memberByFingerprint = new Map();
+  const memberByLegacy = new Map();
+  const namedRows = db
+    .prepare(
+      `SELECT t.import_fingerprint AS fp, t.transaction_date AS transactionDate, t.amount,
+              t.description, t.bank_account_id AS bankAccountId, m.name AS memberName
+       FROM transactions t
+       LEFT JOIN members m ON m.id = t.member_id
+       WHERE t.source IN ('bank_import', 'manual') AND m.name IS NOT NULL`
+    )
+    .all();
+  for (const row of namedRows) {
+    const legacy = ledgerTransactionKey(row.transactionDate, row.amount, row.description);
+    memberByLegacy.set(legacy, row.memberName);
+    if (row.fp) memberByFingerprint.set(row.fp, row.memberName);
+    const rebuilt = buildImportFingerprint(
+      row.bankAccountId != null ? row.bankAccountId : bankAccountId,
+      row.transactionDate,
+      row.amount,
+      row.description
+    );
+    memberByFingerprint.set(rebuilt, row.memberName);
+  }
+
+  return { fingerprints, legacyKeys, memberByFingerprint, memberByLegacy };
 }
 
 function rowFingerprint(bankAccountId, row) {
@@ -145,6 +169,9 @@ function buildPreviewRow(row, index, memberNames, bankAccountId, existing) {
     bucket = "needsReview";
   }
 
+  const ledgerMember =
+    existing.memberByFingerprint?.get(fingerprint) || existing.memberByLegacy?.get(legacy) || null;
+
   return {
     index,
     fingerprint,
@@ -152,12 +179,12 @@ function buildPreviewRow(row, index, memberNames, bankAccountId, existing) {
     description: row.description,
     amount: row.amount,
     reference: row.reference || null,
-    member: row.member || null,
+    member: bucket === "skipped" ? ledgerMember || row.member || null : row.member || null,
     ledgerType: row.ledgerType || null,
     typeLabel: row.ledgerType ? typeLabelForLedger(row.ledgerType) : null,
     typeSource: row.typeSource,
     bucket,
-    issues: validationIssues,
+    issues: bucket === "skipped" ? [] : validationIssues,
   };
 }
 
@@ -437,6 +464,18 @@ function insertAppendTransaction({
     } catch (_) {}
   }
   counts.inserted += 1;
+  if (type === TRANSACTION_TYPES.DEPOSIT && memberId) {
+    try {
+      const { learnPaymentAliasFromDescription } = require("./member-payment-alias-service");
+      learnPaymentAliasFromDescription(memberId, tx.member, tx.description);
+    } catch (_) {}
+    try {
+      require("./member-service").applyMembershipFeeFromFirstDeposit(memberId);
+    } catch (_) {}
+    try {
+      require("./flexxforms-membership-service").maybeNotifyDepositsVerified(memberId);
+    } catch (_) {}
+  }
   if (type === TRANSACTION_TYPES.DEPOSIT) counts.deposits += 1;
   if (type === TRANSACTION_TYPES.WITHDRAWAL) counts.withdrawals += 1;
   if (type === TRANSACTION_TYPES.LOAN_REPAYMENT) counts.loanRepayments += 1;

@@ -19,6 +19,7 @@
     "export:bank-audit": "node scripts/export-bank-ledger-audit.js",
     "pfm:import-bank": "node peer-finance-manager/scripts/import-bank-ledger.js",
     "test:bank-append": "node peer-finance-manager/scripts/test-bank-append-balance.js",
+    "test:member-bank-attach": "node peer-finance-manager/scripts/test-member-bank-attach.js",
     "test:bank-reconcile": "node peer-finance-manager/scripts/test-bank-reconcile-status.js",
     "test:loan-policy": "node peer-finance-manager/scripts/test-loan-payment-policy.js",
     "test:ledger-split": "node peer-finance-manager/scripts/test-ledger-split-adjustments.js",

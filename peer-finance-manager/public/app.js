@@ -5782,6 +5782,7 @@ function rebucketBankAppendPreviewClient() {
   let skipped = 0;
   for (const row of bankAppendPreviewData.rows) {
     if (row.bucket === "skipped") {
+      row.issues = [];
       skipped += 1;
       continue;
     }
