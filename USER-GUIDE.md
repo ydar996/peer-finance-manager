@@ -106,8 +106,8 @@ First-time users must change the temporary password when prompted.
 | **Emergency Contact** | View or update your emergency contact. |
 | **Profile Photo** | Upload or change your photo. |
 | **Contributions Account** | Balance and transaction history with running balance. |
-| **Loan Account** | Each loan you have; expand to see repayments and balance after each payment. Paid loans are collapsed by default. |
-| **Loan Terms to Review** | After you apply, your Cooperative sends a repayment schedule. The easiest place to Accept or Reject is the inbox notice. This card is a backup view of the same schedule. |
+| **Loan Account** | Each loan you have; expand to see repayments and balance after each payment. Paid loans are collapsed by default. Use **Download PDF** or **Download Excel** for the repayment plan, and **Download Monthly Statement** for activity. |
+| **Loan Terms to Review** | After you apply, your Cooperative sends a repayment schedule. The easiest place to Accept or Reject is the inbox notice. This card is a backup view of the same schedule, with **Download PDF** and **Download Excel** for the repayment plan. |
 | **Apply for a Loan** | Submit a loan application. Applications without a term default to 12 months. |
 | **Monthly statement PDF** | Download your contributions statement. |
 | **Messages** | Button above performance reports. Opens your inbox (separate page) to read admin messages and send messages to the Cooperative admin. Flashes **Unread Messages** when something is new. |
@@ -118,7 +118,7 @@ First-time users must change the temporary password when prompted.
 
 1. On **My Account**, tap **Messages** (or **Unread Messages** when the badge flashes).
 2. You leave My Account and open a dedicated **Messages** inbox: list newest conversations first.
-3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished. Deposit and loan repayment acknowledgements, loan payment due notices, loan repayment terms, and loan approval notices also appear here. Loan repayment terms show a short summary and a stacked schedule: due date and payment on the first line, principal and interest on the line below, with **Accept Terms** and **Reject Terms** on that same notice.
+3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished. Deposit and loan repayment acknowledgements, loan payment due notices, loan repayment terms, loan approval notices, and loan disbursement notices also appear here. Loan repayment terms show a short summary and a stacked schedule: due date and payment on the first line, principal and interest on the line below, with **Accept Terms** and **Reject Terms** on that same notice. After the loan is disbursed, the notice names the disbursement date and first repayment due date, with **Download PDF** and **Download Excel** for the repayment plan.
 4. Use **Message Cooperative Admin** to start a new conversation with your administrator. You can also reply inside an open conversation.
 
 When email is configured, you may also get an email tip that a new portal message is waiting.
@@ -391,7 +391,9 @@ Generate monthly **Contributions Account** PDF statements for all members.
 4. Click **Generate PDF Statements**.
 5. PDFs save under `statements/YYYY-MM/` on the server.
 
-**Loan statements:** use **Statement** on the **Loans** tab or on the member's **Loan Account** profile (one PDF per loan).
+**Loan statements:** use **Statement** on the **Loans** tab or on the member's **Loan Account** profile (one PDF per loan). That PDF is activity (disbursements and repayments), not the repayment plan.
+
+**Repayment plan (PDF or Excel):** after terms exist, download **Download PDF** or **Download Excel** from **Forms & Documents → Loan Applications**, the member **Loan Terms to Review** card (or inbox notice), and each open loan on **Members & Accounts → Loan Account** or **My Account → Loan Account**. The file lists each installment's due date, payment, principal, interest, and remaining balance. First repayment is 30 days after disbursement.
 
 ---
 
@@ -403,7 +405,8 @@ View the full **Loan Portfolio**. Each **Loan** label stays on one line (Loan 1,
 |--------|---------|
 | **Principal / Repaid / Outstanding** | Loan amounts and progress. |
 | **Repayments** | Open repayment history. |
-| **Statement** | Generate loan PDF. |
+| **Statement** | Generate the activity PDF (disbursements and repayments). |
+| **Repayment Plan** | Open the loan row for **Download PDF** and **Download Excel** (due dates, principal, interest, and balance). Same buttons are on the member profile **Loan Account** and on **Forms & Documents → Loan Applications**. |
 | **Agreements** | Create guarantor or borrower agreements (FlexxForms). |
 
 ### Loan Payment Policy (Admin)
@@ -422,7 +425,7 @@ Create new loans on the **Record** tab → **New Loan**.
 
 Record repayments on **Record** → **Loan Repayment**, or via bank import when classified as **Loan Repayment**.
 
-**Due Date Emails:** On the installment due date (the same calendar day as disbursement, each month after that date; for example a 5/22 disbursement is due every 22nd after), each borrower is emailed the payment amount due and the outstanding loan balance as of that date. If a **Loan Repayment** for that installment is already on the books (bank import or Record), that member is not emailed or messaged. If they have already sent the payment but it is not yet confirmed, the notice says to disregard it pending bank reconciliation. After the repayment is confirmed, they receive the usual payment acknowledgment with the transaction date. Admins can open **Automated Messages** at any time to adjust this wording.
+**Due Date Emails:** First repayment is due 30 days after the disbursement date. Later payments fall on that same calendar day each month (for example disbursed 10/25, first due 11/24, then the 24th each month). On that due date, each borrower is emailed the payment amount due and the outstanding loan balance. If a **Loan Repayment** for that installment is already on the books (bank import or Record), that member is not emailed or messaged. If they have already sent the payment but it is not yet confirmed, the notice says to disregard it pending bank reconciliation. After the repayment is confirmed, they receive the usual payment acknowledgment with the transaction date. Admins can open **Automated Messages** at any time to adjust this wording.
 
 ---
 
@@ -531,8 +534,9 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
 5. **Terms Accepted** lets you **Approve Loan**. **Terms Rejected** shows on the loan applications list so you can offer new terms or reject the application. The **Loans** tab banner notes applications ready to approve.
 6. If the requested amount is covered by the member's contributions account, no guarantor is required. Amounts above contributions need two guarantors; that signing workflow is next.
 7. After **Approve Loan**, the member gets an email and a portal inbox notice. The member loan account and the **Loans** portfolio stay at zero until the Cooperative sends the funds.
-8. On the next **Import New Bank Activity**, PFM recognizes the bank outflow that matches the approved amount, records it as **Loan Disbursement**, opens that member's loan account, and adds the loan to the portfolio. Later **Loan Repayment** rows track against that account the usual way.
-9. **Reject** keeps the record as rejected; **Delete** removes unapproved applications only.
+8. On the next **Import New Bank Activity**, PFM recognizes the bank outflow that matches the approved amount, records it as **Loan Disbursement**, opens that member's loan account, and adds the loan to the portfolio. The repayment schedule realigns to that bank date: first repayment is due 30 days later, then monthly on that day. The member gets an email and a portal inbox notice naming the disbursement date and first due date. Later **Loan Repayment** rows track against that account the usual way.
+9. Download the repayment plan with **Download PDF** or **Download Excel** on the loan application card, the member **Loan Terms to Review** card, the inbox notice, or the open loan on **Loan Account**.
+10. **Reject** keeps the record as rejected; **Delete** removes unapproved applications only.
 
 ### Membership applications workflow
 
@@ -579,7 +583,7 @@ Temporary passwords must be changed on first member sign-in. Former members cann
 
 ## 19. Automated Messages Tab
 
-Open **Automated Messages** any time to read and edit the emails members receive automatically (loan repayment terms, loan application approved, loan payment due, deposit/loan repayment confirmed, membership received, deposits verified, welcome login, password reset, meeting notices, published reports, month-end reminder, and new portal message tips). Those notices are also posted to the member portal inbox so members and administrators can re-read the same wording later.
+Open **Automated Messages** any time to read and edit the emails members receive automatically (loan repayment terms, loan application approved, loan disbursed, loan payment due, deposit/loan repayment confirmed, membership received, deposits verified, welcome login, password reset, meeting notices, published reports, month-end reminder, and new portal message tips). Those notices are also posted to the member portal inbox so members and administrators can re-read the same wording later.
 
 | Action | What it does |
 |--------|--------------|

@@ -192,6 +192,40 @@ const CATALOG = [
     },
   },
   {
+    id: "loan_disbursed",
+    title: "Loan Disbursed",
+    description:
+      "Sent after the approved loan amount leaves the Cooperative bank and is recorded from the statement. First repayment is 30 days after that disbursement date.",
+    placeholders: [
+      { token: "memberName", meaning: "Borrower name" },
+      { token: "orgName", meaning: "Cooperative name" },
+      { token: "disbursementDate", meaning: "Date the funds left the bank" },
+      { token: "principal", meaning: "Loan principal" },
+      { token: "termMonths", meaning: "Term in months" },
+      { token: "monthlyPayment", meaning: "Monthly installment" },
+      { token: "firstDueDate", meaning: "First repayment due date" },
+      { token: "portalUrl", meaning: "Member portal sign-in link" },
+    ],
+    defaultSubject: "{{orgName}}: Your Loan Was Disbursed",
+    defaultBody:
+      "Hello {{memberName}},\n\n" +
+      "Your Cooperative disbursed your loan on {{disbursementDate}}.\n\n" +
+      "Principal: {{principal}}\n" +
+      "Term: {{termMonths}} months\n" +
+      "Monthly Payment: {{monthlyPayment}}\n" +
+      "First Repayment Due: {{firstDueDate}}\n\n" +
+      "Your first repayment is due 30 days after the disbursement date. Later payments are due on that same calendar day each month.\n\n" +
+      "Download your repayment plan from the member portal:\n{{portalUrl}}",
+    sample: {
+      memberName: "Ada Okeke",
+      disbursementDate: "10/25/2026",
+      principal: "$1,000.00",
+      termMonths: "12",
+      monthlyPayment: "$86.99",
+      firstDueDate: "11/24/2026",
+    },
+  },
+  {
     id: "deposit_credit_alert",
     title: "Deposit/Loan Repayment Received",
     description:

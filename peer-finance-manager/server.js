@@ -571,6 +571,28 @@ app.get("/api/loans/ledger/:memberId/:loanNumber/statement", async (req, res) =>
   }
 });
 
+app.get("/api/loans/ledger/:memberId/:loanNumber/repayment-plan", async (req, res) => {
+  try {
+    const memberId = Number(req.params.memberId);
+    if (!canAccessMember(req.user, memberId)) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    const loan = getBankLoanLot(
+      Number(req.params.memberId),
+      Number(req.params.loanNumber)
+    );
+    if (!loan) {
+      res.status(404).json({ error: "Loan not found" });
+      return;
+    }
+    const { planFromBankLot, generateRepaymentPlan } = require("./lib/loan-repayment-plan");
+    const result = await generateRepaymentPlan(planFromBankLot(loan), req.query.format);
+    res.download(result.outputPath, result.fileName);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 app.post("/api/loans/validate", (req, res) => {
   try {
     const result = validateLoanApplication(req.body);
@@ -1011,6 +1033,14 @@ app.post(
           result.message = `${result.message || ""}${formatDepositAlertStatus(result.depositAlerts)}`.trim();
         } catch (_alertErr) {
           result.depositAlerts = { sent: 0, failed: 1, skipped: 0 };
+        }
+        try {
+          const {
+            notifyImportedLoanDisbursements,
+          } = require("./lib/loan-application-notify");
+          result.disbursementAlerts = await notifyImportedLoanDisbursements(result.insertedRows);
+        } catch (_disburseErr) {
+          result.disbursementAlerts = { sent: 0, failed: 1 };
         }
       }
       res.json({ success: true, result });
@@ -1696,6 +1726,7 @@ function startServer(port, callback) {
           }
           const {
             backfillMissingLoanApprovalNotices,
+            backfillMissingLoanDisbursementNotices,
           } = require("./lib/loan-application-notify");
           backfillMissingLoanApprovalNotices()
             .then((result) => {
@@ -1709,6 +1740,22 @@ function startServer(port, callback) {
             })
             .catch((err) => {
               trace.info("Loan approval notice backfill skipped", {
+                orgSlug: org.slug,
+                error: err.message,
+              });
+            });
+          backfillMissingLoanDisbursementNotices()
+            .then((result) => {
+              if (result.sent) {
+                trace.info("Missing loan disbursement notices posted", {
+                  orgSlug: org.slug,
+                  sent: result.sent,
+                  considered: result.considered,
+                });
+              }
+            })
+            .catch((err) => {
+              trace.info("Loan disbursement notice backfill skipped", {
                 orgSlug: org.slug,
                 error: err.message,
               });

@@ -727,11 +727,17 @@ details.profile-disclosure > summary::before {
   line-height: 1.4;
 }
 
-.loan-terms-inbox-actions {
+.loan-terms-inbox-actions,
+.loan-plan-download-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 16px;
+}
+
+.loan-lot-actions .loan-plan-download-actions,
+.panel-head-actions .loan-plan-download-actions {
+  margin-top: 0;
 }
 
 .messages-bubble-body table {

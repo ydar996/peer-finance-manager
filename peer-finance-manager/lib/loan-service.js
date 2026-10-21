@@ -8,7 +8,9 @@ const {
   TRANSACTION_TYPES,
 } = require("./constants");
 const { getMemberBalance, getMemberDepositAccountBalance, addTransaction } = require("./balance-service");
-const { addMonths, monthsBetween } = require("./dates");
+const { addMonths, addDays, monthsBetween } = require("./dates");
+
+const FIRST_REPAYMENT_DAYS = 30;
 const {
   snapshotCurrentPolicy,
   getPolicyForLoanRow,
@@ -133,6 +135,10 @@ function validateLoanApplication({
   };
 }
 
+function firstRepaymentDueDate(startDate) {
+  return addDays(startDate, FIRST_REPAYMENT_DAYS);
+}
+
 function generateAmortizationSchedule(principal, annualRate, termMonths, startDate) {
   const p = roundMoney(principal);
   const n = Math.max(1, Math.round(Number(termMonths) || DEFAULT_LOAN_TERM_MONTHS));
@@ -144,6 +150,7 @@ function generateAmortizationSchedule(principal, annualRate, termMonths, startDa
       : (p * monthlyRate * Math.pow(1 + monthlyRate, n)) /
         (Math.pow(1 + monthlyRate, n) - 1);
   const payment = roundMoney(rawPayment);
+  const firstDue = firstRepaymentDueDate(startDate);
 
   let balance = p;
   const installments = [];
@@ -156,7 +163,7 @@ function generateAmortizationSchedule(principal, annualRate, termMonths, startDa
     balance = roundMoney(Math.max(0, balance - principalPart));
     installments.push({
       installmentNumber: i,
-      dueDate: addMonths(startDate, i),
+      dueDate: addMonths(firstDue, i - 1),
       principalDue: principalPart,
       interestDue: interest,
       totalDue,
@@ -390,6 +397,8 @@ module.exports = {
   maxLoanAmount,
   loanCoveredByDeposits,
   validateLoanApplication,
+  FIRST_REPAYMENT_DAYS,
+  firstRepaymentDueDate,
   generateAmortizationSchedule,
   summarizeSchedule,
   roundMoney,

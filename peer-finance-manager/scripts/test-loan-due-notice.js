@@ -43,6 +43,16 @@ function testDuePaymentFromSchedule() {
   assert.equal(duePaymentForLot(lot, "2026-06-22"), 100);
   assert.equal(duePaymentForLot(lot, "2026-06-21"), null);
   assert.equal(duePaymentForLot({ ...lot, outstanding: 0 }, "2026-06-22"), null);
+  const thirtyDayPlan = {
+    outstanding: 900,
+    disbursementDate: "2026-10-25",
+    scheduledMonthlyPayment: 86.99,
+    collected: 0,
+    repayments: [],
+    schedule: [{ dueDate: "2026-11-24", totalDue: 86.99 }],
+  };
+  assert.equal(duePaymentForLot(thirtyDayPlan, "2026-10-25"), null, "not due on disbursement day");
+  assert.equal(duePaymentForLot(thirtyDayPlan, "2026-11-24"), 86.99);
   console.log("  due payment from schedule: OK");
 }
 

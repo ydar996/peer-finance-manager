@@ -188,6 +188,8 @@ async function run() {
     assert.match(scheduleCopy, /Interest/);
     assert.ok(offered.terms.schedule[0].principalDue > 0);
     assert.ok(offered.terms.schedule[0].interestDue > 0);
+    assert.strictEqual(offered.terms.schedule[0].dueDate, "2026-07-31");
+    assert.strictEqual(offered.terms.firstDueDate, "2026-07-31");
 
     let exceedBlocked = false;
     const exceedInsert = db
@@ -275,6 +277,19 @@ async function run() {
     assert.ok(!listPendingApprovedLoans().some((row) => row.applicationId === applicationId));
     const loanAfter = db.prepare(`SELECT start_date FROM loans WHERE id = ?`).get(approved.loanId);
     assert.strictEqual(String(loanAfter.start_date).slice(0, 10), "2026-10-25");
+    const disbursedApp = listLoanApplications().find((a) => a.id === applicationId);
+    assert.strictEqual(disbursedApp.terms.disbursedAt, "2026-10-25");
+    assert.strictEqual(disbursedApp.terms.firstDueDate, "2026-11-24");
+    assert.strictEqual(disbursedApp.terms.schedule[0].dueDate, "2026-11-24");
+    const { planFromApplication, generateRepaymentPlanXlsx } = require("../lib/loan-repayment-plan");
+    const plan = planFromApplication({
+      ...disbursedApp,
+      memberName: "Loan Borrower",
+    });
+    assert.strictEqual(plan.firstDueDate, "2026-11-24");
+    const xlsx = generateRepaymentPlanXlsx(plan);
+    assert.ok(fs.existsSync(xlsx.outputPath));
+    assert.match(xlsx.fileName, /Repayment Plan/);
 
     const rejectInsert = db
       .prepare(

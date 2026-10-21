@@ -218,6 +218,137 @@ async function notifyLoanTermsOffered({ memberId, terms, applicationId }) {
   });
 }
 
+function buildPortalDisbursedHtml({ memberName, terms, disbursementDate, firstDueDate }) {
+  const { escapeHtml } = require("./markdown-lite");
+  const name = escapeHtml(memberName || "Member");
+  return [
+    `<p>Hello ${name},</p>`,
+    `<p>Your Cooperative disbursed your loan on <strong>${escapeHtml(
+      formatCooperativeDate(disbursementDate) || disbursementDate || ""
+    )}</strong>.</p>`,
+    `<p><strong>Principal:</strong> ${escapeHtml(formatMoney(terms.principal))}<br>`,
+    `<strong>Term:</strong> ${escapeHtml(String(terms.termMonths))} Months<br>`,
+    `<strong>Monthly Payment:</strong> ${escapeHtml(formatMoney(terms.monthlyPayment))}<br>`,
+    `<strong>First Repayment Due:</strong> ${escapeHtml(
+      formatCooperativeDate(firstDueDate) || firstDueDate || ""
+    )}</p>`,
+    `<p>Your first repayment is due 30 days after the disbursement date. Later payments are due on that same calendar day each month. Download the repayment plan from My Account.</p>`,
+  ].join("");
+}
+
+async function notifyLoanDisbursed({
+  memberId,
+  terms,
+  applicationId,
+  loanId,
+  disbursementDate,
+  transactionId,
+} = {}) {
+  const contact = lookupMemberContact(memberId);
+  const branding = organizationBranding();
+  const firstDue = terms?.firstDueDate || terms?.schedule?.[0]?.dueDate || "";
+  const message = renderAutomatedEmail("loan_disbursed", {
+    memberName: contact?.memberName || "Member",
+    orgName: branding.name,
+    portalUrl: branding.portalUrl,
+    disbursementDate: formatCooperativeDate(disbursementDate) || disbursementDate || "",
+    principal: formatMoney(terms.principal),
+    termMonths: String(terms.termMonths),
+    monthlyPayment: formatMoney(terms.monthlyPayment),
+    firstDueDate: formatCooperativeDate(firstDue) || firstDue || "",
+  });
+  return sendLoanApplicationNotice({
+    triggerType: "loan_disbursed",
+    memberId,
+    message,
+    portalHtml: buildPortalDisbursedHtml({
+      memberName: contact?.memberName || "Member",
+      terms,
+      disbursementDate,
+      firstDueDate: firstDue,
+    }),
+    dedupeKey: `loan-disbursed:${applicationId}:${transactionId || loanId || disbursementDate}`,
+  });
+}
+
+async function notifyImportedLoanDisbursements(insertedRows = []) {
+  const { getDb } = require("../db/database");
+  const db = getDb();
+  let sent = 0;
+  let failed = 0;
+  for (const row of insertedRows || []) {
+    if (String(row.type || "") !== "loan_disbursement" || !row.transactionId) continue;
+    let app = null;
+    try {
+      app = db
+        .prepare(
+          `SELECT id, member_id AS memberId, loan_id AS loanId, terms_json AS termsJson
+           FROM flexxforms_applications
+           WHERE kind = 'loan' AND disbursement_tx_id = ?
+           LIMIT 1`
+        )
+        .get(Number(row.transactionId));
+    } catch (_) {
+      app = null;
+    }
+    if (!app) continue;
+    let terms = null;
+    try {
+      terms = typeof app.termsJson === "string" ? JSON.parse(app.termsJson) : app.termsJson;
+    } catch (_) {
+      terms = null;
+    }
+    if (!terms) continue;
+    try {
+      await notifyLoanDisbursed({
+        memberId: app.memberId,
+        terms,
+        applicationId: app.id,
+        loanId: app.loanId,
+        disbursementDate: row.date,
+        transactionId: row.transactionId,
+      });
+      sent += 1;
+    } catch (_) {
+      failed += 1;
+    }
+  }
+  return { sent, failed };
+}
+
+async function backfillMissingLoanDisbursementNotices() {
+  const { listLoanApplications } = require("./flexxforms-loan-service");
+  const { getDb } = require("../db/database");
+  const { ensureEmailAuditTables } = require("./email-audit-service");
+  const db = getDb();
+  ensureEmailAuditTables(db);
+  const apps = listLoanApplications().filter(
+    (row) => row.status === "approved" && row.memberId && row.terms && row.disbursementTxId
+  );
+  let sent = 0;
+  for (const app of apps) {
+    const dedupeKey = `loan-disbursed:${app.id}:${app.disbursementTxId}`;
+    const exists = db
+      .prepare(`SELECT 1 AS ok FROM member_report_email_log WHERE dedupe_key = ?`)
+      .get(dedupeKey);
+    if (exists) continue;
+    try {
+      await notifyLoanDisbursed({
+        memberId: app.memberId,
+        terms: app.terms,
+        applicationId: app.id,
+        loanId: app.loanId,
+        disbursementDate: app.terms.disbursedAt || app.terms.startDate,
+        transactionId: app.disbursementTxId,
+      });
+      sent += 1;
+    } catch (_) {
+      /* best-effort */
+    }
+  }
+  return { sent, considered: apps.length };
+}
+
 async function notifyLoanApplicationApproved({ memberId, terms, applicationId, loanId }) {
   const contact = lookupMemberContact(memberId);
   const branding = organizationBranding();
@@ -277,7 +408,11 @@ module.exports = {
   formatScheduleHtml,
   buildPortalTermsHtml,
   buildPortalApprovedHtml,
+  buildPortalDisbursedHtml,
   notifyLoanTermsOffered,
   notifyLoanApplicationApproved,
+  notifyLoanDisbursed,
+  notifyImportedLoanDisbursements,
   backfillMissingLoanApprovalNotices,
+  backfillMissingLoanDisbursementNotices,
 };

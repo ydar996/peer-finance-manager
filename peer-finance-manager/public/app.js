@@ -1378,6 +1378,12 @@ async function loadMyAccount() {
                 <button type="button" class="btn primary" data-member-id="${profile.member_id}" data-loan-number="${lot.loanNumber}" data-action="my-loan-statement" ${loanMonths.length ? "" : "disabled"}>
                   Download Monthly Statement
                 </button>
+                <button type="button" class="btn js-download-repayment-plan" data-format="pdf" data-member-id="${profile.member_id}" data-loan-number="${lot.loanNumber}">
+                  Download PDF
+                </button>
+                <button type="button" class="btn js-download-repayment-plan" data-format="xlsx" data-member-id="${profile.member_id}" data-loan-number="${lot.loanNumber}">
+                  Download Excel
+                </button>
               </div>
             </div>
             ${loanScheduleHtml(lot)}
@@ -1405,6 +1411,7 @@ async function loadMyAccount() {
         );
       });
     });
+    bindRepaymentPlanButtons(loanLots);
   } catch (err) {
     if (requestId !== myAccountRequestId) return;
     if (depositBalanceSummary) depositBalanceSummary.textContent = ":";
@@ -3282,6 +3289,7 @@ function bindMemberAccountCards(root, memberId, initialPanel = "deposit") {
   });
   selectMemberAccountPanel(root, initialPanel);
   bindLoanStatementButtons(root);
+  bindRepaymentPlanButtons(root);
 }
 
 async function downloadLoanStatement(memberId, loanNumber, button, options = {}) {
@@ -3337,6 +3345,83 @@ function bindLoanStatementButtons(root) {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       downloadLoanStatement(btn.dataset.memberId, btn.dataset.loanNumber, btn).catch((err) => {
+        void appAlert(err.message, { title: "Error", variant: "danger" });
+      });
+    });
+  });
+}
+
+function repaymentPlanDownloadButtons({ memberId, loanNumber, applicationId, memberOwned = false } = {}) {
+  const attrs = [];
+  if (memberId) attrs.push(`data-member-id="${escapeHtml(String(memberId))}"`);
+  if (loanNumber) attrs.push(`data-loan-number="${escapeHtml(String(loanNumber))}"`);
+  if (applicationId) attrs.push(`data-application-id="${escapeHtml(String(applicationId))}"`);
+  if (memberOwned) attrs.push(`data-member-owned="1"`);
+  const extra = attrs.join(" ");
+  return `<div class="loan-plan-download-actions">
+    <button type="button" class="btn small js-download-repayment-plan" data-format="pdf" ${extra}>Download PDF</button>
+    <button type="button" class="btn small js-download-repayment-plan" data-format="xlsx" ${extra}>Download Excel</button>
+  </div>`;
+}
+
+async function downloadRepaymentPlan(button) {
+  const format = button.dataset.format || "pdf";
+  const memberId = button.dataset.memberId;
+  const loanNumber = button.dataset.loanNumber;
+  const applicationId = button.dataset.applicationId;
+  const memberOwned = button.dataset.memberOwned === "1";
+  let url = "";
+  if (applicationId) {
+    url = memberOwned
+      ? `/api/me/loan-applications/${applicationId}/repayment-plan?format=${encodeURIComponent(format)}`
+      : `/api/flexxforms/loan-applications/${applicationId}/repayment-plan?format=${encodeURIComponent(format)}`;
+  } else if (memberId && loanNumber) {
+    url = `/api/loans/ledger/${memberId}/${loanNumber}/repayment-plan?format=${encodeURIComponent(format)}`;
+  } else {
+    throw new Error("No repayment plan is available yet.");
+  }
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Generating…";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      let message = "Failed to download repayment plan";
+      try {
+        const data = await res.json();
+        message = data.error || message;
+      } catch (_) {}
+      throw new Error(message);
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const fileName = match?.[1] || `Repayment Plan.${format === "xlsx" ? "xlsx" : "pdf"}`;
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    const message =
+      err.name === "AbortError"
+        ? "Repayment plan download timed out. Please try again."
+        : err.message || "Failed to download repayment plan";
+    throw new Error(message);
+  } finally {
+    clearTimeout(timeout);
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+function bindRepaymentPlanButtons(root) {
+  root?.querySelectorAll(".js-download-repayment-plan").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      downloadRepaymentPlan(btn).catch((err) => {
         void appAlert(err.message, { title: "Error", variant: "danger" });
       });
     });
@@ -3419,7 +3504,9 @@ function loanLotSummaryLine(lot) {
     (lot.lateFeesAssessed || 0) > 0.005
       ? ` · Late fees ${fmt.format(lot.lateFeesAssessed)}`
       : "";
-  return `Disbursed ${formatDate(lot.disbursementDate)} · Principal ${fmt.format(lot.principal)} · Repaid ${fmt.format(lot.collected)} · Interest earned ${fmt.format(lot.interestIncome || 0)}${lot.scheduledTotalInterest != null ? ` of ${fmt.format(lot.scheduledTotalInterest)} scheduled` : ""} · Outstanding ${fmt.format(lot.outstanding)}${policyNote}${lateNote}`;
+  const firstDue = lot.schedule?.[0]?.dueDate || lot.schedule?.[0]?.due_date;
+  const firstDueNote = firstDue ? ` · First repayment due ${formatDate(firstDue)}` : "";
+  return `Disbursed ${formatDate(lot.disbursementDate)} · Principal ${fmt.format(lot.principal)} · Repaid ${fmt.format(lot.collected)} · Interest earned ${fmt.format(lot.interestIncome || 0)}${lot.scheduledTotalInterest != null ? ` of ${fmt.format(lot.scheduledTotalInterest)} scheduled` : ""} · Outstanding ${fmt.format(lot.outstanding)}${firstDueNote}${policyNote}${lateNote}`;
 }
 
 function loanLotCardHtml(lot, memberId, loanTransactions) {
@@ -3437,6 +3524,7 @@ function loanLotCardHtml(lot, memberId, loanTransactions) {
         <div class="loan-lot-body">
           <div class="loan-lot-actions">
             <button type="button" class="btn small loan-statement-btn" data-member-id="${lot.memberId || memberId}" data-loan-number="${lot.loanNumber}">Generate Statement</button>
+            ${repaymentPlanDownloadButtons({ memberId: lot.memberId || memberId, loanNumber: lot.loanNumber })}
           </div>
           <p class="subtle">${loanLotSummaryLine(lot)}</p>
           ${noteLine}
@@ -3800,6 +3888,7 @@ async function toggleLoanDetail(row) {
       'class="loan-lot-card loan-lot-disclosure profile-disclosure inline"'
     );
     bindLoanStatementButtons(detailRow);
+    bindRepaymentPlanButtons(detailRow);
   } catch (err) {
     if (requestId !== loanDetailRequestId) return;
     cell.innerHTML = `<p class="status err">${escapeHtml(err.message)}</p>`;
@@ -9585,6 +9674,13 @@ function renderLoanTermsSummaryHtml(terms, { simple = false } = {}) {
         terms.depositBalance != null ? ` (${fmt.format(terms.depositBalance)})` : ""
       }.</p>`
     : "";
+  const disbursed = terms.disbursedAt
+    ? `<p class="hint">Disbursed ${formatDate(terms.disbursedAt)}${
+        terms.firstDueDate ? ` · First Repayment Due ${formatDate(terms.firstDueDate)}` : ""
+      }.</p>`
+    : terms.firstDueDate
+      ? `<p class="hint">First Repayment Due ${formatDate(terms.firstDueDate)} (30 Days after Disbursement).</p>`
+      : "";
   if (simple) {
     return `<dl class="loan-terms-summary">
       <div><dt>Principal</dt><dd>${fmt.format(terms.principal || 0)}</dd></div>
@@ -9592,8 +9688,19 @@ function renderLoanTermsSummaryHtml(terms, { simple = false } = {}) {
       <div><dt>Term</dt><dd>${escapeHtml(String(terms.termMonths || 12))} Months</dd></div>
       <div><dt>Monthly Payment</dt><dd>${fmt.format(terms.monthlyPayment || 0)}</dd></div>
       <div><dt>Total Interest</dt><dd>${fmt.format(terms.totalInterest || 0)}</dd></div>
+      ${
+        terms.disbursedAt
+          ? `<div><dt>Disbursement Date</dt><dd>${escapeHtml(formatDate(terms.disbursedAt))}</dd></div>`
+          : ""
+      }
+      ${
+        terms.firstDueDate
+          ? `<div><dt>First Repayment Due</dt><dd>${escapeHtml(formatDate(terms.firstDueDate))}</dd></div>`
+          : ""
+      }
     </dl>
     ${covered}
+    ${disbursed}
     <p class="loan-terms-schedule-heading">Repayment Schedule</p>
     ${renderLoanTermsScheduleHtml(terms, { simple: true })}`;
   }
@@ -9601,6 +9708,7 @@ function renderLoanTermsSummaryHtml(terms, { simple = false } = {}) {
     terms.termMonths || 12
   } Months · ${rate}% Annual Rate · Monthly Payment ${fmt.format(terms.monthlyPayment || 0)}</p>
   ${covered}
+  ${disbursed}
   ${renderLoanTermsScheduleHtml(terms)}`;
 }
 
@@ -9608,8 +9716,12 @@ function isLoanApprovedNoticeSubject(subject) {
   return /loan application is approved|loan approved/i.test(String(subject || ""));
 }
 
+function isLoanDisbursedNoticeSubject(subject) {
+  return /loan was disbursed|loan disbursed/i.test(String(subject || ""));
+}
+
 function isLoanTermsNoticeSubject(subject) {
-  if (isLoanApprovedNoticeSubject(subject)) return false;
+  if (isLoanApprovedNoticeSubject(subject) || isLoanDisbursedNoticeSubject(subject)) return false;
   return /repayment terms|accept terms/i.test(String(subject || ""));
 }
 
@@ -9619,7 +9731,9 @@ function renderMemberLoanTermsActionCard(application) {
   const statusLine =
     application.status === "approved"
       ? application.disbursementTxId
-        ? `<p class="status ok">Loan Approved. Your Loan Account Is Open and Repayments Are Being Tracked.</p>`
+        ? `<p class="status ok">Loan Disbursed${
+            terms.disbursedAt ? ` on ${escapeHtml(formatDate(terms.disbursedAt))}` : ""
+          }. Your Loan Account Is Open and Repayments Are Being Tracked.</p>`
         : `<p class="status ok">Loan Approved. Your Loan Account Opens When the Cooperative Sends These Funds (Recorded from the Next Bank Statement).</p>`
       : application.status === "terms_accepted"
         ? `<p class="status ok">You Accepted These Terms. Waiting for Administrator Approval.</p>`
@@ -9632,9 +9746,17 @@ function renderMemberLoanTermsActionCard(application) {
         <button type="button" class="btn js-reject-loan-terms" data-id="${application.id}">Reject Terms</button>
       </div>`
     : "";
+  const downloads =
+    terms.schedule?.length
+      ? repaymentPlanDownloadButtons({
+          applicationId: application.id,
+          memberOwned: currentUser?.role === "member",
+        })
+      : "";
   return `<h3>Repayment Terms</h3>
     ${statusLine}
     ${renderLoanTermsSummaryHtml(terms, { simple: true })}
+    ${downloads}
     ${actions}
     <p class="status" id="inboxLoanTermsStatus"></p>`;
 }
@@ -9753,6 +9875,11 @@ async function loadFlexxFormsLoanApplications() {
           ${acceptedNote}
           ${terms ? renderLoanTermsSummaryHtml(terms) : ""}
           ${
+            terms?.schedule?.length
+              ? repaymentPlanDownloadButtons({ applicationId: a.id })
+              : ""
+          }
+          ${
             p.guarantor1Name || p.guarantor2Name
               ? `<p class="hint">Guarantors (from form): ${escapeHtml(
                   [p.guarantor1Name, p.guarantor2Name].filter(Boolean).join(", ")
@@ -9778,6 +9905,7 @@ async function loadFlexxFormsLoanApplications() {
     list.querySelectorAll(".ff-delete-loan-application").forEach((btn) => {
       btn.addEventListener("click", () => deleteFlexxFormsLoanApplication(btn.dataset.id));
     });
+    bindRepaymentPlanButtons(list);
   } catch {
     list.innerHTML = '<p class="hint">Unable to load loan applications</p>';
   }
@@ -10233,6 +10361,7 @@ async function loadMyLoanTermsCard() {
       .map((a) => `<article class="loan-terms-member-card" data-member-loan-app="${a.id}">${renderMemberLoanTermsActionCard(a)}</article>`)
       .join("");
     bindLoanTermsDecisionButtons(list);
+    bindRepaymentPlanButtons(list);
   } catch {
     card.classList.add("hidden");
   }
@@ -10292,6 +10421,13 @@ function pickLoanApplicationForThread(apps, subject) {
       ["terms_offered", "terms_accepted", "terms_rejected", "approved"].includes(a.status)
   );
   if (!pending.length) return null;
+  if (isLoanDisbursedNoticeSubject(subject)) {
+    return (
+      pending.find((a) => a.status === "approved" && a.disbursementTxId) ||
+      pending.find((a) => a.status === "approved") ||
+      pending[0]
+    );
+  }
   if (isLoanApprovedNoticeSubject(subject)) {
     return pending.find((a) => a.status === "approved") || pending[0];
   }
@@ -10323,6 +10459,7 @@ async function refreshMemberLoanTermsInboxCard(thread = null) {
     card.innerHTML = renderMemberLoanTermsActionCard(application);
     card.classList.remove("hidden");
     bindLoanTermsDecisionButtons(card);
+    bindRepaymentPlanButtons(card);
     return application;
   } catch {
     card.classList.add("hidden");

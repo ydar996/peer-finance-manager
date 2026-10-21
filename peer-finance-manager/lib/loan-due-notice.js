@@ -1,7 +1,7 @@
 /**
- * Email borrowers on their installment due date (same calendar day as disbursement,
- * each month after the disbursement date). Skip when a loan repayment for that
- * installment is already on the books.
+ * Email borrowers on their installment due date. First repayment is 30 days after
+ * disbursement; later months follow that calendar day. Skip when a loan repayment
+ * for that installment is already on the books.
  */
 const { sendEmail, isEmailConfigured } = require("./email-service");
 const { getDb } = require("../db/database");
@@ -211,6 +211,10 @@ function duePaymentForLot(lot, today) {
     }
   }
 
+  const hasScheduleDates = (lot.schedule || []).some((period) =>
+    String(period.dueDate || period.due_date || "").slice(0, 10)
+  );
+  if (hasScheduleDates) return null;
   if (!isInstallmentDueDay(lot.disbursementDate, todayIsoValue)) return null;
   const monthly = monthlyPaymentFromLot(lot);
   if (monthly <= 0.005) return null;

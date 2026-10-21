@@ -121,6 +121,23 @@ function registerFlexxFormsRoutes(app) {
     }
   });
 
+  app.get(
+    "/api/flexxforms/loan-applications/:id/repayment-plan",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const { getLoanApplicationDetail } = require("./flexxforms-loan-service");
+        const { planFromApplication, generateRepaymentPlan } = require("./loan-repayment-plan");
+        const application = getLoanApplicationDetail(Number(req.params.id));
+        const result = await generateRepaymentPlan(planFromApplication(application), req.query.format);
+        res.download(result.outputPath, result.fileName);
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
+
   app.post(
     "/api/flexxforms/loan-applications/:id/link-member",
     requireAuth,
@@ -229,6 +246,26 @@ function registerFlexxFormsRoutes(app) {
       res.status(err.status || 400).json({ error: err.message });
     }
   });
+
+  app.get(
+    "/api/me/loan-applications/:id/repayment-plan",
+    requireAuth,
+    requireActiveMemberAccount,
+    async (req, res) => {
+      try {
+        const { getLoanApplicationDetail } = require("./flexxforms-loan-service");
+        const { planFromApplication, generateRepaymentPlan } = require("./loan-repayment-plan");
+        const application = getLoanApplicationDetail(Number(req.params.id));
+        if (Number(application.memberId) !== Number(req.user?.memberId)) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+        const result = await generateRepaymentPlan(planFromApplication(application), req.query.format);
+        res.download(result.outputPath, result.fileName);
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
 
   app.post(
     "/api/me/loan-applications/:id/accept-terms",

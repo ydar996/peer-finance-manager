@@ -191,6 +191,7 @@ function markApprovedLoanDisbursed({
         schedule,
         startDate: date,
         disbursedAt: date,
+        firstDueDate: schedule[0]?.dueDate || null,
       });
       db.prepare(
         `UPDATE flexxforms_applications SET terms_json = ?, updated_at = datetime('now') WHERE id = ?`

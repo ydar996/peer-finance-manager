@@ -13,6 +13,7 @@ const TRIGGER_LABELS = {
   deposits_verified_correction: "Deposits Verified (Corrected Amounts)",
   loan_terms_offered: "Loan Repayment Terms",
   loan_application_approved: "Loan Application Approved",
+  loan_disbursed: "Loan Disbursed",
 };
 
 function tableHasColumn(db, table, column) {

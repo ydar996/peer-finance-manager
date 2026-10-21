@@ -23,6 +23,16 @@ function addMonths(isoDate, count) {
   return `${yy}-${mm}-${dd}`;
 }
 
+function addDays(isoDate, days) {
+  const [y, m, d] = String(isoDate || "").slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const dt = new Date(y, m - 1, d + Number(days || 0));
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
 function monthsBetween(startIso, endIso) {
   const [sy, sm] = startIso.split("-").map(Number);
   const [ey, em] = endIso.split("-").map(Number);
@@ -33,5 +43,6 @@ module.exports = {
   lastDayOfMonth,
   monthIndexFromName,
   addMonths,
+  addDays,
   monthsBetween,
 };

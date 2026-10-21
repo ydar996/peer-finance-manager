@@ -32,6 +32,7 @@ function testDefaults() {
   assert.ok(ids.includes("deposit_credit_alert"));
   assert.ok(ids.includes("loan_terms_offered"));
   assert.ok(ids.includes("loan_application_approved"));
+  assert.ok(ids.includes("loan_disbursed"));
   assert.equal(
     listed.every((row) => row.subject && row.body),
     true
