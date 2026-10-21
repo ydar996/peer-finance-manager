@@ -138,7 +138,7 @@ const CATALOG = [
       { token: "termMonths", meaning: "Term in months" },
       { token: "monthlyPayment", meaning: "Monthly installment" },
       { token: "startDate", meaning: "First payment due date month start" },
-      { token: "scheduleText", meaning: "Due date and payment for each installment" },
+      { token: "scheduleText", meaning: "Due date, payment, principal, and interest for each installment" },
       { token: "portalUrl", meaning: "Member portal sign-in link" },
     ],
     defaultSubject: "{{orgName}}: Review Your Loan Repayment Terms",
@@ -149,7 +149,7 @@ const CATALOG = [
       "Annual Interest Rate: {{annualRatePercent}}%\n" +
       "Term: {{termMonths}} months\n" +
       "Monthly Payment: {{monthlyPayment}}\n\n" +
-      "Repayment Schedule (Due Date, Payment):\n{{scheduleText}}\n\n" +
+      "Repayment Schedule (Due Date, Payment, Principal, Interest):\n{{scheduleText}}\n\n" +
       "Open this notice in the member portal to Accept or Reject these terms.\n" +
       "{{portalUrl}}",
     sample: {
@@ -159,7 +159,7 @@ const CATALOG = [
       termMonths: "12",
       monthlyPayment: "$86.99",
       startDate: "11/21/2026",
-      scheduleText: "11/21/2026    $86.99",
+      scheduleText: "11/21/2026  $86.99  Principal $80.13  Interest $6.86",
     },
   },
   {

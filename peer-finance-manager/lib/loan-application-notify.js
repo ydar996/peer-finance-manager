@@ -34,7 +34,9 @@ function formatScheduleText(schedule = []) {
   return (schedule || [])
     .map((row) => {
       const due = formatCooperativeDate(row.dueDate) || row.dueDate;
-      return `${due}    ${formatMoney(row.totalDue)}`;
+      return `${due}  ${formatMoney(row.totalDue)}  Principal ${formatMoney(
+        row.principalDue
+      )}  Interest ${formatMoney(row.interestDue)}`;
     })
     .join("\n");
 }
@@ -44,7 +46,11 @@ function formatScheduleHtml(schedule = []) {
   const rows = (schedule || [])
     .map((row) => {
       const due = formatCooperativeDate(row.dueDate) || row.dueDate || "";
-      return `<tr><td>${escapeHtml(due)}</td><td>${escapeHtml(formatMoney(row.totalDue))}</td></tr>`;
+      return (
+        `<tr><td>${escapeHtml(due)}<br>Principal ${escapeHtml(formatMoney(row.principalDue))}  Interest ${escapeHtml(
+          formatMoney(row.interestDue)
+        )}</td>` + `<td>${escapeHtml(formatMoney(row.totalDue))}</td></tr>`
+      );
     })
     .join("");
   return `<table><thead><tr><th>Due Date</th><th>Payment</th></tr></thead><tbody>${rows}</tbody></table>`;

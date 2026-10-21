@@ -684,6 +684,49 @@ details.profile-disclosure > summary::before {
   font-variant-numeric: tabular-nums;
 }
 
+.loan-terms-schedule-heading {
+  margin: 4px 0 8px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.loan-terms-installments {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  border-top: 1px solid var(--pv-line);
+}
+
+.loan-terms-installment {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pv-line);
+}
+
+.loan-terms-installment-date {
+  font-size: 15px;
+  font-weight: 650;
+  min-width: 0;
+}
+
+.loan-terms-installment-payment {
+  font-size: 16px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.loan-terms-installment-split {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pv-ink-500);
+  line-height: 1.4;
+}
+
 .loan-terms-inbox-actions {
   display: flex;
   flex-wrap: wrap;

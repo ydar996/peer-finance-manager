@@ -118,7 +118,7 @@ First-time users must change the temporary password when prompted.
 
 1. On **My Account**, tap **Messages** (or **Unread Messages** when the badge flashes).
 2. You leave My Account and open a dedicated **Messages** inbox: list newest conversations first.
-3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished. Deposit and loan repayment acknowledgements, loan payment due notices, loan repayment terms, and loan approval notices also appear here. Loan repayment terms show a short summary and a two-column schedule (Due Date, Payment) with **Accept Terms** and **Reject Terms** on that same notice.
+3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished. Deposit and loan repayment acknowledgements, loan payment due notices, loan repayment terms, and loan approval notices also appear here. Loan repayment terms show a short summary and a stacked schedule: due date and payment on the first line, principal and interest on the line below, with **Accept Terms** and **Reject Terms** on that same notice.
 4. Use **Message Cooperative Admin** to start a new conversation with your administrator. You can also reply inside an open conversation.
 
 When email is configured, you may also get an email tip that a new portal message is waiting.
@@ -129,7 +129,7 @@ When email is configured, you may also get an email tip that a new portal messag
 - Transaction tables hide **Description** by default. Tap **Show Descriptions** if you need full detail.
 - Swipe sideways on wide tables if needed.
 - Prefer the **Messages** inbox for reading long notes (minutes, action items); it is built for mobile reading.
-- Open the loan terms inbox notice to Accept or Reject without leaving Messages. The schedule is Due Date and Payment only.
+- Open the loan terms inbox notice to Accept or Reject without leaving Messages. Each installment shows Due Date, Payment, Principal, and Interest without sideways scrolling.
 
 ---
 
@@ -525,7 +525,7 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
 1. Member submits via **My Account → Apply for a Loan**. If the form has no term, PFM uses **12 months**.
 2. Application appears under **Forms & Documents → Loan Applications** (answers are stored and retrievable).
 3. Open **Offer Repayment Terms**, confirm borrower, amount, term, and start date, then **Preview Schedule** and **Send Terms to Member**. The schedule uses the Cooperative **Annual Interest Rate** (default 8%).
-4. The member receives an email and a portal inbox notice. They review the two-column schedule on that notice and tap **Accept Terms** or **Reject Terms** there (no extra page).
+4. The member receives an email and a portal inbox notice. They review each installment (due date, payment, principal, and interest) on that notice and tap **Accept Terms** or **Reject Terms** there (no extra page).
 5. **Terms Accepted** lets you **Approve Loan**. **Terms Rejected** shows on the loan applications list so you can offer new terms or reject the application. The **Loans** tab banner notes applications ready to approve.
 6. If the requested amount is covered by the member's contributions account, no guarantor is required. Amounts above contributions need two guarantors; that signing workflow is next.
 7. After approval, the loan is created in Peer Finance Manager and the member gets an email plus a portal notice.

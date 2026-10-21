@@ -26,6 +26,7 @@ const {
   approveLoanApplication,
 } = require("../lib/flexxforms-loan-service");
 const { ensureMembershipApplicationSchema } = require("../lib/flexxforms-membership-service");
+const { formatScheduleText } = require("../lib/loan-application-notify");
 
 const ORG = "loan-apps-test-coop";
 
@@ -176,6 +177,11 @@ async function run() {
     assert.strictEqual(offered.terms.schedule.length, 12);
     assert.ok(offered.terms.monthlyPayment > 0);
     assert.equal(offered.terms.coveredByDeposits, true);
+    const scheduleCopy = formatScheduleText(offered.terms.schedule);
+    assert.match(scheduleCopy, /Principal/);
+    assert.match(scheduleCopy, /Interest/);
+    assert.ok(offered.terms.schedule[0].principalDue > 0);
+    assert.ok(offered.terms.schedule[0].interestDue > 0);
 
     let exceedBlocked = false;
     const exceedInsert = db

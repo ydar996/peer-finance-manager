@@ -9442,23 +9442,18 @@ function renderLoanTermsScheduleHtml(terms, { simple = false } = {}) {
   if (simple) {
     const rows = schedule
       .map(
-        (row) => `<tr>
-        <td>${escapeHtml(formatDate(row.dueDate) || row.dueDate || "")}</td>
-        <td class="money">${fmt.format(row.totalDue || 0)}</td>
-      </tr>`
+        (row) => `<li class="loan-terms-installment">
+        <span class="loan-terms-installment-date">${escapeHtml(
+          formatDate(row.dueDate) || row.dueDate || ""
+        )}</span>
+        <span class="loan-terms-installment-payment">${fmt.format(row.totalDue || 0)}</span>
+        <span class="loan-terms-installment-split">Principal ${fmt.format(
+          row.principalDue || 0
+        )}  Interest ${fmt.format(row.interestDue || 0)}</span>
+      </li>`
       )
       .join("");
-    return `<div class="loan-terms-schedule-wrap">
-    <table class="loan-terms-inbox-table">
-      <thead>
-        <tr>
-          <th>Due Date</th>
-          <th>Payment</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>`;
+    return `<ul class="loan-terms-installments">${rows}</ul>`;
   }
   const rows = schedule
     .map(
@@ -9501,8 +9496,10 @@ function renderLoanTermsSummaryHtml(terms, { simple = false } = {}) {
       <div><dt>Annual Rate</dt><dd>${escapeHtml(rate)}%</dd></div>
       <div><dt>Term</dt><dd>${escapeHtml(String(terms.termMonths || 12))} Months</dd></div>
       <div><dt>Monthly Payment</dt><dd>${fmt.format(terms.monthlyPayment || 0)}</dd></div>
+      <div><dt>Total Interest</dt><dd>${fmt.format(terms.totalInterest || 0)}</dd></div>
     </dl>
     ${covered}
+    <p class="loan-terms-schedule-heading">Repayment Schedule</p>
     ${renderLoanTermsScheduleHtml(terms, { simple: true })}`;
   }
   return `<p class="hint">Principal ${fmt.format(terms.principal || 0)} · ${
