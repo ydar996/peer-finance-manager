@@ -454,7 +454,7 @@ Cooperative-wide performance PDF for members.
 | **Schedule a meeting** | Expand **Schedule a Meeting** → title, date, time, location, agenda → **Save Draft** → announce when ready. |
 | **Member view** | Announced meetings appear on every member's portal. |
 | **Email reminders** | Configure under **Meeting Reminder Settings** (requires email setup). |
-| **Email Send Audit** | **Refresh Audit** then **View Message** to read the exact wording and which members were sent or failed. The same history is also on **Messages → Email Notices**. |
+| **Email Send Audit** | **Refresh Audit** then **View Message** to open that send in a new tab. Read the exact wording and which members were sent or failed, then close the tab. The same history is also on **Messages → Email Notices**. |
 | **Automated Messages** | Open the **Automated Messages** tab to view every automatic email and adjust the subject or wording. |
 
 ---
@@ -477,7 +477,7 @@ Admins compose in a **rich text box**: paste from Microsoft Word and keep basic 
 | **Send to one member or a group** | Choose **Selected Members**, tick the names (or **Select All**), then send. Example: action items after a meeting. |
 | **Attachments** | PDF and images open in the browser (**View**). Word (.docx) is downloadable. Up to 8 files, 12 MB each. |
 | **Read replies** | Open a conversation in **Inbox**. Formatted body and attachments appear. Reply at the bottom (admins may paste from Word and attach on reply too). |
-| **See what was sent** | Open **Email Notices**, then **View Message** for a send. You will see the exact copy each member received, plus Sent/Failed. The same notice is in **Sent** and in the member portal inbox. |
+| **See what was sent** | Open **Email Notices**, then **View Message**. Each send opens in a new tab with the exact copy each member received, plus Sent/Failed. Close the tab when you are done. The same notice is in **Sent** and in the member portal inbox. |
 | **Member → admin** | Members use **Messages** on My Account → **Message Cooperative Admin**. |
 
 **Tip for Word minutes with figures:** Paste the text into Messages for a readable summary, and **Save as PDF** + attach for the full document with images. Ampersands (`&`) and other punctuation stay as you typed them. No Markdown tools required.

@@ -432,6 +432,24 @@ function getPortalFromPath() {
   return "member";
 }
 
+function getEmailNoticeIdFromUrl() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get("emailNotice");
+    const id = Number(raw);
+    return Number.isInteger(id) && id > 0 ? id : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function isEmailNoticeStandalone() {
+  return Boolean(getEmailNoticeIdFromUrl());
+}
+
+function emailNoticeHref(batchId) {
+  return `/admin?emailNotice=${encodeURIComponent(batchId)}`;
+}
+
 const APP_NAME = "Peer Finance Manager";
 
 function applyAppBranding() {
@@ -649,7 +667,9 @@ function applyRoleUi() {
     sessionRole.textContent = roleLabel(currentUser.role);
   }
 
-  if (role === "member") switchTab("my-account");
+  if (isEmailNoticeStandalone() && role === "admin") {
+    /* Standalone email notice tab: skip the default workspace tab. */
+  } else if (role === "member") switchTab("my-account");
   else if (role === "admin" || role === "staff") switchTab("books");
 
   $("#appShell")?.classList.toggle("member-portal", role === "member");
@@ -1064,6 +1084,9 @@ async function bootstrapApp() {
   const role = currentUser?.role;
   if (role === "member") {
     loadMyAccount();
+    return;
+  }
+  if (role === "admin" && (await openEmailNoticeStandalone())) {
     return;
   }
   loadBooks();
@@ -4960,6 +4983,81 @@ function statusLabelForDelivery(status) {
   return status || ":";
 }
 
+async function openEmailNoticeStandalone() {
+  const batchId = getEmailNoticeIdFromUrl();
+  if (!batchId || currentUser?.role !== "admin") return false;
+  document.body.classList.add("email-notice-standalone");
+  document.querySelectorAll("#appShell .panel").forEach((panel) => {
+    panel.classList.remove("active");
+  });
+  $("#panel-email-notice")?.classList.add("active");
+  const appTitle = $("#appTitle");
+  if (appTitle) appTitle.textContent = "Email Notice";
+  await loadEmailNoticeStandalone(batchId);
+  return true;
+}
+
+async function loadEmailNoticeStandalone(batchId) {
+  const titleEl = $("#emailNoticeStandaloneTitle");
+  const metaEl = $("#emailNoticeStandaloneMeta");
+  const statusEl = $("#emailNoticeStandaloneStatus");
+  const copyEl = $("#emailNoticeStandaloneCopy");
+  const body = $("#emailNoticeStandaloneRecipients");
+  if (statusEl) {
+    statusEl.textContent = "Loading Notice…";
+    statusEl.className = "status";
+  }
+  if (body) {
+    body.innerHTML = `<tr><td colspan="4" class="hint">Loading…</td></tr>`;
+  }
+  try {
+    const res = await fetch(`/api/books/email-audit/batches/${encodeURIComponent(batchId)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load notice");
+    const batch = data.batch || {};
+    const deliveries = data.deliveries || [];
+    const subject = batch.subject || batch.triggerLabel || "Email Notice";
+    if (titleEl) titleEl.textContent = subject;
+    document.title = `${subject} : Email Notice`;
+    if (metaEl) {
+      const when = formatEmailAuditWhen(batch.sentAt);
+      const count = `${deliveries.length} Recipient${deliveries.length === 1 ? "" : "s"}`;
+      metaEl.textContent = `${batch.triggerLabel || batch.triggerType || "Email"} · ${when} · ${count}`;
+    }
+    renderEmailNoticeCopies(copyEl, deliveries);
+    if (body) {
+      body.innerHTML = deliveries.length
+        ? deliveries
+            .map((row) => {
+              const note = emailDeliveryNoteLabel(row) || ":";
+              return `<tr>
+                <td>${escapeHtml(row.memberName || ":")}</td>
+                <td>${escapeHtml(row.email || ":")}</td>
+                <td>${escapeHtml(statusLabelForDelivery(row.status))}</td>
+                <td>${escapeHtml(note)}</td>
+              </tr>`;
+            })
+            .join("")
+        : `<tr><td colspan="4" class="hint">No Recipient Rows for This Send.</td></tr>`;
+    }
+    if (statusEl) {
+      statusEl.textContent = "";
+      statusEl.className = "status";
+    }
+  } catch (err) {
+    if (titleEl) titleEl.textContent = "Email Notice";
+    if (metaEl) metaEl.textContent = "";
+    if (copyEl) copyEl.innerHTML = "";
+    if (body) {
+      body.innerHTML = `<tr><td colspan="4" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    }
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    }
+  }
+}
+
 function renderEmailNoticeCopies(container, deliveries) {
   if (!container) return;
   const rows = Array.isArray(deliveries) ? deliveries : [];
@@ -5042,13 +5140,10 @@ async function loadEmailSendAudit() {
             <td>${escapeHtml(subject)}${detailHint ? `<div class="subtle">${detailHint}</div>` : ""}</td>
             <td>${sent}</td>
             <td>${failed}</td>
-            <td><button type="button" class="btn btn-ghost email-audit-view" data-id="${batch.id}">View Message</button></td>
+            <td><a class="btn btn-ghost" href="${emailNoticeHref(batch.id)}" target="_blank" rel="noopener noreferrer">View Message</a></td>
           </tr>`;
         })
         .join("");
-      body.querySelectorAll(".email-audit-view").forEach((btn) => {
-        btn.addEventListener("click", () => loadEmailSendAuditBatch(btn.dataset.id));
-      });
     }
     if (recipientsBody) {
       const recipients = summary.recipients || [];
@@ -10995,13 +11090,10 @@ async function loadMessagesEmailNotices() {
             <td>${escapeHtml(subject)}</td>
             <td>${sent}</td>
             <td>${failed}</td>
-            <td><button type="button" class="btn btn-ghost messages-email-audit-view" data-id="${batch.id}">View Message</button></td>
+            <td><a class="btn btn-ghost" href="${emailNoticeHref(batch.id)}" target="_blank" rel="noopener noreferrer">View Message</a></td>
           </tr>`;
         })
         .join("");
-      body.querySelectorAll(".messages-email-audit-view").forEach((btn) => {
-        btn.addEventListener("click", () => loadMessagesEmailAuditBatch(btn.dataset.id));
-      });
     }
     if (statusEl) {
       statusEl.textContent = "";

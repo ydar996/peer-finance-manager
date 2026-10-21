@@ -1272,6 +1272,30 @@ td:last-child .btn {
   max-height: 240px;
 }
 
+body.email-notice-standalone #appShell.app {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.email-notice-standalone .app-sidebar,
+body.email-notice-standalone #mainTabs,
+body.email-notice-standalone #adminMembershipAppsNag,
+body.email-notice-standalone .panel:not(#panel-email-notice) {
+  display: none !important;
+}
+
+body.email-notice-standalone .app-main {
+  margin-left: 0;
+}
+
+body.email-notice-standalone #panel-email-notice {
+  display: flex;
+}
+
+body.email-notice-standalone .email-notice-body {
+  max-height: none;
+  overflow: visible;
+}
+
 .sep {
   display: none;
 }
