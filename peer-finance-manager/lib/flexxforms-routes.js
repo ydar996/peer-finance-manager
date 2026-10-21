@@ -128,10 +128,10 @@ function registerFlexxFormsRoutes(app) {
     async (req, res) => {
       try {
         const { getLoanApplicationDetail } = require("./flexxforms-loan-service");
-        const { planFromApplication, generateRepaymentPlan } = require("./loan-repayment-plan");
+        const { planFromApplication, generateRepaymentPlan, sendDownloadedFile } = require("./loan-repayment-plan");
         const application = getLoanApplicationDetail(Number(req.params.id));
         const result = await generateRepaymentPlan(planFromApplication(application), req.query.format);
-        res.download(result.outputPath, result.fileName);
+        sendDownloadedFile(res, result);
       } catch (err) {
         res.status(err.status || 400).json({ error: err.message });
       }
@@ -254,13 +254,13 @@ function registerFlexxFormsRoutes(app) {
     async (req, res) => {
       try {
         const { getLoanApplicationDetail } = require("./flexxforms-loan-service");
-        const { planFromApplication, generateRepaymentPlan } = require("./loan-repayment-plan");
+        const { planFromApplication, generateRepaymentPlan, sendDownloadedFile } = require("./loan-repayment-plan");
         const application = getLoanApplicationDetail(Number(req.params.id));
         if (Number(application.memberId) !== Number(req.user?.memberId)) {
           return res.status(403).json({ error: "Access denied" });
         }
         const result = await generateRepaymentPlan(planFromApplication(application), req.query.format);
-        res.download(result.outputPath, result.fileName);
+        sendDownloadedFile(res, result);
       } catch (err) {
         res.status(err.status || 400).json({ error: err.message });
       }

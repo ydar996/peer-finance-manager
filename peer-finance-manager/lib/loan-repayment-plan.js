@@ -262,6 +262,13 @@ function generateRepaymentPlanXlsx(plan) {
   };
 }
 
+function sendDownloadedFile(res, result) {
+  if (result.contentType) res.type(result.contentType);
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  return res.download(result.outputPath, result.fileName);
+}
+
 async function generateRepaymentPlan(plan, format) {
   const kind = String(format || "pdf").toLowerCase();
   if (kind === "xlsx" || kind === "excel") return generateRepaymentPlanXlsx(plan);
@@ -287,5 +294,6 @@ module.exports = {
   generateRepaymentPlan,
   generateRepaymentPlanPdf,
   generateRepaymentPlanXlsx,
+  sendDownloadedFile,
   normalizePlanRows,
 };

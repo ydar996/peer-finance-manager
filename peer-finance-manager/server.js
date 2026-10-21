@@ -585,9 +585,9 @@ app.get("/api/loans/ledger/:memberId/:loanNumber/repayment-plan", async (req, re
       res.status(404).json({ error: "Loan not found" });
       return;
     }
-    const { planFromBankLot, generateRepaymentPlan } = require("./lib/loan-repayment-plan");
+    const { planFromBankLot, generateRepaymentPlan, sendDownloadedFile } = require("./lib/loan-repayment-plan");
     const result = await generateRepaymentPlan(planFromBankLot(loan), req.query.format);
-    res.download(result.outputPath, result.fileName);
+    sendDownloadedFile(res, result);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }

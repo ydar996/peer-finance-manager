@@ -7,10 +7,20 @@ const {
 } = require("./auth-service");
 const { runWithOrg } = require("./org-context");
 
+function isAttachmentDownloadPath(req) {
+  const path = String(req.path || req.originalUrl || "");
+  return path.includes("/repayment-plan") || /\/statement(\?|$)/.test(path);
+}
+
 function getToken(req) {
   const auth = req.headers.authorization || "";
   if (auth.startsWith("Bearer ")) return auth.slice(7).trim();
-  return req.headers["x-session-token"] || null;
+  if (req.headers["x-session-token"]) return String(req.headers["x-session-token"]);
+  if ((req.method === "GET" || req.method === "HEAD") && isAttachmentDownloadPath(req)) {
+    const queryToken = req.query?.access_token;
+    if (queryToken) return String(queryToken);
+  }
+  return null;
 }
 
 function attachUser(req, res, next) {

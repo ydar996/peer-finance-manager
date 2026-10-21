@@ -3350,6 +3350,22 @@ function bindLoanStatementButtons(root) {
   });
 }
 
+function repaymentPlanDownloadUrl({ memberId, loanNumber, applicationId, memberOwned = false, format = "pdf" } = {}) {
+  let path = "";
+  if (applicationId) {
+    path = memberOwned
+      ? `/api/me/loan-applications/${applicationId}/repayment-plan`
+      : `/api/flexxforms/loan-applications/${applicationId}/repayment-plan`;
+  } else if (memberId && loanNumber) {
+    path = `/api/loans/ledger/${memberId}/${loanNumber}/repayment-plan`;
+  } else {
+    return "";
+  }
+  const params = new URLSearchParams({ format: String(format || "pdf") });
+  if (sessionToken) params.set("access_token", sessionToken);
+  return `${path}?${params.toString()}`;
+}
+
 function repaymentPlanDownloadButtons({ memberId, loanNumber, applicationId, memberOwned = false } = {}) {
   const attrs = [];
   if (memberId) attrs.push(`data-member-id="${escapeHtml(String(memberId))}"`);
@@ -3357,9 +3373,11 @@ function repaymentPlanDownloadButtons({ memberId, loanNumber, applicationId, mem
   if (applicationId) attrs.push(`data-application-id="${escapeHtml(String(applicationId))}"`);
   if (memberOwned) attrs.push(`data-member-owned="1"`);
   const extra = attrs.join(" ");
+  const pdfHref = repaymentPlanDownloadUrl({ memberId, loanNumber, applicationId, memberOwned, format: "pdf" });
+  const xlsxHref = repaymentPlanDownloadUrl({ memberId, loanNumber, applicationId, memberOwned, format: "xlsx" });
   return `<div class="loan-plan-download-actions">
-    <button type="button" class="btn primary small js-download-repayment-plan" data-format="pdf" ${extra}>Download Repayment Plan (PDF)</button>
-    <button type="button" class="btn small js-download-repayment-plan" data-format="xlsx" ${extra}>Download Repayment Plan (Excel)</button>
+    <a class="btn primary small js-download-repayment-plan" data-format="pdf" ${extra} href="${escapeHtml(pdfHref)}" download>Download Repayment Plan (PDF)</a>
+    <a class="btn small js-download-repayment-plan" data-format="xlsx" ${extra} href="${escapeHtml(xlsxHref)}" download>Download Repayment Plan (Excel)</a>
   </div>`;
 }
 
@@ -3417,12 +3435,26 @@ async function downloadRepaymentPlan(button) {
 }
 
 function bindRepaymentPlanButtons(root) {
-  root?.querySelectorAll(".js-download-repayment-plan").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
+  root?.querySelectorAll(".js-download-repayment-plan").forEach((el) => {
+    const href = repaymentPlanDownloadUrl({
+      memberId: el.dataset.memberId,
+      loanNumber: el.dataset.loanNumber,
+      applicationId: el.dataset.applicationId,
+      memberOwned: el.dataset.memberOwned === "1",
+      format: el.dataset.format || "pdf",
+    });
+    if (href) {
+      el.setAttribute("href", href);
+      el.setAttribute("download", "");
+    }
+    el.addEventListener("click", (e) => {
       e.stopPropagation();
-      downloadRepaymentPlan(btn).catch((err) => {
-        void appAlert(err.message, { title: "Error", variant: "danger" });
-      });
+      if (!href) {
+        e.preventDefault();
+        downloadRepaymentPlan(el).catch((err) => {
+          void appAlert(err.message, { title: "Error", variant: "danger" });
+        });
+      }
     });
   });
 }
