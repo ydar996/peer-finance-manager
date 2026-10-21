@@ -107,7 +107,7 @@ First-time users must change the temporary password when prompted.
 | **Profile Photo** | Upload or change your photo. |
 | **Contributions Account** | Balance and transaction history with running balance. |
 | **Loan Account** | Each loan you have; expand to see repayments and balance after each payment. Paid loans are collapsed by default. |
-| **Loan Terms to Review** | After you apply, your Cooperative sends a repayment schedule here. Review it on a phone or desktop and tap **Accept Terms** before the loan can be approved. |
+| **Loan Terms to Review** | After you apply, your Cooperative sends a repayment schedule. The easiest place to Accept or Reject is the inbox notice. This card is a backup view of the same schedule. |
 | **Apply for a Loan** | Submit a loan application. Applications without a term default to 12 months. |
 | **Monthly statement PDF** | Download your contributions statement. |
 | **Messages** | Button above performance reports. Opens your inbox (separate page) to read admin messages and send messages to the Cooperative admin. Flashes **Unread Messages** when something is new. |
@@ -118,7 +118,7 @@ First-time users must change the temporary password when prompted.
 
 1. On **My Account**, tap **Messages** (or **Unread Messages** when the badge flashes).
 2. You leave My Account and open a dedicated **Messages** inbox: list newest conversations first.
-3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished. Deposit and loan repayment acknowledgements, loan payment due notices, loan repayment terms, and loan approval notices also appear here.
+3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished. Deposit and loan repayment acknowledgements, loan payment due notices, loan repayment terms, and loan approval notices also appear here. Loan repayment terms show a short summary and a two-column schedule (Due Date, Payment) with **Accept Terms** and **Reject Terms** on that same notice.
 4. Use **Message Cooperative Admin** to start a new conversation with your administrator. You can also reply inside an open conversation.
 
 When email is configured, you may also get an email tip that a new portal message is waiting.
@@ -129,7 +129,7 @@ When email is configured, you may also get an email tip that a new portal messag
 - Transaction tables hide **Description** by default. Tap **Show Descriptions** if you need full detail.
 - Swipe sideways on wide tables if needed.
 - Prefer the **Messages** inbox for reading long notes (minutes, action items); it is built for mobile reading.
-- **Loan Terms to Review** shows the repayment schedule in a sideways-scroll table; tap **Accept Terms** on that card.
+- Open the loan terms inbox notice to Accept or Reject without leaving Messages. The schedule is Due Date and Payment only.
 
 ---
 
@@ -525,8 +525,8 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
 1. Member submits via **My Account → Apply for a Loan**. If the form has no term, PFM uses **12 months**.
 2. Application appears under **Forms & Documents → Loan Applications** (answers are stored and retrievable).
 3. Open **Offer Repayment Terms**, confirm borrower, amount, term, and start date, then **Preview Schedule** and **Send Terms to Member**. The schedule uses the Cooperative **Annual Interest Rate** (default 8%).
-4. The member receives an email and a portal notice, reviews the schedule on **My Account → Loan Terms to Review** (including on a phone), and taps **Accept Terms**.
-5. The application status becomes **Terms Accepted**. The **Loans** tab banner also notes applications ready to approve. Only then can you click **Approve Loan**.
+4. The member receives an email and a portal inbox notice. They review the two-column schedule on that notice and tap **Accept Terms** or **Reject Terms** there (no extra page).
+5. **Terms Accepted** lets you **Approve Loan**. **Terms Rejected** shows on the loan applications list so you can offer new terms or reject the application. The **Loans** tab banner notes applications ready to approve.
 6. If the requested amount is covered by the member's contributions account, no guarantor is required. Amounts above contributions need two guarantors; that signing workflow is next.
 7. After approval, the loan is created in Peer Finance Manager and the member gets an email plus a portal notice.
 8. **Reject** keeps the record as rejected; **Delete** removes unapproved applications only.

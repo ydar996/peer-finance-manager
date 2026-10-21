@@ -34,11 +34,37 @@ function formatScheduleText(schedule = []) {
   return (schedule || [])
     .map((row) => {
       const due = formatCooperativeDate(row.dueDate) || row.dueDate;
-      return `${row.installmentNumber}. ${due}: ${formatMoney(row.totalDue)} (principal ${formatMoney(
-        row.principalDue
-      )}, interest ${formatMoney(row.interestDue)})`;
+      return `${due}    ${formatMoney(row.totalDue)}`;
     })
     .join("\n");
+}
+
+function formatScheduleHtml(schedule = []) {
+  const { escapeHtml } = require("./markdown-lite");
+  const rows = (schedule || [])
+    .map((row) => {
+      const due = formatCooperativeDate(row.dueDate) || row.dueDate || "";
+      return `<tr><td>${escapeHtml(due)}</td><td>${escapeHtml(formatMoney(row.totalDue))}</td></tr>`;
+    })
+    .join("");
+  return `<table><thead><tr><th>Due Date</th><th>Payment</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function buildPortalTermsHtml({ memberName, terms }) {
+  const { escapeHtml } = require("./markdown-lite");
+  const name = escapeHtml(memberName || "Member");
+  const rate = escapeHtml(formatRatePercent(terms.annualRate));
+  return [
+    `<p>Hello ${name},</p>`,
+    `<p>Your Cooperative has prepared repayment terms for your loan application.</p>`,
+    `<p><strong>Principal:</strong> ${escapeHtml(formatMoney(terms.principal))}<br>`,
+    `<strong>Annual Interest Rate:</strong> ${rate}%<br>`,
+    `<strong>Term:</strong> ${escapeHtml(String(terms.termMonths))} Months<br>`,
+    `<strong>Monthly Payment:</strong> ${escapeHtml(formatMoney(terms.monthlyPayment))}</p>`,
+    `<p><strong>Repayment Schedule</strong></p>`,
+    formatScheduleHtml(terms.schedule),
+    `<p>Use Accept Terms or Reject Terms below.</p>`,
+  ].join("");
 }
 
 function lookupMemberContact(memberId) {
@@ -74,10 +100,18 @@ async function sendLoanApplicationNotice({
   memberId,
   message,
   dedupeKey,
+  portalHtml = null,
 }) {
   const contact = lookupMemberContact(memberId) || {};
   const email = usableEmail(contact.profileEmail) || usableEmail(contact.loginEmail);
-  const portal = postMemberNoticeFromAutomatedEmail({ memberId, message });
+  const portal = postMemberNoticeFromAutomatedEmail({
+    memberId,
+    message: {
+      subject: message.subject,
+      html: portalHtml || message.html,
+      text: message.text,
+    },
+  });
   let status = portal?.created ? "sent" : "skipped";
   let errorMessage = portal?.created ? null : portal?.reason || portal?.error || null;
   if (email && isEmailConfigured()) {
@@ -157,6 +191,10 @@ async function notifyLoanTermsOffered({ memberId, terms, applicationId }) {
     triggerType: "loan_terms_offered",
     memberId,
     message,
+    portalHtml: buildPortalTermsHtml({
+      memberName: contact?.memberName || "Member",
+      terms,
+    }),
     dedupeKey: `loan-terms:${applicationId}:${terms.offeredAt || Date.now()}`,
   });
 }
@@ -182,6 +220,8 @@ async function notifyLoanApplicationApproved({ memberId, terms, applicationId, l
 
 module.exports = {
   formatScheduleText,
+  formatScheduleHtml,
+  buildPortalTermsHtml,
   notifyLoanTermsOffered,
   notifyLoanApplicationApproved,
 };

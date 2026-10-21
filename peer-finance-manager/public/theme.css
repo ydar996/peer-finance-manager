@@ -630,6 +630,85 @@ details.profile-disclosure > summary::before {
   font-size: 14px;
 }
 
+.loan-terms-inbox-card {
+  margin: 12px 0 8px;
+  padding: 16px;
+  border: 1px solid var(--pv-line);
+  border-radius: 14px;
+  background: var(--pv-surface-0);
+}
+
+.loan-terms-inbox-card h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.loan-terms-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin: 0 0 16px;
+}
+
+.loan-terms-summary div {
+  min-width: 0;
+}
+
+.loan-terms-summary dt {
+  font-size: 12px;
+  color: var(--pv-ink-500);
+  margin: 0 0 2px;
+}
+
+.loan-terms-summary dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.loan-terms-inbox-table {
+  width: 100%;
+  min-width: 0;
+  font-size: 15px;
+}
+
+.loan-terms-inbox-table th,
+.loan-terms-inbox-table td {
+  padding: 10px 8px;
+  text-align: left;
+}
+
+.loan-terms-inbox-table td:last-child,
+.loan-terms-inbox-table th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.loan-terms-inbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.messages-bubble-body table {
+  width: 100%;
+  margin: 10px 0 0;
+  font-size: 15px;
+}
+
+.messages-bubble-body th,
+.messages-bubble-body td {
+  padding: 8px 6px;
+  text-align: left;
+}
+
+.messages-bubble-body td:last-child,
+.messages-bubble-body th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .flexxforms-application-card.loan-terms-accepted {
   border-color: var(--pv-green-600);
 }
@@ -2189,6 +2268,15 @@ label.toggle-row,
   .loan-terms-schedule td {
     padding: 8px 6px;
     white-space: nowrap;
+  }
+
+  .loan-terms-summary {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+  }
+
+  .loan-terms-inbox-card {
+    padding: 14px;
   }
 
   .card:not(details) {

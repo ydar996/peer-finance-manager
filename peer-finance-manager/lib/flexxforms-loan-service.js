@@ -232,9 +232,13 @@ function processLoanFormSubmission(applicationId, payload) {
   }
 
   const existing = getLoanApplicationRow(applicationId);
-  const keepStatus = ["terms_offered", "terms_accepted", "approved", "rejected"].includes(
-    existing?.status
-  );
+  const keepStatus = [
+    "terms_offered",
+    "terms_accepted",
+    "terms_rejected",
+    "approved",
+    "rejected",
+  ].includes(existing?.status);
   const nextStatus = keepStatus ? existing.status : "pending_review";
 
   db.prepare(
@@ -288,6 +292,8 @@ function presentTerms(terms) {
     offeredByUserId: terms.offeredByUserId || null,
     acceptedAt: terms.acceptedAt || null,
     acceptedByMemberId: terms.acceptedByMemberId || null,
+    rejectedAt: terms.rejectedAt || null,
+    rejectedByMemberId: terms.rejectedByMemberId || null,
     coveredByDeposits: Boolean(terms.coveredByDeposits),
     depositBalance: terms.depositBalance ?? null,
   };
@@ -478,7 +484,7 @@ function linkLoanApplicationMember(applicationId, memberId) {
   assertActiveDirectoryMember(Number(memberId), { action: "Loan applications" });
   const sameMember = Number(row.memberId) === Number(memberId);
   const keepTerms =
-    sameMember && ["terms_offered", "terms_accepted"].includes(row.status);
+    sameMember && ["terms_offered", "terms_accepted", "terms_rejected"].includes(row.status);
   db.prepare(
     `UPDATE flexxforms_applications
      SET member_id = ?, processing_error = NULL, status = ?,
@@ -530,7 +536,9 @@ function claimLoanApplicationForMember(user, { submissionId, applicationId } = {
     err.status = 403;
     throw err;
   }
-  const keepStatus = ["terms_offered", "terms_accepted", "rejected"].includes(row.status);
+  const keepStatus = ["terms_offered", "terms_accepted", "terms_rejected", "rejected"].includes(
+    row.status
+  );
   db.prepare(
     `UPDATE flexxforms_applications
      SET member_id = ?, processing_error = NULL, status = ?,
@@ -675,6 +683,51 @@ function acceptLoanTerms(user, applicationId) {
   db.prepare(
     `UPDATE flexxforms_applications
      SET terms_json = ?, status = 'terms_accepted', updated_at = datetime('now')
+     WHERE id = ?`
+  ).run(JSON.stringify(terms), applicationId);
+  return getLoanApplicationDetail(applicationId);
+}
+
+function rejectLoanTerms(user, applicationId) {
+  if (user?.role !== "member" || !user.memberId) {
+    const err = new Error("Member account required");
+    err.status = 403;
+    throw err;
+  }
+  const { assertActiveDirectoryMember } = require("./membership-status-service");
+  assertActiveDirectoryMember(user.memberId, { action: "Loan applications" });
+  const db = getDb();
+  ensureMembershipApplicationSchema(db);
+  const row = getLoanApplicationRow(applicationId);
+  if (!row) {
+    const err = new Error("Loan application not found");
+    err.status = 404;
+    throw err;
+  }
+  if (Number(row.memberId) !== Number(user.memberId)) {
+    const err = new Error("This application is not yours");
+    err.status = 403;
+    throw err;
+  }
+  if (row.status === "approved") {
+    const err = new Error("Approved loans cannot be rejected here");
+    err.status = 400;
+    throw err;
+  }
+  if (row.status === "terms_rejected") {
+    return getLoanApplicationDetail(row.id);
+  }
+  if (row.status !== "terms_offered") {
+    const err = new Error("Repayment terms have not been offered yet");
+    err.status = 400;
+    throw err;
+  }
+  const terms = presentTerms(parseTermsJson(row.termsJson)) || {};
+  terms.rejectedAt = new Date().toISOString();
+  terms.rejectedByMemberId = Number(user.memberId);
+  db.prepare(
+    `UPDATE flexxforms_applications
+     SET terms_json = ?, status = 'terms_rejected', updated_at = datetime('now')
      WHERE id = ?`
   ).run(JSON.stringify(terms), applicationId);
   return getLoanApplicationDetail(applicationId);
@@ -842,6 +895,7 @@ module.exports = {
   previewLoanTerms,
   offerLoanTerms,
   acceptLoanTerms,
+  rejectLoanTerms,
   approveLoanApplication,
   rejectLoanApplication,
   deleteLoanApplication,

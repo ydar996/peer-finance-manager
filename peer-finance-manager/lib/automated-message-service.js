@@ -129,7 +129,7 @@ const CATALOG = [
     id: "loan_terms_offered",
     title: "Loan Repayment Terms",
     description:
-      "Sent when an administrator prepares a repayment schedule for a loan application. The member must Accept Terms in the portal before the loan can be approved.",
+      "Sent when an administrator prepares a repayment schedule for a loan application. The member can Accept or Reject Terms in the portal inbox notice.",
     placeholders: [
       { token: "memberName", meaning: "Borrower name" },
       { token: "orgName", meaning: "Cooperative name" },
@@ -138,7 +138,7 @@ const CATALOG = [
       { token: "termMonths", meaning: "Term in months" },
       { token: "monthlyPayment", meaning: "Monthly installment" },
       { token: "startDate", meaning: "First payment due date month start" },
-      { token: "scheduleText", meaning: "Line-by-line repayment schedule" },
+      { token: "scheduleText", meaning: "Due date and payment for each installment" },
       { token: "portalUrl", meaning: "Member portal sign-in link" },
     ],
     defaultSubject: "{{orgName}}: Review Your Loan Repayment Terms",
@@ -149,8 +149,8 @@ const CATALOG = [
       "Annual Interest Rate: {{annualRatePercent}}%\n" +
       "Term: {{termMonths}} months\n" +
       "Monthly Payment: {{monthlyPayment}}\n\n" +
-      "Repayment Schedule:\n{{scheduleText}}\n\n" +
-      "Please sign in to the member portal to review the schedule and click Accept Terms.\n" +
+      "Repayment Schedule (Due Date, Payment):\n{{scheduleText}}\n\n" +
+      "Open this notice in the member portal to Accept or Reject these terms.\n" +
       "{{portalUrl}}",
     sample: {
       memberName: "Ada Okeke",
@@ -159,7 +159,7 @@ const CATALOG = [
       termMonths: "12",
       monthlyPayment: "$86.99",
       startDate: "11/21/2026",
-      scheduleText: "1. 11/21/2026: $86.99",
+      scheduleText: "11/21/2026    $86.99",
     },
   },
   {

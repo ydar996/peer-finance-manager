@@ -246,6 +246,21 @@ function registerFlexxFormsRoutes(app) {
   );
 
   app.post(
+    "/api/me/loan-applications/:id/reject-terms",
+    requireAuth,
+    requireActiveMemberAccount,
+    (req, res) => {
+      try {
+        const { rejectLoanTerms } = require("./flexxforms-loan-service");
+        const application = rejectLoanTerms(req.user, Number(req.params.id));
+        res.json({ success: true, application });
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
     "/api/me/loan-applications/claim",
     requireAuth,
     requireActiveMemberAccount,

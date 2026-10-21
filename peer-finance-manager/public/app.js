@@ -9423,6 +9423,7 @@ function formatLoanApplicationStatus(status) {
     pending_review: "Pending Review",
     terms_offered: "Terms Offered",
     terms_accepted: "Terms Accepted",
+    terms_rejected: "Terms Rejected",
     approved: "Approved",
     rejected: "Rejected",
     error: "Error",
@@ -9435,9 +9436,30 @@ function formatLoanRatePercent(rate) {
   return String(pct).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
 }
 
-function renderLoanTermsScheduleHtml(terms) {
+function renderLoanTermsScheduleHtml(terms, { simple = false } = {}) {
   const schedule = terms?.schedule || [];
   if (!schedule.length) return "";
+  if (simple) {
+    const rows = schedule
+      .map(
+        (row) => `<tr>
+        <td>${escapeHtml(formatDate(row.dueDate) || row.dueDate || "")}</td>
+        <td class="money">${fmt.format(row.totalDue || 0)}</td>
+      </tr>`
+      )
+      .join("");
+    return `<div class="loan-terms-schedule-wrap">
+    <table class="loan-terms-inbox-table">
+      <thead>
+        <tr>
+          <th>Due Date</th>
+          <th>Payment</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+  }
   const rows = schedule
     .map(
       (row) => `<tr>
@@ -9465,7 +9487,7 @@ function renderLoanTermsScheduleHtml(terms) {
   </div>`;
 }
 
-function renderLoanTermsSummaryHtml(terms) {
+function renderLoanTermsSummaryHtml(terms, { simple = false } = {}) {
   if (!terms) return "";
   const rate = formatLoanRatePercent(terms.annualRate);
   const covered = terms.coveredByDeposits
@@ -9473,11 +9495,49 @@ function renderLoanTermsSummaryHtml(terms) {
         terms.depositBalance != null ? ` (${fmt.format(terms.depositBalance)})` : ""
       }.</p>`
     : "";
+  if (simple) {
+    return `<dl class="loan-terms-summary">
+      <div><dt>Principal</dt><dd>${fmt.format(terms.principal || 0)}</dd></div>
+      <div><dt>Annual Rate</dt><dd>${escapeHtml(rate)}%</dd></div>
+      <div><dt>Term</dt><dd>${escapeHtml(String(terms.termMonths || 12))} Months</dd></div>
+      <div><dt>Monthly Payment</dt><dd>${fmt.format(terms.monthlyPayment || 0)}</dd></div>
+    </dl>
+    ${covered}
+    ${renderLoanTermsScheduleHtml(terms, { simple: true })}`;
+  }
   return `<p class="hint">Principal ${fmt.format(terms.principal || 0)} · ${
     terms.termMonths || 12
   } Months · ${rate}% Annual Rate · Monthly Payment ${fmt.format(terms.monthlyPayment || 0)}</p>
   ${covered}
   ${renderLoanTermsScheduleHtml(terms)}`;
+}
+
+function isLoanTermsNoticeSubject(subject) {
+  return /repayment terms|loan application|accept terms/i.test(String(subject || ""));
+}
+
+function renderMemberLoanTermsActionCard(application) {
+  const terms = application?.terms || {};
+  const canDecide = application.status === "terms_offered";
+  const statusLine =
+    application.status === "approved"
+      ? `<p class="status ok">Loan Approved${application.loanId ? ` (Loan #${application.loanId})` : ""}.</p>`
+      : application.status === "terms_accepted"
+        ? `<p class="status ok">You Accepted These Terms. Waiting for Administrator Approval.</p>`
+        : application.status === "terms_rejected"
+          ? `<p class="status err">You Rejected These Terms.</p>`
+          : `<p class="hint">Review This Schedule, Then Accept or Reject.</p>`;
+  const actions = canDecide
+    ? `<div class="loan-terms-inbox-actions">
+        <button type="button" class="btn primary js-accept-loan-terms" data-id="${application.id}">Accept Terms</button>
+        <button type="button" class="btn js-reject-loan-terms" data-id="${application.id}">Reject Terms</button>
+      </div>`
+    : "";
+  return `<h3>Repayment Terms</h3>
+    ${statusLine}
+    ${renderLoanTermsSummaryHtml(terms, { simple: true })}
+    ${actions}
+    <p class="status" id="inboxLoanTermsStatus"></p>`;
 }
 
 async function loadMemberOptionsForLoanApprove() {
@@ -9539,8 +9599,10 @@ async function loadFlexxFormsLoanApplications() {
           a.status === "terms_accepted"
             ? `<p class="status ok">Member Accepted Terms. You Can Approve This Loan.</p>`
             : a.status === "terms_offered"
-              ? `<p class="hint">Waiting for the Member to Click Accept Terms in the Portal.</p>`
-              : "";
+              ? `<p class="hint">Waiting for the Member to Accept or Reject Terms in the Portal Inbox.</p>`
+              : a.status === "terms_rejected"
+                ? `<p class="status err">Member Rejected Terms. You Can Offer New Terms or Reject the Application.</p>`
+                : "";
         const offerBtn =
           a.status !== "approved" && a.status !== "rejected"
             ? `<button type="button" class="btn ${
@@ -10037,7 +10099,9 @@ async function loadMyLoanTermsCard() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to load loan applications");
     const apps = (data.applications || []).filter(
-      (a) => a.terms && ["terms_offered", "terms_accepted", "approved"].includes(a.status)
+      (a) =>
+        a.terms &&
+        ["terms_offered", "terms_accepted", "terms_rejected", "approved"].includes(a.status)
     );
     if (!apps.length) {
       card.classList.add("hidden");
@@ -10052,59 +10116,106 @@ async function loadMyLoanTermsCard() {
     }
     if (hint) {
       hint.textContent = awaiting
-        ? "Review the Schedule Below, Then Click Accept Terms. Your Cooperative Administrator Can Approve After You Accept."
+        ? "Review the Schedule Below, Then Accept or Reject These Terms. You Can Also Do This from the Inbox Notice."
         : "Your Loan Application Status and Repayment Schedule.";
     }
     if (!list) return;
     list.innerHTML = apps
-      .map((a) => {
-        const terms = a.terms || {};
-        const canAccept = a.status === "terms_offered";
-        const statusLine =
-          a.status === "approved"
-            ? `<p class="status ok">Loan Approved${a.loanId ? ` (Loan #${a.loanId})` : ""}.</p>`
-            : a.status === "terms_accepted"
-              ? `<p class="status ok">You Accepted These Terms. Waiting for Administrator Approval.</p>`
-              : `<p class="hint">Please Review and Accept These Repayment Terms.</p>`;
-        return `<article class="loan-terms-member-card" data-member-loan-app="${a.id}">
-          <p class="hint"><strong>${escapeHtml(formatLoanApplicationStatus(a.status))}</strong> · ${fmt.format(
-            terms.principal || 0
-          )} · ${terms.termMonths || 12} Months</p>
-          ${statusLine}
-          ${renderLoanTermsSummaryHtml(terms)}
-          ${
-            canAccept
-              ? `<button type="button" class="btn primary my-accept-loan-terms" data-id="${a.id}">Accept Terms</button>`
-              : ""
-          }
-        </article>`;
-      })
+      .map((a) => `<article class="loan-terms-member-card" data-member-loan-app="${a.id}">${renderMemberLoanTermsActionCard(a)}</article>`)
       .join("");
-    list.querySelectorAll(".my-accept-loan-terms").forEach((btn) => {
-      btn.addEventListener("click", () => acceptMyLoanTerms(btn.dataset.id, btn));
-    });
+    bindLoanTermsDecisionButtons(list);
   } catch {
     card.classList.add("hidden");
   }
 }
 
-async function acceptMyLoanTerms(applicationId, button) {
+function bindLoanTermsDecisionButtons(host) {
+  if (!host) return;
+  host.querySelectorAll(".js-accept-loan-terms").forEach((btn) => {
+    btn.addEventListener("click", () => decideMyLoanTerms(btn.dataset.id, "accept", btn));
+  });
+  host.querySelectorAll(".js-reject-loan-terms").forEach((btn) => {
+    btn.addEventListener("click", () => decideMyLoanTerms(btn.dataset.id, "reject", btn));
+  });
+}
+
+async function decideMyLoanTerms(applicationId, action, button) {
   if (!applicationId) return;
+  if (action === "reject") {
+    const ok = await appConfirm(
+      "Reject these repayment terms? Your Cooperative administrator will see that you declined.",
+      { title: "Reject Terms", variant: "danger", confirmLabel: "Reject Terms" }
+    );
+    if (!ok) return;
+  }
   setButtonBusy(button, true);
+  const path = action === "reject" ? "reject-terms" : "accept-terms";
   try {
-    const res = await fetch(`/api/me/loan-applications/${applicationId}/accept-terms`, {
+    const res = await fetch(`/api/me/loan-applications/${applicationId}/${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Could not accept terms");
+    if (!res.ok) throw new Error(data.error || `Could not ${action} terms`);
     await loadMyLoanTermsCard();
+    if (memberMessagesActiveThreadId) {
+      await refreshMemberLoanTermsInboxCard();
+    }
     if (typeof refreshMyMessagesEntry === "function") await refreshMyMessagesEntry();
   } catch (err) {
+    const inboxStatus = $("#inboxLoanTermsStatus");
     const hint = $("#myLoanTermsHint");
-    if (hint) hint.textContent = err.message;
+    if (inboxStatus) {
+      inboxStatus.textContent = err.message;
+      inboxStatus.className = "status err";
+    } else if (hint) {
+      hint.textContent = err.message;
+    }
   } finally {
     setButtonBusy(button, false);
+  }
+}
+
+function pickLoanApplicationForThread(apps, subject) {
+  const pending = (apps || []).filter(
+    (a) =>
+      a.terms &&
+      ["terms_offered", "terms_accepted", "terms_rejected", "approved"].includes(a.status)
+  );
+  if (!pending.length) return null;
+  if (isLoanTermsNoticeSubject(subject)) {
+    return (
+      pending.find((a) => a.status === "terms_offered") ||
+      pending.find((a) => a.status === "terms_accepted") ||
+      pending.find((a) => a.status === "terms_rejected") ||
+      pending[0]
+    );
+  }
+  return null;
+}
+
+async function refreshMemberLoanTermsInboxCard(thread = null) {
+  const card = $("#memberLoanTermsInboxCard");
+  if (!card || currentUser?.role !== "member") return null;
+  try {
+    const res = await fetch("/api/me/loan-applications");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load loan applications");
+    const subject = thread?.subject || $("#memberMessagesThreadSubject")?.textContent || "";
+    const application = pickLoanApplicationForThread(data.applications || [], subject);
+    if (!application) {
+      card.classList.add("hidden");
+      card.innerHTML = "";
+      return null;
+    }
+    card.innerHTML = renderMemberLoanTermsActionCard(application);
+    card.classList.remove("hidden");
+    bindLoanTermsDecisionButtons(card);
+    return application;
+  } catch {
+    card.classList.add("hidden");
+    card.innerHTML = "";
+    return null;
   }
 }
 
@@ -10723,7 +10834,7 @@ function initAdminRichComposers() {
   });
 }
 
-function renderThreadMessages(host, messages, currentUserId) {
+function renderThreadMessages(host, messages, currentUserId, { replaceSystemHtml = null } = {}) {
   if (!host) return;
   if (!messages?.length) {
     host.innerHTML =
@@ -10741,8 +10852,10 @@ function renderThreadMessages(host, messages, currentUserId) {
             ? "Cooperative Admin"
             : escapeHtml(msg.senderName || "Member");
       const bodyHtml =
-        msg.bodyHtml ||
-        `<p>${escapeHtml(msg.body || "").replace(/\n/g, "<br>")}</p>`;
+        msg.senderRole === "system" && replaceSystemHtml
+          ? replaceSystemHtml
+          : msg.bodyHtml ||
+            `<p>${escapeHtml(msg.body || "").replace(/\n/g, "<br>")}</p>`;
       return `
         <article class="messages-bubble${fromSelf ? " from-self" : ""}">
           <div class="messages-bubble-meta">
@@ -10773,6 +10886,11 @@ function showMemberMessagesList() {
   $("#memberMessagesListView")?.classList.remove("hidden");
   $("#memberMessagesThreadView")?.classList.add("hidden");
   $("#memberMessageComposeCard")?.classList.remove("hidden");
+  const card = $("#memberLoanTermsInboxCard");
+  if (card) {
+    card.classList.add("hidden");
+    card.innerHTML = "";
+  }
 }
 
 function showMemberMessagesThread() {
@@ -11030,7 +11148,12 @@ async function openMemberMessageThread(threadId) {
     const thread = data.thread;
     $("#memberMessagesThreadSubject").textContent = thread.subject || "Message";
     $("#memberMessagesThreadMeta").textContent = "Conversation with Cooperative Admin";
-    renderThreadMessages($("#memberMessagesThreadMessages"), thread.messages || [], currentUser?.id);
+    const termsApp = await refreshMemberLoanTermsInboxCard(thread);
+    renderThreadMessages($("#memberMessagesThreadMessages"), thread.messages || [], currentUser?.id, {
+      replaceSystemHtml: termsApp
+        ? "<p>Review the Repayment Schedule Below, Then Accept or Reject These Terms.</p>"
+        : null,
+    });
     $("#memberMessageReplyBody").value = "";
     showMemberMessagesThread();
     updateUnreadBadge($("#memberMessagesUnreadBadge"), thread.unread);
@@ -11219,7 +11342,17 @@ $("#memberMessageReplyForm")?.addEventListener("submit", async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to send reply");
     $("#memberMessageReplyBody").value = "";
-    renderThreadMessages($("#memberMessagesThreadMessages"), data.thread?.messages || [], currentUser?.id);
+    const termsApp = await refreshMemberLoanTermsInboxCard(data.thread);
+    renderThreadMessages(
+      $("#memberMessagesThreadMessages"),
+      data.thread?.messages || [],
+      currentUser?.id,
+      {
+        replaceSystemHtml: termsApp
+          ? "<p>Review the Repayment Schedule Below, Then Accept or Reject These Terms.</p>"
+          : null,
+      }
+    );
     updateUnreadBadge($("#memberMessagesUnreadBadge"), data.unread);
     await refreshMyMessagesEntry();
     setFormStatus(status, "Reply sent.", true);

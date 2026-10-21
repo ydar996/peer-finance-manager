@@ -22,6 +22,7 @@ const {
   listLoanApplications,
   offerLoanTerms,
   acceptLoanTerms,
+  rejectLoanTerms,
   approveLoanApplication,
 } = require("../lib/flexxforms-loan-service");
 const { ensureMembershipApplicationSchema } = require("../lib/flexxforms-membership-service");
@@ -221,6 +222,30 @@ async function run() {
       .prepare(`SELECT COUNT(*) AS n FROM loan_installments WHERE loan_id = ?`)
       .get(approved.loanId);
     assert.strictEqual(installments.n, 12);
+
+    const rejectInsert = db
+      .prepare(
+        `INSERT INTO flexxforms_applications (kind, flexxforms_submission_id, form_id, payload_json, status, member_id)
+         VALUES ('loan', 'sub-reject', 'form-1', ?, 'pending_review', ?)`
+      )
+      .run(
+        JSON.stringify({
+          answers: [{ fieldIndex: 1, label: "Loan Amount", value: "800" }],
+        }),
+        borrower.memberId
+      );
+    const rejectAppId = rejectInsert.lastInsertRowid;
+    await offerLoanTerms(rejectAppId, 1, {
+      borrowerId: borrower.memberId,
+      principal: 800,
+      startDate: "2026-08-01",
+    });
+    const declined = rejectLoanTerms(
+      { role: "member", memberId: borrower.memberId, id: borrowerUserId },
+      rejectAppId
+    );
+    assert.strictEqual(declined.status, "terms_rejected");
+    assert.ok(declined.terms?.rejectedAt);
 
     setLoanPaymentPolicy({ annualRatePercent: 10 });
     assert.strictEqual(getLoanPaymentPolicy().annualRatePercent, 10);
