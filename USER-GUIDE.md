@@ -107,6 +107,8 @@ First-time users must change the temporary password when prompted.
 | **Profile Photo** | Upload or change your photo. |
 | **Contributions Account** | Balance and transaction history with running balance. |
 | **Loan Account** | Each loan you have; expand to see repayments and balance after each payment. Paid loans are collapsed by default. |
+| **Loan Terms to Review** | After you apply, your Cooperative sends a repayment schedule here. Review it on a phone or desktop and tap **Accept Terms** before the loan can be approved. |
+| **Apply for a Loan** | Submit a loan application. Applications without a term default to 12 months. |
 | **Monthly statement PDF** | Download your contributions statement. |
 | **Messages** | Button above performance reports. Opens your inbox (separate page) to read admin messages and send messages to the Cooperative admin. Flashes **Unread Messages** when something is new. |
 | **Cooperative Status Reports** | Cooperative summary PDF when the administrator publishes it (dated the day it was published, or month-end when auto-generated). |
@@ -116,7 +118,7 @@ First-time users must change the temporary password when prompted.
 
 1. On **My Account**, tap **Messages** (or **Unread Messages** when the badge flashes).
 2. You leave My Account and open a dedicated **Messages** inbox: list newest conversations first.
-3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished. Deposit and loan repayment acknowledgements, and loan payment due notices, also appear here after they are confirmed or due.
+3. Tap a conversation to read it full-width (comfortable on phones). Use **Back to Inbox** for the next one, or **Back to My Account** when finished. Deposit and loan repayment acknowledgements, loan payment due notices, loan repayment terms, and loan approval notices also appear here.
 4. Use **Message Cooperative Admin** to start a new conversation with your administrator. You can also reply inside an open conversation.
 
 When email is configured, you may also get an email tip that a new portal message is waiting.
@@ -127,6 +129,7 @@ When email is configured, you may also get an email tip that a new portal messag
 - Transaction tables hide **Description** by default. Tap **Show Descriptions** if you need full detail.
 - Swipe sideways on wide tables if needed.
 - Prefer the **Messages** inbox for reading long notes (minutes, action items); it is built for mobile reading.
+- **Loan Terms to Review** shows the repayment schedule in a sideways-scroll table; tap **Accept Terms** on that card.
 
 ---
 
@@ -409,8 +412,9 @@ Under **Loans → Loan Payment Policy**, choose how repayment timing works for *
 |------|----------|
 | **Flexible: Pay Within Loan Term (No Late Fee)** | Default. Payments apply to the agreed schedule whenever they arrive during the loan term. No late fee. |
 | **Strict Timelines: Late Fee When Past Due** | Admin sets interest terms and a schedule with due dates (New Loan or Import Schedule). A payment after its due date adds a flat late fee (default **$25**, editable) in addition to the expected installment. |
+| **Annual Interest Rate (%)** | Rate used to build repayment schedules for new loan applications (default **8%**). Change it here any time; existing loans keep the rate they were started under. |
 
-Changing the toggle does **not** change past loans. Each loan keeps the policy in effect when it was started.
+Changing the toggle or rate does **not** change past loans. Each loan keeps the policy in effect when it was started.
 
 Create new loans on the **Record** tab → **New Loan**.
 
@@ -464,8 +468,8 @@ Admins compose in a **rich text box**: paste from Microsoft Word and keep basic 
 | Folder | What you see |
 |--------|----------------|
 | **Inbox** | Messages members sent you, system notices, and replies to notes you sent. |
-| **Sent** | Portal messages this Cooperative sent to members (minutes, notes, deposit/loan repayment acknowledgements, loan payment due notices). |
-| **Email Notices** | Automatic notices (loan payment due, deposit/loan repayment confirmed, meetings, reports) with the exact wording each member received and send status. |
+| **Sent** | Portal messages this Cooperative sent to members (minutes, notes, deposit/loan repayment acknowledgements, loan payment due notices, loan repayment terms, loan approval notices). |
+| **Email Notices** | Automatic notices (loan repayment terms, loan application approved, loan payment due, deposit/loan repayment confirmed, meetings, reports) with the exact wording each member received and send status. |
 
 | Action | Steps |
 |--------|-------|
@@ -514,16 +518,18 @@ Public links appear at the top of this tab to copy and share.
 4. Click **Save Form & Document Ids**.
 5. Members see **Apply for a Loan** on **My Account** and can submit the form.
 
-Completed submissions appear under **Loan Applications** on the same tab. They are **not** loans yet until you approve them.
+Completed submissions appear under **Loan Applications** on the same tab. They are **not** loans yet until the member accepts terms and you approve them.
 
 ### Loan applications workflow
 
-1. Member submits via **My Account → Apply for a Loan**.
+1. Member submits via **My Account → Apply for a Loan**. If the form has no term, PFM uses **12 months**.
 2. Application appears under **Forms & Documents → Loan Applications** (answers are stored and retrievable).
-3. Open **Submitted Answers**, confirm amount/term, and link the borrower if needed.
-4. Click **Review & Approve Loan**, select borrower + two guarantor members, confirm principal/term/start date, then **Create Loan**.
-5. Only then is the loan created in Peer Finance Manager (eligibility and max-amount rules still apply).
-6. **Reject** keeps the record as rejected; **Delete** removes unapproved applications only.
+3. Open **Offer Repayment Terms**, confirm borrower, amount, term, and start date, then **Preview Schedule** and **Send Terms to Member**. The schedule uses the Cooperative **Annual Interest Rate** (default 8%).
+4. The member receives an email and a portal notice, reviews the schedule on **My Account → Loan Terms to Review** (including on a phone), and taps **Accept Terms**.
+5. The application status becomes **Terms Accepted**. The **Loans** tab banner also notes applications ready to approve. Only then can you click **Approve Loan**.
+6. If the requested amount is covered by the member's contributions account, no guarantor is required. Amounts above contributions need two guarantors; that signing workflow is next.
+7. After approval, the loan is created in Peer Finance Manager and the member gets an email plus a portal notice.
+8. **Reject** keeps the record as rejected; **Delete** removes unapproved applications only.
 
 ### Membership applications workflow
 
@@ -570,7 +576,7 @@ Temporary passwords must be changed on first member sign-in. Former members cann
 
 ## 19. Automated Messages Tab
 
-Open **Automated Messages** any time to read and edit the emails members receive automatically (loan payment due, deposit/loan repayment confirmed, membership received, deposits verified, welcome login, password reset, meeting notices, published reports, month-end reminder, and new portal message tips). Deposit/loan repayment acknowledgements and loan payment due notices are also posted to the member portal inbox so members and administrators can re-read the same wording later.
+Open **Automated Messages** any time to read and edit the emails members receive automatically (loan repayment terms, loan application approved, loan payment due, deposit/loan repayment confirmed, membership received, deposits verified, welcome login, password reset, meeting notices, published reports, month-end reminder, and new portal message tips). Those notices are also posted to the member portal inbox so members and administrators can re-read the same wording later.
 
 | Action | What it does |
 |--------|--------------|
@@ -722,4 +728,4 @@ It does **not** auto-sync with the live website. See [UPDATE-AND-PUBLISH.md](./U
 
 ---
 
-*Last updated: October 19, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*
+*Last updated: October 21, 2026. This guide covers all admin tabs and member workflows for every Cooperative tenant on Peer Finance Manager.*

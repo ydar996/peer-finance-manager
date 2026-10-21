@@ -4,12 +4,13 @@ const {
   getCooperativeSetting,
   setCooperativeSetting,
 } = require("./cooperative-settings");
-const { LATE_FEE_AMOUNT, TRANSACTION_TYPES } = require("./constants");
+const { LATE_FEE_AMOUNT, TRANSACTION_TYPES, DEFAULT_LOAN_ANNUAL_RATE } = require("./constants");
 
 const POLICY_FLEXIBLE = "flexible";
 const POLICY_STRICT = "strict";
 const SETTING_MODE = "loan_repayment_policy";
 const SETTING_LATE_FEE = "loan_late_fee_amount";
+const SETTING_ANNUAL_RATE = "loan_annual_rate";
 
 function ensureLoanPolicySchema(database) {
   const db = database || getDb();
@@ -80,6 +81,20 @@ function normalizeLateFeeAmount(value) {
   return Math.round(n * 100) / 100;
 }
 
+function normalizeAnnualRate(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return DEFAULT_LOAN_ANNUAL_RATE;
+  const rate = n > 1 ? n / 100 : n;
+  if (rate > 1) return DEFAULT_LOAN_ANNUAL_RATE;
+  return Math.round(rate * 100000) / 100000;
+}
+
+function getLoanAnnualRate() {
+  const raw = getCooperativeSetting(SETTING_ANNUAL_RATE);
+  if (raw == null || raw === "") return DEFAULT_LOAN_ANNUAL_RATE;
+  return normalizeAnnualRate(raw);
+}
+
 function getLoanPaymentPolicy() {
   const mode = normalizeMode(getCooperativeSetting(SETTING_MODE) || POLICY_FLEXIBLE);
   const rawFee = getCooperativeSetting(SETTING_LATE_FEE);
@@ -87,9 +102,12 @@ function getLoanPaymentPolicy() {
     rawFee == null || rawFee === ""
       ? LATE_FEE_AMOUNT
       : normalizeLateFeeAmount(rawFee);
+  const annualRate = getLoanAnnualRate();
   return {
     mode,
     lateFeeAmount,
+    annualRate,
+    annualRatePercent: Math.round(annualRate * 10000) / 100,
     isStrict: mode === POLICY_STRICT,
     labels: {
       flexible: "Flexible: Pay Within Loan Term (No Late Fee)",
@@ -98,7 +116,7 @@ function getLoanPaymentPolicy() {
   };
 }
 
-function setLoanPaymentPolicy({ mode, lateFeeAmount } = {}) {
+function setLoanPaymentPolicy({ mode, lateFeeAmount, annualRate, annualRatePercent } = {}) {
   const db = getDb();
   ensureLoanPolicySchema(db);
   if (mode != null) {
@@ -106,6 +124,11 @@ function setLoanPaymentPolicy({ mode, lateFeeAmount } = {}) {
   }
   if (lateFeeAmount != null) {
     setCooperativeSetting(db, SETTING_LATE_FEE, String(normalizeLateFeeAmount(lateFeeAmount)));
+  }
+  if (annualRate != null && annualRate !== "") {
+    setCooperativeSetting(db, SETTING_ANNUAL_RATE, String(normalizeAnnualRate(annualRate)));
+  } else if (annualRatePercent != null && annualRatePercent !== "") {
+    setCooperativeSetting(db, SETTING_ANNUAL_RATE, String(normalizeAnnualRate(Number(annualRatePercent) / 100)));
   }
   return getLoanPaymentPolicy();
 }
@@ -392,6 +415,8 @@ module.exports = {
   ensureLoanPolicySchema,
   getLoanPaymentPolicy,
   setLoanPaymentPolicy,
+  getLoanAnnualRate,
+  normalizeAnnualRate,
   snapshotCurrentPolicy,
   recordDisbursementPolicySnapshot,
   getPolicyForLoanRow,

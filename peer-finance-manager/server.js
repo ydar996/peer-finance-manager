@@ -854,6 +854,8 @@ app.patch("/api/cooperative/loan-policy", requireAdmin, restoreOrgContext, (req,
     const policy = setLoanPaymentPolicy({
       mode: req.body?.mode,
       lateFeeAmount: req.body?.lateFeeAmount,
+      annualRate: req.body?.annualRate,
+      annualRatePercent: req.body?.annualRatePercent,
     });
     res.json(policy);
   } catch (err) {

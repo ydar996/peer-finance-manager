@@ -126,6 +126,71 @@ const CATALOG = [
     },
   },
   {
+    id: "loan_terms_offered",
+    title: "Loan Repayment Terms",
+    description:
+      "Sent when an administrator prepares a repayment schedule for a loan application. The member must Accept Terms in the portal before the loan can be approved.",
+    placeholders: [
+      { token: "memberName", meaning: "Borrower name" },
+      { token: "orgName", meaning: "Cooperative name" },
+      { token: "principal", meaning: "Loan principal" },
+      { token: "annualRatePercent", meaning: "Annual interest rate as a percent" },
+      { token: "termMonths", meaning: "Term in months" },
+      { token: "monthlyPayment", meaning: "Monthly installment" },
+      { token: "startDate", meaning: "First payment due date month start" },
+      { token: "scheduleText", meaning: "Line-by-line repayment schedule" },
+      { token: "portalUrl", meaning: "Member portal sign-in link" },
+    ],
+    defaultSubject: "{{orgName}}: Review Your Loan Repayment Terms",
+    defaultBody:
+      "Hello {{memberName}},\n\n" +
+      "Your Cooperative has prepared repayment terms for your loan application.\n\n" +
+      "Principal: {{principal}}\n" +
+      "Annual Interest Rate: {{annualRatePercent}}%\n" +
+      "Term: {{termMonths}} months\n" +
+      "Monthly Payment: {{monthlyPayment}}\n\n" +
+      "Repayment Schedule:\n{{scheduleText}}\n\n" +
+      "Please sign in to the member portal to review the schedule and click Accept Terms.\n" +
+      "{{portalUrl}}",
+    sample: {
+      memberName: "Ada Okeke",
+      principal: "$1,000.00",
+      annualRatePercent: "8",
+      termMonths: "12",
+      monthlyPayment: "$86.99",
+      startDate: "11/21/2026",
+      scheduleText: "1. 11/21/2026: $86.99",
+    },
+  },
+  {
+    id: "loan_application_approved",
+    title: "Loan Application Approved",
+    description: "Sent after an administrator approves a loan application that the member already accepted.",
+    placeholders: [
+      { token: "memberName", meaning: "Borrower name" },
+      { token: "orgName", meaning: "Cooperative name" },
+      { token: "principal", meaning: "Loan principal" },
+      { token: "termMonths", meaning: "Term in months" },
+      { token: "monthlyPayment", meaning: "Monthly installment" },
+      { token: "portalUrl", meaning: "Member portal sign-in link" },
+    ],
+    defaultSubject: "{{orgName}}: Your Loan Application Is Approved",
+    defaultBody:
+      "Hello {{memberName}},\n\n" +
+      "Your loan application has been approved.\n\n" +
+      "Principal: {{principal}}\n" +
+      "Term: {{termMonths}} months\n" +
+      "Monthly Payment: {{monthlyPayment}}\n\n" +
+      "You can view the loan and repayment schedule in the member portal.\n" +
+      "{{portalUrl}}",
+    sample: {
+      memberName: "Ada Okeke",
+      principal: "$1,000.00",
+      termMonths: "12",
+      monthlyPayment: "$86.99",
+    },
+  },
+  {
     id: "deposit_credit_alert",
     title: "Deposit/Loan Repayment Received",
     description:

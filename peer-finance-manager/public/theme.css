@@ -618,6 +618,22 @@ details.profile-disclosure > summary::before {
   overflow-x: auto;
 }
 
+.loan-terms-schedule-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 12px 0;
+}
+
+.loan-terms-schedule {
+  width: 100%;
+  min-width: 28rem;
+  font-size: 14px;
+}
+
+.flexxforms-application-card.loan-terms-accepted {
+  border-color: var(--pv-green-600);
+}
+
 table {
   font-variant-numeric: tabular-nums;
 }
@@ -2164,6 +2180,17 @@ label.toggle-row,
 }
 
 @media (max-width: 640px) {
+  .loan-terms-schedule {
+    min-width: 22rem;
+    font-size: 13px;
+  }
+
+  .loan-terms-schedule th,
+  .loan-terms-schedule td {
+    padding: 8px 6px;
+    white-space: nowrap;
+  }
+
   .card:not(details) {
     padding: 18px;
   }

@@ -1118,7 +1118,7 @@
           <div id="memberApprovalLoginResult" class="member-password-reset-result hidden"></div>
           <div id="flexxformsApplicationsList" class="flexxforms-applications-list"><p class="hint">None yet</p></div>
           <p class="subtle" style="margin-top: 1.25rem;">Loan Applications</p>
-          <p class="subtle">Completed Loan Forms Appear Here for Review. Approving Creates the Loan in Peer Finance Manager (Guarantors Required).</p>
+          <p class="subtle">Completed Loan Forms Appear Here. Offer a Repayment Schedule First. The Member Must Click Accept Terms in the Portal Before You Can Approve. Amounts Covered by the Member's Contributions Need No Guarantor.</p>
           <div id="flexxformsLoanApplicationsList" class="flexxforms-applications-list"><p class="hint">None yet</p></div>
           <p id="flexxformsFormsStatus" class="status"></p>
         </div>
@@ -1246,6 +1246,7 @@
       <section id="panel-loans" class="panel">
         <div class="panel-head"><h2>Loan Portfolio</h2></div>
         <p class="hint">Each Member's Loan Account Is Separate From Their Contributions Account. Active Loans Appear Here and on the Member Profile.</p>
+        <p class="hint hidden" id="loanApplicationsAwaitingBanner"></p>
         <details class="card profile-disclosure admin-only-report-settings hidden" id="loanPaymentPolicyPanel">
           <summary>Loan Payment Policy</summary>
           <div class="profile-disclosure-body">
@@ -1264,6 +1265,11 @@
               <span>Late Fee Amount (per Late Installment)</span>
               <input type="number" id="loanLateFeeAmount" min="0" step="0.01" value="25" />
             </label>
+            <label class="field-row" id="loanAnnualRateRow">
+              <span>Annual Interest Rate (%)</span>
+              <input type="number" id="loanAnnualRatePercent" min="0" max="100" step="0.01" value="8" />
+            </label>
+            <p class="hint subtle">New loan applications use this rate to build the repayment schedule (default 8%). Existing loans keep the rate they were started under.</p>
             <button type="button" class="btn primary" id="saveLoanPaymentPolicy">Save Loan Payment Policy</button>
             <p id="loanPaymentPolicyStatus" class="status"></p>
           </div>
@@ -2289,6 +2295,16 @@
           <div class="profile-disclosure-body my-meetings-body">
             <p class="subtle">Upcoming meetings announced by your Cooperative administrator.</p>
             <ul class="file-list my-meetings-list" id="myMeetingsList"></ul>
+          </div>
+        </details>
+        <details class="profile-disclosure hidden" id="myLoanTermsCard">
+          <summary class="monthly-status-report-summary">
+            <span class="monthly-status-report-summary-text">Loan Terms to Review</span>
+            <span class="badge" id="myLoanTermsBadge">:</span>
+          </summary>
+          <div class="profile-disclosure-body">
+            <p class="subtle" id="myLoanTermsHint">When Your Cooperative Sends Repayment Terms, They Appear Here for You to Review and Accept.</p>
+            <div id="myLoanTermsList"></div>
           </div>
         </details>
         <details class="profile-disclosure hidden" id="myLoanApplyCard">

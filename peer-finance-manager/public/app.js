@@ -1283,6 +1283,7 @@ async function loadMyAccount() {
     await refreshMyMessagesEntry();
     await loadMyCooperativeReports();
     await loadMyMeetings();
+    await loadMyLoanTermsCard();
     await loadMyLoanApplyEmbed();
     if (depositBalanceSummary) depositBalanceSummary.textContent = fmt.format(data.depositBalance || 0);
     if (loanBalanceSummary) loanBalanceSummary.textContent = fmt.format(data.loanSummary?.outstanding || 0);
@@ -3612,6 +3613,7 @@ async function loadLoans() {
   if (!loans.length) {
     body.innerHTML =
       '<tr><td colspan="11">No Loans Yet. Add Active Loans When Data Is Ready.</td></tr>';
+    await loadLoanApplicationsDashboardBanner();
     return;
   }
   body.innerHTML = loans
@@ -3654,6 +3656,7 @@ async function loadLoans() {
     });
   });
   bindLoanStatementButtons(body);
+  await loadLoanApplicationsDashboardBanner();
   body.querySelectorAll(".loan-agreements-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -3681,6 +3684,8 @@ async function loadLoanPaymentPolicyPanel() {
     if (strict) strict.checked = data.mode === "strict";
     const fee = $("#loanLateFeeAmount");
     if (fee) fee.value = data.lateFeeAmount != null ? data.lateFeeAmount : 25;
+    const rate = $("#loanAnnualRatePercent");
+    if (rate) rate.value = data.annualRatePercent != null ? data.annualRatePercent : 8;
     const hint = $("#newLoanPolicyHint");
     if (hint) {
       hint.textContent =
@@ -3703,21 +3708,24 @@ async function saveLoanPaymentPolicy() {
   const status = $("#loanPaymentPolicyStatus");
   const mode = $("#loanPolicyStrict")?.checked ? "strict" : "flexible";
   const lateFeeAmount = Number($("#loanLateFeeAmount")?.value);
+  const annualRatePercent = Number($("#loanAnnualRatePercent")?.value);
   try {
     const res = await fetch("/api/cooperative/loan-policy", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode, lateFeeAmount }),
+      body: JSON.stringify({ mode, lateFeeAmount, annualRatePercent }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Save failed");
     if (status) {
+      const rateLabel =
+        data.annualRatePercent != null ? ` Annual rate ${data.annualRatePercent}%.` : "";
       status.textContent =
         data.mode === "strict"
           ? `Saved: Strict Timelines. Late fee ${fmt.format(
               data.lateFeeAmount
-            )} applies only to new loans from now on.`
-          : "Saved: Flexible (no late fee). Applies only to new loans from now on.";
+            )} applies only to new loans from now on.${rateLabel}`
+          : `Saved: Flexible (no late fee). Applies only to new loans from now on.${rateLabel}`;
       status.className = "status ok";
     }
     await loadLoanPaymentPolicyPanel();
@@ -9413,11 +9421,63 @@ function formatLoanApplicationStatus(status) {
   const map = {
     pending: "Pending",
     pending_review: "Pending Review",
+    terms_offered: "Terms Offered",
+    terms_accepted: "Terms Accepted",
     approved: "Approved",
     rejected: "Rejected",
     error: "Error",
   };
   return map[status] || String(status || "Pending").replace(/_/g, " ");
+}
+
+function formatLoanRatePercent(rate) {
+  const pct = Math.round(Number(rate || 0) * 10000) / 100;
+  return String(pct).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+}
+
+function renderLoanTermsScheduleHtml(terms) {
+  const schedule = terms?.schedule || [];
+  if (!schedule.length) return "";
+  const rows = schedule
+    .map(
+      (row) => `<tr>
+        <td>${escapeHtml(String(row.installmentNumber || ""))}</td>
+        <td>${escapeHtml(formatDate(row.dueDate) || row.dueDate || "")}</td>
+        <td class="money">${fmt.format(row.principalDue || 0)}</td>
+        <td class="money">${fmt.format(row.interestDue || 0)}</td>
+        <td class="money">${fmt.format(row.totalDue || 0)}</td>
+      </tr>`
+    )
+    .join("");
+  return `<div class="loan-terms-schedule-wrap table-wrap">
+    <table class="loan-terms-schedule">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Due Date</th>
+          <th>Principal</th>
+          <th>Interest</th>
+          <th>Payment</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderLoanTermsSummaryHtml(terms) {
+  if (!terms) return "";
+  const rate = formatLoanRatePercent(terms.annualRate);
+  const covered = terms.coveredByDeposits
+    ? `<p class="hint">No Guarantor Needed: Amount Covered by Contributions${
+        terms.depositBalance != null ? ` (${fmt.format(terms.depositBalance)})` : ""
+      }.</p>`
+    : "";
+  return `<p class="hint">Principal ${fmt.format(terms.principal || 0)} · ${
+    terms.termMonths || 12
+  } Months · ${rate}% Annual Rate · Monthly Payment ${fmt.format(terms.monthlyPayment || 0)}</p>
+  ${covered}
+  ${renderLoanTermsScheduleHtml(terms)}`;
 }
 
 async function loadMemberOptionsForLoanApprove() {
@@ -9450,12 +9510,16 @@ async function loadFlexxFormsLoanApplications() {
     list.innerHTML = apps
       .map((a) => {
         const p = a.parsed || {};
+        const terms = a.terms || null;
         const amount =
-          p.principal != null ? `$${Number(p.principal).toFixed(2)}` : "Amount not parsed";
-        const term = p.termMonths != null ? `${p.termMonths} months` : "Term not parsed";
+          (terms?.principal != null ? terms.principal : p.principal) != null
+            ? fmt.format(Number(terms?.principal ?? p.principal))
+            : "Amount not parsed";
+        const termMonths = terms?.termMonths || p.termMonths || 12;
+        const term = `${termMonths} Months`;
         const borrower = a.memberName
-          ? `Linked member: ${a.memberName}`
-          : "Borrower not linked yet";
+          ? `Linked Member: ${a.memberName}`
+          : "Borrower Not Linked Yet";
         const answers = (p.answerSummary || [])
           .slice(0, 12)
           .map(
@@ -9463,9 +9527,33 @@ async function loadFlexxFormsLoanApplications() {
               `<li><strong>${escapeHtml(row.label || "Field")}:</strong> ${escapeHtml(row.value || "")}</li>`
           )
           .join("");
-        const approveBtn =
+        const covered =
+          a.coverage?.covered || terms?.coveredByDeposits
+            ? `<p class="hint">No Guarantor Needed: Amount Covered by Contributions.</p>`
+            : a.coverage && !a.coverage.covered
+              ? `<p class="hint">Amount Exceeds Contributions (${fmt.format(
+                  a.coverage.depositBalance || 0
+                )}). Two Guarantors Will Be Required in a Later Workflow.</p>`
+              : "";
+        const acceptedNote =
+          a.status === "terms_accepted"
+            ? `<p class="status ok">Member Accepted Terms. You Can Approve This Loan.</p>`
+            : a.status === "terms_offered"
+              ? `<p class="hint">Waiting for the Member to Click Accept Terms in the Portal.</p>`
+              : "";
+        const offerBtn =
           a.status !== "approved" && a.status !== "rejected"
-            ? `<button type="button" class="btn primary small ff-open-loan-approve" data-id="${a.id}">Review &amp; Approve Loan</button>`
+            ? `<button type="button" class="btn ${
+                a.status === "terms_accepted" ? "small" : "primary small"
+              } ff-open-loan-approve" data-id="${a.id}">${
+                a.status === "terms_offered" || a.status === "terms_accepted"
+                  ? "Review Terms"
+                  : "Offer Repayment Terms"
+              }</button>`
+            : "";
+        const approveBtn =
+          a.status === "terms_accepted"
+            ? `<button type="button" class="btn primary small ff-approve-loan-application" data-id="${a.id}">Approve Loan</button>`
             : "";
         const rejectBtn =
           a.status !== "approved" && a.status !== "rejected"
@@ -9478,14 +9566,25 @@ async function loadFlexxFormsLoanApplications() {
         const viewLoanBtn = a.loanId
           ? `<span class="badge ok">Loan #${a.loanId}</span>`
           : "";
-        return `<article class="flexxforms-application-card" data-loan-app-id="${a.id}">
+        const statusBadgeClass =
+          a.status === "terms_accepted" || a.status === "approved"
+            ? "badge ok"
+            : a.status === "terms_offered"
+              ? "badge warn"
+              : "badge";
+        return `<article class="flexxforms-application-card${
+          a.status === "terms_accepted" ? " loan-terms-accepted" : ""
+        }" data-loan-app-id="${a.id}">
           <div class="flexxforms-application-head">
             <strong>${escapeHtml(a.applicantName || "Loan Applicant")}</strong>
-            <span class="badge">${escapeHtml(formatLoanApplicationStatus(a.status))}</span>
+            <span class="${statusBadgeClass}">${escapeHtml(formatLoanApplicationStatus(a.status))}</span>
           </div>
           <p class="hint">${escapeHtml(a.applicantEmail || "No email")}${a.createdAt ? ` · ${escapeHtml(a.createdAt)}` : ""}</p>
           <p class="hint">${escapeHtml(borrower)} · ${escapeHtml(amount)} · ${escapeHtml(term)}</p>
           ${p.purpose ? `<p class="hint">Purpose: ${escapeHtml(p.purpose)}</p>` : ""}
+          ${covered}
+          ${acceptedNote}
+          ${terms ? renderLoanTermsSummaryHtml(terms) : ""}
           ${
             p.guarantor1Name || p.guarantor2Name
               ? `<p class="hint">Guarantors (from form): ${escapeHtml(
@@ -9495,13 +9594,16 @@ async function loadFlexxFormsLoanApplications() {
           }
           ${a.processingError ? `<p class="status err">${escapeHtml(a.processingError)}</p>` : ""}
           ${answers ? `<details class="profile-disclosure"><summary>Submitted Answers</summary><ul class="flexxforms-application-checklist">${answers}</ul></details>` : ""}
-          <div class="flexxforms-application-actions">${approveBtn}${rejectBtn}${viewLoanBtn}${deleteBtn}</div>
+          <div class="flexxforms-application-actions">${offerBtn}${approveBtn}${rejectBtn}${viewLoanBtn}${deleteBtn}</div>
           <div class="ff-loan-approve-form hidden" data-approve-form="${a.id}"></div>
         </article>`;
       })
       .join("");
     list.querySelectorAll(".ff-open-loan-approve").forEach((btn) => {
       btn.addEventListener("click", () => openFlexxFormsLoanApproveForm(btn.dataset.id));
+    });
+    list.querySelectorAll(".ff-approve-loan-application").forEach((btn) => {
+      btn.addEventListener("click", () => approveFlexxFormsLoanApplication(btn.dataset.id));
     });
     list.querySelectorAll(".ff-reject-loan-application").forEach((btn) => {
       btn.addEventListener("click", () => rejectFlexxFormsLoanApplication(btn.dataset.id));
@@ -9526,9 +9628,10 @@ async function openFlexxFormsLoanApproveForm(applicationId) {
   }
   const app = detailData.application || {};
   const parsed = app.parsed || {};
+  const terms = app.terms || {};
   const members = await loadMemberOptionsForLoanApprove();
   if (!members.length) {
-    setFormStatus(status, "No active members available to link as borrower or guarantors.", false);
+    setFormStatus(status, "No active members available to link as borrower.", false);
     return;
   }
   const optionsHtml = members
@@ -9537,13 +9640,22 @@ async function openFlexxFormsLoanApproveForm(applicationId) {
         `<option value="${m.id}"${Number(m.id) === Number(app.memberId) ? " selected" : ""}>${escapeHtml(m.name)}</option>`
     )
     .join("");
-  const principalDefault = parsed.principal != null ? String(parsed.principal) : "";
-  const termDefault = parsed.termMonths != null ? String(parsed.termMonths) : "12";
-  const startDefault = (parsed.startDate || new Date().toISOString().slice(0, 10)).slice(0, 10);
+  const principalDefault =
+    terms.principal != null
+      ? String(terms.principal)
+      : parsed.principal != null
+        ? String(parsed.principal)
+        : "";
+  const termDefault = String(terms.termMonths || parsed.termMonths || 12);
+  const startDefault = (
+    terms.startDate ||
+    parsed.startDate ||
+    new Date().toISOString().slice(0, 10)
+  ).slice(0, 10);
   host.classList.remove("hidden");
   host.innerHTML = `
     <form class="entry-form ff-loan-approve-entry" data-approve-id="${applicationId}">
-      <p class="subtle">Confirm borrower, amount, term, and two guarantors. Approving creates the loan in Peer Finance Manager.</p>
+      <p class="subtle">Confirm borrower, amount, and term. Missing term defaults to 12 months. The current Cooperative rate is used unless you change Loan Payment Policy. Send the schedule to the member; they must Accept Terms before you can approve.</p>
       <label>Borrower
         <select name="borrowerId" required>${optionsHtml}</select>
       </label>
@@ -9556,14 +9668,10 @@ async function openFlexxFormsLoanApproveForm(applicationId) {
       <label>Start Date
         <input type="date" name="startDate" value="${escapeHtml(startDefault)}" required />
       </label>
-      <label>Guarantor 1${parsed.guarantor1Name ? ` (form: ${escapeHtml(parsed.guarantor1Name)})` : ""}
-        <select name="guarantor1Id" required><option value="">Select Guarantor</option>${optionsHtml}</select>
-      </label>
-      <label>Guarantor 2${parsed.guarantor2Name ? ` (form: ${escapeHtml(parsed.guarantor2Name)})` : ""}
-        <select name="guarantor2Id" required><option value="">Select Guarantor</option>${optionsHtml}</select>
-      </label>
+      <div class="ff-loan-terms-preview">${terms.schedule ? renderLoanTermsSummaryHtml(terms) : ""}</div>
       <div class="panel-head-actions">
-        <button type="submit" class="btn primary">Create Loan</button>
+        <button type="button" class="btn ff-preview-loan-terms">Preview Schedule</button>
+        <button type="submit" class="btn primary">Send Terms to Member</button>
         <button type="button" class="btn ff-cancel-loan-approve">Cancel</button>
       </div>
     </form>`;
@@ -9571,37 +9679,119 @@ async function openFlexxFormsLoanApproveForm(applicationId) {
     host.classList.add("hidden");
     host.innerHTML = "";
   });
-  host.querySelector("form")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const body = {
-      borrowerId: Number(form.borrowerId.value),
-      principal: Number(form.principal.value),
-      termMonths: Number(form.termMonths.value),
-      startDate: form.startDate.value,
-      guarantor1Id: Number(form.guarantor1Id.value),
-      guarantor2Id: Number(form.guarantor2Id.value),
-    };
+  const collectBody = (form) => ({
+    borrowerId: Number(form.borrowerId.value),
+    principal: Number(form.principal.value),
+    termMonths: Number(form.termMonths.value),
+    startDate: form.startDate.value,
+  });
+  host.querySelector(".ff-preview-loan-terms")?.addEventListener("click", async () => {
+    const form = host.querySelector("form");
+    if (!form) return;
     try {
-      const res = await fetch(`/api/flexxforms/loan-applications/${applicationId}/approve`, {
+      const res = await fetch(`/api/flexxforms/loan-applications/${applicationId}/preview-terms`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(collectBody(form)),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Approval failed");
-      setFormStatus(
-        status,
-        data.alreadyApproved
-          ? `Already approved as Loan #${data.loanId}.`
-          : `Loan application approved. Created Loan #${data.loanId}.`,
-        true
-      );
-      await loadFlexxFormsLoanApplications();
+      if (!res.ok) throw new Error(data.error || "Preview failed");
+      const preview = host.querySelector(".ff-loan-terms-preview");
+      if (preview) preview.innerHTML = renderLoanTermsSummaryHtml(data.terms);
+      setFormStatus(status, "Schedule preview ready. Send Terms to Member when this looks right.", true);
     } catch (err) {
       setFormStatus(status, err.message, false);
     }
   });
+  host.querySelector("form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      const res = await fetch(`/api/flexxforms/loan-applications/${applicationId}/offer-terms`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(collectBody(form)),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not send terms");
+      setFormStatus(
+        status,
+        "Repayment terms sent to the member. Wait for Accept Terms in the portal before approving.",
+        true
+      );
+      await loadFlexxFormsLoanApplications();
+      await loadLoanApplicationsDashboardBanner();
+    } catch (err) {
+      setFormStatus(status, err.message, false);
+    }
+  });
+}
+
+async function approveFlexxFormsLoanApplication(applicationId) {
+  const status = $("#flexxformsFormsStatus");
+  if (!applicationId) return;
+  if (
+    !(await appConfirm(
+      "Approve this loan? The member already accepted the repayment terms. This creates the loan in Peer Finance Manager.",
+      { title: "Approve Loan", variant: "warning", confirmLabel: "Approve Loan" }
+    ))
+  ) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/flexxforms/loan-applications/${applicationId}/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Approval failed");
+    setFormStatus(
+      status,
+      data.alreadyApproved
+        ? `Already approved as Loan #${data.loanId}.`
+        : `Loan application approved. Created Loan #${data.loanId}.`,
+      true
+    );
+    await loadFlexxFormsLoanApplications();
+    await loadLoanApplicationsDashboardBanner();
+    if (typeof loadLoans === "function") await loadLoans();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+}
+
+async function loadLoanApplicationsDashboardBanner() {
+  const banner = $("#loanApplicationsAwaitingBanner");
+  if (!banner || currentUser?.role !== "admin") return;
+  try {
+    const res = await fetch("/api/flexxforms/loan-applications");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load loan applications");
+    const apps = data.applications || [];
+    const accepted = apps.filter((a) => a.status === "terms_accepted");
+    const offered = apps.filter((a) => a.status === "terms_offered");
+    if (!accepted.length && !offered.length) {
+      banner.classList.add("hidden");
+      banner.textContent = "";
+      return;
+    }
+    const parts = [];
+    if (accepted.length) {
+      parts.push(
+        `${accepted.length} Loan Application${accepted.length === 1 ? "" : "s"} with Accepted Terms ready to approve on Forms & Documents.`
+      );
+    }
+    if (offered.length) {
+      parts.push(
+        `${offered.length} waiting for the member to Accept Terms.`
+      );
+    }
+    banner.textContent = parts.join(" ");
+    banner.classList.remove("hidden");
+  } catch {
+    banner.classList.add("hidden");
+  }
 }
 
 async function rejectFlexxFormsLoanApplication(applicationId) {
@@ -9626,6 +9816,7 @@ async function rejectFlexxFormsLoanApplication(applicationId) {
     if (!res.ok) throw new Error(data.error || "Reject failed");
     setFormStatus(status, "Loan application rejected.", true);
     await loadFlexxFormsLoanApplications();
+    await loadLoanApplicationsDashboardBanner();
   } catch (err) {
     setFormStatus(status, err.message, false);
   }
@@ -9651,6 +9842,7 @@ async function deleteFlexxFormsLoanApplication(applicationId) {
     if (!res.ok) throw new Error(data.error || "Delete failed");
     setFormStatus(status, "Loan application deleted.", true);
     await loadFlexxFormsLoanApplications();
+    await loadLoanApplicationsDashboardBanner();
   } catch (err) {
     setFormStatus(status, err.message, false);
   }
@@ -9834,6 +10026,88 @@ async function claimMyLoanApplication(payload = {}) {
   }
 }
 
+async function loadMyLoanTermsCard() {
+  const card = $("#myLoanTermsCard");
+  const hint = $("#myLoanTermsHint");
+  const list = $("#myLoanTermsList");
+  const badge = $("#myLoanTermsBadge");
+  if (!card || currentUser?.role !== "member") return;
+  try {
+    const res = await fetch("/api/me/loan-applications");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load loan applications");
+    const apps = (data.applications || []).filter(
+      (a) => a.terms && ["terms_offered", "terms_accepted", "approved"].includes(a.status)
+    );
+    if (!apps.length) {
+      card.classList.add("hidden");
+      if (list) list.innerHTML = "";
+      return;
+    }
+    card.classList.remove("hidden");
+    const awaiting = apps.filter((a) => a.status === "terms_offered").length;
+    if (badge) {
+      badge.textContent = awaiting ? String(awaiting) : ":";
+      badge.className = awaiting ? "badge warn" : "badge";
+    }
+    if (hint) {
+      hint.textContent = awaiting
+        ? "Review the Schedule Below, Then Click Accept Terms. Your Cooperative Administrator Can Approve After You Accept."
+        : "Your Loan Application Status and Repayment Schedule.";
+    }
+    if (!list) return;
+    list.innerHTML = apps
+      .map((a) => {
+        const terms = a.terms || {};
+        const canAccept = a.status === "terms_offered";
+        const statusLine =
+          a.status === "approved"
+            ? `<p class="status ok">Loan Approved${a.loanId ? ` (Loan #${a.loanId})` : ""}.</p>`
+            : a.status === "terms_accepted"
+              ? `<p class="status ok">You Accepted These Terms. Waiting for Administrator Approval.</p>`
+              : `<p class="hint">Please Review and Accept These Repayment Terms.</p>`;
+        return `<article class="loan-terms-member-card" data-member-loan-app="${a.id}">
+          <p class="hint"><strong>${escapeHtml(formatLoanApplicationStatus(a.status))}</strong> · ${fmt.format(
+            terms.principal || 0
+          )} · ${terms.termMonths || 12} Months</p>
+          ${statusLine}
+          ${renderLoanTermsSummaryHtml(terms)}
+          ${
+            canAccept
+              ? `<button type="button" class="btn primary my-accept-loan-terms" data-id="${a.id}">Accept Terms</button>`
+              : ""
+          }
+        </article>`;
+      })
+      .join("");
+    list.querySelectorAll(".my-accept-loan-terms").forEach((btn) => {
+      btn.addEventListener("click", () => acceptMyLoanTerms(btn.dataset.id, btn));
+    });
+  } catch {
+    card.classList.add("hidden");
+  }
+}
+
+async function acceptMyLoanTerms(applicationId, button) {
+  if (!applicationId) return;
+  setButtonBusy(button, true);
+  try {
+    const res = await fetch(`/api/me/loan-applications/${applicationId}/accept-terms`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not accept terms");
+    await loadMyLoanTermsCard();
+    if (typeof refreshMyMessagesEntry === "function") await refreshMyMessagesEntry();
+  } catch (err) {
+    const hint = $("#myLoanTermsHint");
+    if (hint) hint.textContent = err.message;
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
 async function loadMyLoanApplyEmbed() {
   const card = $("#myLoanApplyCard");
   const hint = $("#myLoanApplyHint");
@@ -9856,7 +10130,7 @@ async function loadMyLoanApplyEmbed() {
     }
     if (hint) {
       hint.textContent =
-        "Complete the Loan Application Below. Your Cooperative Administrator Must Approve It Before the Loan Is Created in Peer Finance Manager.";
+        "Complete the Loan Application Below. Your Cooperative Administrator Will Send a Repayment Schedule for You to Accept Before the Loan Can Be Approved.";
     }
     if (host && window.mountFlexxFormsEmbed) {
       host.classList.remove("hidden");

@@ -65,6 +65,13 @@ function testFlexibleDefaultAndSnapshot() {
     const policy = getLoanPaymentPolicy();
     assert.strictEqual(policy.mode, POLICY_FLEXIBLE);
     assert.strictEqual(policy.lateFeeAmount, 25);
+    assert.strictEqual(policy.annualRate, 0.08);
+    assert.strictEqual(policy.annualRatePercent, 8);
+
+    setLoanPaymentPolicy({ annualRatePercent: 10 });
+    assert.strictEqual(getLoanPaymentPolicy().annualRate, 0.1);
+    setLoanPaymentPolicy({ annualRatePercent: 8 });
+    assert.strictEqual(getLoanPaymentPolicy().annualRatePercent, 8);
 
     const loanId = createLoan({
       borrowerId: members.borrowerId,

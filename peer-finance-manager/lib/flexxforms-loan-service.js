@@ -3,11 +3,16 @@
  * Submissions are stored for Coop Admin review; approve creates a PFM loan.
  */
 const { getDb } = require("../db/database");
+const { DEFAULT_LOAN_TERM_MONTHS } = require("./constants");
 const {
-  DEFAULT_LOAN_ANNUAL_RATE,
-  DEFAULT_LOAN_TERM_MONTHS,
-} = require("./constants");
-const { createLoan, validateLoanApplication } = require("./loan-service");
+  createLoan,
+  validateLoanApplication,
+  generateAmortizationSchedule,
+  summarizeSchedule,
+  loanCoveredByDeposits,
+  isEligibleForLoan,
+} = require("./loan-service");
+const { getLoanAnnualRate, normalizeAnnualRate } = require("./loan-policy-service");
 const { ACTIVE_DIRECTORY_SQL } = require("./membership-status-service");
 const {
   findAnswersArray,
@@ -226,25 +231,116 @@ function processLoanFormSubmission(applicationId, payload) {
       "Borrower not matched automatically. Link an active member before approving.";
   }
 
+  const existing = getLoanApplicationRow(applicationId);
+  const keepStatus = ["terms_offered", "terms_accepted", "approved", "rejected"].includes(
+    existing?.status
+  );
+  const nextStatus = keepStatus ? existing.status : "pending_review";
+
   db.prepare(
     `UPDATE flexxforms_applications
-     SET applicant_name = ?, applicant_email = ?, member_id = ?,
-         status = 'pending_review', processing_error = ?,
+     SET applicant_name = ?, applicant_email = ?, member_id = COALESCE(?, member_id),
+         status = ?, processing_error = ?,
          processed_at = datetime('now'), updated_at = datetime('now')
      WHERE id = ?`
   ).run(
     parsed.applicantName || null,
     parsed.email || null,
     memberId,
-    processingError,
+    nextStatus,
+    keepStatus ? existing.processingError : processingError,
     applicationId
   );
 
   return {
     applicationId,
-    memberId,
+    memberId: memberId || existing?.memberId || null,
     parsed,
-    status: "pending_review",
+    status: nextStatus,
+  };
+}
+
+function parseTermsJson(raw) {
+  if (!raw) return null;
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function presentTerms(terms) {
+  if (!terms) return null;
+  const schedule = Array.isArray(terms.schedule) ? terms.schedule : [];
+  const summary = summarizeSchedule(schedule);
+  return {
+    principal: Number(terms.principal) || 0,
+    termMonths: Number(terms.termMonths) || DEFAULT_LOAN_TERM_MONTHS,
+    annualRate: Number(terms.annualRate) || getLoanAnnualRate(),
+    startDate: terms.startDate || null,
+    schedule,
+    monthlyPayment: terms.monthlyPayment ?? summary.monthlyPayment,
+    totalInterest: terms.totalInterest ?? summary.totalInterest,
+    totalPayable: terms.totalPayable ?? summary.totalPayable,
+    offeredAt: terms.offeredAt || null,
+    offeredByUserId: terms.offeredByUserId || null,
+    acceptedAt: terms.acceptedAt || null,
+    acceptedByMemberId: terms.acceptedByMemberId || null,
+    coveredByDeposits: Boolean(terms.coveredByDeposits),
+    depositBalance: terms.depositBalance ?? null,
+  };
+}
+
+function buildOfferedTerms({
+  borrowerId,
+  principal,
+  termMonths,
+  annualRate,
+  startDate,
+  offeredByUserId = null,
+}) {
+  const amount = parseMoney(principal);
+  if (amount == null || amount <= 0) {
+    const err = new Error("Loan amount is required");
+    err.status = 400;
+    throw err;
+  }
+  const months = parseMonths(termMonths) || DEFAULT_LOAN_TERM_MONTHS;
+  const rate = annualRate != null && annualRate !== "" ? normalizeAnnualRate(annualRate) : getLoanAnnualRate();
+  const start = String(startDate || new Date().toISOString().slice(0, 10)).slice(0, 10);
+  const coverage = loanCoveredByDeposits(borrowerId, amount);
+  if (!coverage.covered) {
+    const err = new Error(
+      `This amount is more than the member's contributions account (${coverage.depositBalance.toFixed(
+        2
+      )}). Two guarantors are required for amounts above contributions. That workflow is next.`
+    );
+    err.status = 400;
+    throw err;
+  }
+  const eligibility = isEligibleForLoan(borrowerId, start);
+  if (!eligibility.eligible) {
+    const err = new Error(eligibility.reason);
+    err.status = 400;
+    throw err;
+  }
+  const schedule = generateAmortizationSchedule(amount, rate, months, start);
+  const summary = summarizeSchedule(schedule);
+  return {
+    principal: amount,
+    termMonths: months,
+    annualRate: rate,
+    startDate: start,
+    schedule,
+    ...summary,
+    coveredByDeposits: true,
+    depositBalance: coverage.depositBalance,
+    offeredAt: new Date().toISOString(),
+    offeredByUserId: offeredByUserId || null,
+    acceptedAt: null,
+    acceptedByMemberId: null,
   };
 }
 
@@ -257,6 +353,7 @@ function getLoanApplicationRow(applicationId) {
               status, member_id AS memberId, loan_id AS loanId,
               applicant_name AS applicantName, applicant_email AS applicantEmail,
               processing_error AS processingError, payload_json AS payloadJson,
+              terms_json AS termsJson,
               created_at AS createdAt, processed_at AS processedAt,
               approved_at AS approvedAt, approved_by_user_id AS approvedByUserId
        FROM flexxforms_applications
@@ -274,6 +371,7 @@ function listLoanApplications() {
               status, member_id AS memberId, loan_id AS loanId,
               applicant_name AS applicantName, applicant_email AS applicantEmail,
               processing_error AS processingError, payload_json AS payloadJson,
+              terms_json AS termsJson,
               created_at AS createdAt, processed_at AS processedAt, approved_at AS approvedAt
        FROM flexxforms_applications
        WHERE kind = 'loan'
@@ -318,7 +416,7 @@ function listLoanApplications() {
       approvedAt: row.approvedAt,
       parsed: {
         principal: parsed.principal,
-        termMonths: parsed.termMonths,
+        termMonths: parsed.termMonths || DEFAULT_LOAN_TERM_MONTHS,
         purpose: parsed.purpose,
         guarantor1Name: parsed.guarantor1Name,
         guarantor2Name: parsed.guarantor2Name,
@@ -327,6 +425,11 @@ function listLoanApplications() {
         phone: parsed.phone,
         answerSummary: parsed.answerSummary || [],
       },
+      terms: presentTerms(parseTermsJson(row.termsJson)),
+      coverage:
+        row.memberId && parsed.principal != null
+          ? loanCoveredByDeposits(row.memberId, parsed.principal)
+          : null,
     };
   });
 }
@@ -349,7 +452,11 @@ function getLoanApplicationDetail(applicationId) {
   return {
     ...listed,
     payload,
-    parsed,
+    parsed: {
+      ...parsed,
+      termMonths: parsed.termMonths || DEFAULT_LOAN_TERM_MONTHS,
+    },
+    terms: presentTerms(parseTermsJson(row.termsJson)),
   };
 }
 
@@ -369,12 +476,20 @@ function linkLoanApplicationMember(applicationId, memberId) {
   }
   const { assertActiveDirectoryMember } = require("./membership-status-service");
   assertActiveDirectoryMember(Number(memberId), { action: "Loan applications" });
+  const sameMember = Number(row.memberId) === Number(memberId);
+  const keepTerms =
+    sameMember && ["terms_offered", "terms_accepted"].includes(row.status);
   db.prepare(
     `UPDATE flexxforms_applications
-     SET member_id = ?, processing_error = NULL, status = 'pending_review',
-         updated_at = datetime('now')
+     SET member_id = ?, processing_error = NULL, status = ?,
+         terms_json = ?, updated_at = datetime('now')
      WHERE id = ?`
-  ).run(Number(memberId), applicationId);
+  ).run(
+    Number(memberId),
+    keepTerms ? row.status : "pending_review",
+    keepTerms ? row.termsJson : null,
+    applicationId
+  );
   return getLoanApplicationDetail(applicationId);
 }
 
@@ -415,12 +530,13 @@ function claimLoanApplicationForMember(user, { submissionId, applicationId } = {
     err.status = 403;
     throw err;
   }
+  const keepStatus = ["terms_offered", "terms_accepted", "rejected"].includes(row.status);
   db.prepare(
     `UPDATE flexxforms_applications
-     SET member_id = ?, processing_error = NULL, status = 'pending_review',
+     SET member_id = ?, processing_error = NULL, status = ?,
          updated_at = datetime('now')
      WHERE id = ?`
-  ).run(user.memberId, row.id);
+  ).run(user.memberId, keepStatus ? row.status : "pending_review", row.id);
   return getLoanApplicationDetail(row.id);
 }
 
@@ -435,7 +551,136 @@ function resolveGuarantorId(value, nameHint) {
   return null;
 }
 
-function approveLoanApplication(applicationId, approvedByUserId, overrides = {}) {
+function previewLoanTerms(applicationId, overrides = {}) {
+  const row = getLoanApplicationRow(applicationId);
+  if (!row) {
+    const err = new Error("Loan application not found");
+    err.status = 404;
+    throw err;
+  }
+  const borrowerId = Number(overrides.borrowerId || row.memberId);
+  if (!borrowerId) {
+    const err = new Error("Link an active borrower member before offering terms");
+    err.status = 400;
+    throw err;
+  }
+  let payload = {};
+  try {
+    payload = JSON.parse(row.payloadJson || "{}");
+  } catch {
+    payload = {};
+  }
+  const parsed = parseFlexxFormsLoanPayload(payload);
+  const terms = buildOfferedTerms({
+    borrowerId,
+    principal: overrides.principal ?? parsed.principal,
+    termMonths: overrides.termMonths ?? parsed.termMonths ?? DEFAULT_LOAN_TERM_MONTHS,
+    annualRate: overrides.annualRate ?? overrides.annualRatePercent,
+    startDate: overrides.startDate || parsed.startDate,
+    offeredByUserId: overrides.offeredByUserId || null,
+  });
+  return { applicationId: Number(applicationId), borrowerId, terms };
+}
+
+async function offerLoanTerms(applicationId, offeredByUserId, overrides = {}) {
+  const db = getDb();
+  ensureMembershipApplicationSchema(db);
+  const row = getLoanApplicationRow(applicationId);
+  if (!row) {
+    const err = new Error("Loan application not found");
+    err.status = 404;
+    throw err;
+  }
+  if (row.status === "approved") {
+    const err = new Error("Approved applications cannot receive new terms");
+    err.status = 400;
+    throw err;
+  }
+  if (row.status === "rejected") {
+    const err = new Error("Rejected applications cannot receive terms");
+    err.status = 400;
+    throw err;
+  }
+  const preview = previewLoanTerms(applicationId, {
+    ...overrides,
+    offeredByUserId,
+  });
+  db.prepare(
+    `UPDATE flexxforms_applications
+     SET terms_json = ?, status = 'terms_offered', processing_error = NULL,
+         updated_at = datetime('now')
+     WHERE id = ?`
+  ).run(JSON.stringify(preview.terms), applicationId);
+
+  const { notifyLoanTermsOffered } = require("./loan-application-notify");
+  const notice = await notifyLoanTermsOffered({
+    memberId: preview.borrowerId,
+    terms: preview.terms,
+    applicationId,
+  });
+  return {
+    applicationId: Number(applicationId),
+    status: "terms_offered",
+    terms: preview.terms,
+    notice,
+  };
+}
+
+function listMemberLoanApplications(memberId) {
+  const id = Number(memberId);
+  if (!Number.isInteger(id) || id <= 0) return [];
+  return listLoanApplications().filter((row) => Number(row.memberId) === id);
+}
+
+function acceptLoanTerms(user, applicationId) {
+  if (user?.role !== "member" || !user.memberId) {
+    const err = new Error("Member account required");
+    err.status = 403;
+    throw err;
+  }
+  const { assertActiveDirectoryMember } = require("./membership-status-service");
+  assertActiveDirectoryMember(user.memberId, { action: "Loan applications" });
+  const db = getDb();
+  ensureMembershipApplicationSchema(db);
+  const row = getLoanApplicationRow(applicationId);
+  if (!row) {
+    const err = new Error("Loan application not found");
+    err.status = 404;
+    throw err;
+  }
+  if (Number(row.memberId) !== Number(user.memberId)) {
+    const err = new Error("This application is not yours");
+    err.status = 403;
+    throw err;
+  }
+  if (row.status === "approved") {
+    return getLoanApplicationDetail(row.id);
+  }
+  if (row.status === "terms_accepted") {
+    return getLoanApplicationDetail(row.id);
+  }
+  if (row.status !== "terms_offered") {
+    const err = new Error("Repayment terms have not been offered yet");
+    err.status = 400;
+    throw err;
+  }
+  const terms = presentTerms(parseTermsJson(row.termsJson));
+  if (!terms) {
+    const err = new Error("Repayment terms were not found on this application");
+    err.status = 400;
+    throw err;
+  }
+  terms.acceptedAt = new Date().toISOString();
+  terms.acceptedByMemberId = Number(user.memberId);
+  db.prepare(
+    `UPDATE flexxforms_applications
+     SET terms_json = ?, status = 'terms_accepted', updated_at = datetime('now')
+     WHERE id = ?`
+  ).run(JSON.stringify(terms), applicationId);
+  return getLoanApplicationDetail(applicationId);
+}
+
+async function approveLoanApplication(applicationId, approvedByUserId, overrides = {}) {
   const db = getDb();
   ensureMembershipApplicationSchema(db);
   const row = getLoanApplicationRow(applicationId);
@@ -447,6 +692,13 @@ function approveLoanApplication(applicationId, approvedByUserId, overrides = {})
   if (row.status === "approved" && row.loanId) {
     return { applicationId, loanId: row.loanId, alreadyApproved: true };
   }
+  if (row.status !== "terms_accepted") {
+    const err = new Error(
+      "The member must Accept Terms in the portal before this loan can be approved."
+    );
+    err.status = 400;
+    throw err;
+  }
 
   let payload = {};
   try {
@@ -455,46 +707,31 @@ function approveLoanApplication(applicationId, approvedByUserId, overrides = {})
     payload = {};
   }
   const parsed = parseFlexxFormsLoanPayload(payload);
+  const terms = presentTerms(parseTermsJson(row.termsJson));
   const borrowerId = Number(overrides.borrowerId || row.memberId);
   if (!borrowerId) {
     const err = new Error("Link an active borrower member before approving");
     err.status = 400;
     throw err;
   }
+  if (!terms) {
+    const err = new Error("Accepted repayment terms were not found");
+    err.status = 400;
+    throw err;
+  }
 
-  const principal = parseMoney(overrides.principal ?? parsed.principal);
-  const termMonths =
-    parseMonths(overrides.termMonths ?? parsed.termMonths) || DEFAULT_LOAN_TERM_MONTHS;
-  const annualRate =
-    overrides.annualRate != null && overrides.annualRate !== ""
-      ? Number(overrides.annualRate)
-      : DEFAULT_LOAN_ANNUAL_RATE;
-  const startDate =
-    String(overrides.startDate || parsed.startDate || new Date().toISOString().slice(0, 10)).slice(
-      0,
-      10
-    );
+  const principal = terms.principal;
+  const termMonths = terms.termMonths;
+  const annualRate = terms.annualRate;
+  const startDate = terms.startDate;
   const guarantor1Id = resolveGuarantorId(overrides.guarantor1Id, parsed.guarantor1Name);
   const guarantor2Id = resolveGuarantorId(overrides.guarantor2Id, parsed.guarantor2Name);
-
-  if (principal == null || principal <= 0) {
-    const err = new Error("Loan amount is required to approve");
-    err.status = 400;
-    throw err;
-  }
-  if (!guarantor1Id || !guarantor2Id) {
-    const err = new Error(
-      "Two guarantor member ids are required. Select them on Approve (guarantor names from the form are hints only)."
-    );
-    err.status = 400;
-    throw err;
-  }
 
   const validation = validateLoanApplication({
     borrowerId,
     principal,
-    guarantor1Id,
-    guarantor2Id,
+    guarantor1Id: terms.coveredByDeposits ? null : guarantor1Id,
+    guarantor2Id: terms.coveredByDeposits ? null : guarantor2Id,
     startDate,
   });
   if (!validation.valid) {
@@ -506,6 +743,7 @@ function approveLoanApplication(applicationId, approvedByUserId, overrides = {})
   const noteParts = [
     `FlexxForms loan application #${applicationId}`,
     parsed.purpose ? `Purpose: ${parsed.purpose}` : null,
+    terms.coveredByDeposits ? "No guarantors: amount covered by contributions" : null,
     parsed.notes || null,
     overrides.notes || null,
   ].filter(Boolean);
@@ -513,11 +751,11 @@ function approveLoanApplication(applicationId, approvedByUserId, overrides = {})
   const loanId = createLoan({
     borrowerId,
     principal,
-    annualRate: Number.isFinite(annualRate) ? annualRate : DEFAULT_LOAN_ANNUAL_RATE,
+    annualRate,
     termMonths,
     startDate,
-    guarantor1Id,
-    guarantor2Id,
+    guarantor1Id: terms.coveredByDeposits ? null : guarantor1Id,
+    guarantor2Id: terms.coveredByDeposits ? null : guarantor2Id,
     notes: noteParts.join(" | "),
   });
 
@@ -529,15 +767,25 @@ function approveLoanApplication(applicationId, approvedByUserId, overrides = {})
      WHERE id = ?`
   ).run(borrowerId, loanId, approvedByUserId || null, applicationId);
 
+  const { notifyLoanApplicationApproved } = require("./loan-application-notify");
+  const notice = await notifyLoanApplicationApproved({
+    memberId: borrowerId,
+    terms,
+    applicationId,
+    loanId,
+  });
+
   return {
     applicationId: Number(applicationId),
     loanId,
     borrowerId,
     principal,
     termMonths,
-    guarantor1Id,
-    guarantor2Id,
+    annualRate,
+    guarantor1Id: terms.coveredByDeposits ? null : guarantor1Id,
+    guarantor2Id: terms.coveredByDeposits ? null : guarantor2Id,
     maxAmount: validation.maxAmount,
+    notice,
   };
 }
 
@@ -587,9 +835,13 @@ module.exports = {
   parseFlexxFormsLoanPayload,
   processLoanFormSubmission,
   listLoanApplications,
+  listMemberLoanApplications,
   getLoanApplicationDetail,
   linkLoanApplicationMember,
   claimLoanApplicationForMember,
+  previewLoanTerms,
+  offerLoanTerms,
+  acceptLoanTerms,
   approveLoanApplication,
   rejectLoanApplication,
   deleteLoanApplication,

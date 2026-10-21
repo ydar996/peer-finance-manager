@@ -30,6 +30,8 @@ function testDefaults() {
   const ids = listed.map((row) => row.id);
   assert.ok(ids.includes("loan_due_notice"));
   assert.ok(ids.includes("deposit_credit_alert"));
+  assert.ok(ids.includes("loan_terms_offered"));
+  assert.ok(ids.includes("loan_application_approved"));
   assert.equal(
     listed.every((row) => row.subject && row.body),
     true

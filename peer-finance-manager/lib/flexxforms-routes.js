@@ -140,13 +140,47 @@ function registerFlexxFormsRoutes(app) {
   );
 
   app.post(
-    "/api/flexxforms/loan-applications/:id/approve",
+    "/api/flexxforms/loan-applications/:id/preview-terms",
     requireAuth,
     requireAdmin,
     (req, res) => {
       try {
+        const { previewLoanTerms } = require("./flexxforms-loan-service");
+        const result = previewLoanTerms(Number(req.params.id), req.body || {});
+        res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/flexxforms/loan-applications/:id/offer-terms",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
+        const { offerLoanTerms } = require("./flexxforms-loan-service");
+        const result = await offerLoanTerms(Number(req.params.id), req.user?.id, req.body || {});
+        res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/flexxforms/loan-applications/:id/approve",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      try {
         const { approveLoanApplication } = require("./flexxforms-loan-service");
-        const result = approveLoanApplication(Number(req.params.id), req.user?.id, req.body || {});
+        const result = await approveLoanApplication(
+          Number(req.params.id),
+          req.user?.id,
+          req.body || {}
+        );
         res.json({ success: true, ...result });
       } catch (err) {
         res.status(err.status || 400).json({ error: err.message });
@@ -181,6 +215,30 @@ function registerFlexxFormsRoutes(app) {
         const { deleteLoanApplication } = require("./flexxforms-loan-service");
         const result = deleteLoanApplication(Number(req.params.id));
         res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(err.status || 400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.get("/api/me/loan-applications", requireAuth, requireActiveMemberAccount, (req, res) => {
+    try {
+      const { listMemberLoanApplications } = require("./flexxforms-loan-service");
+      res.json({ applications: listMemberLoanApplications(req.user?.memberId) });
+    } catch (err) {
+      res.status(err.status || 400).json({ error: err.message });
+    }
+  });
+
+  app.post(
+    "/api/me/loan-applications/:id/accept-terms",
+    requireAuth,
+    requireActiveMemberAccount,
+    (req, res) => {
+      try {
+        const { acceptLoanTerms } = require("./flexxforms-loan-service");
+        const application = acceptLoanTerms(req.user, Number(req.params.id));
+        res.json({ success: true, application });
       } catch (err) {
         res.status(err.status || 400).json({ error: err.message });
       }

@@ -7,9 +7,8 @@ const {
   LATE_FEE_AMOUNT,
   TRANSACTION_TYPES,
 } = require("./constants");
-const { getMemberBalance } = require("./balance-service");
+const { getMemberBalance, getMemberDepositAccountBalance, addTransaction } = require("./balance-service");
 const { addMonths, monthsBetween } = require("./dates");
-const { addTransaction } = require("./balance-service");
 const {
   snapshotCurrentPolicy,
   getPolicyForLoanRow,
@@ -53,6 +52,18 @@ function maxLoanAmount(borrowerId, guarantor1Id, guarantor2Id) {
   return Math.min(borrowerDeposits, guarantorPool);
 }
 
+function roundMoney(value) {
+  return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+function loanCoveredByDeposits(borrowerId, principal) {
+  const deposits = getMemberDepositAccountBalance(borrowerId);
+  return {
+    covered: Number(principal) <= Number(deposits) + 0.005,
+    depositBalance: roundMoney(deposits),
+  };
+}
+
 function validateLoanApplication({
   borrowerId,
   principal,
@@ -62,14 +73,24 @@ function validateLoanApplication({
 }) {
   const errors = [];
   if (!borrowerId) errors.push("Borrower required");
-  if (!guarantor1Id || !guarantor2Id) {
-    errors.push(`${REQUIRED_GUARANTORS} guarantors required`);
+
+  const coverage = borrowerId
+    ? loanCoveredByDeposits(borrowerId, principal)
+    : { covered: false, depositBalance: 0 };
+  const hasBothGuarantors = Boolean(guarantor1Id) && Boolean(guarantor2Id);
+
+  if (!coverage.covered && !hasBothGuarantors) {
+    errors.push(
+      "This amount is more than the member's contributions account. Two guarantors are required. Guarantor signing is not in this simple workflow yet."
+    );
   }
-  if (guarantor1Id === borrowerId || guarantor2Id === borrowerId) {
-    errors.push("Borrower cannot be their own guarantor");
-  }
-  if (guarantor1Id === guarantor2Id) {
-    errors.push("Guarantors must be different members");
+  if (hasBothGuarantors) {
+    if (guarantor1Id === borrowerId || guarantor2Id === borrowerId) {
+      errors.push("Borrower cannot be their own guarantor");
+    }
+    if (guarantor1Id === guarantor2Id) {
+      errors.push("Guarantors must be different members");
+    }
   }
 
   const { assertActiveDirectoryMember } = require("./membership-status-service");
@@ -90,43 +111,66 @@ function validateLoanApplication({
   const eligibility = isEligibleForLoan(borrowerId, startDate);
   if (!eligibility.eligible) errors.push(eligibility.reason);
 
-  const maxAmount = maxLoanAmount(borrowerId, guarantor1Id, guarantor2Id);
-  if (principal > maxAmount) {
-    errors.push(
-      `Loan amount exceeds maximum allowed (${maxAmount.toFixed(2)}). ` +
-        `Cannot exceed borrower contributions or combined guarantor contributions.`
-    );
+  let maxAmount = coverage.depositBalance;
+  if (hasBothGuarantors) {
+    maxAmount = maxLoanAmount(borrowerId, guarantor1Id, guarantor2Id);
+    if (principal > maxAmount) {
+      errors.push(
+        `Loan amount exceeds maximum allowed (${maxAmount.toFixed(2)}). ` +
+          `Cannot exceed borrower contributions or combined guarantor contributions.`
+      );
+    }
+  } else if (!coverage.covered) {
+    maxAmount = coverage.depositBalance;
   }
 
-  return { valid: errors.length === 0, errors, maxAmount };
+  return {
+    valid: errors.length === 0,
+    errors,
+    maxAmount,
+    coveredByDeposits: coverage.covered,
+    depositBalance: coverage.depositBalance,
+  };
 }
 
 function generateAmortizationSchedule(principal, annualRate, termMonths, startDate) {
-  const monthlyRate = annualRate / 12;
-  const payment =
+  const p = roundMoney(principal);
+  const n = Math.max(1, Math.round(Number(termMonths) || DEFAULT_LOAN_TERM_MONTHS));
+  const rate = Number(annualRate) || 0;
+  const monthlyRate = rate / 12;
+  const rawPayment =
     monthlyRate === 0
-      ? principal / termMonths
-      : (principal * monthlyRate * Math.pow(1 + monthlyRate, termMonths)) /
-        (Math.pow(1 + monthlyRate, termMonths) - 1);
+      ? p / n
+      : (p * monthlyRate * Math.pow(1 + monthlyRate, n)) /
+        (Math.pow(1 + monthlyRate, n) - 1);
+  const payment = roundMoney(rawPayment);
 
-  let balance = principal;
+  let balance = p;
   const installments = [];
 
-  for (let i = 1; i <= termMonths; i++) {
-    const interest = balance * monthlyRate;
-    const principalPart = payment - interest;
-    balance = Math.max(0, balance - principalPart);
-    const dueDate = addMonths(startDate, i);
+  for (let i = 1; i <= n; i++) {
+    const interest = roundMoney(balance * monthlyRate);
+    let principalPart = i === n ? balance : roundMoney(payment - interest);
+    if (principalPart > balance) principalPart = balance;
+    const totalDue = i === n ? roundMoney(principalPart + interest) : payment;
+    balance = roundMoney(Math.max(0, balance - principalPart));
     installments.push({
       installmentNumber: i,
-      dueDate,
+      dueDate: addMonths(startDate, i),
       principalDue: principalPart,
       interestDue: interest,
-      totalDue: payment,
+      totalDue,
     });
   }
 
   return installments;
+}
+
+function summarizeSchedule(installments = []) {
+  const monthlyPayment = installments[0] ? roundMoney(installments[0].totalDue) : 0;
+  const totalPayable = roundMoney(installments.reduce((sum, row) => sum + Number(row.totalDue || 0), 0));
+  const totalInterest = roundMoney(installments.reduce((sum, row) => sum + Number(row.interestDue || 0), 0));
+  return { monthlyPayment, totalPayable, totalInterest, installmentCount: installments.length };
 }
 
 function createLoan({
@@ -344,8 +388,11 @@ function listLoans(status) {
 module.exports = {
   isEligibleForLoan,
   maxLoanAmount,
+  loanCoveredByDeposits,
   validateLoanApplication,
   generateAmortizationSchedule,
+  summarizeSchedule,
+  roundMoney,
   createLoan,
   importLoanSchedule,
   applyLoanRepayment,

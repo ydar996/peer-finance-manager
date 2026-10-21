@@ -11,6 +11,8 @@ const TRIGGER_LABELS = {
   deposit_credit_alert: "Deposit/Loan Repayment Received",
   loan_due_notice: "Loan Payment Due",
   deposits_verified_correction: "Deposits Verified (Corrected Amounts)",
+  loan_terms_offered: "Loan Repayment Terms",
+  loan_application_approved: "Loan Application Approved",
 };
 
 function tableHasColumn(db, table, column) {

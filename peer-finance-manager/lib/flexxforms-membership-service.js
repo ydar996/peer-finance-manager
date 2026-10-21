@@ -721,6 +721,7 @@ function ensureMembershipApplicationSchema(db) {
   add("approved_at", "ADD COLUMN approved_at TEXT");
   add("approved_by_user_id", "ADD COLUMN approved_by_user_id INTEGER");
   add("processing_error", "ADD COLUMN processing_error TEXT");
+  add("terms_json", "ADD COLUMN terms_json TEXT");
 }
 
 function getApplicantPaymentReadiness(memberId) {
