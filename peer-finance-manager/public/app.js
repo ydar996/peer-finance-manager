@@ -1378,14 +1378,13 @@ async function loadMyAccount() {
                 <button type="button" class="btn primary" data-member-id="${profile.member_id}" data-loan-number="${lot.loanNumber}" data-action="my-loan-statement" ${loanMonths.length ? "" : "disabled"}>
                   Download Monthly Statement
                 </button>
-                <button type="button" class="btn js-download-repayment-plan" data-format="pdf" data-member-id="${profile.member_id}" data-loan-number="${lot.loanNumber}">
-                  Download PDF
-                </button>
-                <button type="button" class="btn js-download-repayment-plan" data-format="xlsx" data-member-id="${profile.member_id}" data-loan-number="${lot.loanNumber}">
-                  Download Excel
-                </button>
               </div>
             </div>
+            ${repaymentPlanDownloadButtons({
+              memberId: profile.member_id,
+              loanNumber: lot.loanNumber,
+              memberOwned: true,
+            })}
             ${loanScheduleHtml(lot)}
             <div class="table-wrap compact">
               <table class="member-tx-table">
@@ -3359,8 +3358,8 @@ function repaymentPlanDownloadButtons({ memberId, loanNumber, applicationId, mem
   if (memberOwned) attrs.push(`data-member-owned="1"`);
   const extra = attrs.join(" ");
   return `<div class="loan-plan-download-actions">
-    <button type="button" class="btn small js-download-repayment-plan" data-format="pdf" ${extra}>Download PDF</button>
-    <button type="button" class="btn small js-download-repayment-plan" data-format="xlsx" ${extra}>Download Excel</button>
+    <button type="button" class="btn primary small js-download-repayment-plan" data-format="pdf" ${extra}>Download Repayment Plan (PDF)</button>
+    <button type="button" class="btn small js-download-repayment-plan" data-format="xlsx" ${extra}>Download Repayment Plan (Excel)</button>
   </div>`;
 }
 
@@ -9717,12 +9716,20 @@ function isLoanApprovedNoticeSubject(subject) {
 }
 
 function isLoanDisbursedNoticeSubject(subject) {
-  return /loan was disbursed|loan disbursed/i.test(String(subject || ""));
+  return /loan was disbursed|loan disbursed|disbursed your loan/i.test(String(subject || ""));
 }
 
 function isLoanTermsNoticeSubject(subject) {
   if (isLoanApprovedNoticeSubject(subject) || isLoanDisbursedNoticeSubject(subject)) return false;
   return /repayment terms|accept terms/i.test(String(subject || ""));
+}
+
+function isLoanPortalNoticeSubject(subject) {
+  return (
+    isLoanDisbursedNoticeSubject(subject) ||
+    isLoanApprovedNoticeSubject(subject) ||
+    isLoanTermsNoticeSubject(subject)
+  );
 }
 
 function renderMemberLoanTermsActionCard(application) {
@@ -9753,12 +9760,64 @@ function renderMemberLoanTermsActionCard(application) {
           memberOwned: currentUser?.role === "member",
         })
       : "";
-  return `<h3>Repayment Terms</h3>
+  return `<h3>Repayment Plan</h3>
     ${statusLine}
     ${renderLoanTermsSummaryHtml(terms, { simple: true })}
     ${downloads}
     ${actions}
     <p class="status" id="inboxLoanTermsStatus"></p>`;
+}
+
+function renderInboxLoanDownloadCard({ application, lots, memberId } = {}) {
+  const lot =
+    (lots || []).find((row) => (row.schedule || []).length) || (lots || [])[0] || null;
+  const lotButtons = lot
+    ? repaymentPlanDownloadButtons({
+        memberId: lot.memberId || memberId,
+        loanNumber: lot.loanNumber,
+        memberOwned: true,
+      })
+    : "";
+  if (application) {
+    const html = renderMemberLoanTermsActionCard(application);
+    if (application.terms?.schedule?.length || !lotButtons) return html;
+    return `${html}${lotButtons}`;
+  }
+  if (!lot) {
+    return `<h3>Repayment Plan</h3>
+      <p class="hint">The Repayment Plan Download Appears Here After Your Loan Is Open. You Can Also Find It on My Account under Loan Accounts.</p>`;
+  }
+  return `<h3>Repayment Plan</h3>
+    <p class="status ok">Download the Repayment Plan for Loan ${escapeHtml(String(lot.loanNumber))}.</p>
+    ${lotButtons}`;
+}
+
+async function loadMemberLoanNoticeContext(subject) {
+  let applications = [];
+  try {
+    const res = await fetch("/api/me/loan-applications");
+    const data = await res.json();
+    if (res.ok) applications = data.applications || [];
+  } catch (_) {
+    applications = [];
+  }
+  let lots = [];
+  let memberId = currentUser?.memberId || currentUser?.member_id || null;
+  try {
+    const res = await fetch("/api/me/account");
+    const data = await res.json();
+    if (res.ok) {
+      lots = data.loanSummary?.lots || [];
+      memberId = data.profile?.member_id || memberId;
+    }
+  } catch (_) {
+    lots = [];
+  }
+  return {
+    application: pickLoanApplicationForThread(applications, subject),
+    lots,
+    memberId,
+  };
 }
 
 async function loadMemberOptionsForLoanApprove() {
@@ -10442,25 +10501,27 @@ function pickLoanApplicationForThread(apps, subject) {
   return null;
 }
 
+function bindInboxLoanNoticeActions(host) {
+  if (!host) return;
+  bindLoanTermsDecisionButtons(host);
+  bindRepaymentPlanButtons(host);
+}
+
 async function refreshMemberLoanTermsInboxCard(thread = null) {
   const card = $("#memberLoanTermsInboxCard");
   if (!card || currentUser?.role !== "member") return null;
+  const subject = thread?.subject || $("#memberMessagesThreadSubject")?.textContent || "";
+  if (!isLoanPortalNoticeSubject(subject)) {
+    card.classList.add("hidden");
+    card.innerHTML = "";
+    return null;
+  }
   try {
-    const res = await fetch("/api/me/loan-applications");
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to load loan applications");
-    const subject = thread?.subject || $("#memberMessagesThreadSubject")?.textContent || "";
-    const application = pickLoanApplicationForThread(data.applications || [], subject);
-    if (!application) {
-      card.classList.add("hidden");
-      card.innerHTML = "";
-      return null;
-    }
-    card.innerHTML = renderMemberLoanTermsActionCard(application);
+    const ctx = await loadMemberLoanNoticeContext(subject);
+    card.innerHTML = renderInboxLoanDownloadCard(ctx);
     card.classList.remove("hidden");
-    bindLoanTermsDecisionButtons(card);
-    bindRepaymentPlanButtons(card);
-    return application;
+    bindInboxLoanNoticeActions(card);
+    return ctx;
   } catch {
     card.classList.add("hidden");
     card.innerHTML = "";
@@ -11394,13 +11455,13 @@ async function openMemberMessageThread(threadId) {
     const thread = data.thread;
     $("#memberMessagesThreadSubject").textContent = thread.subject || "Message";
     $("#memberMessagesThreadMeta").textContent = "Conversation with Cooperative Admin";
-    const termsApp = await refreshMemberLoanTermsInboxCard(thread);
+    const noticeCtx = await refreshMemberLoanTermsInboxCard(thread);
+    const noticeHtml = noticeCtx ? renderInboxLoanDownloadCard(noticeCtx) : null;
     renderThreadMessages($("#memberMessagesThreadMessages"), thread.messages || [], currentUser?.id, {
-      replaceSystemHtml:
-        termsApp?.status === "terms_offered"
-          ? "<p>Review the Repayment Schedule Below, Then Accept or Reject These Terms.</p>"
-          : null,
+      replaceSystemHtml: noticeHtml,
     });
+    bindInboxLoanNoticeActions($("#memberMessagesThreadMessages"));
+    if (noticeHtml) $("#memberLoanTermsInboxCard")?.classList.add("hidden");
     $("#memberMessageReplyBody").value = "";
     showMemberMessagesThread();
     updateUnreadBadge($("#memberMessagesUnreadBadge"), thread.unread);
@@ -11589,18 +11650,18 @@ $("#memberMessageReplyForm")?.addEventListener("submit", async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to send reply");
     $("#memberMessageReplyBody").value = "";
-    const termsApp = await refreshMemberLoanTermsInboxCard(data.thread);
+    const noticeCtx = await refreshMemberLoanTermsInboxCard(data.thread);
+    const noticeHtml = noticeCtx ? renderInboxLoanDownloadCard(noticeCtx) : null;
     renderThreadMessages(
       $("#memberMessagesThreadMessages"),
       data.thread?.messages || [],
       currentUser?.id,
       {
-        replaceSystemHtml:
-          termsApp?.status === "terms_offered"
-            ? "<p>Review the Repayment Schedule Below, Then Accept or Reject These Terms.</p>"
-            : null,
+        replaceSystemHtml: noticeHtml,
       }
     );
+    bindInboxLoanNoticeActions($("#memberMessagesThreadMessages"));
+    if (noticeHtml) $("#memberLoanTermsInboxCard")?.classList.add("hidden");
     updateUnreadBadge($("#memberMessagesUnreadBadge"), data.unread);
     await refreshMyMessagesEntry();
     setFormStatus(status, "Reply sent.", true);
