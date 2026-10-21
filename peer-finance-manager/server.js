@@ -1695,6 +1695,25 @@ function startServer(port, callback) {
             });
           }
           const {
+            backfillMissingLoanApprovalNotices,
+          } = require("./lib/loan-application-notify");
+          backfillMissingLoanApprovalNotices()
+            .then((result) => {
+              if (result.sent) {
+                trace.info("Missing loan approval notices posted", {
+                  orgSlug: org.slug,
+                  sent: result.sent,
+                  considered: result.considered,
+                });
+              }
+            })
+            .catch((err) => {
+              trace.info("Loan approval notice backfill skipped", {
+                orgSlug: org.slug,
+                error: err.message,
+              });
+            });
+          const {
             correctMismatchedDepositsVerifiedNotices,
           } = require("./lib/flexxforms-membership-service");
           correctMismatchedDepositsVerifiedNotices()

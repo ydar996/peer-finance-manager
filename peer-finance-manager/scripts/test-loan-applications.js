@@ -27,6 +27,12 @@ const {
 } = require("../lib/flexxforms-loan-service");
 const { ensureMembershipApplicationSchema } = require("../lib/flexxforms-membership-service");
 const { formatScheduleText } = require("../lib/loan-application-notify");
+const {
+  listPendingApprovedLoans,
+  matchPendingApprovedLoan,
+  applyApprovedLoanDisbursementMatches,
+  markApprovedLoanDisbursed,
+} = require("../lib/approved-loan-disbursement");
 
 const ORG = "loan-apps-test-coop";
 
@@ -228,6 +234,47 @@ async function run() {
       .prepare(`SELECT COUNT(*) AS n FROM loan_installments WHERE loan_id = ?`)
       .get(approved.loanId);
     assert.strictEqual(installments.n, 12);
+    const listedApproved = listLoanApplications().find((a) => a.id === applicationId);
+    assert.equal(listedApproved.awaitingBankDisbursement, true);
+    const pending = listPendingApprovedLoans();
+    assert.ok(pending.some((row) => row.applicationId === applicationId));
+    const outflow = {
+      amount: -1000,
+      ledgerType: "expense",
+      description: "Zelle to Loan Borrower",
+      member: null,
+      date: "2026-10-25",
+      bucket: "needsReview",
+    };
+    const match = matchPendingApprovedLoan(outflow, pending, new Set());
+    assert.ok(match);
+    assert.strictEqual(match.applicationId, applicationId);
+    applyApprovedLoanDisbursementMatches([outflow], ["Loan Borrower"]);
+    assert.strictEqual(outflow.ledgerType, "loan_disbursement");
+    assert.strictEqual(outflow.member, "Loan Borrower");
+    const depositRow = {
+      amount: 1000,
+      ledgerType: "deposit",
+      description: "Zelle from Loan Borrower",
+      member: "Loan Borrower",
+      date: "2026-10-25",
+      bucket: "ready",
+    };
+    applyApprovedLoanDisbursementMatches([depositRow], ["Loan Borrower"]);
+    assert.strictEqual(depositRow.ledgerType, "deposit", "inflows stay deposits");
+    markApprovedLoanDisbursed({
+      applicationId,
+      transactionId: 99,
+      disbursementDate: "2026-10-25",
+      memberId: borrower.memberId,
+    });
+    assert.equal(
+      listLoanApplications().find((a) => a.id === applicationId).awaitingBankDisbursement,
+      false
+    );
+    assert.ok(!listPendingApprovedLoans().some((row) => row.applicationId === applicationId));
+    const loanAfter = db.prepare(`SELECT start_date FROM loans WHERE id = ?`).get(approved.loanId);
+    assert.strictEqual(String(loanAfter.start_date).slice(0, 10), "2026-10-25");
 
     const rejectInsert = db
       .prepare(

@@ -9604,8 +9604,13 @@ function renderLoanTermsSummaryHtml(terms, { simple = false } = {}) {
   ${renderLoanTermsScheduleHtml(terms)}`;
 }
 
+function isLoanApprovedNoticeSubject(subject) {
+  return /loan application is approved|loan approved/i.test(String(subject || ""));
+}
+
 function isLoanTermsNoticeSubject(subject) {
-  return /repayment terms|loan application|accept terms/i.test(String(subject || ""));
+  if (isLoanApprovedNoticeSubject(subject)) return false;
+  return /repayment terms|accept terms/i.test(String(subject || ""));
 }
 
 function renderMemberLoanTermsActionCard(application) {
@@ -9613,7 +9618,9 @@ function renderMemberLoanTermsActionCard(application) {
   const canDecide = application.status === "terms_offered";
   const statusLine =
     application.status === "approved"
-      ? `<p class="status ok">Loan Approved${application.loanId ? ` (Loan #${application.loanId})` : ""}.</p>`
+      ? application.disbursementTxId
+        ? `<p class="status ok">Loan Approved. Your Loan Account Is Open and Repayments Are Being Tracked.</p>`
+        : `<p class="status ok">Loan Approved. Your Loan Account Opens When the Cooperative Sends These Funds (Recorded from the Next Bank Statement).</p>`
       : application.status === "terms_accepted"
         ? `<p class="status ok">You Accepted These Terms. Waiting for Administrator Approval.</p>`
         : application.status === "terms_rejected"
@@ -9694,7 +9701,13 @@ async function loadFlexxFormsLoanApplications() {
               ? `<p class="hint">Waiting for the Member to Accept or Reject Terms in the Portal Inbox.</p>`
               : a.status === "terms_rejected"
                 ? `<p class="status err">Member Rejected Terms. You Can Offer New Terms or Reject the Application.</p>`
-                : "";
+                : a.status === "approved" && a.disbursementTxId
+                  ? `<p class="status ok">Approved. Loan Account Is Open on Loans and the Member Profile.</p>`
+                  : a.status === "approved"
+                    ? `<p class="hint">Approved. Waiting for the Bank Outflow of ${escapeHtml(
+                        amount
+                      )} to Open the Loan Account.</p>`
+                    : "";
         const offerBtn =
           a.status !== "approved" && a.status !== "rejected"
             ? `<button type="button" class="btn ${
@@ -9886,7 +9899,7 @@ async function approveFlexxFormsLoanApplication(applicationId) {
   if (!applicationId) return;
   if (
     !(await appConfirm(
-      "Approve this loan? The member already accepted the repayment terms. This creates the loan in Peer Finance Manager.",
+      "Approve this loan? The member will be notified. The loan account and Loans portfolio open after the approved amount leaves the Cooperative bank and is imported from the next statement.",
       { title: "Approve Loan", variant: "warning", confirmLabel: "Approve Loan" }
     ))
   ) {
@@ -9903,8 +9916,12 @@ async function approveFlexxFormsLoanApplication(applicationId) {
     setFormStatus(
       status,
       data.alreadyApproved
-        ? `Already approved as Loan #${data.loanId}.`
-        : `Loan application approved. Created Loan #${data.loanId}.`,
+        ? `Already approved. Waiting for the bank outflow of ${fmt.format(
+            data.principal || 0
+          )} to open the loan account.`
+        : `Loan application approved. The member was notified. Import the bank outflow of ${fmt.format(
+            data.principal || 0
+          )} to open the loan account and add it to the Loans portfolio.`,
       true
     );
     await loadFlexxFormsLoanApplications();
@@ -10275,6 +10292,9 @@ function pickLoanApplicationForThread(apps, subject) {
       ["terms_offered", "terms_accepted", "terms_rejected", "approved"].includes(a.status)
   );
   if (!pending.length) return null;
+  if (isLoanApprovedNoticeSubject(subject)) {
+    return pending.find((a) => a.status === "approved") || pending[0];
+  }
   if (isLoanTermsNoticeSubject(subject)) {
     return (
       pending.find((a) => a.status === "terms_offered") ||
@@ -11239,9 +11259,10 @@ async function openMemberMessageThread(threadId) {
     $("#memberMessagesThreadMeta").textContent = "Conversation with Cooperative Admin";
     const termsApp = await refreshMemberLoanTermsInboxCard(thread);
     renderThreadMessages($("#memberMessagesThreadMessages"), thread.messages || [], currentUser?.id, {
-      replaceSystemHtml: termsApp
-        ? "<p>Review the Repayment Schedule Below, Then Accept or Reject These Terms.</p>"
-        : null,
+      replaceSystemHtml:
+        termsApp?.status === "terms_offered"
+          ? "<p>Review the Repayment Schedule Below, Then Accept or Reject These Terms.</p>"
+          : null,
     });
     $("#memberMessageReplyBody").value = "";
     showMemberMessagesThread();
@@ -11437,9 +11458,10 @@ $("#memberMessageReplyForm")?.addEventListener("submit", async (e) => {
       data.thread?.messages || [],
       currentUser?.id,
       {
-        replaceSystemHtml: termsApp
-          ? "<p>Review the Repayment Schedule Below, Then Accept or Reject These Terms.</p>"
-          : null,
+        replaceSystemHtml:
+          termsApp?.status === "terms_offered"
+            ? "<p>Review the Repayment Schedule Below, Then Accept or Reject These Terms.</p>"
+            : null,
       }
     );
     updateUnreadBadge($("#memberMessagesUnreadBadge"), data.unread);

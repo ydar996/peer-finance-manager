@@ -142,7 +142,7 @@ function portfolioInterestShareFromPaidLots(allLots) {
   return interest / collected;
 }
 
-function assignLoanInterestAndBalances(lots, fallbackShare = 0, memberName = "") {
+function assignLoanInterestAndBalances(lots, fallbackShare = 0, memberName = "", memberId = null) {
   const { loans: references } = getLoanDetailsReference();
 
   for (const lot of lots) {
@@ -151,6 +151,13 @@ function assignLoanInterestAndBalances(lots, fallbackShare = 0, memberName = "")
     if (reference) {
       applyWorkbookInterestToLot(lot, reference, memberName);
       continue;
+    }
+
+    try {
+      const { applyApprovedLoanScheduleToLot } = require("./approved-loan-disbursement");
+      if (applyApprovedLoanScheduleToLot(lot, memberId)) continue;
+    } catch (_) {
+      /* approved FlexxForms schedule is optional */
     }
 
     applyPrincipalCorrection(lot, memberName);
@@ -337,7 +344,8 @@ function getMemberLoanLedgerSummary(memberId, { portfolioShare } = {}) {
   assignLoanInterestAndBalances(
     lots,
     portfolioShare != null ? portfolioShare : getPortfolioInterestShare(),
-    borrower
+    borrower,
+    memberId
   );
   try {
     const { assessLateFeesForBankLot } = require("./loan-policy-service");
@@ -377,7 +385,7 @@ function getAllBankLoanLots({ status } = {}) {
 
   for (const entry of lotsByMember) {
     const borrower = entry.member.display_name || entry.member.name;
-    assignLoanInterestAndBalances(entry.lots, fallbackShare, borrower);
+    assignLoanInterestAndBalances(entry.lots, fallbackShare, borrower, entry.member.member_id);
   }
 
   let lots = [];

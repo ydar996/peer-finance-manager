@@ -325,6 +325,8 @@ Upload a **cumulative** bank export: **period start through today**. PFM skips r
 | **Skipped** | Already in the ledger. Safe to ignore on re-upload. Notes stay blank; PFM will not add the row again. |
 | **Review** | Confirm the row. Change **Type**/**Member** if wrong, or click **Approve as Is** (or **Approve Suggested Rows**) when the suggestion is already correct. |
 
+If a loan was already approved, an outflow that matches that approved amount is typed as **Loan Disbursement** and linked to that member. After **Add New Transactions**, that loan appears on **Loans** and on the member's loan account.
+
 6. Read the **balance check** line:
    - **Red Blocked:** fix the issue before applying (see [When Numbers Look Wrong](#23-when-numbers-look-wrong)).
    - **Green note** (ledger above statement beginning): normal for re-uploads; duplicates will be Skipped.
@@ -528,8 +530,9 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
 4. The member receives an email and a portal inbox notice. They review each installment (due date, payment, principal, and interest) on that notice and tap **Accept Terms** or **Reject Terms** there (no extra page).
 5. **Terms Accepted** lets you **Approve Loan**. **Terms Rejected** shows on the loan applications list so you can offer new terms or reject the application. The **Loans** tab banner notes applications ready to approve.
 6. If the requested amount is covered by the member's contributions account, no guarantor is required. Amounts above contributions need two guarantors; that signing workflow is next.
-7. After approval, the loan is created in Peer Finance Manager and the member gets an email plus a portal notice.
-8. **Reject** keeps the record as rejected; **Delete** removes unapproved applications only.
+7. After **Approve Loan**, the member gets an email and a portal inbox notice. The member loan account and the **Loans** portfolio stay at zero until the Cooperative sends the funds.
+8. On the next **Import New Bank Activity**, PFM recognizes the bank outflow that matches the approved amount, records it as **Loan Disbursement**, opens that member's loan account, and adds the loan to the portfolio. Later **Loan Repayment** rows track against that account the usual way.
+9. **Reject** keeps the record as rejected; **Delete** removes unapproved applications only.
 
 ### Membership applications workflow
 

@@ -361,7 +361,8 @@ function getLoanApplicationRow(applicationId) {
               processing_error AS processingError, payload_json AS payloadJson,
               terms_json AS termsJson,
               created_at AS createdAt, processed_at AS processedAt,
-              approved_at AS approvedAt, approved_by_user_id AS approvedByUserId
+              approved_at AS approvedAt, approved_by_user_id AS approvedByUserId,
+              disbursement_tx_id AS disbursementTxId
        FROM flexxforms_applications
        WHERE id = ? AND kind = 'loan'`
     )
@@ -378,7 +379,8 @@ function listLoanApplications() {
               applicant_name AS applicantName, applicant_email AS applicantEmail,
               processing_error AS processingError, payload_json AS payloadJson,
               terms_json AS termsJson,
-              created_at AS createdAt, processed_at AS processedAt, approved_at AS approvedAt
+              created_at AS createdAt, processed_at AS processedAt, approved_at AS approvedAt,
+              disbursement_tx_id AS disbursementTxId
        FROM flexxforms_applications
        WHERE kind = 'loan'
        ORDER BY id DESC
@@ -414,6 +416,8 @@ function listLoanApplications() {
       memberId: row.memberId,
       memberName,
       loanId: row.loanId,
+      disbursementTxId: row.disbursementTxId || null,
+      awaitingBankDisbursement: row.status === "approved" && !row.disbursementTxId,
       applicantName: row.applicantName || parsed.applicantName || null,
       applicantEmail: row.applicantEmail || parsed.email || null,
       processingError: row.processingError,
@@ -743,7 +747,14 @@ async function approveLoanApplication(applicationId, approvedByUserId, overrides
     throw err;
   }
   if (row.status === "approved" && row.loanId) {
-    return { applicationId, loanId: row.loanId, alreadyApproved: true };
+    const existingTerms = presentTerms(parseTermsJson(row.termsJson));
+    return {
+      applicationId,
+      loanId: row.loanId,
+      principal: existingTerms?.principal || null,
+      alreadyApproved: true,
+      awaitingBankDisbursement: !row.disbursementTxId,
+    };
   }
   if (row.status !== "terms_accepted") {
     const err = new Error(
@@ -820,13 +831,18 @@ async function approveLoanApplication(applicationId, approvedByUserId, overrides
      WHERE id = ?`
   ).run(borrowerId, loanId, approvedByUserId || null, applicationId);
 
-  const { notifyLoanApplicationApproved } = require("./loan-application-notify");
-  const notice = await notifyLoanApplicationApproved({
-    memberId: borrowerId,
-    terms,
-    applicationId,
-    loanId,
-  });
+  let notice = { portalPosted: false, emailStatus: "skipped" };
+  try {
+    const { notifyLoanApplicationApproved } = require("./loan-application-notify");
+    notice = await notifyLoanApplicationApproved({
+      memberId: borrowerId,
+      terms,
+      applicationId,
+      loanId,
+    });
+  } catch (err) {
+    notice = { portalPosted: false, emailStatus: "failed", error: err.message };
+  }
 
   return {
     applicationId: Number(applicationId),

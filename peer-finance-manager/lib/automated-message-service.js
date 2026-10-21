@@ -165,7 +165,8 @@ const CATALOG = [
   {
     id: "loan_application_approved",
     title: "Loan Application Approved",
-    description: "Sent after an administrator approves a loan application that the member already accepted.",
+    description:
+      "Sent after an administrator approves a loan application that the member already accepted. The loan account opens when the approved amount leaves the Cooperative bank and is imported.",
     placeholders: [
       { token: "memberName", meaning: "Borrower name" },
       { token: "orgName", meaning: "Cooperative name" },
@@ -181,8 +182,8 @@ const CATALOG = [
       "Principal: {{principal}}\n" +
       "Term: {{termMonths}} months\n" +
       "Monthly Payment: {{monthlyPayment}}\n\n" +
-      "You can view the loan and repayment schedule in the member portal.\n" +
-      "{{portalUrl}}",
+      "Your loan account opens after the Cooperative sends these funds. That outflow is recorded from the next bank statement, and repayment tracking starts then.\n\n" +
+      "You can also view this in the member portal:\n{{portalUrl}}",
     sample: {
       memberName: "Ada Okeke",
       principal: "$1,000.00",

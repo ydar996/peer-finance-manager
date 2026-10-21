@@ -56,6 +56,19 @@ function formatScheduleHtml(schedule = []) {
   return `<table><thead><tr><th>Due Date</th><th>Payment</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
+function buildPortalApprovedHtml({ memberName, terms }) {
+  const { escapeHtml } = require("./markdown-lite");
+  const name = escapeHtml(memberName || "Member");
+  return [
+    `<p>Hello ${name},</p>`,
+    `<p>Your Cooperative has approved your loan application.</p>`,
+    `<p><strong>Principal:</strong> ${escapeHtml(formatMoney(terms.principal))}<br>`,
+    `<strong>Term:</strong> ${escapeHtml(String(terms.termMonths))} Months<br>`,
+    `<strong>Monthly Payment:</strong> ${escapeHtml(formatMoney(terms.monthlyPayment))}</p>`,
+    `<p>Your loan account opens after the Cooperative sends these funds. That outflow is recorded from the next bank statement. Repayment tracking starts then.</p>`,
+  ].join("");
+}
+
 function buildPortalTermsHtml({ memberName, terms }) {
   const { escapeHtml } = require("./markdown-lite");
   const name = escapeHtml(memberName || "Member");
@@ -220,14 +233,51 @@ async function notifyLoanApplicationApproved({ memberId, terms, applicationId, l
     triggerType: "loan_application_approved",
     memberId,
     message,
+    portalHtml: buildPortalApprovedHtml({
+      memberName: contact?.memberName || "Member",
+      terms,
+    }),
     dedupeKey: `loan-approved:${applicationId}:${loanId}`,
   });
+}
+
+async function backfillMissingLoanApprovalNotices() {
+  const { listLoanApplications } = require("./flexxforms-loan-service");
+  const { getDb } = require("../db/database");
+  const { ensureEmailAuditTables } = require("./email-audit-service");
+  const db = getDb();
+  ensureEmailAuditTables(db);
+  const apps = listLoanApplications().filter(
+    (row) => row.status === "approved" && row.memberId && row.terms && row.loanId
+  );
+  let sent = 0;
+  for (const app of apps) {
+    const dedupeKey = `loan-approved:${app.id}:${app.loanId}`;
+    const exists = db
+      .prepare(`SELECT 1 AS ok FROM member_report_email_log WHERE dedupe_key = ?`)
+      .get(dedupeKey);
+    if (exists) continue;
+    try {
+      await notifyLoanApplicationApproved({
+        memberId: app.memberId,
+        terms: app.terms,
+        applicationId: app.id,
+        loanId: app.loanId,
+      });
+      sent += 1;
+    } catch (_) {
+      /* best-effort for already-approved applications */
+    }
+  }
+  return { sent, considered: apps.length };
 }
 
 module.exports = {
   formatScheduleText,
   formatScheduleHtml,
   buildPortalTermsHtml,
+  buildPortalApprovedHtml,
   notifyLoanTermsOffered,
   notifyLoanApplicationApproved,
+  backfillMissingLoanApprovalNotices,
 };

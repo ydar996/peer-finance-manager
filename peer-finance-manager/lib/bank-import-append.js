@@ -239,6 +239,12 @@ function previewBankStatementAppend({
   let previewRows = parsed.map((row, index) =>
     buildPreviewRow(row, index, memberNames, account.id, existing)
   );
+  try {
+    const { applyApprovedLoanDisbursementMatches } = require("./approved-loan-disbursement");
+    applyApprovedLoanDisbursementMatches(previewRows, memberNames);
+  } catch (_) {
+    /* approved-loan matching is optional */
+  }
 
   const auditInput = parsed
     .filter((_, i) => previewRows[i].bucket === "ready")
@@ -630,6 +636,32 @@ function applyBankStatementAppend({
           description: inserted.description || tx.description,
           type: inserted.type || tx.ledgerType,
         });
+        if (
+          inserted.type === TRANSACTION_TYPES.LOAN_DISBURSEMENT &&
+          (row.approvedApplicationId || inserted.transactionId)
+        ) {
+          try {
+            const {
+              markApprovedLoanDisbursed,
+              matchPendingApprovedLoan,
+              listPendingApprovedLoans,
+            } = require("./approved-loan-disbursement");
+            const applicationId =
+              row.approvedApplicationId ||
+              matchPendingApprovedLoan(row, listPendingApprovedLoans(), new Set())
+                ?.applicationId;
+            if (applicationId) {
+              markApprovedLoanDisbursed({
+                applicationId,
+                transactionId: inserted.transactionId,
+                disbursementDate: inserted.date || tx.date,
+                memberId: inserted.memberId,
+              });
+            }
+          } catch (_) {
+            /* linking the approved application is best-effort */
+          }
+        }
       }
     }
     if (counts.inserted > 0) {
