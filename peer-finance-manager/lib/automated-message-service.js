@@ -97,7 +97,7 @@ const CATALOG = [
     id: "loan_due_notice",
     title: "Loan Payment Due",
     description:
-      "Sent to each borrower on the installment due date (the same calendar day as disbursement, each month after).",
+      "Sent to each borrower on the installment due date (the same calendar day as disbursement, each month after). Not sent when a loan repayment for that installment is already on the books.",
     placeholders: [
       { token: "memberName", meaning: "Borrower name" },
       { token: "orgName", meaning: "Cooperative name" },

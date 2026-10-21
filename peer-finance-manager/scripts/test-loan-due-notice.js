@@ -11,9 +11,13 @@ const path = require("path");
 const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pfm-loan-due-"));
 process.env.PFM_DATA_DIR = tmpRoot;
 
-const { isInstallmentDueDay, duePaymentForLot, buildLoanDueNoticeEmail } = require(
-  "../lib/loan-due-notice"
-);
+const {
+  isInstallmentDueDay,
+  previousInstallmentDueDate,
+  installmentAlreadyRecorded,
+  duePaymentForLot,
+  buildLoanDueNoticeEmail,
+} = require("../lib/loan-due-notice");
 
 function testDueDays() {
   assert.equal(isInstallmentDueDay("2026-05-22", "2026-05-22"), false, "not due on disbursement day");
@@ -32,12 +36,83 @@ function testDuePaymentFromSchedule() {
     outstanding: 900,
     disbursementDate: "2026-05-22",
     scheduledMonthlyPayment: 100,
+    collected: 0,
+    repayments: [],
     schedule: [{ dueDate: "2026-06-22", totalDue: 100 }],
   };
   assert.equal(duePaymentForLot(lot, "2026-06-22"), 100);
   assert.equal(duePaymentForLot(lot, "2026-06-21"), null);
   assert.equal(duePaymentForLot({ ...lot, outstanding: 0 }, "2026-06-22"), null);
   console.log("  due payment from schedule: OK");
+}
+
+function testSkipWhenRepaymentAlreadyRecorded() {
+  assert.equal(previousInstallmentDueDate("2026-05-22", "2026-10-22"), "2026-09-22");
+  assert.equal(previousInstallmentDueDate("2026-01-31", "2026-03-31"), "2026-02-28");
+
+  const unpaid = {
+    outstanding: 900,
+    disbursementDate: "2026-05-22",
+    scheduledMonthlyPayment: 100,
+    collected: 100,
+    repayments: [{ date: "2026-06-22", amount: 100 }],
+    schedule: [
+      { dueDate: "2026-06-22", totalDue: 100 },
+      { dueDate: "2026-07-22", totalDue: 100 },
+      { dueDate: "2026-10-22", totalDue: 100 },
+    ],
+  };
+  assert.equal(duePaymentForLot(unpaid, "2026-10-22"), 100, "still due when earlier months only are paid");
+  assert.equal(installmentAlreadyRecorded(unpaid, "2026-10-22"), false);
+
+  const paidThisMonth = {
+    ...unpaid,
+    collected: 300,
+    repayments: [
+      { date: "2026-06-22", amount: 100 },
+      { date: "2026-07-22", amount: 100 },
+      { date: "2026-10-05", amount: 100 },
+    ],
+  };
+  assert.equal(installmentAlreadyRecorded(paidThisMonth, "2026-10-22"), true);
+  assert.equal(
+    duePaymentForLot(paidThisMonth, "2026-10-22"),
+    null,
+    "do not nag when October repayment is already on the books"
+  );
+
+  const prepaid = {
+    ...unpaid,
+    collected: 300,
+    repayments: [{ date: "2026-06-01", amount: 300 }],
+    schedule: [
+      { dueDate: "2026-06-22", totalDue: 100 },
+      { dueDate: "2026-07-22", totalDue: 100 },
+      { dueDate: "2026-10-22", totalDue: 100 },
+    ],
+  };
+  assert.equal(duePaymentForLot(prepaid, "2026-10-22"), null, "prepaid later installments skip the due notice");
+
+  const noSchedulePaid = {
+    outstanding: 900,
+    disbursementDate: "2026-05-22",
+    scheduledMonthlyPayment: 100,
+    collected: 400,
+    repayments: [{ date: "2026-10-05", amount: 100 }],
+    schedule: [],
+  };
+  assert.equal(duePaymentForLot(noSchedulePaid, "2026-10-22"), null, "calendar-window repayment skips notice");
+
+  const noScheduleUnpaid = {
+    ...noSchedulePaid,
+    repayments: [{ date: "2026-09-22", amount: 100 }],
+  };
+  assert.equal(
+    duePaymentForLot(noScheduleUnpaid, "2026-10-22"),
+    100,
+    "payment on the previous due date is last month, not this installment"
+  );
+  console.log("  skip when repayment already recorded: OK");
 }
 
 function testEmailCopy() {
@@ -58,5 +133,6 @@ function testEmailCopy() {
 
 testDueDays();
 testDuePaymentFromSchedule();
+testSkipWhenRepaymentAlreadyRecorded();
 testEmailCopy();
 console.log("loan due notice tests: ok");

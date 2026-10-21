@@ -1,6 +1,7 @@
 /**
  * Email borrowers on their installment due date (same calendar day as disbursement,
- * each month after the disbursement date).
+ * each month after the disbursement date). Skip when a loan repayment for that
+ * installment is already on the books.
  */
 const { sendEmail, isEmailConfigured } = require("./email-service");
 const { getDb } = require("../db/database");
@@ -89,6 +90,81 @@ function lastCalendarDay(year, month) {
   return new Date(year, month, 0).getDate();
 }
 
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function isoFromParts(year, month, day) {
+  return `${year}-${pad2(month)}-${pad2(day)}`;
+}
+
+/** Previous installment due date: same calendar day last month, clamped to month end. */
+function previousInstallmentDueDate(disbursementIso, todayIsoValue) {
+  const start = parseIsoDay(disbursementIso);
+  const today = parseIsoDay(todayIsoValue);
+  if (!start || !today) return null;
+  let year = today.year;
+  let month = today.month - 1;
+  if (month < 1) {
+    month = 12;
+    year -= 1;
+  }
+  return isoFromParts(year, month, Math.min(start.day, lastCalendarDay(year, month)));
+}
+
+function matchingSchedulePeriod(lot, todayIsoValue) {
+  const today = String(todayIsoValue || "").slice(0, 10);
+  const periods = Array.isArray(lot?.schedule) ? lot.schedule : [];
+  for (const period of periods) {
+    const due = String(period.dueDate || period.due_date || "").slice(0, 10);
+    if (due === today) return period;
+  }
+  for (const period of periods) {
+    const due = String(period.dueDate || period.due_date || "").slice(0, 10);
+    if (due && due.slice(0, 7) === today.slice(0, 7)) return period;
+  }
+  return null;
+}
+
+function collectedCoversThroughPeriod(lot, targetPeriod) {
+  if (!targetPeriod) return false;
+  const periods = Array.isArray(lot?.schedule) ? lot.schedule : [];
+  let needed = 0;
+  for (const period of periods) {
+    needed = round2(needed + typicalPeriodPayment(period));
+    const samePeriod =
+      period === targetPeriod ||
+      String(period.dueDate || period.due_date || "").slice(0, 10) ===
+        String(targetPeriod.dueDate || targetPeriod.due_date || "").slice(0, 10);
+    if (samePeriod) {
+      return Number(lot.collected || 0) >= needed - 0.005;
+    }
+  }
+  return false;
+}
+
+function hasRepaymentInCurrentPeriod(lot, todayIsoValue) {
+  const today = String(todayIsoValue || "").slice(0, 10);
+  const prev = previousInstallmentDueDate(lot?.disbursementDate, today);
+  if (!prev) return false;
+  return (lot?.repayments || []).some((row) => {
+    const paidOn = String(row.date || "").slice(0, 10);
+    return paidOn > prev && paidOn <= today && Number(row.amount || 0) > 0.005;
+  });
+}
+
+/**
+ * True when the books already have a loan repayment for this installment.
+ * Prefers schedule coverage (prepaid or on-time). Falls back to a repayment
+ * dated after the previous due date through today.
+ */
+function installmentAlreadyRecorded(lot, todayIsoValue) {
+  const today = String(todayIsoValue || "").slice(0, 10);
+  const period = matchingSchedulePeriod(lot, today);
+  if (period) return collectedCoversThroughPeriod(lot, period);
+  return hasRepaymentInCurrentPeriod(lot, today);
+}
+
 /** Disbursed 5/22 means every 22nd after that date, not the disbursement day itself. */
 function isInstallmentDueDay(disbursementIso, todayIsoValue) {
   const start = String(disbursementIso || "").slice(0, 10);
@@ -123,6 +199,7 @@ function monthlyPaymentFromLot(lot) {
 function duePaymentForLot(lot, today) {
   if (Number(lot.outstanding) <= 0.005) return null;
   const todayIsoValue = String(today).slice(0, 10);
+  if (installmentAlreadyRecorded(lot, todayIsoValue)) return null;
 
   for (const period of lot.schedule || []) {
     const due = String(period.dueDate || period.due_date || "").slice(0, 10);
@@ -147,6 +224,7 @@ function listInstallmentsDueOn(todayIsoValue) {
       `SELECT i.id AS installmentId,
               i.loan_id AS loanId,
               i.total_due AS totalDue,
+              i.paid_amount AS paidAmount,
               l.borrower_id AS borrowerId,
               l.start_date AS startDate,
               l.principal AS principal,
@@ -202,6 +280,7 @@ function listDueLoanNotices(todayIsoValue) {
     const memberId = Number(row.borrowerId);
     const start = String(row.startDate || "").slice(0, 10);
     if (covered.has(`${memberId}:${start}`)) continue;
+    if (Number(row.paidAmount || 0) >= Number(row.totalDue || 0) - 0.005) continue;
     const paymentAmount = round2(row.totalDue);
     if (paymentAmount <= 0.005) continue;
     const outstanding = installmentOutstanding(row.loanId, row.principal);
@@ -418,6 +497,8 @@ async function runScheduledLoanDueNoticesForAllOrganizations() {
 module.exports = {
   TRIGGER_TYPE,
   isInstallmentDueDay,
+  previousInstallmentDueDate,
+  installmentAlreadyRecorded,
   duePaymentForLot,
   listDueLoanNotices,
   buildLoanDueNoticeEmail,

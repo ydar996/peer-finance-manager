@@ -420,7 +420,7 @@ Create new loans on the **Record** tab → **New Loan**.
 
 Record repayments on **Record** → **Loan Repayment**, or via bank import when classified as **Loan Repayment**.
 
-**Due Date Emails:** On the installment due date (the same calendar day as disbursement, each month after that date; for example a 5/22 disbursement is due every 22nd after), each borrower is emailed the payment amount due and the outstanding loan balance as of that date. If they have already sent the payment, the notice says to disregard it pending bank reconciliation. After the repayment is confirmed, they receive the usual payment acknowledgment with the transaction date. Admins can open **Automated Messages** at any time to adjust this wording.
+**Due Date Emails:** On the installment due date (the same calendar day as disbursement, each month after that date; for example a 5/22 disbursement is due every 22nd after), each borrower is emailed the payment amount due and the outstanding loan balance as of that date. If a **Loan Repayment** for that installment is already on the books (bank import or Record), that member is not emailed or messaged. If they have already sent the payment but it is not yet confirmed, the notice says to disregard it pending bank reconciliation. After the repayment is confirmed, they receive the usual payment acknowledgment with the transaction date. Admins can open **Automated Messages** at any time to adjust this wording.
 
 ---
 
