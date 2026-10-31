@@ -71,29 +71,37 @@ function loadExistingFingerprintSet(db, bankAccountId) {
 
   const memberByFingerprint = new Map();
   const memberByLegacy = new Map();
+  const typeByFingerprint = new Map();
+  const typeByLegacy = new Map();
   const namedRows = db
     .prepare(
       `SELECT t.import_fingerprint AS fp, t.transaction_date AS transactionDate, t.amount,
-              t.description, t.bank_account_id AS bankAccountId, m.name AS memberName
+              t.description, t.type AS ledgerType, t.bank_account_id AS bankAccountId,
+              m.name AS memberName
        FROM transactions t
        LEFT JOIN members m ON m.id = t.member_id
-       WHERE t.source IN ('bank_import', 'manual') AND m.name IS NOT NULL`
+       WHERE t.source IN ('bank_import', 'manual')`
     )
     .all();
   for (const row of namedRows) {
     const legacy = ledgerTransactionKey(row.transactionDate, row.amount, row.description);
-    memberByLegacy.set(legacy, row.memberName);
-    if (row.fp) memberByFingerprint.set(row.fp, row.memberName);
+    typeByLegacy.set(legacy, row.ledgerType);
     const rebuilt = buildImportFingerprint(
       row.bankAccountId != null ? row.bankAccountId : bankAccountId,
       row.transactionDate,
       row.amount,
       row.description
     );
-    memberByFingerprint.set(rebuilt, row.memberName);
+    typeByFingerprint.set(rebuilt, row.ledgerType);
+    if (row.fp) typeByFingerprint.set(row.fp, row.ledgerType);
+    if (row.memberName) {
+      memberByLegacy.set(legacy, row.memberName);
+      if (row.fp) memberByFingerprint.set(row.fp, row.memberName);
+      memberByFingerprint.set(rebuilt, row.memberName);
+    }
   }
 
-  return { fingerprints, legacyKeys, memberByFingerprint, memberByLegacy };
+  return { fingerprints, legacyKeys, memberByFingerprint, memberByLegacy, typeByFingerprint, typeByLegacy };
 }
 
 function rowFingerprint(bankAccountId, row) {
@@ -181,6 +189,10 @@ function buildPreviewRow(row, index, memberNames, bankAccountId, existing) {
 
   const ledgerMember =
     existing.memberByFingerprint?.get(fingerprint) || existing.memberByLegacy?.get(legacy) || null;
+  const storedType =
+    existing.typeByFingerprint?.get(fingerprint) || existing.typeByLegacy?.get(legacy) || null;
+  const effectiveType =
+    bucket === "skipped" && storedType ? storedType : row.ledgerType || null;
 
   return {
     index,
@@ -190,8 +202,8 @@ function buildPreviewRow(row, index, memberNames, bankAccountId, existing) {
     amount: row.amount,
     reference: row.reference || null,
     member: bucket === "skipped" ? ledgerMember || row.member || null : row.member || null,
-    ledgerType: row.ledgerType || null,
-    typeLabel: row.ledgerType ? typeLabelForLedger(row.ledgerType) : null,
+    ledgerType: effectiveType,
+    typeLabel: effectiveType ? typeLabelForLedger(effectiveType) : null,
     typeSource: row.typeSource,
     bucket,
     issues: bucket === "skipped" ? [] : validationIssues,
