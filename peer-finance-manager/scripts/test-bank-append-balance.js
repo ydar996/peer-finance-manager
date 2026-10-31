@@ -162,6 +162,52 @@ function testComputeAppendBalanceCheck() {
   assert.strictEqual(ledgerShort.openingBlock, true);
   assert.strictEqual(ledgerShort.ledgerShort, true);
   console.log("  ledger below statement beginning blocks apply: OK");
+
+  // Mid-period re-upload where an already-imported debit (e.g. a check or loan
+  // disbursement) pulled the running balance below the period opening. The
+  // anchor is beginning + skipped rows, not the raw beginning.
+  const midPeriodDebit = computeAppendBalanceCheck({
+    ledgerBefore: 21880.61,
+    statementBeginning: 22286.8,
+    statementEnding: 22535.27,
+    projectedLedger: 22535.27,
+    readyCount: 4,
+    skippedCount: 12,
+    skippedDelta: -406.19,
+  });
+  assert.strictEqual(midPeriodDebit.openingBlock, false);
+  assert.strictEqual(midPeriodDebit.ledgerShort, false);
+  assert.strictEqual(midPeriodDebit.openingAligned, true);
+  assert.strictEqual(midPeriodDebit.mismatch, false);
+  console.log("  mid-period debit below statement opening does not block: OK");
+
+  const missingHistory = computeAppendBalanceCheck({
+    ledgerBefore: 21000,
+    statementBeginning: 22286.8,
+    statementEnding: 22535.27,
+    projectedLedger: 21654.66,
+    readyCount: 4,
+    skippedCount: 12,
+    skippedDelta: -406.19,
+  });
+  assert.strictEqual(missingHistory.openingBlock, true);
+  assert.strictEqual(missingHistory.ledgerShort, true);
+  console.log("  ledger below opening anchor (beginning + skipped) still blocks: OK");
+
+  // Backward compat: no skippedDelta means the anchor stays the statement
+  // beginning (pre-fix behavior for callers that do not pass skipped sums).
+  const legacyAnchor = computeAppendBalanceCheck({
+    ledgerBefore: 9500,
+    statementBeginning: 10000,
+    statementEnding: 10200,
+    projectedLedger: 10200,
+    readyCount: 4,
+    skippedCount: 0,
+    skippedDelta: null,
+  });
+  assert.strictEqual(legacyAnchor.openingBlock, true);
+  assert.strictEqual(legacyAnchor.ledgerShort, true);
+  console.log("  no skippedDelta keeps statement-beginning anchor: OK");
 }
 
 const args = parseArgs(process.argv);

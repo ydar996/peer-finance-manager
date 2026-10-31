@@ -271,6 +271,13 @@ function importBankLedgerCore({
 
   db.prepare(`UPDATE bank_imports SET status = 'applied' WHERE id = ?`).run(importId);
 
+  try {
+    const { relinkApprovedLoanDisbursements } = require("./approved-loan-disbursement");
+    relinkApprovedLoanDisbursements();
+  } catch (_) {
+    /* re-linking approved loan disbursements is best-effort */
+  }
+
   let bankReconcile = null;
   if (captureReconcileAnchor) {
     const {

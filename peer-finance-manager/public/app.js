@@ -5939,19 +5939,24 @@ function computeAppendBalanceCheckClient({
   projectedLedger,
   readyCount,
   skippedCount,
+  skippedDelta,
 }) {
+  const openingAnchor =
+    statementBeginning != null && skippedDelta != null
+      ? Math.round((statementBeginning + skippedDelta) * 100) / 100
+      : statementBeginning;
   const openingAligned =
-    statementBeginning == null ||
+    openingAnchor == null ||
     ledgerBefore == null ||
-    Math.abs(ledgerBefore - statementBeginning) <= 0.02;
+    Math.abs(ledgerBefore - openingAnchor) <= 0.02;
   const periodOpenGap =
-    statementBeginning != null && ledgerBefore != null
-      ? Math.round((ledgerBefore - statementBeginning) * 100) / 100
+    openingAnchor != null && ledgerBefore != null
+      ? Math.round((ledgerBefore - openingAnchor) * 100) / 100
       : null;
   const ledgerShort =
-    statementBeginning != null &&
+    openingAnchor != null &&
     ledgerBefore != null &&
-    ledgerBefore < statementBeginning - 0.02;
+    ledgerBefore < openingAnchor - 0.02;
   const periodCloseMismatch =
     statementEnding != null &&
     projectedLedger != null &&
@@ -5962,6 +5967,7 @@ function computeAppendBalanceCheckClient({
     statementEnding,
     ledgerBefore,
     projectedLedger,
+    openingAnchor,
     periodOpenGap,
     openingAligned,
     ledgerShort,
@@ -5994,7 +6000,7 @@ function updateApplyBankAppendButton() {
     btn.disabled = blocked || ready === 0;
     if (blockedOpening) {
       btn.title =
-        "Blocked: ledger balance is below statement beginning. Run Full Ledger Refresh first.";
+        "Blocked: ledger balance is below the expected balance for this statement. Run Full Ledger Refresh first.";
     } else if (blockedEnding) {
       btn.title = "Blocked: projected ledger does not match statement ending.";
     } else if ((summary.needsReview || 0) > 0) {
@@ -6074,6 +6080,9 @@ function rebucketBankAppendPreviewClient() {
   const ledgerBefore = summary.balanceCheck?.ledgerBefore ?? null;
   const projectedLedger =
     ledgerBefore != null ? Math.round((ledgerBefore + readyDelta) * 100) / 100 : null;
+  const skippedDelta = bankAppendPreviewData.rows
+    .filter((r) => r.bucket === "skipped")
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   bankAppendPreviewData.summary = {
     ...summary,
     ready,
@@ -6086,6 +6095,7 @@ function rebucketBankAppendPreviewClient() {
       projectedLedger,
       readyCount: ready,
       skippedCount: skipped,
+      skippedDelta,
     }),
   };
   updateApplyBankAppendButton();
@@ -6194,6 +6204,13 @@ function renderBankAppendPreview(preview) {
     if (bc.statementBeginning != null) {
       parts.push(`Statement beginning ${fmt.format(bc.statementBeginning)}`);
     }
+    if (
+      bc.openingAnchor != null &&
+      bc.statementBeginning != null &&
+      Math.abs(bc.openingAnchor - bc.statementBeginning) > 0.02
+    ) {
+      parts.push(`Expected ledger position ${fmt.format(bc.openingAnchor)}`);
+    }
     if (bc.ledgerBefore != null) {
       parts.push(`Ledger before import ${fmt.format(bc.ledgerBefore)}`);
     }
@@ -6207,7 +6224,7 @@ function renderBankAppendPreview(preview) {
     let tone = "subtle";
     if (bc.openingBlock || bc.ledgerShort) {
       tone = "status err";
-      suffix = ` · Blocked: ledger ${fmt.format(bc.ledgerBefore)} is below statement beginning ${fmt.format(bc.statementBeginning)}. Run Full Ledger Refresh with your master ledger file first.`;
+      suffix = ` · Blocked: ledger ${fmt.format(bc.ledgerBefore)} is below the expected balance ${fmt.format(bc.openingAnchor != null ? bc.openingAnchor : bc.statementBeginning)} for this statement. Run Full Ledger Refresh with your master ledger file first.`;
     } else if (bc.mismatch) {
       tone = "status err";
       suffix =
@@ -6218,7 +6235,7 @@ function renderBankAppendPreview(preview) {
         " · All statement rows are already in the ledger. Re-upload the same cumulative statement anytime; only New rows will be added.";
     } else if (!bc.openingAligned && bc.periodOpenGap != null && bc.periodOpenGap > 0) {
       tone = "status ok";
-      suffix = ` · Ledger already includes activity through ${fmt.format(bc.ledgerBefore)} (above statement beginning). Duplicate rows will be Skipped; only New rows apply.`;
+      suffix = ` · Ledger already includes activity through ${fmt.format(bc.ledgerBefore)} (ahead of the statement rows). Duplicate rows will be Skipped; only New rows apply.`;
     } else if (bc.periodCloseMismatch === false && bc.statementEnding != null && bc.projectedLedger != null) {
       suffix = " · Statement ending matches projected ledger";
     } else if (bc.idempotentReplay) {
@@ -6385,7 +6402,7 @@ async function handleApplyBankAppendClick() {
   const bc = summary.balanceCheck || {};
   if (bc.openingBlock || bc.ledgerShort) {
     if (status) {
-      status.textContent = `Blocked: ledger ${fmt.format(bc.ledgerBefore)} is below statement beginning ${fmt.format(bc.statementBeginning)}. Run Full Ledger Refresh with your master ledger file first.`;
+      status.textContent = `Blocked: ledger ${fmt.format(bc.ledgerBefore)} is below the expected balance ${fmt.format(bc.openingAnchor != null ? bc.openingAnchor : bc.statementBeginning)} for this statement. Run Full Ledger Refresh with your master ledger file first.`;
       status.className = "status err";
     }
     return;

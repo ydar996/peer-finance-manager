@@ -678,7 +678,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 | Situation | What to do |
 |-----------|------------|
 | **Bank balance wrong after import** | Check preview **Review** rows. Re-upload cumulative stmt; Skipped rows are fine. |
-| **Import blocked (ledger below statement beginning)** | Ledger is missing history. **Full Ledger Refresh** with master file, then import stmt again. |
+| **Import blocked (ledger below expected balance)** | Ledger is missing history. The expected balance is the statement opening plus activity already in the ledger, so a debit mid-period (check, loan disbursement) no longer causes this. **Full Ledger Refresh** with master file, then import stmt again. |
 | **Import blocked (ending mismatch)** | Fix **Type**/**Member** on **New** rows in preview, or fix base ledger first. |
 | **One member's row wrong** | [Reclassify or split](#22-fix-a-misclassified-bank-entry) on **Contributions Account** or **Loan Account** (Bank Ledger Rows). |
 | **Payment covers loan and contribution** | **Split** on the full bank row: set lines and **Save Split** (Coop Admin). |

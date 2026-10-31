@@ -117,22 +117,31 @@ function computeAppendBalanceCheck({
   projectedLedger,
   readyCount,
   skippedCount,
+  skippedDelta,
 }) {
-  // All-tenant append contract: block only when ledger is short of statement beginning,
-  // or when New rows would not tie to statement ending. Pre-period gap (ledger above
-  // statement beginning) is normal for cumulative re-uploads within the same month.
+  // All-tenant append contract: block only when the ledger is short of the
+  // expected position at the append point, or when New rows would not tie to
+  // statement ending. The append anchor is the statement beginning plus the net
+  // of rows already in the ledger (Skipped). Within-period credits and debits
+  // move the running balance both ways, so a ledger that ends mid-period below
+  // the period opening is normal when debits were imported. With no skipped
+  // rows the anchor is the statement beginning itself.
+  const openingAnchor =
+    statementBeginning != null && skippedDelta != null
+      ? Math.round((statementBeginning + skippedDelta) * 100) / 100
+      : statementBeginning;
   const openingAligned =
-    statementBeginning == null ||
+    openingAnchor == null ||
     ledgerBefore == null ||
-    Math.abs(ledgerBefore - statementBeginning) <= 0.02;
+    Math.abs(ledgerBefore - openingAnchor) <= 0.02;
   const periodOpenGap =
-    statementBeginning != null && ledgerBefore != null
-      ? Math.round((ledgerBefore - statementBeginning) * 100) / 100
+    openingAnchor != null && ledgerBefore != null
+      ? Math.round((ledgerBefore - openingAnchor) * 100) / 100
       : null;
   const ledgerShort =
-    statementBeginning != null &&
+    openingAnchor != null &&
     ledgerBefore != null &&
-    ledgerBefore < statementBeginning - 0.02;
+    ledgerBefore < openingAnchor - 0.02;
   const periodCloseMismatch =
     statementEnding != null &&
     projectedLedger != null &&
@@ -143,6 +152,7 @@ function computeAppendBalanceCheck({
     statementEnding,
     ledgerBefore,
     projectedLedger,
+    openingAnchor,
     periodOpenGap,
     openingAligned,
     ledgerShort,
@@ -265,6 +275,9 @@ function previewBankStatementAppend({
   const projectedLedger = Math.round(((ledger?.balance ?? 0) + readyDelta) * 100) / 100;
   const readyCount = previewRows.filter((r) => r.bucket === "ready").length;
   const skippedCount = previewRows.filter((r) => r.bucket === "skipped").length;
+  const skippedDelta = previewRows
+    .filter((r) => r.bucket === "skipped")
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const balanceCheck = computeAppendBalanceCheck({
     ledgerBefore: ledger?.balance ?? null,
     statementBeginning: parsedResult.statementSummary?.beginning ?? null,
@@ -272,6 +285,7 @@ function previewBankStatementAppend({
     projectedLedger,
     readyCount,
     skippedCount,
+    skippedDelta,
   });
 
   const summary = {
@@ -350,6 +364,9 @@ function applyRowOverridesToPreview(preview, rowOverrides, memberNames) {
     ledgerBefore != null
       ? Math.round((ledgerBefore + readyDelta) * 100) / 100
       : null;
+  const skippedDelta = preview.rows
+    .filter((r) => r.bucket === "skipped")
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const balanceCheck = computeAppendBalanceCheck({
     ledgerBefore,
     statementBeginning: preview.summary?.balanceCheck?.statementBeginning ?? null,
@@ -357,6 +374,7 @@ function applyRowOverridesToPreview(preview, rowOverrides, memberNames) {
     projectedLedger,
     readyCount: counts.ready,
     skippedCount: counts.skipped,
+    skippedDelta,
   });
 
   preview.summary = {
@@ -530,8 +548,9 @@ function applyBankStatementAppend({
 
   const bc = preview.summary?.balanceCheck || {};
   if (bc.openingBlock || bc.ledgerShort) {
+    const expected = bc.openingAnchor != null ? bc.openingAnchor : bc.statementBeginning;
     const err = new Error(
-      `Ledger balance (${bc.ledgerBefore}) is below the statement beginning (${bc.statementBeginning}). The ledger is missing history. Run Full Ledger Refresh with your cooperative master ledger file, then upload the statement again.`
+      `Ledger balance (${bc.ledgerBefore}) is below the expected balance (${expected}) at this point in the statement. The ledger is missing history. Run Full Ledger Refresh with your cooperative master ledger file, then upload the statement again.`
     );
     err.preview = preview;
     throw err;

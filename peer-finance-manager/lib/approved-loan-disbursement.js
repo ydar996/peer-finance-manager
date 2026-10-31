@@ -239,6 +239,74 @@ function markApprovedLoanDisbursed({
   };
 }
 
+function relinkApprovedLoanDisbursements() {
+  // Ledger rebuilds (Full Ledger Refresh, split/reclassify) delete and reinsert
+  // every bank transaction, so stored transaction ids change. Re-point each
+  // approved loan application's disbursement_tx_id at the disbursement row that
+  // still matches the member and principal so the link survives the rebuild.
+  const db = getDb();
+  try {
+    const { ensureMembershipApplicationSchema } = require("./flexxforms-membership-service");
+    ensureMembershipApplicationSchema(db);
+  } catch (_) {}
+  let apps = [];
+  try {
+    apps = db
+      .prepare(
+        `SELECT id, member_id AS memberId, disbursement_tx_id AS disbursementTxId,
+                terms_json AS termsJson
+         FROM flexxforms_applications
+         WHERE kind = 'loan' AND status = 'approved' AND member_id IS NOT NULL
+           AND disbursement_tx_id IS NOT NULL AND disbursement_tx_id != 0`
+      )
+      .all();
+  } catch (_) {
+    return { relinked: 0 };
+  }
+  if (!apps.length) return { relinked: 0 };
+
+  const txStmt = db.prepare(
+    `SELECT member_id AS memberId, amount, type FROM transactions WHERE id = ?`
+  );
+  const findStmt = db.prepare(
+    `SELECT id FROM transactions
+     WHERE member_id = ? AND type = ? AND ABS(ABS(amount) - ?) < 0.02
+     ORDER BY transaction_date ASC, id ASC`
+  );
+  const updateStmt = db.prepare(
+    `UPDATE flexxforms_applications
+     SET disbursement_tx_id = ?, updated_at = datetime('now')
+     WHERE id = ?`
+  );
+
+  const claimed = new Set(apps.map((a) => Number(a.disbursementTxId)));
+  let relinked = 0;
+  for (const app of apps) {
+    const terms = parseTerms(app.termsJson);
+    const principal = Math.abs(Number(terms?.principal) || 0);
+    if (!(principal > 0.005)) continue;
+    const tx = txStmt.get(app.disbursementTxId);
+    const stillValid =
+      tx &&
+      tx.type === TRANSACTION_TYPES.LOAN_DISBURSEMENT &&
+      Number(tx.memberId) === Number(app.memberId) &&
+      amountsMatch(Math.abs(tx.amount), principal);
+    if (stillValid) continue;
+    const candidates = findStmt
+      .all(app.memberId, TRANSACTION_TYPES.LOAN_DISBURSEMENT, principal)
+      .map((row) => Number(row.id))
+      .filter((id) => !claimed.has(id) || id === Number(app.disbursementTxId));
+    if (!candidates.length) continue;
+    const nextId = candidates[0];
+    if (nextId === Number(app.disbursementTxId)) continue;
+    updateStmt.run(nextId, app.id);
+    claimed.delete(Number(app.disbursementTxId));
+    claimed.add(nextId);
+    relinked += 1;
+  }
+  return { relinked };
+}
+
 function findApprovedTermsForLot(memberId, lot) {
   const id = Number(memberId);
   if (!Number.isInteger(id) || id <= 0 || !lot) return null;
@@ -332,6 +400,7 @@ module.exports = {
   matchPendingApprovedLoan,
   applyApprovedLoanDisbursementMatches,
   markApprovedLoanDisbursed,
+  relinkApprovedLoanDisbursements,
   findApprovedTermsForLot,
   applyApprovedLoanScheduleToLot,
 };

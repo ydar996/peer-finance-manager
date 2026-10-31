@@ -291,6 +291,32 @@ async function run() {
     assert.ok(fs.existsSync(xlsx.outputPath));
     assert.match(xlsx.fileName, /Repayment Plan/);
 
+    // Ledger rebuild relink: a stale disbursement_tx_id must move to the
+    // disbursement row that still matches the member and principal.
+    const { relinkApprovedLoanDisbursements } = require("../lib/approved-loan-disbursement");
+    const rebuiltTx = db
+      .prepare(
+        `INSERT INTO transactions
+          (member_id, type, amount, transaction_date, period_year, period_month, description, source)
+         VALUES (?, 'loan_disbursement', -1000, '2026-10-25', 2026, 10, 'Rebuild disbursement', 'bank_import')`
+      )
+      .run(borrower.memberId);
+    db.prepare(`UPDATE flexxforms_applications SET disbursement_tx_id = 999999999 WHERE id = ?`).run(
+      applicationId
+    );
+    const relinkResult = relinkApprovedLoanDisbursements();
+    assert.ok(relinkResult.relinked >= 1, "relink should repair the stale disbursement link");
+    const relinkedApp = db
+      .prepare(`SELECT disbursement_tx_id FROM flexxforms_applications WHERE id = ?`)
+      .get(applicationId);
+    const relinkedTx = db
+      .prepare(`SELECT type, member_id, amount FROM transactions WHERE id = ?`)
+      .get(relinkedApp.disbursement_tx_id);
+    assert.strictEqual(relinkedTx.type, "loan_disbursement");
+    assert.strictEqual(Number(relinkedTx.member_id), Number(borrower.memberId));
+    assert.strictEqual(Math.abs(relinkedTx.amount), 1000);
+    console.log("  disbursement link survives ledger rebuild: OK");
+
     const rejectInsert = db
       .prepare(
         `INSERT INTO flexxforms_applications (kind, flexxforms_submission_id, form_id, payload_json, status, member_id)
