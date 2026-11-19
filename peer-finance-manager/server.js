@@ -294,7 +294,13 @@ app.get("/api/config", (req, res) => {
   res.json({
     organization: req.user?.organizationName || req.organization?.name || null,
     organizationSlug: req.user?.organizationSlug || req.organization?.slug || null,
-    membershipFee: MEMBERSHIP_FEE,
+    membershipFee: (() => {
+      try {
+        return require("./lib/membership-policy-service").getMembershipPolicy().membershipFee;
+      } catch (_) {
+        return MEMBERSHIP_FEE;
+      }
+    })(),
     lateFeeAmount: LATE_FEE_AMOUNT,
     defaultLoanRate: DEFAULT_LOAN_ANNUAL_RATE,
     minMembershipMonthsForLoan: MIN_MEMBERSHIP_MONTHS_FOR_LOAN,
@@ -880,6 +886,29 @@ app.patch("/api/cooperative/loan-policy", requireAdmin, restoreOrgContext, (req,
       annualRatePercent: req.body?.annualRatePercent,
     });
     res.json(policy);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/cooperative/membership-policy", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { getMembershipPolicy } = require("./lib/membership-policy-service");
+    const { getPublicCountryProfile } = require("./lib/country-profile");
+    res.json({ ...getMembershipPolicy(), countryProfile: getPublicCountryProfile() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch("/api/cooperative/membership-policy", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { setMembershipPolicy } = require("./lib/membership-policy-service");
+    const policy = setMembershipPolicy({
+      membershipFee: req.body?.membershipFee,
+      initialContribution: req.body?.initialContribution,
+    });
+    res.json({ success: true, ...policy });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

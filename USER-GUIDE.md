@@ -16,6 +16,12 @@ Login placeholders use a sample code (`acme`), not a live Cooperative. The app u
 
 ---
 
+## Cooperative Country, Membership Amounts, and Welcome Email (November 2026)
+
+- **Country**: Register offers United States and Nigeria. Nigeria links from the `/productngn` page preselect Nigeria. Nigeria displays naira (NGN), West Africa (Lagos) time, DD/MM/YYYY dates, Nigerian banks, and Bank Transfer wording. The United States path is unchanged (USD, MM/DD/YYYY).
+- **Membership Policy**: Administrators set the One-Time Registration Fee and Initial Contribution Amount per Cooperative on **Manual Record -> Membership Policy**. Amounts apply to new registrations, fee recordings, and deposit verification only; existing ledger entries are not rewritten. United States defaults remain $100/$100; Nigeria defaults to 50,000/50,000 NGN until the Cooperative confirms its own amounts.
+- **Welcome Email**: Registering a Cooperative emails the administrator a welcome message with the organization code and sign-in links. The same wording is editable under **Automated Messages** (Organization Administrator Welcome) and every send appears under **Messages -> Email Notices**.
+
 ## Table of Contents
 
 1. [Who Signs In Where](#1-who-signs-in-where)

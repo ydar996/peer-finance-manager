@@ -4,11 +4,8 @@
 const { getDb } = require("../db/database");
 const { createMember, updateMemberProfile } = require("./member-service");
 const { buildFullName } = require("./member-name-match");
-const {
-  MEMBERSHIP_FEE,
-  INITIAL_MEMBERSHIP_CONTRIBUTION,
-  TRANSACTION_TYPES,
-} = require("./constants");
+const { TRANSACTION_TYPES } = require("./constants");
+const { getMembershipPolicy } = require("./membership-policy-service");
 
 const PENDING_ACCOUNT_STATUS = "pending_approval";
 
@@ -727,6 +724,7 @@ function ensureMembershipApplicationSchema(db) {
 
 function getApplicantPaymentReadiness(memberId) {
   const db = getDb();
+  const policy = getMembershipPolicy();
   const member = db.prepare(`SELECT membership_fee_paid FROM members WHERE id = ?`).get(memberId);
   const depositTotal =
     db
@@ -745,15 +743,15 @@ function getApplicantPaymentReadiness(memberId) {
         .get(memberId, TRANSACTION_TYPES.MEMBERSHIP_FEE)
     );
   const extraAfterFee = membershipFeePaid
-    ? Number(depositTotal) - MEMBERSHIP_FEE
+    ? Number(depositTotal) - policy.membershipFee
     : Number(depositTotal);
   const initialContributionMet = extraAfterFee + 0.005 >= 0 && Number(depositTotal) > 0;
 
   return {
     membershipFeePaid,
-    membershipFeeRequired: MEMBERSHIP_FEE,
+    membershipFeeRequired: policy.membershipFee,
     initialContributionMet,
-    initialContributionRequired: INITIAL_MEMBERSHIP_CONTRIBUTION,
+    initialContributionRequired: policy.initialContribution,
     depositTotal: Number(depositTotal),
     extraAfterFee: Math.round(extraAfterFee * 100) / 100,
     canApprove: membershipFeePaid && Number(depositTotal) > 0,
@@ -1092,7 +1090,10 @@ async function verifyMembershipDeposits(applicationId, { recordPayments = false 
     const readiness = getApplicantPaymentReadiness(app.memberId);
     const today = new Date().toISOString().slice(0, 10);
     if (!readiness.membershipFeePaid) {
-      recordMembershipFee(app.memberId, { feeDate: today, amount: MEMBERSHIP_FEE });
+      recordMembershipFee(app.memberId, {
+        feeDate: today,
+        amount: getMembershipPolicy().membershipFee,
+      });
     }
     const afterFee = getApplicantPaymentReadiness(app.memberId);
     if (!afterFee.depositTotal) {
@@ -1100,7 +1101,7 @@ async function verifyMembershipDeposits(applicationId, { recordPayments = false 
       recordMemberDepositEntry({
         memberId: app.memberId,
         type: TRANSACTION_TYPES.DEPOSIT,
-        amount: INITIAL_MEMBERSHIP_CONTRIBUTION,
+        amount: getMembershipPolicy().initialContribution,
         transactionDate: today,
         description: "Initial membership contribution",
       });
@@ -1144,6 +1145,7 @@ async function correctMismatchedDepositsVerifiedNotices() {
     rewriteDepositsVerifiedNotice,
     sendDepositsVerifiedCorrectionEmail,
   } = require("./membership-application-notify");
+  const policy = getMembershipPolicy();
 
   let rewritten = 0;
   let emailed = 0;
@@ -1155,9 +1157,9 @@ async function correctMismatchedDepositsVerifiedNotices() {
     if (notice && noticeHasVerifiedAmounts(notice.body, amounts)) continue;
     if (!notice) {
       const leftoverDiffers =
-        Math.abs(amounts.contributionAmount - INITIAL_MEMBERSHIP_CONTRIBUTION) > 0.005;
+        Math.abs(amounts.contributionAmount - policy.initialContribution) > 0.005;
       const depositDiffers =
-        Math.abs(amounts.depositAmount - INITIAL_MEMBERSHIP_CONTRIBUTION) > 0.005;
+        Math.abs(amounts.depositAmount - policy.initialContribution) > 0.005;
       if (!leftoverDiffers && !depositDiffers) continue;
     }
 

@@ -1342,6 +1342,7 @@
 
         <div class="record-workspace">
         <nav class="record-index" aria-label="Record sections">
+          <a href="#membershipPolicyPanel">Membership Policy</a>
           <a href="#recordSectionRegisterMember">Register New Member</a>
           <a href="#recordSectionUpdateProfile">Update Member Profile</a>
           <a href="#recordSectionMembershipFee">Registration Fee</a>
@@ -1357,6 +1358,23 @@
           <a href="#recordSectionRecentDistributions">Recent Distributions</a>
         </nav>
         <div class="record-grid">
+          <details class="card profile-disclosure admin-only-report-settings hidden" id="membershipPolicyPanel">
+            <summary>Membership Policy</summary>
+            <div class="profile-disclosure-body">
+              <p class="hint">Set the One-Time Registration Fee and Initial Contribution Amount for this Cooperative. These amounts apply to new registrations, fee recordings, and deposit verification. Existing ledger entries are not changed.</p>
+              <label class="field-row">
+                <span>Registration Fee Amount</span>
+                <input type="number" id="membershipPolicyFeeAmount" min="0.01" step="0.01" />
+              </label>
+              <label class="field-row">
+                <span>Initial Contribution Amount</span>
+                <input type="number" id="membershipPolicyContributionAmount" min="0.01" step="0.01" />
+              </label>
+              <p class="hint subtle">Amounts display in the Cooperative currency. Changing them does not rewrite fees or contributions already on the books.</p>
+              <button type="button" class="btn primary" id="saveMembershipPolicy">Save Membership Policy</button>
+              <p id="membershipPolicyStatus" class="status"></p>
+            </div>
+          </details>
           <details class="card accent profile-disclosure record-section" id="recordSectionRegisterMember">
             <summary class="record-section-summary">Register New Member</summary>
             <div class="profile-disclosure-body">
@@ -1406,7 +1424,7 @@
               <label>Joined Date (Optional)
                 <input type="date" name="joinedAt" />
               </label>
-              <label><input type="checkbox" name="recordMembershipFee" value="true" checked /> Record Registration Fee ($100)</label>
+              <label><input type="checkbox" name="recordMembershipFee" value="true" checked /> <span id="recordMembershipFeeLabel">Record Registration Fee</span></label>
               <label>Fee Date (If Recording Fee)
                 <input type="date" name="membershipFeeDate" />
               </label>

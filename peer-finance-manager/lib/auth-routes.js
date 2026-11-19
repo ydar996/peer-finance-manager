@@ -109,7 +109,26 @@ function registerAuthRoutes(app, deps = {}) {
         };
       }
 
-      res.json({ success: true, ...result, flexxforms });
+      let welcomeEmail = { sent: false, skipped: true, reason: "not_attempted" };
+      try {
+        const { sendOrganizationAdminWelcomeEmail } = require("./organization-welcome-email");
+        welcomeEmail = await sendOrganizationAdminWelcomeEmail({
+          slug: result.organization.slug,
+          organizationName: result.organization.name,
+          countryCode: result.organization.countryCode,
+          adminEmail,
+          adminDisplayName,
+        });
+      } catch (emailErr) {
+        welcomeEmail = {
+          sent: false,
+          skipped: false,
+          reason: "send_failed",
+          error: emailErr.message,
+        };
+      }
+
+      res.json({ success: true, ...result, flexxforms, welcomeEmail });
     } catch (err) {
       res.status(400).json({ error: err.message });
     }
@@ -127,11 +146,20 @@ function registerAuthRoutes(app, deps = {}) {
       );
       const { getCooperativeTimezone } = require("./cooperative-time");
       const { getPublicCountryProfile } = require("./country-profile");
+      const orgSlug = result.organization?.slug || null;
+      const localeInfo = orgSlug
+        ? runWithOrg(orgSlug, () => ({
+            cooperativeTimezone: getCooperativeTimezone(),
+            countryProfile: getPublicCountryProfile(),
+          }))
+        : {
+            cooperativeTimezone: getCooperativeTimezone(),
+            countryProfile: getPublicCountryProfile(),
+          };
       res.json({
         success: true,
         ...result,
-        cooperativeTimezone: getCooperativeTimezone(),
-        countryProfile: getPublicCountryProfile(),
+        ...localeInfo,
       });
     } catch (err) {
       res.status(401).json({ error: err.message });

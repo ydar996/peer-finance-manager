@@ -1,7 +1,7 @@
 const XLSX = require("xlsx");
 const { getDb } = require("../db/database");
 const { ensureMemberNumber } = require("./member-number-service");
-const { MONTH_NAMES, TRANSACTION_TYPES, MEMBERSHIP_FEE } = require("./constants");
+const { MONTH_NAMES, TRANSACTION_TYPES } = require("./constants");
 const { lastDayOfMonth, monthIndexFromName } = require("./dates");
 
 function parseMonthColumns(yearRow, headerRow) {
@@ -193,7 +193,7 @@ function importFromSpreadsheet(workbookPath, sheetName, options = {}) {
             feeDate,
             null,
             null,
-            `One-time membership fee (${MEMBERSHIP_FEE})`
+            `One-time membership fee (${m.registration})`
           );
           txCount++;
         }

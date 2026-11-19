@@ -11,6 +11,7 @@ const {
 } = require("./cooperative-settings");
 const { getOrgSlugOrNull } = require("./org-context");
 const { getCountryCatalog } = require("./country-catalog");
+const { MEMBERSHIP_FEE, INITIAL_MEMBERSHIP_CONTRIBUTION } = require("./constants");
 
 const SETTING_COUNTRY_CODE = "country_code";
 const DEFAULT_COUNTRY_CODE = "US";
@@ -25,6 +26,10 @@ const COUNTRY_PROFILES = {
     dateFormat: "MDY",
     defaultBankInstitution: "",
     paymentRailLabel: "Zelle/Bank",
+    membershipDefaults: {
+      membershipFee: MEMBERSHIP_FEE,
+      initialContribution: INITIAL_MEMBERSHIP_CONTRIBUTION,
+    },
     statementHint:
       "US bank exports usually use Date, Description, and Amount (or Credit/Debit) with MM/DD/YYYY dates.",
   },
@@ -37,6 +42,10 @@ const COUNTRY_PROFILES = {
     dateFormat: "DMY",
     defaultBankInstitution: "Primary Bank",
     paymentRailLabel: "Bank Transfer",
+    membershipDefaults: {
+      membershipFee: 50000,
+      initialContribution: 50000,
+    },
     statementHint:
       "Nigerian bank exports often use Trans Date or Value Date, Narration, and separate Debit and Credit columns with DD/MM/YYYY dates. Auto-detect maps those headers. Search and select your bank name.",
   },

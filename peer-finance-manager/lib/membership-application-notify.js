@@ -6,7 +6,7 @@ const { getOrgSlugOrNull } = require("./org-context");
 const { getMemberPortalLoginUrl } = require("./portal-urls");
 const { formatMoney } = require("./money-format");
 const { getDb } = require("../db/database");
-const { MEMBERSHIP_FEE } = require("./constants");
+const { getMembershipPolicy } = require("./membership-policy-service");
 const { recordDeliveryBatch, ensureEmailAuditTables } = require("./email-audit-service");
 
 function escapeHtml(value) {
@@ -37,7 +37,10 @@ function depositsVerifiedAmounts(readiness = {}) {
   const depositAmount = Number(readiness.depositTotal);
   const contributionAmount = Number(readiness.extraAfterFee);
   return {
-    feeAmount: Number.isFinite(feeAmount) && feeAmount > 0 ? feeAmount : MEMBERSHIP_FEE,
+    feeAmount:
+      Number.isFinite(feeAmount) && feeAmount > 0
+        ? feeAmount
+        : getMembershipPolicy().membershipFee,
     depositAmount: Number.isFinite(depositAmount) ? depositAmount : 0,
     contributionAmount: Number.isFinite(contributionAmount) ? contributionAmount : 0,
   };

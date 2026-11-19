@@ -313,7 +313,16 @@ async function loadCountryCatalog() {
     countryCatalogLoaded = true;
   }
   populateCountrySelect($("#cooperativeCountry"), countryProfile.code);
-  populateCountrySelect(document.querySelector("#registerOrganizationForm select[name='countryCode']"));
+  const registerCountryParam = new URLSearchParams(window.location.search).get("country");
+  const registerCountry =
+    registerCountryParam &&
+    countrySelectOptions.some((row) => row.code === registerCountryParam.toUpperCase())
+      ? registerCountryParam.toUpperCase()
+      : undefined;
+  populateCountrySelect(
+    document.querySelector("#registerOrganizationForm select[name='countryCode']"),
+    registerCountry
+  );
 }
 
 function populateTimezoneSelect(select, timezones, selected) {
@@ -1095,6 +1104,7 @@ async function bootstrapApp() {
   loadStatementFiles();
   if (role === "admin") {
     loadLoanPaymentPolicyPanel();
+    loadMembershipPolicyPanel();
     loadRecordTabData();
     loadUsers();
     handleBillingReturnParams();
@@ -3810,6 +3820,78 @@ async function loadLoans() {
     if (body) body.innerHTML = `<tr><td colspan="11" class="status err">${escapeHtml(err.message)}</td></tr>`;
   }
 }
+
+let membershipPolicy = { membershipFee: 100, initialContribution: 100 };
+
+function applyMembershipPolicyToUi() {
+  const feeLabel = $("#recordMembershipFeeLabel");
+  if (feeLabel) {
+    feeLabel.textContent = `Record Registration Fee (${fmt.format(membershipPolicy.membershipFee)})`;
+  }
+  const feeAmountInput = document.querySelector("#membershipFeeForm [name='amount']");
+  if (feeAmountInput) {
+    feeAmountInput.value = membershipPolicy.membershipFee;
+    feeAmountInput.dataset.autoFee = "1";
+  }
+}
+
+async function loadMembershipPolicyPanel() {
+  const panel = $("#membershipPolicyPanel");
+  if (!panel || currentUser?.role !== "admin") return;
+  panel.classList.remove("hidden");
+  const status = $("#membershipPolicyStatus");
+  try {
+    const res = await fetch("/api/cooperative/membership-policy");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load membership policy");
+    membershipPolicy = {
+      membershipFee: Number(data.membershipFee) || membershipPolicy.membershipFee,
+      initialContribution: Number(data.initialContribution) || membershipPolicy.initialContribution,
+    };
+    const fee = $("#membershipPolicyFeeAmount");
+    const contrib = $("#membershipPolicyContributionAmount");
+    if (fee) fee.value = membershipPolicy.membershipFee;
+    if (contrib) contrib.value = membershipPolicy.initialContribution;
+    applyMembershipPolicyToUi();
+    if (status) status.textContent = "";
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+}
+
+async function saveMembershipPolicy() {
+  const status = $("#membershipPolicyStatus");
+  const membershipFee = Number($("#membershipPolicyFeeAmount")?.value);
+  const initialContribution = Number($("#membershipPolicyContributionAmount")?.value);
+  try {
+    const res = await fetch("/api/cooperative/membership-policy", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ membershipFee, initialContribution }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed");
+    membershipPolicy = {
+      membershipFee: Number(data.membershipFee) || membershipFee,
+      initialContribution: Number(data.initialContribution) || initialContribution,
+    };
+    applyMembershipPolicyToUi();
+    if (status) {
+      status.textContent = `Saved: Registration fee ${fmt.format(membershipPolicy.membershipFee)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}. Applies to new activity only.`;
+      status.className = "status ok";
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+}
+
+$("#saveMembershipPolicy")?.addEventListener("click", () => saveMembershipPolicy());
 
 async function loadLoanPaymentPolicyPanel() {
   const panel = $("#loanPaymentPolicyPanel");
@@ -7937,7 +8019,7 @@ $("#membershipFeeForm")?.addEventListener("submit", async (e) => {
       `Registration fee of ${fmt.format(Math.abs(data.amount))} recorded.`,
       true
     );
-    e.target.amount.value = "100";
+    e.target.amount.value = membershipPolicy.membershipFee;
     loadMembers();
     loadBooks();
     if (selectedMemberId === payload.memberId) showProfile(payload.memberId);
@@ -8444,6 +8526,11 @@ $("#registerOrganizationForm")?.addEventListener("submit", async (e) => {
     const data = await submitRegisterOrganization(e.target);
     rememberOrgSlug(data.organization.slug);
     let msg = "Cooperative Created. Your Organization Code Is Filled In.";
+    if (data.welcomeEmail?.sent) {
+      msg += " A welcome email was sent to your administrator email.";
+    } else if (data.welcomeEmail && !data.welcomeEmail.skipped) {
+      msg += " The welcome email could not be sent; contact support if it does not arrive.";
+    }
     if (data.flexxforms?.provisioned) {
       msg += " FlexxForms workspace is ready under Manage Forms & Documents.";
     } else if (data.flexxforms?.provisionError || data.flexxforms?.message) {
@@ -9472,9 +9559,9 @@ async function loadFlexxFormsApplications() {
         const feeLabel = readiness.membershipFeePaid ? "Paid" : "Not recorded";
         const extraAfterFee = Number(readiness.extraAfterFee ?? 0);
         const depositLabel = readiness.membershipFeePaid
-          ? `$${extraAfterFee.toFixed(2)} After Fee`
+          ? `${fmt.format(extraAfterFee)} After Fee`
           : Number(readiness.depositTotal)
-            ? `$${Number(readiness.depositTotal).toFixed(2)} On File (Fee Not Yet Deducted)`
+            ? `${fmt.format(Number(readiness.depositTotal))} On File (Fee Not Yet Deducted)`
             : "Not Recorded";
         const canAccept =
           Boolean(a.memberId) &&
@@ -9510,7 +9597,7 @@ async function loadFlexxFormsApplications() {
           ${
             a.memberId
               ? `<ul class="flexxforms-application-checklist">
-                  <li>Membership fee ($${Number(readiness.membershipFeeRequired || 0).toFixed(0)}): <strong>${feeLabel}</strong></li>
+                  <li>Membership fee (${fmt.format(Number(readiness.membershipFeeRequired || 0))}): <strong>${feeLabel}</strong></li>
                   <li>Contributions Account: <strong>${depositLabel}</strong></li>
                 </ul>`
               : `<p class="status err">${escapeHtml(a.processingError || "Profile not created yet")}</p>`

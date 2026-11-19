@@ -14,6 +14,7 @@ const TRIGGER_LABELS = {
   loan_terms_offered: "Loan Repayment Terms",
   loan_application_approved: "Loan Application Approved",
   loan_disbursed: "Loan Disbursed",
+  organization_admin_welcome: "Organization Welcome Email",
 };
 
 function tableHasColumn(db, table, column) {

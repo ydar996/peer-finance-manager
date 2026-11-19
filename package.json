@@ -39,7 +39,8 @@
     "pfm:sync-root": "node peer-finance-manager/scripts/sync-root-database.js",
     "pfm:platform-admin": "node peer-finance-manager/scripts/ensure-platform-admin.js",
     "generate:jan-2026": "node scripts/generate-statements.js",
-    "generate:feb-2026": "node scripts/generate-feb-2026.js"
+    "generate:feb-2026": "node scripts/generate-feb-2026.js",
+    "test:membership-policy": "node peer-finance-manager/scripts/test-membership-policy.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.10.0",

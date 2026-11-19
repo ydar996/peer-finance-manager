@@ -203,6 +203,88 @@ function registerPlatformRoutes(app) {
       }
     }
   );
+
+  app.get(
+    "/api/platform/organizations/:slug/flexxforms",
+    attachPlatformUser,
+    requirePlatformAuth,
+    (req, res) => {
+      try {
+        const { getOrganization } = require("./organization-service");
+        const org = getOrganization(req.params.slug);
+        if (!org) return res.status(404).json({ error: "Organization not found" });
+        const {
+          getFlexxFormsAdminView,
+          isProvisioningConfigured,
+        } = require("./flexxforms-service");
+        const view = getFlexxFormsAdminView(org.slug, { consumeTempPassword: false });
+        if (view) delete view.tempPassword;
+        res.json({ settings: view, provisioningConfigured: isProvisioningConfigured() });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/platform/organizations/:slug/flexxforms/retry",
+    attachPlatformUser,
+    requirePlatformAuth,
+    async (req, res) => {
+      try {
+        const { getOrganization } = require("./organization-service");
+        const org = getOrganization(req.params.slug);
+        if (!org) return res.status(404).json({ error: "Organization not found" });
+        const { provisionOrganization, getFlexxFormsAdminView } = require("./flexxforms-service");
+        const settings = await provisionOrganization(org.slug, {
+          email: org.adminEmail || org.admin_email || null,
+          organizationName: org.name,
+        });
+        if (settings) delete settings.tempPassword;
+        res.json({ success: true, settings });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/platform/organizations/:slug/resend-welcome-email",
+    attachPlatformUser,
+    requirePlatformAuth,
+    async (req, res) => {
+      try {
+        const { getOrganization } = require("./organization-service");
+        const org = getOrganization(req.params.slug);
+        if (!org) return res.status(404).json({ error: "Organization not found" });
+        const adminUser = runWithOrg(org.slug, () =>
+          getDb()
+            .prepare(
+              `SELECT email, display_name FROM users
+               WHERE role = 'admin' AND active = 1
+               ORDER BY id LIMIT 1`
+            )
+            .get()
+        );
+        const to = adminUser?.email || org.adminEmail || null;
+        if (!to) {
+          return res.status(400).json({ error: "No administrator email on file for this organization" });
+        }
+        const { sendOrganizationAdminWelcomeEmail } = require("./organization-welcome-email");
+        const result = await sendOrganizationAdminWelcomeEmail({
+          slug: org.slug,
+          organizationName: org.name,
+          countryCode: org.countryCode,
+          adminEmail: to,
+          adminDisplayName: adminUser?.display_name || adminUser?.displayName || null,
+          dedupeKey: `organization-admin-welcome:${org.slug}:resend:${Date.now()}`,
+        });
+        res.json({ success: true, ...result });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
 }
 
 function registerBillingRoutes(app, { requireAdmin, requireAuth, restoreOrgContext }) {

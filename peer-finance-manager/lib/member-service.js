@@ -1,7 +1,8 @@
 const { getDb } = require("../db/database");
 const { addTransaction } = require("./balance-service");
-const { MEMBERSHIP_FEE, TRANSACTION_TYPES } = require("./constants");
+const { TRANSACTION_TYPES } = require("./constants");
 const { ensureMemberNumber } = require("./member-number-service");
+const { getMembershipPolicy } = require("./membership-policy-service");
 const { syncMemberPortalLoginEmail } = require("./auth-service");
 const { buildFullName, zelleNameFromApplication } = require("./member-name-match");
 const {
@@ -142,7 +143,8 @@ function recordMembershipFee(memberId, { feeDate, amount } = {}) {
     .get(memberId, TRANSACTION_TYPES.MEMBERSHIP_FEE);
   if (existing) throw new Error("Membership fee already recorded for this member");
 
-  const feeAmount = amount != null ? Number(amount) : MEMBERSHIP_FEE;
+  const feeAmount =
+    amount != null ? Number(amount) : getMembershipPolicy().membershipFee;
   if (!Number.isFinite(feeAmount) || feeAmount <= 0) {
     throw new Error("Membership fee amount must be greater than zero");
   }
@@ -247,7 +249,8 @@ function applyMembershipFeeFromFirstDeposit(memberId) {
     )
     .get(id, TRANSACTION_TYPES.DEPOSIT);
   const depositTotal = Number(deposits?.total || 0);
-  if (depositTotal + 0.005 < MEMBERSHIP_FEE) {
+  const policyFee = getMembershipPolicy().membershipFee;
+  if (depositTotal + 0.005 < policyFee) {
     return { applied: false, reason: "deposit_below_fee", depositTotal };
   }
 
@@ -264,14 +267,14 @@ function applyMembershipFeeFromFirstDeposit(memberId) {
   try {
     const result = recordMembershipFee(id, {
       feeDate: String(firstDeposit?.transactionDate || "").slice(0, 10) || undefined,
-      amount: MEMBERSHIP_FEE,
+      amount: policyFee,
     });
     return {
       applied: true,
       memberId: id,
-      feeAmount: MEMBERSHIP_FEE,
+      feeAmount: policyFee,
       depositTotal,
-      extraBalance: Math.round((depositTotal - MEMBERSHIP_FEE) * 100) / 100,
+      extraBalance: Math.round((depositTotal - policyFee) * 100) / 100,
       ...result,
     };
   } catch (err) {

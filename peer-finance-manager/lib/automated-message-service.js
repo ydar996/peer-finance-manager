@@ -491,6 +491,41 @@ const CATALOG = [
       messagePreview: "Please review the attached minutes from this month's meeting.",
     },
   },
+  {
+    id: "organization_admin_welcome",
+    title: "Organization Administrator Welcome",
+    description:
+      "Sent to the Cooperative administrator when the organization is created, and on demand from Platform Admin.",
+    placeholders: [
+      { token: "adminName", meaning: "Administrator name" },
+      { token: "orgName", meaning: "Cooperative name" },
+      { token: "organizationCode", meaning: "Organization code for sign-in" },
+      { token: "adminEmail", meaning: "Administrator email address" },
+      { token: "adminSignInUrl", meaning: "Administrator sign-in link" },
+      { token: "memberSignInUrl", meaning: "Member portal sign-in link" },
+      { token: "countryName", meaning: "Cooperative country" },
+      { token: "currency", meaning: "Cooperative currency code" },
+    ],
+    defaultSubject: "{{orgName}}: Your Cooperative Is Ready",
+    defaultBody:
+      "Hello {{adminName}},\n\n" +
+      "Welcome to Peer Finance Manager. Your Cooperative {{orgName}} has been created.\n\n" +
+      "Organization code: {{organizationCode}}\n" +
+      "Country: {{countryName}} ({{currency}})\n" +
+      "Administrator sign-in: {{adminSignInUrl}}\n" +
+      "Member portal sign-in: {{memberSignInUrl}}\n\n" +
+      "Sign in with the administrator email and password you chose at registration. From the admin workspace you can add members, set your membership fee and contribution amounts under Manual Record, connect your bank, and invite members.\n\n" +
+      "If you did not register this Cooperative, contact support.",
+    sample: {
+      adminName: "Kemi Falade",
+      organizationCode: "sample-cooperative-123",
+      adminEmail: "admin@example.org",
+      adminSignInUrl: "https://peer-finance-manager.netlify.app/admin?org=sample-cooperative-123",
+      memberSignInUrl: "https://peer-finance-manager.netlify.app/member?org=sample-cooperative-123",
+      countryName: "Nigeria",
+      currency: "NGN",
+    },
+  },
 ];
 
 const CATALOG_BY_ID = new Map(CATALOG.map((item) => [item.id, item]));
