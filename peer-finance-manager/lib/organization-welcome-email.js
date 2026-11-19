@@ -39,7 +39,7 @@ async function sendOrganizationAdminWelcomeEmail({
       adminSignInUrl: adminSignInUrl(normalizedSlug),
       memberSignInUrl: getMemberPortalLoginUrl(normalizedSlug),
       countryName: profile.name,
-      currency: profile.currency,
+      currency: profile.currencySymbol || profile.currency,
     });
 
     let delivery = { status: "skipped", errorMessage: "not_configured" };

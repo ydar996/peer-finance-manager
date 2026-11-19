@@ -523,7 +523,7 @@ const CATALOG = [
       adminSignInUrl: "https://peer-finance-manager.netlify.app/admin?org=sample-cooperative-123",
       memberSignInUrl: "https://peer-finance-manager.netlify.app/member?org=sample-cooperative-123",
       countryName: "Nigeria",
-      currency: "NGN",
+      currency: "₦",
     },
   },
 ];

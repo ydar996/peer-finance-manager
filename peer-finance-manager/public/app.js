@@ -18,6 +18,7 @@ let countryProfile = {
   code: "US",
   name: "United States",
   currency: "USD",
+  currencySymbol: null,
   locale: "en-US",
   dateFormat: "MDY",
   dateFormatLabel: "MM/DD/YYYY",
@@ -28,9 +29,21 @@ let countryProfile = {
 };
 
 function moneyFormatterFor(profile) {
-  return new Intl.NumberFormat(profile?.locale || "en-US", {
+  const locale = profile?.locale || "en-US";
+  const currency = profile?.currency || "USD";
+  const symbol = profile?.currencySymbol || null;
+  if (symbol) {
+    const numberFormat = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return {
+      format: (value) => `${symbol}${numberFormat.format(Math.abs(Number(value) || 0))}`,
+    };
+  }
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: profile?.currency || "USD",
+    currency,
   });
 }
 

@@ -5,15 +5,26 @@ const formatterCache = new Map();
 function getMoneyFormatter(profile = getCountryProfile()) {
   const locale = profile?.locale || "en-US";
   const currency = profile?.currency || "USD";
-  const key = `${locale}:${currency}`;
+  const symbol = profile?.currencySymbol || null;
+  const key = `${locale}:${currency}:${symbol || ""}`;
   if (!formatterCache.has(key)) {
-    formatterCache.set(
-      key,
-      new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency,
-      })
-    );
+    if (symbol) {
+      const numberFormat = new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      formatterCache.set(key, {
+        format: (value) => `${symbol}${numberFormat.format(Math.abs(Number(value) || 0))}`,
+      });
+    } else {
+      formatterCache.set(
+        key,
+        new Intl.NumberFormat(locale, {
+          style: "currency",
+          currency,
+        })
+      );
+    }
   }
   return formatterCache.get(key);
 }
