@@ -285,6 +285,67 @@ function registerPlatformRoutes(app) {
       }
     }
   );
+
+  app.get(
+    "/api/platform/organizations/:slug/member-directory",
+    attachPlatformUser,
+    requirePlatformAuth,
+    (req, res) => {
+      try {
+        const { getOrganization } = require("./organization-service");
+        const org = getOrganization(req.params.slug);
+        if (!org) return res.status(404).json({ error: "Organization not found" });
+        const result = runWithOrg(org.slug, () => {
+          const {
+            ensureMembershipStatusColumns,
+            isActiveDirectoryStatus,
+            isCessationStatus,
+            formatAccountStatusLabel,
+            normalizeAccountStatus,
+          } = require("./membership-status-service");
+          const db = getDb();
+          ensureMembershipStatusColumns(db);
+          const rows = db
+            .prepare(
+              `SELECT m.id AS memberId, m.name, m.member_number AS memberNumber,
+                      mp.id AS profileId, mp.display_name AS displayName,
+                      mp.cooperative_account_status AS accountStatus
+               FROM members m
+               LEFT JOIN member_profiles mp ON mp.member_id = m.id
+               ORDER BY m.name`
+            )
+            .all();
+          const members = rows.map((row) => {
+            const status = normalizeAccountStatus(row.accountStatus) || "active";
+            return {
+              memberId: row.memberId,
+              name: row.displayName || row.name,
+              memberNumber: row.memberNumber || null,
+              hasProfile: Boolean(row.profileId),
+              accountStatus: status,
+              statusLabel: formatAccountStatusLabel(status),
+              activeDirectory: isActiveDirectoryStatus(status),
+              former: isCessationStatus(status),
+            };
+          });
+          return {
+            members,
+            counts: {
+              total: members.length,
+              active: members.filter((m) => m.activeDirectory).length,
+              withProfile: members.filter((m) => m.activeDirectory && m.hasProfile).length,
+              missingProfile: members.filter((m) => m.activeDirectory && !m.hasProfile)
+                .length,
+              former: members.filter((m) => m.former).length,
+            },
+          };
+        });
+        res.json(result);
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
 }
 
 function registerBillingRoutes(app, { requireAdmin, requireAuth, restoreOrgContext }) {
