@@ -606,6 +606,18 @@ th { background: #f8fafc; font-weight: 600; }
 .profile-disclosure-body {
   padding: 0 14px 14px;
 }
+.profile-disclosure-body > * + * {
+  margin-top: 10px;
+}
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+}
+.field-row[hidden] {
+  display: none;
+}
 .profile-disclosure-note {
   margin: 0 0 12px;
 }

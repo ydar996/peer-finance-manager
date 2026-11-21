@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **App-wide spacing fix for crammed rows and disclosure bodies:**
+ was used in ~20 places (import panels, bank account settings, members toolbar,
+loan policy, record forms) but had no global rule, so buttons, file inputs, and controls
+rendered flush against each other and neighbors. New global  (flex, wrap,
+gap 10px/14px, align center, plus  guard) and 
+(10px sibling rhythm) give every disclosure panel consistent vertical spacing. Checkbox/label
+pairs and toolbar rows keep their specific layouts (, ,
+ unaffected by specificity). Hard-refresh app after deploy.
+**Production:** .
 - **2026-11-21** - **US bank catalog expanded to parity with Nigeria:**
 US_BANKS in `lib/country-catalog.js` grew from 5 to 60+ entries (national banks,
 regionals, credit unions, digital/fintech banks) with aliases. The Bank Account Import
