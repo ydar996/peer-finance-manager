@@ -330,10 +330,9 @@
 
     <div id="platformShell" class="app hidden platform-shell">
       <header class="topbar">
-        <div>
+        <div class="topbar-titles">
           <p class="brand org-brand">Peer Finance Manager</p>
           <h1>Platform Administration</h1>
-          <p class="subtle" id="platformSubtitle">Manage tenant Cooperatives and SaaS subscriptions</p>
         </div>
         <div class="session-bar">
           <p id="platformSessionUser" class="session-user"></p>
@@ -344,6 +343,7 @@
             </svg>
           </button>
         </div>
+        <p class="subtle topbar-subtitle" id="platformSubtitle">Manage tenant Cooperatives and SaaS subscriptions</p>
       </header>
       <section class="panel active platform-panel">
         <div class="panel-head">
@@ -478,11 +478,9 @@
         <div class="topbar-titles">
           <p class="brand org-brand" id="appOrgBrand">Peer Finance Manager</p>
           <h1 id="appTitle">Cooperative Manager</h1>
-          <p class="subtle" id="appOrgSubtitle">Cooperative Asset Management : Member Contributions Accounts, Loan Accounts, and Books</p>
         </div>
         <div class="session-bar">
-          <span class="tag-outline session-role" id="sessionRole"></span>
-          <p id="sessionUser" class="session-user"></p>
+          <p class="session-user"><span class="session-role" id="sessionRole"></span><span class="session-user-name" id="sessionUser"></span></p>
           <button type="button" class="btn btn-icon logout-btn" id="logoutBtn" aria-label="Sign Out" title="Sign Out">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12 2v10" />
@@ -490,6 +488,7 @@
             </svg>
           </button>
         </div>
+        <p class="subtle topbar-subtitle" id="appOrgSubtitle">Cooperative Asset Management : Member Contributions Accounts, Loan Accounts, and Books</p>
       </header>
 
       <div id="adminMembershipAppsNag" class="admin-attention-nag hidden" role="status">

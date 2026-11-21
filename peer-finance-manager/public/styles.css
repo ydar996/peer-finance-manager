@@ -1693,20 +1693,37 @@ tr.loan-row:hover { background: #f8fafc; }
   padding: 4px 8px;
   margin: 2px 0;
 }
-.platform-subscription-summary p { margin: 6px 0; }
+.platform-subscription-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.platform-subscription-body > p { margin: 0; }
+.platform-subscription-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.platform-subscription-summary p { margin: 0; }
+.platform-subscription-summary .subscription-grace-banner,
+.platform-subscription-summary .subscription-banner { margin-top: 4px; }
 .platform-subscription-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
+  gap: 10px;
 }
 .platform-check-instructions {
   background: #eaf6ee;
   border: 1px solid #bae6fd;
   border-radius: 10px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
+.platform-check-instructions p { margin: 0; }
+.platform-check-instructions .field-row { margin-top: 4px; }
 .subscription-badge {
   display: inline-block;
   padding: 2px 8px;

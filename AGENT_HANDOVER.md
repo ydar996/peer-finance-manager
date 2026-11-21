@@ -175,6 +175,19 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Header session bar + subscription panel spacing pass:**
+Session bar now reads "Administrator: Full Name" as one line (plain role label,
+bold name) instead of an isolated role pill. The org subtitle
+(`#appOrgSubtitle`, `#platformSubtitle`) moved out of `.topbar-titles` to a
+full-width `.topbar-subtitle` flex row under the header, so it no longer wraps
+mid-phrase against the session bar. `.topbar` gained `flex-wrap`/`row-gap`.
+Mobile truncation now clips only `.session-user-name` (140px ellipsis), not the
+role label. Subscription tab rhythm: `.platform-subscription-body` and
+`.platform-subscription-summary` are flex columns with real gaps;
+`.platform-check-instructions` (transfer/check instructions box) is a flex
+column so injected paragraphs and the Notify Transfer Sent button no longer
+collapse together; action-button rows bumped 8px to 10px.
+
 - **2026-11-21** - **Country-aware platform billing + header session layout:**
 Billing is now driven by the Cooperative's `country_code` (set at registration).
 `platform-billing-constants.pricingSummary(countryCode)` returns a rail-aware

@@ -686,7 +686,8 @@ function applyRoleUi() {
   }
   const sessionRole = $("#sessionRole");
   if (sessionRole && currentUser) {
-    sessionRole.textContent = roleLabel(currentUser.role);
+    const label = roleLabel(currentUser.role);
+    sessionRole.textContent = label ? `${label}:` : "";
   }
 
   if (isEmailNoticeStandalone() && role === "admin") {
