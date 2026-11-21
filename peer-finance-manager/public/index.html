@@ -1883,6 +1883,7 @@
                     <thead>
                       <tr>
                         <th>Account</th>
+                        <th>Account No</th>
                         <th>Institution</th>
                         <th>Currency</th>
                         <th>Format</th>
@@ -1891,7 +1892,7 @@
                       </tr>
                     </thead>
                     <tbody id="bankAccountsTableBody">
-                      <tr><td colspan="6">Loading…</td></tr>
+                      <tr><td colspan="7">Loading…</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -1916,6 +1917,12 @@
                   <label>Currency
                     <input type="text" id="newBankAccountCurrency" placeholder="USD" maxlength="8" value="USD" />
                   </label>
+                  <label>Account ID (optional: your own code)
+                    <input type="text" id="newBankAccountCode" placeholder="BA001" />
+                  </label>
+                  <label>Account No (optional: bank-issued number)
+                    <input type="text" id="newBankAccountNumber" placeholder="0123456789" />
+                  </label>
                   <label>Statement format
                     <select id="newBankAccountFormat">
                       <option value="auto">Auto-detect</option>
@@ -1936,6 +1943,26 @@
                 <p id="addBankAccountStatus" class="status"></p>
               </div>
             </details>
+            <details class="import-subsection profile-disclosure">
+              <summary class="import-subsection-summary">
+                <span class="import-panel-title">Bank Account Import Template</span>
+                <span class="import-panel-hint">Register all accounts at once from a spreadsheet. Only Account Label is required.</span>
+              </summary>
+              <div class="profile-disclosure-body">
+                <p class="hint subtle">Download the template, fill in one row per bank account, then upload it here. Account Label is required; Institution names can be copied from the template's Banks sheet or typed as a short name like GTBank. Rows matching an existing account are skipped, not duplicated.</p>
+                <div class="field-row">
+                  <button type="button" class="btn" id="downloadBankAccountTemplateCsv">Download Bank Account Template (CSV)</button>
+                  <button type="button" class="btn" id="downloadBankAccountTemplateXlsx">Download Bank Account Template (Xlsx)</button>
+                </div>
+                <form id="bankAccountImportForm" class="entry-form">
+                  <input type="file" name="file" accept=".xlsx,.xls,.csv" required />
+                  <button type="submit" class="btn primary">Import Bank Accounts</button>
+                </form>
+                <p id="bankAccountImportStatus" class="status"></p>
+                <div id="bankAccountImportResults" class="subtle"></div>
+              </div>
+            </details>
+
             <details class="import-subsection profile-disclosure">
               <summary class="import-subsection-summary">
                 <span class="import-panel-title">Edit Selected Account</span>
@@ -1960,6 +1987,12 @@
                       </label>
                       <label>Account label
                         <input type="text" id="bankAccountLabel" placeholder="Main Operating Account" />
+                      </label>
+                      <label>Account ID (optional: your own code)
+                        <input type="text" id="bankAccountCode" placeholder="BA001" />
+                      </label>
+                      <label>Account No (optional: bank-issued number)
+                        <input type="text" id="bankAccountNumber" placeholder="0123456789" />
                       </label>
                       <label>Currency
                         <input type="text" id="bankAccountCurrency" placeholder="USD" maxlength="8" />

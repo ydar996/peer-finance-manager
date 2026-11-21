@@ -175,6 +175,20 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Bank Account Import Template pipeline + Account ID/Account No fields:**
+bank_accounts gains `account_code` (Cooperative's own ID, e.g. BA001) and `account_number`
+(bank-issued number); columns added via ensureBankAccountSchema ALTERs, surfaced on the
+Add/Edit Bank Account forms and the Registered Bank Accounts table (new Account No column).
+New subsection **Import -> Bank Accounts and Import Settings -> Bank Account Import Template**:
+download CSV/xlsx (`GET /api/bank-account-import/template.csv|xlsx`), fill one row per account
+(only Account Label required), upload (`POST /api/bank-account-import`). Template xlsx includes
+a **Banks sheet** listing the org's country catalog (45+ CBN banks for NG) with aliases;
+import canonicalizes institution names via the catalog ("gtbank" -> "Guaranty Trust Bank (GTBank)",
+"Providus" -> "Providus Bank") so users never type full names. Dedupe on label+institution,
+Account ID, or Account No; idempotent re-uploads. Currency defaults to org currency; Primary
+Yes/No honored. Filled Twilight Funds file saved at Downloads/pfm-bank-account-import-template.csv
+(BA001-BA005, Providus+GTBank). Tests: `scripts/test-bank-account-import.js` all pass.
+**Production:** `git push`. Hard-refresh Import.
 - **2026-11-21** - **Auto-assigned member numbers now continue the Cooperative's own scheme:**
 `ensureMemberNumber`/`backfillMemberNumbers` (member-number-service) infer the numbering pattern
 from existing members: the dominant `letters[+sep]+digits` group wins, next = max+1 preserving

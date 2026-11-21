@@ -348,6 +348,8 @@ When you leave **Import** (any other tab), the last preview, chosen file, and st
 
 Click **Bank Accounts and Import Settings** (the whole row is the control; the chevron is on the right). **Registered Bank Accounts** opens with it.
 
+Add accounts one at a time with **Add Bank Account**, or load them all at once with **Bank Account Import Template**: download the CSV or xlsx, fill one row per account (only **Account Label** is required; Account ID and Account No are your own code and the bank-issued number), then upload it. The xlsx includes a **Banks** sheet listing recognized institutions, and short names like "GTBank" resolve to the canonical name automatically. Rows matching an existing account are skipped.
+
 1. **Registered Bank Accounts** — see your accounts.
 2. **Add Bank Account** — label, institution (searchable bank names for your Country), currency (USD for United States, NGN for Nigeria), statement format.
 3. **Edit Selected Account** — institution, format, active dates, and:

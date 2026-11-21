@@ -1057,6 +1057,56 @@ app.post(
   }
 );
 
+app.get("/api/bank-account-import/template.csv", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { buildBankAccountImportTemplateCsv } = require("./lib/bank-account-import-service");
+    const content = buildBankAccountImportTemplateCsv();
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="pfm-bank-account-import-template.csv"'
+    );
+    res.send(content);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/bank-account-import/template.xlsx", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { buildBankAccountImportTemplateXlsxBuffer } = require("./lib/bank-account-import-service");
+    const buffer = buildBankAccountImportTemplateXlsxBuffer();
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="pfm-bank-account-import-template.xlsx"'
+    );
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post(
+  "/api/bank-account-import",
+  requireAdmin,
+  upload.single("file"),
+  restoreOrgContext,
+  (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "Upload the completed bank account template file." });
+      const { importBankAccountTemplate } = require("./lib/bank-account-import-service");
+      const result = importBankAccountTemplate(req.file.path);
+      res.json({ success: true, ...result });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
 app.post(
   "/api/bank-import/append/preview",
   requireAdmin,

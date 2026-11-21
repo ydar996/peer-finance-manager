@@ -221,6 +221,8 @@ CREATE INDEX IF NOT EXISTS idx_ledger_adjustments_date ON ledger_adjustments(tra
 CREATE TABLE IF NOT EXISTS bank_accounts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   account_label TEXT NOT NULL,
+  account_code TEXT,
+  account_number TEXT,
   institution_name TEXT NOT NULL DEFAULT '',
   currency TEXT NOT NULL DEFAULT 'USD',
   statement_format TEXT NOT NULL DEFAULT 'auto',

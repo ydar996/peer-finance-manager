@@ -5,6 +5,8 @@ function ensureBankAccountSchema(db) {
     CREATE TABLE IF NOT EXISTS bank_accounts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       account_label TEXT NOT NULL,
+      account_code TEXT,
+      account_number TEXT,
       institution_name TEXT NOT NULL DEFAULT '',
       currency TEXT NOT NULL DEFAULT 'USD',
       statement_format TEXT NOT NULL DEFAULT 'auto',
@@ -20,6 +22,12 @@ function ensureBankAccountSchema(db) {
   const cols = db.prepare(`PRAGMA table_info(bank_accounts)`).all().map((c) => c.name);
   if (!cols.includes("column_mapping_json")) {
     db.exec(`ALTER TABLE bank_accounts ADD COLUMN column_mapping_json TEXT`);
+  }
+  if (!cols.includes("account_code")) {
+    db.exec(`ALTER TABLE bank_accounts ADD COLUMN account_code TEXT`);
+  }
+  if (!cols.includes("account_number")) {
+    db.exec(`ALTER TABLE bank_accounts ADD COLUMN account_number TEXT`);
   }
 }
 
@@ -45,7 +53,7 @@ function listBankAccounts({ includeInactive = true } = {}) {
   ensureBankAccountSchema(db);
   const rows = db
     .prepare(
-      `SELECT id, account_label AS accountLabel, institution_name AS institutionName,
+      `SELECT id, account_label AS accountLabel, account_code AS accountCode, account_number AS accountNumber, institution_name AS institutionName,
               currency, statement_format AS statementFormat, column_mapping_json AS columnMappingJson,
               is_primary AS isPrimary,
               active_from AS activeFrom, active_to AS activeTo,
@@ -69,7 +77,7 @@ function getBankAccount(id) {
   ensureBankAccountSchema(db);
   const row = db
     .prepare(
-      `SELECT id, account_label AS accountLabel, institution_name AS institutionName,
+      `SELECT id, account_label AS accountLabel, account_code AS accountCode, account_number AS accountNumber, institution_name AS institutionName,
               currency, statement_format AS statementFormat, column_mapping_json AS columnMappingJson,
               is_primary AS isPrimary, active_from AS activeFrom, active_to AS activeTo
        FROM bank_accounts WHERE id = ?`
@@ -83,7 +91,7 @@ function getPrimaryBankAccount() {
   ensureBankAccountSchema(db);
   let row = db
     .prepare(
-      `SELECT id, account_label AS accountLabel, institution_name AS institutionName,
+      `SELECT id, account_label AS accountLabel, account_code AS accountCode, account_number AS accountNumber, institution_name AS institutionName,
               currency, statement_format AS statementFormat, column_mapping_json AS columnMappingJson,
               is_primary AS isPrimary, active_from AS activeFrom, active_to AS activeTo
        FROM bank_accounts WHERE is_primary = 1 ORDER BY id LIMIT 1`
@@ -92,7 +100,7 @@ function getPrimaryBankAccount() {
   if (row) return mapBankAccountRow(row);
   row = db
     .prepare(
-      `SELECT id, account_label AS accountLabel, institution_name AS institutionName,
+      `SELECT id, account_label AS accountLabel, account_code AS accountCode, account_number AS accountNumber, institution_name AS institutionName,
               currency, statement_format AS statementFormat, column_mapping_json AS columnMappingJson,
               is_primary AS isPrimary, active_from AS activeFrom, active_to AS activeTo
        FROM bank_accounts ORDER BY id LIMIT 1`
@@ -123,6 +131,8 @@ function ensureDefaultBankAccount({ institutionName = "", currency = "USD" } = {
 
 function createBankAccount({
   accountLabel,
+  accountCode,
+  accountNumber,
   institutionName,
   currency,
   statementFormat,
@@ -143,11 +153,13 @@ function createBankAccount({
     const info = db
       .prepare(
         `INSERT INTO bank_accounts
-          (account_label, institution_name, currency, statement_format, column_mapping_json, is_primary, active_from, active_to)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          (account_label, account_code, account_number, institution_name, currency, statement_format, column_mapping_json, is_primary, active_from, active_to)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         label,
+        String(accountCode || "").trim() || null,
+        String(accountNumber || "").trim() || null,
         String(institutionName || "").trim(),
         String(currency || "USD").trim().toUpperCase() || "USD",
         String(statementFormat || "auto").trim() || "auto",
@@ -176,6 +188,8 @@ function updateBankAccount(id, patch = {}) {
     db.prepare(
       `UPDATE bank_accounts SET
         account_label = ?,
+        account_code = ?,
+        account_number = ?,
         institution_name = ?,
         currency = ?,
         statement_format = ?,
@@ -187,6 +201,8 @@ function updateBankAccount(id, patch = {}) {
        WHERE id = ?`
     ).run(
       patch.accountLabel != null ? String(patch.accountLabel).trim() : current.accountLabel,
+      patch.accountCode !== undefined ? (String(patch.accountCode || "").trim() || null) : current.accountCode,
+      patch.accountNumber !== undefined ? (String(patch.accountNumber || "").trim() || null) : current.accountNumber,
       patch.institutionName != null ? String(patch.institutionName).trim() : current.institutionName,
       patch.currency != null
         ? String(patch.currency).trim().toUpperCase()

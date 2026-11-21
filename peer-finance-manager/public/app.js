@@ -5914,6 +5914,10 @@ function fillBankAccountEditForm(account) {
     inst.dataset.accountId = String(account.id);
   }
   if (label) label.value = account.accountLabel || "";
+  const codeEl = $("#bankAccountCode");
+  if (codeEl) codeEl.value = account.accountCode || "";
+  const numEl = $("#bankAccountNumber");
+  if (numEl) numEl.value = account.accountNumber || "";
   if (currency) currency.value = account.currency || countryProfile.currency || "USD";
   if (format) format.value = account.statementFormat || "auto";
   fillColumnMappingForm(account.columnMapping);
@@ -5927,7 +5931,7 @@ function renderBankAccountsTable(accounts) {
   const body = $("#bankAccountsTableBody");
   if (!body) return;
   if (!accounts.length) {
-    body.innerHTML = `<tr><td colspan="6">No bank accounts yet. Use Add Bank Account below.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="7">No bank accounts yet. Use Add Bank Account below.</td></tr>`;
     return;
   }
   body.innerHTML = accounts
@@ -5935,6 +5939,7 @@ function renderBankAccountsTable(accounts) {
       const active = accountIsActive(a);
       return `<tr>
         <td>${escapeHtml(a.accountLabel)}</td>
+        <td>${escapeHtml(a.accountNumber || "")}</td>
         <td>${escapeHtml(a.institutionName || ":")}</td>
         <td>${escapeHtml(a.currency || "")}</td>
         <td>${escapeHtml(statementFormatLabel(a.statementFormat))}</td>
@@ -6604,6 +6609,8 @@ async function saveBankAccountSettings(e) {
       const patch = {
         institutionName: inst?.value,
         accountLabel: label?.value,
+        accountCode: $("#bankAccountCode")?.value?.trim() || null,
+        accountNumber: $("#bankAccountNumber")?.value?.trim() || null,
         currency: currency?.value,
         statementFormat: accountFormat?.value || "auto",
         activeFrom: activeFrom?.value || null,
@@ -6668,6 +6675,8 @@ async function addBankAccount(e) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         accountLabel: label,
+        accountCode: $("#newBankAccountCode")?.value?.trim() || null,
+        accountNumber: $("#newBankAccountNumber")?.value?.trim() || null,
         institutionName: $("#newBankAccountInstitution")?.value?.trim() || "",
         currency: $("#newBankAccountCurrency")?.value?.trim() || countryProfile.currency || "USD",
         statementFormat: $("#newBankAccountFormat")?.value || "auto",
@@ -6800,6 +6809,66 @@ $("#downloadMemberTemplateCsv")?.addEventListener("click", (e) => {
 });
 $("#downloadMemberTemplateXlsx")?.addEventListener("click", (e) => {
   downloadMemberTemplate("xlsx", e.currentTarget);
+});
+
+async function downloadBankAccountTemplate(kind, button) {
+  setButtonBusy(button, true, "Preparing…");
+  try {
+    const ext = kind === "xlsx" ? "xlsx" : "csv";
+    const res = await fetch(`/api/bank-account-import/template.${ext}`);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Download failed");
+    }
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `pfm-bank-account-import-template.${ext}`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    void appAlert(err.message, { title: "Error", variant: "danger" });
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+$("#downloadBankAccountTemplateCsv")?.addEventListener("click", (e) => {
+  downloadBankAccountTemplate("csv", e.currentTarget);
+});
+$("#downloadBankAccountTemplateXlsx")?.addEventListener("click", (e) => {
+  downloadBankAccountTemplate("xlsx", e.currentTarget);
+});
+
+$("#bankAccountImportForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#bankAccountImportStatus");
+  const resultsEl = $("#bankAccountImportResults");
+  status.textContent = "Importing bank accounts…";
+  status.className = "status";
+  if (resultsEl) resultsEl.innerHTML = "";
+  const fd = new FormData(e.target);
+  try {
+    const res = await fetch("/api/bank-account-import", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    status.textContent = `Registered ${data.created} account${data.created === 1 ? "" : "s"}. Skipped ${data.skipped}; failed ${data.failed}.`;
+    status.className = "status ok";
+    if (resultsEl) {
+      const lines = [];
+      if (data.skippedRows?.length) {
+        lines.push("<p>Skipped:</p><ul>" + data.skippedRows.map((r) => `<li>Row ${r.row}: ${escapeHtml(r.name)} (${escapeHtml(r.reason)})</li>`).join("") + "</ul>");
+      }
+      if (data.errors?.length) {
+        lines.push("<p>Errors:</p><ul>" + data.errors.map((r) => `<li>Row ${r.row}: ${escapeHtml(r.name)}: ${escapeHtml((r.errors || []).join("; "))}</li>`).join("") + "</ul>");
+      }
+      resultsEl.innerHTML = lines.join("");
+    }
+    loadBankAccountsData();
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = "status err";
+  }
 });
 
 $("#memberImportForm")?.addEventListener("submit", async (e) => {
