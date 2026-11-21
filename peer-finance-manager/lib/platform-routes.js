@@ -389,6 +389,7 @@ function registerBillingRoutes(app, { requireAdmin, requireAuth, restoreOrgConte
       const org = requestCheckPayment(req.user.organizationSlug, {
         reference: req.body?.reference,
         notes: req.body?.notes,
+        plan: req.body?.plan,
         billingEmail: req.body?.billingEmail || req.user?.email,
       });
       res.json({ success: true, organization: org });

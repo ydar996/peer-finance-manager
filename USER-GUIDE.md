@@ -622,9 +622,9 @@ Placeholders such as `{{memberName}}`, `{{paymentAmount}}`, and `{{dueDate}}` ar
 
 ## 20. Subscription Tab
 
-Manage your Cooperative's **Peer Finance Manager** platform subscription (Stripe or check payment). Admin only.
+Manage your Cooperative's **Peer Finance Manager** platform subscription. Admin only. Pricing and payment method follow your Cooperative's country, set at registration.
 
-**Standard plans** (up to 25 members):
+**United States** (up to 25 members):
 
 | Plan | Price |
 |------|-------|
@@ -633,6 +633,16 @@ Manage your Cooperative's **Peer Finance Manager** platform subscription (Stripe
 | Annual | $345.48 (4% off) |
 
 Pay by card (Stripe) or request check payment to Work Chop Inc. Larger Cooperatives: contact Work Chop for enterprise pricing.
+
+**Nigeria** (up to 25 members):
+
+| Plan | Price |
+|------|-------|
+| Monthly | ₦40,343 |
+| Quarterly | ₦119,818 (1% off) |
+| Annual | ₦464,744 (4% off) |
+
+Pay by direct bank transfer: pick a plan to see the transfer details, send the amount, then click **Notify Transfer Sent**. The platform team confirms receipt and activates your subscription.
 
 ---
 

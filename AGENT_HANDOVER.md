@@ -175,6 +175,31 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Country-aware platform billing + header session layout:**
+Billing is now driven by the Cooperative's `country_code` (set at registration).
+`platform-billing-constants.pricingSummary(countryCode)` returns a rail-aware
+shape: US stays USD/Stripe ($29.99 / $89.07 / $345.48); NG gets naira pricing
+matching `/productngn` (₦40,343 monthly, ₦119,818 quarterly, ₦464,744 annual)
+with `paymentRail: "bank_transfer"`. `getTenantSubscription` now returns
+`countryCode`, `paymentRail`, and `bankTransferDetails` (env
+`PLATFORM_NG_BANK_TRANSFER_DETAILS`, fallback "contact platform administrator").
+`createStripeCheckoutSession` hard-blocks non-Stripe-rail orgs server-side.
+`requestCheckPayment` accepts `plan` and stamps `bank-transfer:<plan>:<iso>`
+references for NG orgs; `recordCheckPayment` auto-records
+`paymentMethod: bank_transfer` for NG orgs (platform admin flow unchanged).
+Subscription tab UI: naira-priced plan buttons open bank-transfer instructions
+with a "Notify Transfer Sent" action; "Manage Card on File" hidden on the
+transfer rail; "Request Check Payment" relabels to "Bank Transfer Instructions";
+`check_pending` displays as "Payment Pending"; payment method shows a friendly
+label. Platform-admin check-payment plan dropdown now shows plan names only
+(prices differ by country). NG product/brochure copy updated to bank transfer.
+New `scripts/test-billing-country.js` (all passing). Paystack or other local
+NG card processors can plug in behind the `paymentRail` abstraction later.
+Header: `.topbar` alignment fixed so the session bar no longer drops to the
+subtitle line; `.session-user` no longer truncates the signed-in name at 40ch.
+Member profile account cards reordered: Share Capital now sits between
+Contributions and Loan Account (matching the members table column order).
+
 - **2026-11-21** - **Member Share Capital accounts (admin-toggleable):**
 New optional member account type for Cooperatives that issue shares (Nigeria).
 New transaction types `share_capital` (purchase, +) and `share_capital_redemption` (-).

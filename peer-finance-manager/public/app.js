@@ -756,20 +756,62 @@ function formatSaasPricingLine(pricing, stripeConfigured) {
   return `SaaS pricing: $${pricing.monthlyPriceUsd.toFixed(2)}/month, $${pricing.quarterlyPriceUsd.toFixed(2)}/quarter (${pricing.quarterlyDiscountPercent}% off 3 months), or $${pricing.annualPriceUsd.toFixed(2)}/year (${pricing.annualDiscountPercent}% off). ${stripeNote}.`;
 }
 
+let billingPaymentRail = "stripe";
+let tenantSubscription = null;
+let pendingTransferPlan = null;
+
+const subAmountFmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+
+function formatSubscriptionAmount(pricing, amount) {
+  return `${pricing?.currencySymbol || "$"}${subAmountFmt.format(amount ?? 0)}`;
+}
+
 function updateSubscriptionPayButtons(pricing) {
   if (!pricing) return;
+  billingPaymentRail = pricing.paymentRail || "stripe";
   const monthlyBtn = $("#payMonthlyStripe");
   const quarterlyBtn = $("#payQuarterlyStripe");
   const annualBtn = $("#payAnnualStripe");
+  const checkBtn = $("#requestCheckPayment");
   if (monthlyBtn) {
-    monthlyBtn.textContent = `Pay Monthly ($${pricing.monthlyPriceUsd.toFixed(2)})`;
+    monthlyBtn.textContent = `Pay Monthly (${formatSubscriptionAmount(pricing, pricing.monthlyPrice)})`;
   }
   if (quarterlyBtn) {
-    quarterlyBtn.textContent = `Pay Quarterly ($${pricing.quarterlyPriceUsd.toFixed(2)} : ${pricing.quarterlyDiscountPercent}% off)`;
+    quarterlyBtn.textContent = `Pay Quarterly (${formatSubscriptionAmount(pricing, pricing.quarterlyPrice)} : ${pricing.quarterlyDiscountPercent}% off)`;
   }
   if (annualBtn) {
-    annualBtn.textContent = `Pay Annual ($${pricing.annualPriceUsd.toFixed(2)} : ${pricing.annualDiscountPercent}% off)`;
+    annualBtn.textContent = `Pay Annual (${formatSubscriptionAmount(pricing, pricing.annualPrice)} : ${pricing.annualDiscountPercent}% off)`;
   }
+  if (checkBtn) {
+    checkBtn.textContent =
+      billingPaymentRail === "bank_transfer"
+        ? "Bank Transfer Instructions"
+        : "Request Check Payment";
+  }
+}
+
+function showBankTransferInstructions(plan) {
+  const checkBox = $("#platformCheckInstructions");
+  if (!checkBox || !tenantSubscription) return;
+  pendingTransferPlan = plan || null;
+  const planPrice =
+    plan === "monthly"
+      ? tenantSubscription.pricing.monthlyPrice
+      : plan === "quarterly"
+        ? tenantSubscription.pricing.quarterlyPrice
+        : plan === "annual"
+          ? tenantSubscription.pricing.annualPrice
+          : null;
+  const planLine = plan
+    ? `Transfer <strong>${escapeHtml(formatSubscriptionAmount(tenantSubscription.pricing, planPrice))}</strong> for the <strong>${escapeHtml(plan)} plan</strong> to:`
+    : "Transfer the subscription amount for your chosen plan to:";
+  checkBox.classList.remove("hidden");
+  checkBox.innerHTML = `
+    <p><strong>Pay by Bank Transfer.</strong> ${planLine}</p>
+    <p>${escapeHtml(tenantSubscription.bankTransferDetails || "Contact the platform administrator for bank transfer instructions.").replace(/\n/g, "<br>")}</p>
+    <p class="subtle">After transferring, click Notify Transfer Sent so the platform team can confirm receipt and activate your subscription.</p>
+    <div class="field-row"><button type="button" class="btn primary" id="notifyTransferSent">Notify Transfer Sent</button></div>`;
+  $("#notifyTransferSent")?.addEventListener("click", requestTenantCheckPayment);
 }
 
 function subscriptionStatusLabel(status) {
@@ -778,9 +820,19 @@ function subscriptionStatusLabel(status) {
     active: "Active",
     past_due: "Past Due",
     canceled: "Canceled",
-    check_pending: "Check Pending",
+    check_pending: "Payment Pending",
   };
   return labels[status] || status || "Unknown";
+}
+
+function paymentMethodLabel(method) {
+  const labels = {
+    stripe: "Stripe",
+    check: "Check",
+    bank_transfer: "Bank Transfer",
+    legacy: "Legacy",
+  };
+  return labels[method] || method || ":";
 }
 
 function subscriptionStatusClass(status) {
@@ -859,9 +911,9 @@ async function loadPlatformOrganizations() {
     const checkPlanSelect = document.querySelector('#platformCheckPaymentForm select[name="plan"]');
     if (checkPlanSelect && pricing) {
       checkPlanSelect.innerHTML = `
-        <option value="monthly">Monthly ($${pricing.monthlyPriceUsd.toFixed(2)})</option>
-        <option value="quarterly">Quarterly ($${pricing.quarterlyPriceUsd.toFixed(2)} : ${pricing.quarterlyDiscountPercent}% discount)</option>
-        <option value="annual">Annual ($${pricing.annualPriceUsd.toFixed(2)} : ${pricing.annualDiscountPercent}% discount)</option>`;
+        <option value="monthly">Monthly</option>
+        <option value="quarterly">Quarterly (${pricing.quarterlyDiscountPercent}% discount)</option>
+        <option value="annual">Annual (${pricing.annualDiscountPercent}% discount)</option>`;
     }
     const orgs = data.organizations || [];
     if (!orgs.length) {
@@ -974,7 +1026,15 @@ async function loadPlatformSubscriptionPanel() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to load subscription");
     const sub = data.subscription;
+    tenantSubscription = sub;
     const status = sub.subscriptionStatus || "pending";
+    const isTransferRail = sub.paymentRail === "bank_transfer";
+    const hintEl = $("#platformSubscriptionHint");
+    if (hintEl) {
+      hintEl.textContent = isTransferRail
+        ? "Peer Finance Manager SaaS fee for your Cooperative. Pay by bank transfer: the standard method for Nigerian Cooperatives."
+        : "Peer Finance Manager SaaS fee for your Cooperative. Pay by credit/debit card (Stripe) or mail a check.";
+    }
     if (badge) {
       if (sub.inGracePeriod && !sub.active) {
         badge.textContent = `Grace (${sub.graceDaysRemaining}d left)`;
@@ -995,17 +1055,24 @@ async function loadPlatformSubscriptionPanel() {
       summary.innerHTML = `
         <p><strong>Status:</strong> ${escapeHtml(subscriptionStatusLabel(status))}</p>
         <p><strong>Plan:</strong> ${escapeHtml(sub.subscriptionPlan || "Not selected")}</p>
-        <p><strong>Payment method:</strong> ${escapeHtml(sub.paymentMethod || ":")}</p>
+        <p><strong>Payment method:</strong> ${escapeHtml(paymentMethodLabel(sub.paymentMethod))}</p>
         <p><strong>Current period ends:</strong> ${escapeHtml(formatSubscriptionDate(sub.subscriptionCurrentPeriodEnd))}</p>
-        <p><strong>Monthly:</strong> $${sub.pricing.monthlyPriceUsd.toFixed(2)} · <strong>Quarterly:</strong> $${sub.pricing.quarterlyPriceUsd.toFixed(2)} (${sub.pricing.quarterlyDiscountPercent}% off) · <strong>Annual:</strong> $${sub.pricing.annualPriceUsd.toFixed(2)} (${sub.pricing.annualDiscountPercent}% off)</p>
+        <p><strong>Monthly:</strong> ${escapeHtml(formatSubscriptionAmount(sub.pricing, sub.pricing.monthlyPrice))} · <strong>Quarterly:</strong> ${escapeHtml(formatSubscriptionAmount(sub.pricing, sub.pricing.quarterlyPrice))} (${sub.pricing.quarterlyDiscountPercent}% off) · <strong>Annual:</strong> ${escapeHtml(formatSubscriptionAmount(sub.pricing, sub.pricing.annualPrice))} (${sub.pricing.annualDiscountPercent}% off)</p>
         ${sub.subscriptionNotes ? `<p class="subtle">${escapeHtml(sub.subscriptionNotes)}</p>` : ""}
         ${accessNote}`;
     }
     if (portalBtn) {
-      portalBtn.hidden = !sub.stripeConfigured || !sub.active || sub.paymentMethod !== "stripe";
+      portalBtn.hidden =
+        isTransferRail || !sub.stripeConfigured || !sub.active || sub.paymentMethod !== "stripe";
     }
     if (checkBox) {
-      if (status === "check_pending") {
+      if (status === "check_pending" && isTransferRail) {
+        checkBox.classList.remove("hidden");
+        checkBox.innerHTML = `
+          <p><strong>Bank transfer notification sent.</strong> We will activate your subscription once the transfer is confirmed.</p>
+          <p>${escapeHtml(sub.bankTransferDetails || "").replace(/\n/g, "<br>")}</p>
+          <p class="subtle">Reference: ${escapeHtml(sub.checkPaymentReference || ":")}</p>`;
+      } else if (status === "check_pending") {
         checkBox.classList.remove("hidden");
         checkBox.innerHTML = `
           <p><strong>Check payment requested.</strong> Mail your check payable to <strong>${escapeHtml(sub.checkPayableTo)}</strong>.</p>
@@ -1043,6 +1110,10 @@ function handleBillingReturnParams() {
 }
 
 async function startStripeCheckout(plan) {
+  if (billingPaymentRail === "bank_transfer") {
+    showBankTransferInstructions(plan);
+    return;
+  }
   const statusEl = $("#platformSubscriptionStatus");
   if (statusEl) {
     statusEl.textContent = "Opening Stripe checkout…";
@@ -1076,9 +1147,12 @@ async function openStripeBillingPortal() {
 
 async function requestTenantCheckPayment() {
   const statusEl = $("#platformSubscriptionStatus");
+  const isTransfer = billingPaymentRail === "bank_transfer";
   const prompted = await appPrompt("", {
-    title: "Check Payment Request",
-    label: "Optional note for the platform administrator (e.g. check mailed today)",
+    title: isTransfer ? "Bank Transfer Notification" : "Check Payment Request",
+    label: isTransfer
+      ? "Optional note for the platform administrator (e.g. sending bank, date, amount)"
+      : "Optional note for the platform administrator (e.g. check mailed today)",
     defaultValue: "",
   });
   if (prompted === null) return;
@@ -1087,11 +1161,23 @@ async function requestTenantCheckPayment() {
     const res = await fetch("/api/billing/check-request", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notes, billingEmail: currentUser?.email }),
+      body: JSON.stringify({
+        notes,
+        plan: isTransfer ? pendingTransferPlan || undefined : undefined,
+        billingEmail: currentUser?.email,
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Request failed");
-    if (statusEl) setFormStatus(statusEl, "Check payment requested. See mailing instructions below.", true);
+    if (statusEl) {
+      setFormStatus(
+        statusEl,
+        isTransfer
+          ? "Bank transfer notification sent. We will activate your subscription once the transfer is confirmed."
+          : "Check payment requested. See mailing instructions below.",
+        true
+      );
+    }
     await loadPlatformSubscriptionPanel();
   } catch (err) {
     if (statusEl) setFormStatus(statusEl, err.message, false);
@@ -3728,13 +3814,6 @@ async function showProfile(memberId) {
           <p class="subtle">Contributions, Withdrawals, Distributions, Registration Fee</p>
           <p class="account-card-hint">Click for Full History</p>
         </button>
-        <button type="button" class="account-card loan" data-account-panel="loan" aria-expanded="false">
-          <h4>Loan Account</h4>
-          <p class="account-balance money">${fmt.format(p.loan_account_balance || 0)}</p>
-          <p class="subtle">Outstanding Balance</p>
-          <p class="subtle">${loanAccountSubtitle(p)}</p>
-          <p class="account-card-hint">Click for Loans and Repayments</p>
-        </button>
         ${p.share_capital_enabled ? `
         <button type="button" class="account-card share" data-account-panel="share" aria-expanded="false">
           <h4>Share Capital</h4>
@@ -3742,6 +3821,13 @@ async function showProfile(memberId) {
           <p class="subtle">Shares Purchased Minus Redemptions</p>
           <p class="account-card-hint">Click for Full History</p>
         </button>` : ""}
+        <button type="button" class="account-card loan" data-account-panel="loan" aria-expanded="false">
+          <h4>Loan Account</h4>
+          <p class="account-balance money">${fmt.format(p.loan_account_balance || 0)}</p>
+          <p class="subtle">Outstanding Balance</p>
+          <p class="subtle">${loanAccountSubtitle(p)}</p>
+          <p class="account-card-hint">Click for Loans and Repayments</p>
+        </button>
       </div>
 
       ${
@@ -9260,7 +9346,13 @@ $("#payMonthlyStripe")?.addEventListener("click", () => startStripeCheckout("mon
 $("#payQuarterlyStripe")?.addEventListener("click", () => startStripeCheckout("quarterly"));
 $("#payAnnualStripe")?.addEventListener("click", () => startStripeCheckout("annual"));
 $("#openStripePortal")?.addEventListener("click", openStripeBillingPortal);
-$("#requestCheckPayment")?.addEventListener("click", requestTenantCheckPayment);
+$("#requestCheckPayment")?.addEventListener("click", () => {
+  if (billingPaymentRail === "bank_transfer") {
+    showBankTransferInstructions(null);
+    return;
+  }
+  requestTenantCheckPayment();
+});
 $("#refreshPlatformSubscription")?.addEventListener("click", loadPlatformSubscriptionPanel);
 
 function syncPublicPagesExternalFields() {

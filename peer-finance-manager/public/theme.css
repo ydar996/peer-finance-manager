@@ -1048,7 +1048,7 @@ td:last-child .btn {
   z-index: 40;
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 16px;
   min-height: 0;
   margin: 0 0 28px;
@@ -1111,10 +1111,8 @@ td:last-child .btn {
   color: var(--pv-ink-700);
   font-size: 14px;
   font-weight: 600;
-  max-width: 40ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .session-role:empty,
@@ -2318,7 +2316,7 @@ label.toggle-row,
 
   .topbar {
     border-radius: 0;
-    align-items: flex-end;
+    align-items: center;
     padding-top: 20px;
   }
 

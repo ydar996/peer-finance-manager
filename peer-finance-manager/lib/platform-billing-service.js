@@ -7,6 +7,7 @@ const {
   PAYMENT_METHOD,
   isSubscriptionActive,
   pricingSummary,
+  paymentRailForCountry,
   MONTHLY_AMOUNT_CENTS,
   QUARTERLY_AMOUNT_CENTS,
   ANNUAL_AMOUNT_CENTS,
@@ -171,9 +172,11 @@ function planCheckoutDetails(plan) {
 function getTenantSubscription(orgSlug) {
   const org = getOrganization(orgSlug || getOrgSlug());
   if (!org) throw new Error("Organization not found");
+  const pricing = pricingSummary(org.countryCode);
   return {
     organizationSlug: org.slug,
     organizationName: org.name,
+    countryCode: org.countryCode || "US",
     subscriptionStatus: org.subscriptionStatus,
     subscriptionPlan: org.subscriptionPlan,
     paymentMethod: org.paymentMethod,
@@ -182,16 +185,27 @@ function getTenantSubscription(orgSlug) {
     checkPaymentReference: org.checkPaymentReference,
     subscriptionNotes: org.subscriptionNotes,
     ...subscriptionAccessDetails(org),
-    pricing: pricingSummary(),
+    pricing,
+    paymentRail: pricing.paymentRail,
     stripeConfigured: isStripeConfigured(),
     checkPayableTo: process.env.PLATFORM_CHECK_PAYABLE_TO || "Peer Finance Manager",
     checkMailingAddress:
       process.env.PLATFORM_CHECK_MAILING_ADDRESS ||
       "Contact platform administrator for mailing instructions.",
+    bankTransferDetails:
+      process.env.PLATFORM_NG_BANK_TRANSFER_DETAILS ||
+      "Contact the platform administrator for bank transfer instructions.",
   };
 }
 
 async function createStripeCheckoutSession(orgSlug, plan, billingEmail) {
+  const org = getOrganization(orgSlug);
+  if (!org) throw new Error("Organization not found");
+  if (paymentRailForCountry(org.countryCode) !== "stripe") {
+    throw new Error(
+      "This Cooperative is billed in naira by bank transfer. Card checkout is not available for Nigerian Cooperatives."
+    );
+  }
   const stripe = stripeClient();
   if (!stripe) {
     throw new Error(
@@ -201,8 +215,6 @@ async function createStripeCheckoutSession(orgSlug, plan, billingEmail) {
   if (!isValidSubscriptionPlan(plan)) {
     throw new Error("Plan must be monthly, quarterly, or annual");
   }
-  const org = getOrganization(orgSlug);
-  if (!org) throw new Error("Organization not found");
 
   const checkout = planCheckoutDetails(plan);
   const { amount, label, recurring } = checkout;
@@ -259,10 +271,14 @@ async function createStripeBillingPortalSession(orgSlug) {
   return { url: session.url };
 }
 
-function requestCheckPayment(orgSlug, { reference, notes, billingEmail } = {}) {
+function requestCheckPayment(orgSlug, { reference, notes, billingEmail, plan } = {}) {
+  const org = getOrganization(orgSlug);
+  const rail = paymentRailForCountry(org?.countryCode);
+  const prefix = rail === "bank_transfer" ? "bank-transfer" : "check-request";
+  const planTag = isValidSubscriptionPlan(plan) ? `:${plan}` : "";
   return updateOrganizationBilling(orgSlug, {
     subscriptionStatus: SUBSCRIPTION_STATUS.CHECK_PENDING,
-    checkPaymentReference: reference || `check-request:${nowUtcIso()}`,
+    checkPaymentReference: reference || `${prefix}${planTag}:${nowUtcIso()}`,
     subscriptionNotes: notes || null,
     billingEmail: billingEmail || null,
   });
@@ -272,11 +288,19 @@ function recordCheckPayment(orgSlug, { plan, checkNumber, notes, billingEmail } 
   if (!isValidSubscriptionPlan(plan)) {
     throw new Error("Plan must be monthly, quarterly, or annual");
   }
-  const ref = checkNumber ? `Check #${checkNumber}` : `Check ${nowUtcIso().slice(0, 10)}`;
+  const org = getOrganization(orgSlug);
+  const method =
+    paymentRailForCountry(org?.countryCode) === "bank_transfer"
+      ? PAYMENT_METHOD.BANK_TRANSFER
+      : PAYMENT_METHOD.CHECK;
+  const refLabel = method === PAYMENT_METHOD.BANK_TRANSFER ? "Bank transfer" : "Check";
+  const ref = checkNumber
+    ? `${refLabel} #${checkNumber}`
+    : `${refLabel} ${nowUtcIso().slice(0, 10)}`;
   return updateOrganizationBilling(orgSlug, {
     subscriptionStatus: SUBSCRIPTION_STATUS.ACTIVE,
     subscriptionPlan: plan,
-    paymentMethod: PAYMENT_METHOD.CHECK,
+    paymentMethod: method,
     checkPaymentReference: ref,
     subscriptionNotes: notes || null,
     billingEmail: billingEmail || null,
