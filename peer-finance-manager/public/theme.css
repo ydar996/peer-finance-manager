@@ -583,6 +583,13 @@ details.profile-disclosure > summary::before {
   line-height: 1.5;
 }
 
+.hint-line {
+  display: block;
+}
+.hint-line + .hint-line {
+  margin-top: 8px;
+}
+
 .panel > .hint,
 .panel-intro-hint,
 .monthly-status-report-body > .subtle,

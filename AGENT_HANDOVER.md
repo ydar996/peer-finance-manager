@@ -175,6 +175,10 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Hint readability:** new `.hint-line` block style puts each
+  sentence of a long hint on its own line with 8px spacing. Applied to the
+  Members & Profiles, Record tab, and Membership Policy hints.
+
 - **2026-11-21** - **Header overlap fix:** `.topbar` gained `flex-shrink: 0`.
   On the Members & Accounts screen (the `100vh`/`overflow:hidden` internal-scroll
   layout), the header was flex-shrinking below its content height so the
