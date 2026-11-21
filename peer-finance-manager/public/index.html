@@ -1676,9 +1676,13 @@
             <div class="profile-disclosure-body">
             <p class="subtle">Upload a Sheet With <strong>Member Name</strong> and an Amount Column (Distribution, Interest, Amount, or Dividend).</p>
             <form id="distributionBulkForm" class="entry-form">
-              <label>Distribution Excel
-                <input type="file" name="file" accept=".xlsx,.xls" required />
-              </label>
+              <div class="field-row">
+                <div class="file-dropzone">
+                  <label class="btn" for="distributionBulkFile">Choose File</label>
+                  <input type="file" id="distributionBulkFile" name="file" class="visually-hidden-file" accept=".xlsx,.xls" required />
+                  <span class="file-name" id="distributionBulkFileName"></span>
+                </div>
+              </div>
               <label>Label
                 <input type="text" name="label" required placeholder="e.g. Distribution - April 2026" />
               </label>

@@ -8912,6 +8912,7 @@ bindChosenFileName("memberImportFile", "memberImportFileName");
 bindChosenFileName("spreadsheetFile", "spreadsheetFileName");
 bindChosenFileName("wpformsFile", "wpformsFileName");
 bindChosenFileName("scheduleFile", "scheduleFileName");
+bindChosenFileName("distributionBulkFile", "distributionBulkFileName");
 
 $("#previewDataRestoreBtn")?.addEventListener("click", previewDataRestore);
 

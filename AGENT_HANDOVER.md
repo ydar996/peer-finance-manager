@@ -175,6 +175,11 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Bulk Distribution upload joins dropzone pattern (Import tab sweep complete):**
+Record -> Bulk Distribution (Excel) file picker converted to `.file-dropzone` with
+`bindChosenFileName`. Every raw file input is now converted except Messages attachments,
+which keep their own designed multi-file field (title, hint, selected-file list).
+**Production:** .
 - **2026-11-21** - **Import tab file pickers converted to dropzone pattern; spacing opened up:**
 All raw browser file inputs on the Import tab replaced with the styled `.file-dropzone`
 (dashed upload area, Choose File button, filename display) already used by bank statement
