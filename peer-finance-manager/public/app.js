@@ -6772,6 +6772,67 @@ $("#downloadImportTemplateCsv")?.addEventListener("click", (e) => {
 $("#downloadImportTemplateXlsx")?.addEventListener("click", (e) => {
   downloadImportTemplate("xlsx", e.currentTarget);
 });
+
+async function downloadMemberTemplate(kind, button) {
+  setButtonBusy(button, true, "Preparing…");
+  try {
+    const ext = kind === "xlsx" ? "xlsx" : "csv";
+    const res = await fetch(`/api/member-import/template.${ext}`);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Download failed");
+    }
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `pfm-member-import-template.${ext}`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    void appAlert(err.message, { title: "Error", variant: "danger" });
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+$("#downloadMemberTemplateCsv")?.addEventListener("click", (e) => {
+  downloadMemberTemplate("csv", e.currentTarget);
+});
+$("#downloadMemberTemplateXlsx")?.addEventListener("click", (e) => {
+  downloadMemberTemplate("xlsx", e.currentTarget);
+});
+
+$("#memberImportForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#memberImportStatus");
+  const resultsEl = $("#memberImportResults");
+  status.textContent = "Importing members…";
+  status.className = "status";
+  if (resultsEl) resultsEl.innerHTML = "";
+  const fd = new FormData(e.target);
+  try {
+    const res = await fetch("/api/member-import", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    status.textContent = `Created ${data.created} member account${data.created === 1 ? "" : "s"}. Skipped ${data.skipped}; failed ${data.failed}.`;
+    status.className = "status ok";
+    if (resultsEl) {
+      const lines = [];
+      if (data.skippedRows?.length) {
+        lines.push("<p>Skipped:</p><ul>" + data.skippedRows.map((r) => `<li>Row ${r.row}: ${escapeHtml(r.name)} (${escapeHtml(r.reason)})</li>`).join("") + "</ul>");
+      }
+      if (data.errors?.length) {
+        lines.push("<p>Errors:</p><ul>" + data.errors.map((r) => `<li>Row ${r.row}: ${escapeHtml(r.name)}: ${escapeHtml((r.errors || []).join("; "))}</li>`).join("") + "</ul>");
+      }
+      resultsEl.innerHTML = lines.join("");
+    }
+    loadMembers();
+    loadBooks();
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = "status err";
+  }
+});
 $("#bankAppendForm")?.addEventListener("submit", (e) => e.preventDefault());
 $("#bankAppendForm")?.addEventListener("change", (e) => {
   if (e.target?.name !== "statement") return;

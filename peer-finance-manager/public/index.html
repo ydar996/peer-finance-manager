@@ -2063,6 +2063,26 @@
 
         <details class="card profile-disclosure import-panel-section">
           <summary class="import-panel-summary">
+            <span class="import-panel-title">Member Import Template</span>
+            <span class="import-panel-hint">Bulk-create member accounts from a spreadsheet. Only First Name and Last Name are required.</span>
+          </summary>
+          <div class="profile-disclosure-body">
+            <p class="hint subtle">Download the template, fill in one row per member, then upload it here. First Name and Last Name are required; every other column is optional. Rows whose member name already exists are skipped, not duplicated.</p>
+            <div class="field-row">
+              <button type="button" class="btn" id="downloadMemberTemplateCsv">Download Member Template (CSV)</button>
+              <button type="button" class="btn" id="downloadMemberTemplateXlsx">Download Member Template (Xlsx)</button>
+            </div>
+            <form id="memberImportForm" class="entry-form">
+              <input type="file" name="file" accept=".xlsx,.xls,.csv" required />
+              <button type="submit" class="btn primary">Import Members</button>
+            </form>
+            <p id="memberImportStatus" class="status"></p>
+            <div id="memberImportResults" class="subtle"></div>
+          </div>
+        </details>
+
+        <details class="card profile-disclosure import-panel-section">
+          <summary class="import-panel-summary">
             <span class="import-panel-title">Membership Applications (WPForms CSV)</span>
             <span class="import-panel-hint">Import biodata and payment names; links applications to ledger accounts.</span>
           </summary>

@@ -364,9 +364,20 @@ Pick the correct bank account before each import.
 |---------|---------|
 | **Download Import Template** | Blank CSV/xlsx for manual transaction lists. |
 | **Cooperative Spreadsheet** | Bulk load contributions, withdrawals, fees, distributions. |
+| **Member Import Template** | Bulk-create member accounts from a spreadsheet (existing members onboarding). Only First Name and Last Name are required. |
 | **Membership Applications (WPForms CSV)** | Import biodata and payment names from a CSV export. |
 | **Loan Repayment Schedule** | Upload installment schedule for a specific loan. |
 | **Full Ledger Refresh (Advanced)** | Rebuild **all** bank-imported rows from a master ledger file. **Not for monthly use.** |
+
+#### Member Import Template (onboarding existing members)
+
+For a Cooperative moving onto PFM with members already on its books:
+
+1. Expand **Member Import Template** and click **Download Member Template (Xlsx)** (CSV also available).
+2. Fill one row per member. **First Name** and **Last Name** are required; every other column (Middle Name, Gender, Date of Birth, Email, Phone, Address, City, State, Postal Code, Country, Next of Kin, Joined Date, Membership Fee Paid, Opening Deposit, Notes) is optional.
+3. Upload the completed file and click **Import Members**.
+
+Results show how many accounts were created, skipped, or failed, with a row-by-row reason. Member numbers are assigned automatically. Rows whose name already exists are skipped, never duplicated. Dates use your Cooperative's date format (DD/MM/YYYY for Nigeria). Amounts are plain numbers in your currency. No membership fee transaction is recorded on import; the optional **Membership Fee Paid** column only marks the flag, and **Opening Deposit** records the member's starting contribution balance.
 
 ### D. Full Ledger Refresh (advanced only)
 

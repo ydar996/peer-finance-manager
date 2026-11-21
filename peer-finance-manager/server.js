@@ -1007,6 +1007,56 @@ app.get("/api/bank-import/template.xlsx", requireAdmin, restoreOrgContext, (req,
   }
 });
 
+app.get("/api/member-import/template.csv", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { buildMemberImportTemplateCsv } = require("./lib/member-import-service");
+    const content = buildMemberImportTemplateCsv();
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="pfm-member-import-template.csv"'
+    );
+    res.send(content);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/member-import/template.xlsx", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { buildMemberImportTemplateXlsxBuffer } = require("./lib/member-import-service");
+    const buffer = buildMemberImportTemplateXlsxBuffer();
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="pfm-member-import-template.xlsx"'
+    );
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post(
+  "/api/member-import",
+  requireAdmin,
+  upload.single("file"),
+  restoreOrgContext,
+  (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "Upload the completed member template file." });
+      const { importMemberTemplate } = require("./lib/member-import-service");
+      const result = importMemberTemplate(req.file.path);
+      res.json({ success: true, ...result });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
 app.post(
   "/api/bank-import/append/preview",
   requireAdmin,
