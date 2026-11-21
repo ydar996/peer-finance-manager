@@ -175,6 +175,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Auto-assigned member numbers now continue the Cooperative's own scheme:**
+`ensureMemberNumber`/`backfillMemberNumbers` (member-number-service) infer the numbering pattern
+from existing members: the dominant `letters[+sep]+digits` group wins, next = max+1 preserving
+separator and digit width. Twilight Funds import `TTFC25001..TTFC25050` -> next member gets
+`TTFC25051`, not `THE-001`. Pure numeric schemes supported. Explicit `member_number_prefix`
+setting still overrides; empty orgs fall back to slug-derived `PREFIX-001`. Assurance `AIC-`
+behavior unchanged. Test: `test-member-import.js` asserts TTFC25051 continuation.
+**Production:** `git push`.
 - **2026-11-21** - **Member Import Template gains optional `Member No` column:**
 Cooperatives migrating existing members can keep their own numbering (e.g. Twilight Funds
 `TTFC25001` style, no hyphen). `Member No` is the first template column; aliases include

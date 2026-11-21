@@ -374,7 +374,7 @@ Pick the correct bank account before each import.
 For a Cooperative moving onto PFM with members already on its books:
 
 1. Expand **Member Import Template** and click **Download Member Template (Xlsx)** (CSV also available).
-2. Fill one row per member. **First Name** and **Last Name** are required; every other column (Member No, Middle Name, Gender, Date of Birth, Email, Phone, Address, City, State, Postal Code, Country, Next of Kin, Joined Date, Membership Fee Paid, Opening Deposit, Notes) is optional. Fill **Member No** to keep your Cooperative's own numbering; leave it blank to have numbers assigned automatically.
+2. Fill one row per member. **First Name** and **Last Name** are required; every other column (Member No, Middle Name, Gender, Date of Birth, Email, Phone, Address, City, State, Postal Code, Country, Next of Kin, Joined Date, Membership Fee Paid, Opening Deposit, Notes) is optional. Fill **Member No** to keep your Cooperative's own numbering; leave it blank to have numbers assigned automatically, continuing whatever numbering your members already use.
 3. Upload the completed file and click **Import Members**.
 
 Results show how many accounts were created, skipped, or failed, with a row-by-row reason. Member numbers are assigned automatically. Rows whose name or Member No already exists are skipped, never duplicated. Dates use your Cooperative's date format (DD/MM/YYYY for Nigeria). Amounts are plain numbers in your currency. No membership fee transaction is recorded on import; the optional **Membership Fee Paid** column only marks the flag, and **Opening Deposit** records the member's starting contribution balance.

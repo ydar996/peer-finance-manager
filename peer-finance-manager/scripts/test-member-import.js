@@ -96,12 +96,17 @@ runWithOrg(ORG, () => {
   assert.strictEqual(db.prepare(`SELECT COUNT(*) c FROM members`).get().c, 2);
 
   // 5. CSV upload also works.
-  const csvUpload = `"First Name","Last Name","Email"\n"Ngozi","Ade","ngozi@example.org"`;
+  const csvUpload = `"Member No","First Name","Last Name","Email"\n"TTFC25050","Ngozi","Ade","ngozi@example.org"`;
   const csvPath = path.join(tmpRoot, "upload.csv");
   fs.writeFileSync(csvPath, csvUpload);
   const result3 = importMemberTemplate(csvPath);
   assert.strictEqual(result3.created, 1);
   assert.strictEqual(result3.failed, 0);
+
+  // 6. Auto-assignment continues the Cooperative's own numbering scheme.
+  const { createMember } = require("../lib/member-service");
+  const temi = createMember({ firstName: "Temi", lastName: "Bello", recordMembershipFee: false });
+  assert.strictEqual(temi.memberNumber, "TTFC25051", "next number must continue imported scheme");
 });
 closeDb(ORG);
 
