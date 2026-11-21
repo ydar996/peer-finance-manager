@@ -2,7 +2,7 @@
 
 This document gives the next developer or AI agent enough context to continue work without re-discovering the project from scratch.
 
-**Last updated:** November 19, 2026 (Naira symbol display; FlexxForms starter cloning live; Twilight Funds workspace populated)  
+**Last updated:** November 21, 2026 (member Share Capital accounts; member/bank-account import templates; app-wide spacing pass; bank-account safe delete)  
 **Organization:** Assurance Investment and Cooperative Inc. (slug: `assurance`)  
 **Workspace:** `C:\Users\ydara\Documents\AssurCoop`  
 **Production:** https://peer-finance-manager.netlify.app (UI) + https://peer-finance-manager.onrender.com (API)  
@@ -175,6 +175,33 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Member Share Capital accounts (admin-toggleable):**
+New optional member account type for Cooperatives that issue shares (Nigeria).
+New transaction types `share_capital` (purchase, +) and `share_capital_redemption` (-).
+New `lib/share-capital-service.js`: `share_capital_enabled` cooperative setting
+(off by default, so existing Cooperatives are untouched), per-member and org-total
+balances, running balances, and `recordMemberShareCapitalEntry` (purchase requires
+active member; redemption allowed for former-member settlement, mirroring
+withdrawal rules). Toggle lives in Record -> Membership Policy ("Enable Share
+Capital Accounts") and rides the existing GET/PATCH
+`/api/cooperative/membership-policy` as `shareCapitalEnabled`.
+POST `/api/transactions/member-share-capital` records manual entries.
+When enabled: member profile gets a third account card (indigo) with full
+history + running balance; Members & Accounts table gains a Share Capital
+column (`share-capital-col` class hidden via `body.share-capital-enabled`);
+member portal gets a Share Capital panel (data via `/api/me/account`);
+Record tab gets a Member Share Capital Account form; Cooperative Books gets a
+Member Share Capital (Total) card; statement/ledger imports classify and post
+`share_capital`/`share_capital_redemption` rows (keyword rules:
+"share capital", "share cap", "share subscription", "share purchase" via new
+`shareCapitalKeywords` in import rules; Type labels in preview override,
+reclassify dropdown, and payment-alias default types). Member profile payload
+includes `share_capital_enabled`, `share_capital_balance`,
+`share_capital_transactions`; `/api/members` returns `shareCapitalEnabled`.
+Tests: `scripts/test-share-capital.js` (toggle, entries, balances, profile,
+keyword classify, ledger import, disabled state); membership-policy test
+updated for new field. **Production:** enable per Cooperative in Record ->
+Membership Policy.
 - **2026-11-21** - **Bank account delete (empty/unused accounts only):**
 New `DELETE /api/bank-accounts/:id` + `deleteBankAccount()` in bank-account-service:
 removes the account only when zero transactions reference its `bank_account_id`;

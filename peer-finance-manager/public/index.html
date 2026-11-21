@@ -1214,6 +1214,7 @@
                     <th>Member #</th>
                     <th>Member</th>
                     <th>Contributions Account</th>
+                    <th class="share-capital-col">Share Capital</th>
                     <th>Loan Account</th>
                     <th>Profile</th>
                   </tr>
@@ -1349,6 +1350,7 @@
           <a href="#recordSectionCheckingBalance">Current Bank Balance</a>
           <a href="#recordSectionCdBalance">CD Account</a>
           <a href="#recordSectionDeposit">Contributions Account</a>
+          <a href="#recordSectionShareCapital" class="share-capital-col">Share Capital</a>
           <a href="#recordSectionDistribution">Distribution</a>
           <a href="#recordSectionBulkDistribution">Bulk Distribution</a>
           <a href="#recordSectionNewLoan">New Loan</a>
@@ -1370,6 +1372,11 @@
                 <span>Initial Contribution Amount</span>
                 <input type="number" id="membershipPolicyContributionAmount" min="0.01" step="0.01" />
               </label>
+              <label class="field-row checkbox-row">
+                <input type="checkbox" id="membershipPolicyShareCapital" />
+                <span>Enable Share Capital Accounts</span>
+              </label>
+              <p class="hint subtle">Turn On Share Capital when your Cooperative issues member shares. It adds a Share Capital account to every member profile, the Members &amp; Accounts table, the Record tab, and statement imports. Leave it off if your Cooperative only uses contributions and loans.</p>
               <p class="hint subtle">Amounts display in the Cooperative currency. Changing them does not rewrite fees or contributions already on the books.</p>
               <button type="button" class="btn primary" id="saveMembershipPolicy">Save Membership Policy</button>
               <p id="membershipPolicyStatus" class="status"></p>
@@ -1638,6 +1645,42 @@
               <button type="submit" class="btn primary">Record Entry</button>
             </form>
             <p id="depositStatus" class="status"></p>
+            </div>
+          </details>
+
+          <details class="card profile-disclosure record-section share-capital-col" id="recordSectionShareCapital">
+            <summary class="record-section-summary">Member Share Capital Account</summary>
+            <div class="profile-disclosure-body">
+            <p class="subtle">Record a Member Share Purchase or Redemption. Balance Updates Immediately on the Member Profile.</p>
+            <form id="shareCapitalForm" class="entry-form">
+              <label>Member
+                <div class="member-picker" data-input-name="memberId" data-placeholder="Search by Name or DOB">
+                  <input type="hidden" name="memberId" required />
+                  <input type="text" class="member-picker-input" placeholder="Search by Name or DOB" autocomplete="off" spellcheck="false" />
+                  <ul class="member-picker-list hidden" role="listbox"></ul>
+                </div>
+              </label>
+              <label>Type
+                <select name="direction" required>
+                  <option value="purchase">Share Purchase</option>
+                  <option value="redemption">Share Redemption</option>
+                </select>
+              </label>
+              <label>Amount
+                <input type="number" name="amount" step="0.01" min="0.01" required />
+              </label>
+              <label>Date
+                <input type="date" name="transactionDate" required />
+              </label>
+              <label>Description (Optional)
+                <input type="text" name="description" placeholder="e.g. 100 ordinary shares" />
+              </label>
+              <label>Reference (Optional)
+                <input type="text" name="reference" placeholder="Bank ref or certificate no." />
+              </label>
+              <button type="submit" class="btn primary">Record Share Entry</button>
+            </form>
+            <p id="shareCapitalStatus" class="status"></p>
             </div>
           </details>
 
@@ -2460,6 +2503,25 @@
               <h3>Loan Accounts</h3>
               <p class="hint">Download Repayment Plan (PDF) and Download Repayment Plan (Excel) Are on Each Open Loan.</p>
               <div id="myLoanLots"></div>
+            </div>
+          </details>
+          <details class="my-account-panel profile-disclosure share hidden" id="myShareCapitalPanel">
+            <summary class="my-account-panel-summary">
+              <span class="my-account-panel-title">Share Capital Balance</span>
+              <span class="my-account-panel-balance money" id="myShareCapitalBalanceSummary">:</span>
+            </summary>
+            <div class="profile-disclosure-body">
+              <h3>Share Capital Account</h3>
+              <div class="table-wrap compact">
+                <table class="member-tx-table">
+                  <thead>
+                    <tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th class="col-description">Description</th></tr>
+                  </thead>
+                  <tbody id="myShareCapitalBody">
+                    <tr><td colspan="5" class="subtle">No Share Capital Activity</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </details>
           <details class="my-account-panel profile-disclosure deposit" id="myDepositPanel">

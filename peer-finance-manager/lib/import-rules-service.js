@@ -15,6 +15,7 @@ const DEFAULT_RULES = {
     "ref[:\\s#]+([a-z0-9-]{4,})",
   ],
   contributionKeywords: ["monthly contribution", "savings contribution", "member contribution"],
+  shareCapitalKeywords: ["share capital", "share cap", "share subscription", "share purchase"],
   loanKeywords: ["loan repayment", "loan payment", "loan payback", "for repayment"],
   withdrawalKeywords: ["zelle payment to", "withdrawal", "atm withdrawal"],
   expenseKeywords: ["monthly fee", "bank fee", "service fee", "maintenance fee"],
@@ -31,6 +32,9 @@ function parseRulesJson(raw) {
       contributionKeywords: Array.isArray(parsed.contributionKeywords)
         ? parsed.contributionKeywords
         : DEFAULT_RULES.contributionKeywords,
+      shareCapitalKeywords: Array.isArray(parsed.shareCapitalKeywords)
+        ? parsed.shareCapitalKeywords
+        : DEFAULT_RULES.shareCapitalKeywords,
       loanKeywords: Array.isArray(parsed.loanKeywords)
         ? parsed.loanKeywords
         : DEFAULT_RULES.loanKeywords,
@@ -59,6 +63,7 @@ function setImportRules(rules) {
   const normalized = {
     referencePatterns: current.referencePatterns,
     contributionKeywords: (rules.contributionKeywords ?? current.contributionKeywords).map(String),
+    shareCapitalKeywords: (rules.shareCapitalKeywords ?? current.shareCapitalKeywords).map(String),
     loanKeywords: (rules.loanKeywords ?? current.loanKeywords).map(String),
     withdrawalKeywords: (rules.withdrawalKeywords ?? current.withdrawalKeywords).map(String),
     expenseKeywords: (rules.expenseKeywords ?? current.expenseKeywords).map(String),
@@ -98,6 +103,7 @@ function extractReferenceFromRules(description, explicitReference, rules = getIm
 function classifyDescriptionWithRules(description, rules = getImportRules()) {
   const text = String(description || "");
   if (textMatchesKeyword(text, rules.expenseKeywords)) return "expense";
+  if (textMatchesKeyword(text, rules.shareCapitalKeywords)) return "share_capital";
   if (textMatchesKeyword(text, rules.loanKeywords)) return "loan_repayment";
   if (textMatchesKeyword(text, rules.contributionKeywords)) return "deposit";
   if (textMatchesKeyword(text, rules.withdrawalKeywords)) return "withdrawal";

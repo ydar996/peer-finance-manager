@@ -127,6 +127,8 @@ const VALID_DEFAULT_LEDGER_TYPES = new Set([
   "cd_purchase",
   "cd_liquidation",
   "investment",
+  "share_capital",
+  "share_capital_redemption",
 ]);
 
 function normalizeDefaultLedgerType(value) {

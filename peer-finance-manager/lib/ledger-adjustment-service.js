@@ -27,6 +27,8 @@ const RECLASSIFIABLE_LEDGER_TYPES = [
   "cd_purchase",
   "cd_liquidation",
   "investment",
+  "share_capital",
+  "share_capital_redemption",
 ];
 
 const SPLIT_MIN_LINES = 2;

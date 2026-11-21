@@ -47,7 +47,12 @@ function getMembershipPolicy() {
     readSetting(SETTING_INITIAL_CONTRIBUTION),
     normalizeAmount(defaults.initialContribution, INITIAL_MEMBERSHIP_CONTRIBUTION)
   );
-  return { membershipFee, initialContribution };
+  const { isShareCapitalEnabled } = require("./share-capital-service");
+  return {
+    membershipFee,
+    initialContribution,
+    shareCapitalEnabled: isShareCapitalEnabled(),
+  };
 }
 
 function requirePositiveAmount(value, label) {
@@ -58,7 +63,7 @@ function requirePositiveAmount(value, label) {
   return Math.round(n * 100) / 100;
 }
 
-function setMembershipPolicy({ membershipFee, initialContribution } = {}) {
+function setMembershipPolicy({ membershipFee, initialContribution, shareCapitalEnabled } = {}) {
   const db = getDb();
   ensureSettingsTable(db);
   if (membershipFee != null && membershipFee !== "") {
@@ -73,6 +78,15 @@ function setMembershipPolicy({ membershipFee, initialContribution } = {}) {
       db,
       SETTING_INITIAL_CONTRIBUTION,
       String(requirePositiveAmount(initialContribution, "Initial contribution"))
+    );
+  }
+  if (shareCapitalEnabled != null) {
+    const { setShareCapitalEnabled } = require("./share-capital-service");
+    setShareCapitalEnabled(
+      shareCapitalEnabled === true ||
+        shareCapitalEnabled === 1 ||
+        String(shareCapitalEnabled).toLowerCase() === "true" ||
+        String(shareCapitalEnabled) === "1"
     );
   }
   return getMembershipPolicy();

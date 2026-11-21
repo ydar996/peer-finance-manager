@@ -1260,6 +1260,10 @@ body.cooperative-report-viewer-open {
   background: #fff7ed;
   border-color: #fdba74;
 }
+.my-account-panel.share {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+}
 .my-account-panel-summary {
   display: flex;
   justify-content: space-between;
@@ -1285,7 +1289,7 @@ body.cooperative-report-viewer-open {
 }
 .account-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 12px;
   margin: 16px 0;
 }
@@ -1311,6 +1315,15 @@ body.cooperative-report-viewer-open {
 .account-card.deposit.selected { border-color: #16a34a; box-shadow: 0 0 0 2px #16a34a; }
 .account-card.loan { background: #fff7ed; border-color: #fdba74; }
 .account-card.loan.selected { border-color: #ea580c; box-shadow: 0 0 0 2px #ea580c; }
+.account-card.share { background: #eef2ff; border-color: #a5b4fc; }
+.account-card.share.selected { border-color: #4f46e5; box-shadow: 0 0 0 2px #4f46e5; }
+
+/* Share Capital surfaces stay hidden until the Cooperative enables the feature in Membership Policy. */
+.share-capital-col { display: none; }
+body.share-capital-enabled th.share-capital-col,
+body.share-capital-enabled td.share-capital-col { display: table-cell; }
+body.share-capital-enabled details.share-capital-col { display: block; }
+body.share-capital-enabled a.share-capital-col { display: block; }
 .account-card .subtle {
   font-size: 12px;
   line-height: 1.4;

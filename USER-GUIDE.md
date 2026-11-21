@@ -20,6 +20,7 @@ Login placeholders use a sample code (`acme`), not a live Cooperative. The app u
 
 - **Country**: Register offers United States and Nigeria. Nigeria links from the `/productngn` page preselect Nigeria. Nigeria displays naira (₦), West Africa (Lagos) time, DD/MM/YYYY dates, Nigerian banks, and Bank Transfer wording. The United States path is unchanged (USD, MM/DD/YYYY).
 - **Membership Policy**: Administrators set the One-Time Registration Fee and Initial Contribution Amount per Cooperative on **Manual Record -> Membership Policy**. Amounts apply to new registrations, fee recordings, and deposit verification only; existing ledger entries are not rewritten. United States defaults remain $100/$100; Nigeria defaults to 50,000/50,000 NGN until the Cooperative confirms its own amounts.
+- **Share Capital Accounts**: Also in **Membership Policy**, the **Enable Share Capital Accounts** toggle gives every member a third account for share purchases and redemptions (common for Nigerian Cooperatives, off by default). When on, Share Capital shows on the member profile as a third account card with full history and running balance, as a Members &amp; Accounts table column, on the member's own portal, as a Record tab entry form, as a Cooperative Books total card, and as an import Type (statement rows mentioning "share capital", "share cap", or "share subscription" classify automatically; payment aliases can also default to it). Existing entries stay on the ledger if the feature is turned off again.
 - **Welcome Email**: Registering a Cooperative emails the administrator a welcome message with the organization code and sign-in links. The same wording is editable under **Automated Messages** (Organization Administrator Welcome) and every send appears under **Messages -> Email Notices**.
 
 ## Table of Contents
@@ -75,6 +76,7 @@ Members and staff **cannot** use each other's login page. Each Cooperative has i
 |------|----------------|
 | **Cooperative** | Your member-owned organization (the group using PFM). |
 | **Contributions Account** | A member's savings/contribution balance (deposits, withdrawals, distributions, fees). |
+| **Share Capital Account** | A member's purchased shares minus redemptions. Only visible when the Cooperative enables Share Capital in Membership Policy. |
 | **Loan Account** | Money a member borrowed and is paying back (separate from Contributions). |
 | **Cooperative Books** | The treasurer's view of all income, expenses, bank balance, and member totals. |
 | **Ledger** | The official list of all money movements in your Cooperative. |
@@ -112,6 +114,7 @@ First-time users must change the temporary password when prompted.
 | **Emergency Contact** | View or update your emergency contact. |
 | **Profile Photo** | Upload or change your photo. |
 | **Contributions Account** | Balance and transaction history with running balance. |
+| **Share Capital Account** | Balance and share purchase/redemption history with running balance. Shown only when your Cooperative enables Share Capital. |
 | **Loan Account** | Each loan you have; expand to see repayments and balance after each payment. Paid loans are collapsed by default. Use **Download PDF** or **Download Excel** for the repayment plan, and **Download Monthly Statement** for activity. |
 | **Loan Terms to Review** | After you apply, your Cooperative sends a repayment schedule. The easiest place to Accept or Reject is the inbox notice. This card is a backup view of the same schedule, with **Download PDF** and **Download Excel** for the repayment plan. |
 | **Apply for a Loan** | Submit a loan application. Applications without a term default to 12 months. |
@@ -210,6 +213,7 @@ Click any card to see a detailed table. Common cards:
 | **Ledger Checking Balance** | Bank balance from imported/manual ledger activity. |
 | **Bank Reconcile Status** | **Reconciled** when live ledger still matches the last successful bank import; **Out of Sync** if the cash balance at the verified date drifted. A **Split** can raise the internal row count by 1 while the bank balance stays the same; the app realigns that row count when the balance still matches. **Not Verified** until the first post-deploy import. |
 | **Member Contributions Accounts (Total)** | Sum of all member contribution balances. |
+| **Member Share Capital (Total)** | Sum of all member share capital balances. Shown only when Share Capital is enabled. |
 | **Member Contributions & Withdrawals** | Contributions minus withdrawals (excludes distributions and fees). |
 | **Registration Income** | Membership fees collected. |
 | **Cooperative Expenses** | Operating costs. |
@@ -229,7 +233,7 @@ Click **Refresh** to reload after imports or manual entries.
 
 - Search by **name** or **member number** (e.g. AIC-001).
 - Click a row to open their profile on the right.
-- On a wide screen the member list and the profile share the window **half and half**. All five columns (**Member #**, **Member**, **Contributions Account**, **Loan Account**, **Profile**) stay in the list; if the window is tight, the list scrolls sideways. Each pane scrolls if it is taller than the window. **Contributions Account** and **Loan Account** cards sit at the top of the profile so they stay on screen with the list.
+- On a wide screen the member list and the profile share the window **half and half**. All columns (**Member #**, **Member**, **Contributions Account**, **Loan Account**, **Profile**, plus **Share Capital** when enabled) stay in the list; if the window is tight, the list scrolls sideways. Each pane scrolls if it is taller than the window. **Contributions Account**, **Share Capital** (when enabled), and **Loan Account** cards sit at the top of the profile so they stay on screen with the list.
 - On a narrower window the profile moves under the list. Scroll the page as needed.
 - Default list shows **Active** members only.
 - Turn on **Show Former Members** to see Resigned, Deceased, Expelled, or Suspended accounts (ledger history still available).
@@ -241,6 +245,7 @@ Click **Refresh** to reload after imports or manual entries.
 | **Membership Biodata** | Name, contact, address, joined date, etc. |
 | **Membership Status** | Collapsed by default. Expand to set status **type** (Active, Resigned, Deceased, Expelled, Suspended). |
 | **Contributions Account** | Balance and transaction history. |
+| **Share Capital** | Balance and share purchase/redemption history. Shown only when Share Capital is enabled. |
 | **Loan Account** | Active and paid loans with repayment history. |
 | **Upload Photo** | Admin can add or change profile photo. |
 
@@ -298,6 +303,7 @@ Each form is collapsed until you expand it.
 | **Current Bank Balance** | Update checking balance from a bank statement (reference point). |
 | **CD Account Balance and Term** | Update CD balance from a bank statement, and enter term details when a CD is new or rolls over (beginning balance, annual rate, APY, renewal date, maturity date, term length). From Cooperative Books, **Expected CD Interest** → **Open Record** opens this form. |
 | **Member Contributions Account** | Post a **Contribution** or **Withdrawal** for one member. |
+| **Member Share Capital Account** | Post a **Share Purchase** or **Share Redemption** for one member. Shown only when Share Capital is enabled in Membership Policy. |
 | **Member Distribution** | Credit one member with profit/interest (distribution). |
 | **Bulk Distribution (Excel)** | Upload a sheet with member names and amounts for a batch distribution. |
 | **New Loan** | Create a loan (borrower, two guarantors, principal, rate, term). |

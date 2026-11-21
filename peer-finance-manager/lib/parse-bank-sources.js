@@ -22,6 +22,8 @@ const TYPE_MAP = {
   "Purchase of Certificate of Deposit with Bank of America": "cd_purchase",
   "Liquidation of Certificate of Deposit": "cd_liquidation",
   "Investment in Caribe Restaurant and Lounge": "investment",
+  "Share Capital": "share_capital",
+  "Share Capital Redemption": "share_capital_redemption",
 };
 
 const COOPERATIVE_LEDGER_TYPES = new Set([

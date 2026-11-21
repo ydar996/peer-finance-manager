@@ -36,6 +36,8 @@ const TRANSACTION_TYPES = {
   CD_PURCHASE: "cd_purchase",
   CD_LIQUIDATION: "cd_liquidation",
   INVESTMENT: "investment",
+  SHARE_CAPITAL: "share_capital",
+  SHARE_CAPITAL_REDEMPTION: "share_capital_redemption",
 };
 
 module.exports = {

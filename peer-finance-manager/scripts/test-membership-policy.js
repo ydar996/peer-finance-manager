@@ -24,6 +24,7 @@ const { applyCountryProfileDefaults } = require("../lib/country-profile");
 assert.deepStrictEqual(getMembershipPolicy(), {
   membershipFee: 100,
   initialContribution: 100,
+  shareCapitalEnabled: false,
 });
 
 const NG_ORG = "membership-policy-ng-coop";
@@ -40,7 +41,13 @@ runWithOrg(NG_ORG, () => {
   assert.deepStrictEqual(getMembershipPolicy(), {
     membershipFee: 25000,
     initialContribution: 10000,
+    shareCapitalEnabled: false,
   });
+
+  const shareOn = setMembershipPolicy({ shareCapitalEnabled: true });
+  assert.strictEqual(shareOn.shareCapitalEnabled, true);
+  const shareOff = setMembershipPolicy({ shareCapitalEnabled: false });
+  assert.strictEqual(shareOff.shareCapitalEnabled, false);
 
   assert.throws(() => setMembershipPolicy({ membershipFee: 0 }), /greater than zero/);
   assert.throws(() => setMembershipPolicy({ initialContribution: -5 }), /greater than zero/);
@@ -54,6 +61,7 @@ runWithOrg(US_ORG, () => {
   assert.deepStrictEqual(getMembershipPolicy(), {
     membershipFee: 100,
     initialContribution: 100,
+    shareCapitalEnabled: false,
   });
 });
 closeDb(US_ORG);

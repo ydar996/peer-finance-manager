@@ -51,6 +51,10 @@ function sumByTypes(types, memberId = null) {
 function getMemberAccountSummary(memberId) {
   const db = getDb();
   const depositBalance = getMemberDepositAccountBalance(memberId);
+  const { getMemberShareCapitalBalance, isShareCapitalEnabled } = require("./share-capital-service");
+  const shareCapitalBalance = isShareCapitalEnabled()
+    ? getMemberShareCapitalBalance(memberId)
+    : 0;
 
   const loans = db
     .prepare(
@@ -74,6 +78,7 @@ function getMemberAccountSummary(memberId) {
     const ledger = getMemberLoanLedgerSummary(memberId);
     return {
       depositAccountBalance: depositBalance,
+      shareCapitalBalance,
       loanAccountBalance: ledger.outstanding,
       loanOverpaymentCredit: ledger.overpaymentCredit,
       activeLoans: ledger.activeLoanCount,
@@ -85,6 +90,7 @@ function getMemberAccountSummary(memberId) {
 
   return {
     depositAccountBalance: depositBalance,
+    shareCapitalBalance,
     loanAccountBalance: loanOutstanding || loanTxBalance,
     loanOverpaymentCredit: 0,
     activeLoans: loans.filter((l) => l.status === "active").length,
@@ -288,6 +294,12 @@ function getCooperativeBooks() {
     (sum, row) => sum + getMemberDepositAccountBalance(row.id),
     0
   );
+  const {
+    isShareCapitalEnabled,
+    getTotalShareCapital,
+  } = require("./share-capital-service");
+  const shareCapitalEnabled = isShareCapitalEnabled();
+  const totalShareCapital = shareCapitalEnabled ? getTotalShareCapital() : 0;
 
   return {
     memberCount,
@@ -297,6 +309,8 @@ function getCooperativeBooks() {
     distributions,
     registrationIncome,
     totalMemberDepositAccounts: totalMemberBalances,
+    shareCapitalEnabled,
+    totalMemberShareCapital: totalShareCapital,
     loansOutstanding: hasBankLoanLedgerData
       ? bankLoanOutstanding
       : Math.max(0, (loanPortfolio.principal || 0) - (loanPortfolio.collected || 0)),

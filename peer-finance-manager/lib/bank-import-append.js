@@ -21,6 +21,8 @@ const MEMBER_LEDGER_TYPES = new Set([
   TRANSACTION_TYPES.LOAN_REPAYMENT,
   TRANSACTION_TYPES.LOAN_DISBURSEMENT,
   TRANSACTION_TYPES.DISTRIBUTION,
+  TRANSACTION_TYPES.SHARE_CAPITAL,
+  TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION,
 ]);
 
 function mapLedgerType(ledgerType) {
@@ -474,6 +476,9 @@ function insertAppendTransaction({
   if (type === TRANSACTION_TYPES.LOAN_DISBURSEMENT && signedAmount > 0) {
     signedAmount = -signedAmount;
   }
+  if (type === TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION && signedAmount > 0) {
+    signedAmount = -signedAmount;
+  }
 
   const insertInfo = insertTx.run(
     memberId,
@@ -517,6 +522,8 @@ function insertAppendTransaction({
   if (type === TRANSACTION_TYPES.LOAN_REPAYMENT) counts.loanRepayments += 1;
   if (type === TRANSACTION_TYPES.LOAN_DISBURSEMENT) counts.loanDisbursements += 1;
   if (type === TRANSACTION_TYPES.DISTRIBUTION) counts.distributions += 1;
+  if (type === TRANSACTION_TYPES.SHARE_CAPITAL) counts.shareCapital = (counts.shareCapital || 0) + 1;
+  if (type === TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION) counts.shareCapitalRedemptions = (counts.shareCapitalRedemptions || 0) + 1;
   return {
     inserted: true,
     transactionId: Number(insertInfo.lastInsertRowid) || null,

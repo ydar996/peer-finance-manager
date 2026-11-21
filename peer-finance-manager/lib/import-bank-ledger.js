@@ -29,6 +29,8 @@ const MEMBER_LEDGER_TYPES = new Set([
   TRANSACTION_TYPES.LOAN_DISBURSEMENT,
   TRANSACTION_TYPES.DISTRIBUTION,
   TRANSACTION_TYPES.MEMBERSHIP_FEE,
+  TRANSACTION_TYPES.SHARE_CAPITAL,
+  TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION,
 ]);
 
 function mapLedgerType(ledgerType) {
@@ -43,6 +45,8 @@ function mapLedgerType(ledgerType) {
     cd_purchase: TRANSACTION_TYPES.CD_PURCHASE,
     cd_liquidation: TRANSACTION_TYPES.CD_LIQUIDATION,
     investment: TRANSACTION_TYPES.INVESTMENT,
+    share_capital: TRANSACTION_TYPES.SHARE_CAPITAL,
+    share_capital_redemption: TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION,
   };
   return map[ledgerType] || null;
 }
@@ -161,6 +165,9 @@ function insertBankLedgerTransaction({
   if (type === TRANSACTION_TYPES.LOAN_DISBURSEMENT && signedAmount > 0) {
     signedAmount = -signedAmount;
   }
+  if (type === TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION && signedAmount > 0) {
+    signedAmount = -signedAmount;
+  }
   const insertInfo = insertTx.run(
     memberId,
     type,
@@ -189,6 +196,8 @@ function insertBankLedgerTransaction({
   if (type === TRANSACTION_TYPES.LOAN_DISBURSEMENT) counts.loanDisbursements += 1;
   if (type === TRANSACTION_TYPES.DISTRIBUTION) counts.distributions = (counts.distributions || 0) + 1;
   if (type === TRANSACTION_TYPES.MEMBERSHIP_FEE) counts.membershipFees = (counts.membershipFees || 0) + 1;
+  if (type === TRANSACTION_TYPES.SHARE_CAPITAL) counts.shareCapital = (counts.shareCapital || 0) + 1;
+  if (type === TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION) counts.shareCapitalRedemptions = (counts.shareCapitalRedemptions || 0) + 1;
   return true;
 }
 

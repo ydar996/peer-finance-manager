@@ -1334,6 +1334,33 @@ async function loadMyAccount() {
     if (depositBalanceSummary) depositBalanceSummary.textContent = fmt.format(data.depositBalance || 0);
     if (loanBalanceSummary) loanBalanceSummary.textContent = fmt.format(data.loanSummary?.outstanding || 0);
 
+    const sharePanel = $("#myShareCapitalPanel");
+    if (sharePanel) {
+      sharePanel.classList.toggle("hidden", !data.shareCapitalEnabled);
+      if (data.shareCapitalEnabled) {
+        const shareSummary = $("#myShareCapitalBalanceSummary");
+        if (shareSummary) shareSummary.textContent = fmt.format(data.shareCapitalBalance || 0);
+        const shareBody = $("#myShareCapitalBody");
+        const shareRows = data.shareCapitalTransactions || [];
+        if (shareBody) {
+          shareBody.innerHTML = shareRows.length
+            ? shareRows
+                .map(
+                  (t) => `
+              <tr>
+                <td class="col-date">${escapeHtml(formatDate(t.transaction_date))}</td>
+                <td class="col-type">${escapeHtml(formatTxType(t.type))}</td>
+                <td class="money">${fmt.format(t.amount)}</td>
+                <td class="money">${fmt.format(t.balance_after ?? 0)}</td>
+                <td class="col-description">${escapeHtml(t.description || "")}</td>
+              </tr>`
+                )
+                .join("")
+            : '<tr><td colspan="5" class="subtle">No Share Capital Activity</td></tr>';
+        }
+      }
+    }
+
     const depositTypes = DEPOSIT_LEDGER_TYPES;
     const depositRows = withDepositRunningBalances(
       (data.depositTransactions || []).filter((t) => depositTypes.has(t.type))
@@ -1957,6 +1984,13 @@ async function loadBooks() {
         amount: books.memberDeposits,
         note: "Contributions Minus Withdrawals Only: Excludes Distributions &amp; Registration Fees",
       }),
+      books.shareCapitalEnabled
+        ? bookCardHtml("share-capital", {
+            label: "Member Share Capital (Total)",
+            amount: books.totalMemberShareCapital,
+            note: "Share Purchases Minus Redemptions Across All Members",
+          })
+        : "",
       bookCardHtml("registration-income", {
         label: "Registration Income",
         amount: books.registrationIncome,
@@ -2148,8 +2182,10 @@ async function loadMembers() {
     // Always load former members for pickers; the Show Former Members toggle filters the table.
     const res = await fetch("/api/members?profiles=true&includeFormer=true");
     if (requestId !== membersListRequestId) return;
-    const { members } = await res.json();
-    membersListCache = members || [];
+    const data = await res.json();
+    shareCapitalEnabledFromMembers = Boolean(data.shareCapitalEnabled);
+    applyShareCapitalUi();
+    membersListCache = data.members || [];
     renderMembersList();
   } catch (err) {
     if (requestId !== membersListRequestId) return;
@@ -2214,6 +2250,7 @@ function renderMembersList() {
           : ""
       }</td>
       <td class="money member-account-cell" data-account-panel="deposit">${fmt.format(m.deposit_balance ?? m.balance)}</td>
+      <td class="money member-account-cell share-capital-col" data-account-panel="share">${fmt.format(m.share_capital_balance || 0)}</td>
       <td class="money member-account-cell" data-account-panel="loan">${fmt.format(m.loan_balance || 0)}</td>
       <td>${m.profile_id ? '<span class="badge ok">On File</span>' : '<span class="badge warn">Missing</span>'}</td>
     </tr>`
@@ -2640,6 +2677,8 @@ function formatTxType(type) {
     loan_repayment: "Loan Repayment",
     loan_overpayment: "Loan Overpayment",
     late_fee: "Late Fee",
+    share_capital: "Share Purchase",
+    share_capital_redemption: "Share Redemption",
   };
   return labels[type] || String(type || "").replace(/_/g, " ");
 }
@@ -2657,7 +2696,20 @@ const LEDGER_RECLASSIFY_TYPES = [
   { value: "investment", label: "Investment" },
 ];
 
-const LEDGER_ADJUSTABLE_TYPES = new Set(LEDGER_RECLASSIFY_TYPES.map((t) => t.value));
+const LEDGER_RECLASSIFY_SHARE_TYPES = [
+  { value: "share_capital", label: "Share Capital" },
+  { value: "share_capital_redemption", label: "Share Redemption" },
+];
+
+function ledgerReclassifyTypes() {
+  return shareCapitalUiEnabled()
+    ? [...LEDGER_RECLASSIFY_TYPES, ...LEDGER_RECLASSIFY_SHARE_TYPES]
+    : LEDGER_RECLASSIFY_TYPES;
+}
+
+function ledgerAdjustableTypes() {
+  return new Set(ledgerReclassifyTypes().map((t) => t.value));
+}
 const LEDGER_SPLIT_MEMBER_OPTIONAL = new Set([
   "expense",
   "cd_purchase",
@@ -2670,7 +2722,7 @@ function adminCanEditLedgerRows() {
 }
 
 function ledgerReclassifyOptionsHtml(currentType) {
-  return LEDGER_RECLASSIFY_TYPES.map(
+  return ledgerReclassifyTypes().map(
     (t) =>
       `<option value="${escapeHtml(t.value)}"${t.value === currentType ? " selected" : ""}>${escapeHtml(t.label)}</option>`
   ).join("");
@@ -2678,7 +2730,7 @@ function ledgerReclassifyOptionsHtml(currentType) {
 
 function ledgerTxControlCellHtml(tx, memberId) {
   if (!adminCanEditLedgerRows()) return "";
-  if (!LEDGER_ADJUSTABLE_TYPES.has(tx.type)) {
+  if (!ledgerAdjustableTypes().has(tx.type)) {
     return '<td class="subtle">:</td>';
   }
   const amount = Number(tx.amount) || 0;
@@ -3139,7 +3191,7 @@ function loanTxTableRows(transactions, memberId) {
 function loanBankLedgerPanelHtml(loanTransactions, memberId) {
   if (!adminCanEditLedgerRows()) return "";
   const adjustable = (loanTransactions || []).filter((tx) =>
-    LEDGER_ADJUSTABLE_TYPES.has(tx.type)
+    ledgerAdjustableTypes().has(tx.type)
   );
   if (!adjustable.length) return "";
   const rows = adjustable
@@ -3269,6 +3321,20 @@ function txTableRows(transactions) {
     </tr>`
     )
     .join("");
+}
+
+function shareCapitalActivityPanelHtml(p, memberId) {
+  const txCount = p.share_capital_transactions?.length || 0;
+  const adminCols = adminCanEditLedgerRows();
+  return `
+    <h4 class="section-title">Share Capital Account Activity</h4>
+    <p class="subtle">Share Capital Balance ${fmt.format(p.share_capital_balance || 0)} · ${txCount} ${txCount === 1 ? "Entry" : "Entries"}</p>
+    <div class="table-wrap compact">
+      <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th>${adminCols ? "<th>Category</th>" : ""}</tr></thead>
+        <tbody>${depositTxTableRows(p.share_capital_transactions, memberId)}</tbody>
+      </table>
+    </div>`;
 }
 
 function loanActivityPanelHtml(p, memberId) {
@@ -3669,6 +3735,13 @@ async function showProfile(memberId) {
           <p class="subtle">${loanAccountSubtitle(p)}</p>
           <p class="account-card-hint">Click for Loans and Repayments</p>
         </button>
+        ${p.share_capital_enabled ? `
+        <button type="button" class="account-card share" data-account-panel="share" aria-expanded="false">
+          <h4>Share Capital</h4>
+          <p class="account-balance money">${fmt.format(p.share_capital_balance || 0)}</p>
+          <p class="subtle">Shares Purchased Minus Redemptions</p>
+          <p class="account-card-hint">Click for Full History</p>
+        </button>` : ""}
       </div>
 
       ${
@@ -3684,6 +3757,7 @@ async function showProfile(memberId) {
       <div id="memberAccountDetail" class="account-detail-wrap hidden">
         <div data-account-panel-body="deposit">${depositActivityPanelHtml(p, memberId)}</div>
         <div data-account-panel-body="loan" class="hidden">${loanActivityPanelHtml(p, memberId)}</div>
+        ${p.share_capital_enabled ? `<div data-account-panel-body="share" class="hidden">${shareCapitalActivityPanelHtml(p, memberId)}</div>` : ""}
       </div>
 
       ${hasBiodata ? `
@@ -3834,7 +3908,17 @@ async function loadLoans() {
   }
 }
 
-let membershipPolicy = { membershipFee: 100, initialContribution: 100 };
+let membershipPolicy = { membershipFee: 100, initialContribution: 100, shareCapitalEnabled: false };
+let shareCapitalEnabledFromMembers = false;
+
+function shareCapitalUiEnabled() {
+  return Boolean(membershipPolicy.shareCapitalEnabled || shareCapitalEnabledFromMembers);
+}
+
+function applyShareCapitalUi() {
+  const enabled = shareCapitalUiEnabled();
+  document.body.classList.toggle("share-capital-enabled", enabled);
+}
 
 function applyMembershipPolicyToUi() {
   const feeLabel = $("#recordMembershipFeeLabel");
@@ -3860,12 +3944,16 @@ async function loadMembershipPolicyPanel() {
     membershipPolicy = {
       membershipFee: Number(data.membershipFee) || membershipPolicy.membershipFee,
       initialContribution: Number(data.initialContribution) || membershipPolicy.initialContribution,
+      shareCapitalEnabled: Boolean(data.shareCapitalEnabled),
     };
     const fee = $("#membershipPolicyFeeAmount");
     const contrib = $("#membershipPolicyContributionAmount");
+    const shareToggle = $("#membershipPolicyShareCapital");
     if (fee) fee.value = membershipPolicy.membershipFee;
     if (contrib) contrib.value = membershipPolicy.initialContribution;
+    if (shareToggle) shareToggle.checked = membershipPolicy.shareCapitalEnabled;
     applyMembershipPolicyToUi();
+    applyShareCapitalUi();
     if (status) status.textContent = "";
   } catch (err) {
     if (status) {
@@ -3879,21 +3967,25 @@ async function saveMembershipPolicy() {
   const status = $("#membershipPolicyStatus");
   const membershipFee = Number($("#membershipPolicyFeeAmount")?.value);
   const initialContribution = Number($("#membershipPolicyContributionAmount")?.value);
+  const shareCapitalEnabled = Boolean($("#membershipPolicyShareCapital")?.checked);
   try {
     const res = await fetch("/api/cooperative/membership-policy", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ membershipFee, initialContribution }),
+      body: JSON.stringify({ membershipFee, initialContribution, shareCapitalEnabled }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Save failed");
     membershipPolicy = {
       membershipFee: Number(data.membershipFee) || membershipFee,
       initialContribution: Number(data.initialContribution) || initialContribution,
+      shareCapitalEnabled: Boolean(data.shareCapitalEnabled),
     };
     applyMembershipPolicyToUi();
+    applyShareCapitalUi();
+    renderMembersList();
     if (status) {
-      status.textContent = `Saved: Registration fee ${fmt.format(membershipPolicy.membershipFee)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}. Applies to new activity only.`;
+      status.textContent = `Saved: Registration fee ${fmt.format(membershipPolicy.membershipFee)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}. Applies to new activity only.`;
       status.className = "status ok";
     }
   } catch (err) {
@@ -5763,6 +5855,17 @@ const BANK_APPEND_LEDGER_TYPES = [
   { value: "cd_liquidation", label: "Liquidation of Certificate of Deposit", memberRequired: false },
   { value: "investment", label: "Investment", memberRequired: false },
 ];
+
+const BANK_APPEND_SHARE_TYPES = [
+  { value: "share_capital", label: "Share Capital", memberRequired: true },
+  { value: "share_capital_redemption", label: "Share Capital Redemption", memberRequired: true },
+];
+
+function bankAppendLedgerTypes() {
+  return shareCapitalUiEnabled()
+    ? [...BANK_APPEND_LEDGER_TYPES, ...BANK_APPEND_SHARE_TYPES]
+    : BANK_APPEND_LEDGER_TYPES;
+}
 let bankAccountsCache = [];
 let importMemberNamesCache = [];
 let statementFormatLabels = {
@@ -5846,7 +5949,7 @@ function paymentAliasRowHtml(alias = {}) {
     .join("");
   const typeOptions = [
     `<option value="">Auto-detect</option>`,
-    ...BANK_APPEND_LEDGER_TYPES.map(
+    ...bankAppendLedgerTypes().map(
       (t) =>
         `<option value="${t.value}"${t.value === defaultLedgerType ? " selected" : ""}>${escapeHtml(t.label)}</option>`
     ),
@@ -6115,7 +6218,7 @@ function updateApplyBankAppendButton() {
 }
 
 function bankAppendMemberRequired(ledgerType) {
-  return BANK_APPEND_LEDGER_TYPES.find((t) => t.value === ledgerType)?.memberRequired ?? false;
+  return bankAppendLedgerTypes().find((t) => t.value === ledgerType)?.memberRequired ?? false;
 }
 
 function validateBankAppendRowClient(row) {
@@ -6202,7 +6305,7 @@ function rebucketBankAppendPreviewClient() {
 }
 
 function bankAppendTypeSelectHtml(row) {
-  const options = BANK_APPEND_LEDGER_TYPES.map(
+  const options = bankAppendLedgerTypes().map(
     (t) =>
       `<option value="${escapeHtml(t.value)}"${t.value === row.ledgerType ? " selected" : ""}>${escapeHtml(t.label)}</option>`
   ).join("");
@@ -6742,7 +6845,7 @@ $("#bankAppendPreview")?.addEventListener("change", (e) => {
   if (e.target.classList.contains("bank-append-type")) {
     row.ledgerType = e.target.value;
     row.typeLabel =
-      BANK_APPEND_LEDGER_TYPES.find((t) => t.value === row.ledgerType)?.label || row.ledgerType;
+      bankAppendLedgerTypes().find((t) => t.value === row.ledgerType)?.label || row.ledgerType;
     row.userOverride = true;
     row.approvedAsIs = false;
   }
@@ -8001,7 +8104,11 @@ async function loadRecordTabData() {
       fetch("/api/loans?status=active"),
     ]);
     if (requestId !== recordTabRequestId) return;
-    const { members } = await membersRes.json();
+    const { members, shareCapitalEnabled } = await membersRes.json();
+    if (shareCapitalEnabled != null) {
+      shareCapitalEnabledFromMembers = Boolean(shareCapitalEnabled);
+      applyShareCapitalUi();
+    }
     const { categories } = await categoriesRes.json();
     const { loans } = await loansRes.json();
     cachedMembers = members || [];
@@ -8214,6 +8321,33 @@ $("#depositForm")?.addEventListener("submit", async (e) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     setFormStatus(status, `Recorded ${payload.type} of ${fmt.format(Math.abs(data.amount))}.`, true);
+    e.target.amount.value = "";
+    e.target.description.value = "";
+    e.target.reference.value = "";
+    loadMembers();
+    loadBooks();
+    if (selectedMemberId === payload.memberId) showProfile(payload.memberId);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#shareCapitalForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#shareCapitalStatus");
+  status.textContent = "Saving…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const res = await fetch("/api/transactions/member-share-capital", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const verb = payload.direction === "redemption" ? "share redemption" : "share purchase";
+    setFormStatus(status, `Recorded ${verb} of ${fmt.format(Math.abs(data.amount))}.`, true);
     e.target.amount.value = "";
     e.target.description.value = "";
     e.target.reference.value = "";

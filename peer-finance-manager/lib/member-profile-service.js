@@ -63,6 +63,7 @@ function listMembersWithProfiles({ includeFormer = false } = {}) {
       membership_fee_paid: m.membership_fee_paid,
       profile_id: m.profile_id,
       deposit_balance: accounts.depositAccountBalance,
+      share_capital_balance: accounts.shareCapitalBalance || 0,
       loan_balance: accounts.loanAccountBalance,
       active_loans: accounts.activeLoans,
       balance: accounts.depositAccountBalance,
@@ -106,6 +107,13 @@ function getMemberProfile(memberId) {
        ORDER BY transaction_date DESC, id DESC`
     )
     .all(memberId);
+  const shareCapitalTransactions = db
+    .prepare(
+      `SELECT * FROM transactions
+       WHERE member_id = ? AND type IN ('share_capital','share_capital_redemption')
+       ORDER BY transaction_date DESC, id DESC`
+    )
+    .all(memberId);
 
   const loanLots = accounts.loanLots?.length
     ? accounts.loanLots
@@ -113,11 +121,14 @@ function getMemberProfile(memberId) {
       ? getMemberLoanLots(memberId)
       : [];
 
+  const { isShareCapitalEnabled } = require("./share-capital-service");
   return {
     ...formatMemberProfileForDisplay(profile),
     member_id: memberId,
     name: formatPersonName(profile.ledger_account_name) || profile.ledger_account_name,
+    share_capital_enabled: isShareCapitalEnabled(),
     deposit_account_balance: accounts.depositAccountBalance,
+    share_capital_balance: accounts.shareCapitalBalance || 0,
     loan_account_balance: accounts.loanAccountBalance,
     loan_overpayment_credit: accounts.loanOverpaymentCredit || 0,
     active_loans: accounts.activeLoans,
@@ -126,6 +137,11 @@ function getMemberProfile(memberId) {
     loan_lots: loanLots,
     deposit_transactions: attachLedgerKeys(depositTransactions),
     loan_transactions: attachLedgerKeys(loanTransactions),
+    share_capital_transactions: attachLedgerKeys(
+      require("./share-capital-service").attachShareCapitalRunningBalances(
+        shareCapitalTransactions
+      )
+    ),
     account_balance: accounts.depositAccountBalance,
   };
 }

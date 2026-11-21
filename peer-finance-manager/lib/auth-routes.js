@@ -365,6 +365,27 @@ function registerAuthRoutes(app, deps = {}) {
       if (hasBankLoanLedger()) {
         loanSummary = getMemberLoanLedgerSummary(user.memberId);
       }
+      const {
+        isShareCapitalEnabled,
+        getMemberShareCapitalBalance,
+        attachShareCapitalRunningBalances,
+        SHARE_CAPITAL_TYPES,
+      } = require("./share-capital-service");
+      const shareCapitalEnabled = isShareCapitalEnabled();
+      const shareCapitalTransactions = shareCapitalEnabled
+        ? attachShareCapitalRunningBalances(
+            getMemberTransactions(user.memberId, 500).filter((tx) =>
+              SHARE_CAPITAL_TYPES.includes(tx.type)
+            )
+          ).map((tx) => ({
+            id: tx.id,
+            type: tx.type,
+            amount: tx.amount,
+            transaction_date: tx.transaction_date,
+            description: tx.description,
+            balance_after: tx.balance_after,
+          }))
+        : [];
       res.json({
         user,
         profile,
@@ -372,6 +393,11 @@ function registerAuthRoutes(app, deps = {}) {
         depositTransactions,
         statementMonths: listMemberDepositStatementMonths(user.memberId),
         loanSummary,
+        shareCapitalEnabled,
+        shareCapitalBalance: shareCapitalEnabled
+          ? getMemberShareCapitalBalance(user.memberId)
+          : 0,
+        shareCapitalTransactions,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

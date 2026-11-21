@@ -310,6 +310,8 @@ app.get("/api/config", (req, res) => {
 app.get("/api/members", (req, res) => {
   try {
     const withProfiles = req.query.profiles === "true";
+    const { isShareCapitalEnabled } = require("./lib/share-capital-service");
+    const shareCapitalEnabled = isShareCapitalEnabled();
     // Admins/staff may include former members for pickers and Show Former Members.
     // Members always see only their own active row.
     const includeFormer =
@@ -321,12 +323,13 @@ app.get("/api/members", (req, res) => {
         ? listMembersWithProfiles({ includeFormer: true })
         : listMembersWithBalances({ includeFormer: true });
       const mine = all.filter((m) => m.id === req.user.memberId);
-      return res.json({ members: mine });
+      return res.json({ members: mine, shareCapitalEnabled });
     }
     res.json({
       members: withProfiles
         ? listMembersWithProfiles(listOpts)
         : listMembersWithBalances(listOpts),
+      shareCapitalEnabled,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -640,6 +643,16 @@ app.post("/api/transactions/member", (req, res) => {
   }
 });
 
+app.post("/api/transactions/member-share-capital", (req, res) => {
+  try {
+    const { recordMemberShareCapitalEntry } = require("./lib/share-capital-service");
+    const result = recordMemberShareCapitalEntry(req.body);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.post("/api/distributions/member", (req, res) => {
   try {
     const result = recordMemberDistribution(req.body);
@@ -917,6 +930,7 @@ app.patch("/api/cooperative/membership-policy", requireAdmin, restoreOrgContext,
     const policy = setMembershipPolicy({
       membershipFee: req.body?.membershipFee,
       initialContribution: req.body?.initialContribution,
+      shareCapitalEnabled: req.body?.shareCapitalEnabled,
     });
     res.json({ success: true, ...policy });
   } catch (err) {
