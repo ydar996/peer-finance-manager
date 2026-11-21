@@ -867,6 +867,16 @@ app.patch("/api/bank-accounts/:id", requireAdmin, restoreOrgContext, (req, res) 
   }
 });
 
+app.delete("/api/bank-accounts/:id", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { deleteBankAccount } = require("./lib/bank-account-service");
+    const result = deleteBankAccount(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.get("/api/cooperative/loan-policy", requireAdmin, restoreOrgContext, (req, res) => {
   try {
     const { getLoanPaymentPolicy } = require("./lib/loan-policy-service");

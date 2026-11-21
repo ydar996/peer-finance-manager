@@ -6909,6 +6909,34 @@ $("#bankAppendForm")?.addEventListener("change", (e) => {
 });
 $("#applyBankAppend")?.addEventListener("click", handleApplyBankAppendClick);
 $("#bankAccountSettingsForm")?.addEventListener("submit", saveBankAccountSettings);
+$("#deleteBankAccountBtn")?.addEventListener("click", async () => {
+  const editSelect = $("#bankAccountEditSelect");
+  const status = $("#bankAccountSettingsStatus");
+  const accountId = editSelect?.value;
+  const account = bankAccountsCache.find((a) => String(a.id) === String(accountId));
+  if (!account) {
+    status.textContent = "Choose an account to delete.";
+    status.className = "status err";
+    return;
+  }
+  const ok = await appConfirm(
+    `Delete ${account.accountLabel}? Only accounts with no ledger transactions can be deleted.`,
+    { title: "Delete Bank Account", variant: "danger", confirmLabel: "Delete" }
+  );
+  if (!ok) return;
+  try {
+    const res = await fetch(`/api/bank-accounts/${accountId}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not delete account");
+    status.textContent = `Deleted ${data.accountLabel}.`;
+    status.className = "status ok";
+    await loadBankAccountsData();
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = "status err";
+  }
+});
+
 
 document.querySelectorAll("#panel-import > details.import-panel-section").forEach((section) => {
   section.addEventListener("toggle", () => {

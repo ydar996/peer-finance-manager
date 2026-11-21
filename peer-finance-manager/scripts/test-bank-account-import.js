@@ -94,6 +94,27 @@ runWithOrg(ORG, () => {
   const zen = listBankAccounts().find((a) => a.accountLabel === "Zenith Savings");
   assert.strictEqual(zen.institutionName, "Zenith Bank");
   assert.strictEqual(zen.accountNumber, "555111");
+
+  // 5. Delete: unused account is removed; deleting primary promotes the next account.
+  const { deleteBankAccount } = require("../lib/bank-account-service");
+  const zenId = zen.id;
+  const del = deleteBankAccount(zenId);
+  assert.strictEqual(del.deleted, true);
+  assert(!listBankAccounts().some((a) => a.id === zenId));
+  const opsAcc = listBankAccounts().find((a) => a.accountLabel === "Providus Operations");
+  const delPrimary = deleteBankAccount(opsAcc.id);
+  assert.strictEqual(delPrimary.deleted, true);
+  const remaining = listBankAccounts();
+  assert.strictEqual(remaining.filter((a) => a.isPrimary).length, 1, "another account must be promoted to primary");
+
+  // 6. Delete is blocked when the account has linked transactions.
+  const gtbAcc = listBankAccounts().find((a) => a.accountLabel === "GTBank Operating");
+  const { getDb } = require("../db/database");
+  getDb()
+    .prepare(`INSERT INTO transactions (member_id, type, amount, transaction_date, period_year, period_month, description, bank_account_id) VALUES (NULL, 'deposit', 100, '2026-01-15', 2026, 1, 'test', ?)`)
+    .run(gtbAcc.id);
+  assert.throws(() => deleteBankAccount(gtbAcc.id), /cannot be deleted/);
+  assert(listBankAccounts().some((a) => a.id === gtbAcc.id));
 });
 closeDb(ORG);
 

@@ -222,6 +222,36 @@ function updateBankAccount(id, patch = {}) {
   return getBankAccount(id);
 }
 
+function deleteBankAccount(id) {
+  const db = getDb();
+  ensureBankAccountSchema(db);
+  const current = getBankAccount(id);
+  if (!current) throw new Error("Bank account not found.");
+
+  const linked = db
+    .prepare(`SELECT COUNT(*) AS c FROM transactions WHERE bank_account_id = ?`)
+    .get(Number(id)).c;
+  if (linked > 0) {
+    throw new Error(
+      `"${current.accountLabel}" has ${linked} ledger transaction${linked === 1 ? "" : "s"} and cannot be deleted. Set an Active To date to retire it instead.`
+    );
+  }
+
+  db.transaction(() => {
+    db.prepare(`DELETE FROM bank_accounts WHERE id = ?`).run(Number(id));
+    if (current.isPrimary) {
+      const next = db
+        .prepare(`SELECT id FROM bank_accounts ORDER BY id LIMIT 1`)
+        .get();
+      if (next) {
+        db.prepare(`UPDATE bank_accounts SET is_primary = 1 WHERE id = ?`).run(next.id);
+      }
+    }
+  })();
+
+  return { deleted: true, id: Number(id), accountLabel: current.accountLabel };
+}
+
 module.exports = {
   ensureBankAccountSchema,
   listBankAccounts,
@@ -230,4 +260,5 @@ module.exports = {
   ensureDefaultBankAccount,
   createBankAccount,
   updateBankAccount,
+  deleteBankAccount,
 };

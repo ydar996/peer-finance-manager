@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Bank account delete (empty/unused accounts only):**
+New `DELETE /api/bank-accounts/:id` + `deleteBankAccount()` in bank-account-service:
+removes the account only when zero transactions reference its `bank_account_id`;
+otherwise it errors and tells the admin to set Active To. Deleting the primary account
+auto-promotes the first remaining account. UI: red **Delete Selected Account** button in
+Import -> Bank Accounts and Import Settings -> Edit Selected Account with appConfirm.
+Use case: Twilight Funds can remove the seeded "Main Operating Account" placeholder once
+its real BA001-BA005 accounts are registered. Tests cover delete, linked-block, and
+primary promotion in . **Production:** .
 - **2026-11-21** - **App-wide density reduction (layout spacing pass):**
 User feedback that the app looks cramped/clunky. Global rhythm opened up:
 .card padding 20->24px and margin-bottom 16->20px; .card form gap 10->12px;
