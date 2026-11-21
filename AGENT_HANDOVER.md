@@ -175,6 +175,12 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Header overlap fix:** `.topbar` gained `flex-shrink: 0`.
+  On the Members & Accounts screen (the `100vh`/`overflow:hidden` internal-scroll
+  layout), the header was flex-shrinking below its content height so the
+  full-width subtitle row overlapped the Members & Profiles heading and its
+  action buttons. The header now always reserves its natural height.
+
 - **2026-11-21** - **Header session bar + subscription panel spacing pass:**
 Session bar now reads "Administrator: Full Name" as one line (plain role label,
 bold name) instead of an isolated role pill. The org subtitle
