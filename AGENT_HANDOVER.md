@@ -175,6 +175,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **US bank catalog expanded to parity with Nigeria:**
+US_BANKS in `lib/country-catalog.js` grew from 5 to 60+ entries (national banks,
+regionals, credit unions, digital/fintech banks) with aliases. The Bank Account Import
+Template's Banks sheet, the Institution suggest-picker, and the import canonicalizer
+all read `getCountryCatalog(profile.code)`, so US Cooperatives now get a real US bank
+list and alias resolution ("boa" -> "Bank of America") identical to the NG pathway.
+Test: `test-bank-account-import.js` covers a US org template + alias resolution.
+**Production:** `git push`.
 - **2026-11-21** - **Bank Account Import Template pipeline + Account ID/Account No fields:**
 bank_accounts gains `account_code` (Cooperative's own ID, e.g. BA001) and `account_number`
 (bank-issued number); columns added via ensureBankAccountSchema ALTERs, surfaced on the

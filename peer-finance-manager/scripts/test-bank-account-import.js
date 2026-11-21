@@ -97,4 +97,30 @@ runWithOrg(ORG, () => {
 });
 closeDb(ORG);
 
+// US org gets the US bank list and alias resolution, not the NG one.
+const US_ORG = "bankacct-import-us-coop";
+openOrgDatabase(US_ORG);
+runWithOrg(US_ORG, () => {
+  applyCountryProfileDefaults("US", { forceLocaleSettings: true });
+  const buf = buildBankAccountImportTemplateXlsxBuffer();
+  const wb = XLSX.read(buf, { type: "buffer" });
+  const bankRows = XLSX.utils.sheet_to_json(wb.Sheets["Banks"], { header: 1 });
+  const bankNames = bankRows.map((r) => r[0]);
+  assert(bankNames.includes("Bank of America"));
+  assert(bankNames.includes("Chase"));
+  assert(!bankNames.includes("Providus Bank"), "US template must not list NG banks");
+
+  const upload = [TEMPLATE_HEADERS, ["", "BoA Operating", "boa", "111222333", "", "", "", "Yes"]];
+  const wu = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wu, XLSX.utils.aoa_to_sheet(upload), "Bank Accounts");
+  const p = path.join(tmpRoot, "us-acct.xlsx");
+  XLSX.writeFile(wu, p);
+  const r = importBankAccountTemplate(p);
+  assert.strictEqual(r.created, 1);
+  const boa = listBankAccounts().find((a) => a.accountLabel === "BoA Operating");
+  assert.strictEqual(boa.institutionName, "Bank of America");
+  assert.strictEqual(boa.currency, "USD");
+});
+closeDb(US_ORG);
+
 console.log("bank-account-import tests passed");
