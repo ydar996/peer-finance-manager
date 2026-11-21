@@ -23,6 +23,8 @@ const {
   createStripeCheckoutSession,
   requestCheckPayment,
   recordCheckPayment,
+  getNgBankTransferDetails,
+  setNgBankTransferDetails,
 } = require("../lib/platform-billing-service");
 
 // --- pricingSummary shape -------------------------------------------------
@@ -67,7 +69,22 @@ assert.strictEqual(ngSub.pricing.currency, "NGN");
 assert.strictEqual(ngSub.pricing.currencySymbol, "₦");
 assert.strictEqual(ngSub.pricing.monthlyPrice, 40343);
 assert.strictEqual(ngSub.paymentRail, "bank_transfer");
-assert.ok(ngSub.bankTransferDetails.length > 0);
+assert.ok(ngSub.bankTransferDetails.includes("0001713399"));
+
+// --- bank transfer details: default, override, tenant view -----------------
+assert.ok(getNgBankTransferDetails().includes("Awoyinka Daramola"));
+setNgBankTransferDetails("Bank: Test Bank\nAccount Name: Test\nAccount Number: 1");
+assert.ok(getNgBankTransferDetails().includes("Test Bank"));
+assert.ok(
+  getTenantSubscription("ng-test-coop-xyz9").bankTransferDetails.includes("Test Bank")
+);
+let emptyErr;
+try {
+  setNgBankTransferDetails("   ");
+} catch (caught) {
+  emptyErr = caught;
+}
+assert.ok(emptyErr, "expected empty details to be rejected");
 
 // --- Stripe checkout blocked for NG ----------------------------------------
 async function expectNgCheckoutBlocked() {

@@ -14,6 +14,8 @@ const {
   grantLegacySubscription,
   isStripeConfigured,
   pricingSummary,
+  getNgBankTransferDetails,
+  setNgBankTransferDetails,
 } = require("./platform-billing-service");
 const {
   SUBSCRIPTION_PLAN,
@@ -92,7 +94,12 @@ function registerPlatformRoutes(app) {
         }
         return { ...org, memberCount, adminEmail };
       });
-      res.json({ organizations: orgs, pricing: pricingSummary(), stripeConfigured: isStripeConfigured() });
+      res.json({
+        organizations: orgs,
+        pricing: pricingSummary(),
+        stripeConfigured: isStripeConfigured(),
+        ngBankTransferDetails: getNgBankTransferDetails(),
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -108,6 +115,20 @@ function registerPlatformRoutes(app) {
         res.json({ subscription });
       } catch (err) {
         res.status(404).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/platform/ng-bank-transfer-details",
+    attachPlatformUser,
+    requirePlatformAuth,
+    (req, res) => {
+      try {
+        const details = setNgBankTransferDetails(req.body?.details);
+        res.json({ success: true, ngBankTransferDetails: details });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
       }
     }
   );

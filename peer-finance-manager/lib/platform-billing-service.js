@@ -1,4 +1,4 @@
-const { getOrganization, updateOrganizationBilling } = require("./organization-service");
+const { getOrganization, updateOrganizationBilling, getRegistryDb } = require("./organization-service");
 const { getOrgSlug } = require("./org-context");
 const { nowUtcIso } = require("./cooperative-time");
 const {
@@ -27,6 +27,44 @@ function stripeClient() {
 
 function isStripeConfigured() {
   return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
+}
+
+/** Nigerian subscription bank-transfer destination. */
+const NG_BANK_TRANSFER_DETAILS_KEY = "ng_bank_transfer_details";
+const DEFAULT_NG_BANK_TRANSFER_DETAILS =
+  "Bank: Guaranty Trust Bank (GTBank)\n" +
+  "Account Name: Awoyinka Daramola\n" +
+  "Account Number: 0001713399";
+
+/**
+ * Resolution order: platform_settings row (editable by the platform
+ * administrator) -> PLATFORM_NG_BANK_TRANSFER_DETAILS env var -> default.
+ */
+function getNgBankTransferDetails() {
+  try {
+    const row = getRegistryDb()
+      .prepare(`SELECT value FROM platform_settings WHERE key = ?`)
+      .get(NG_BANK_TRANSFER_DETAILS_KEY);
+    if (row?.value?.trim()) return row.value.trim();
+  } catch {
+    /* fall through to env/default */
+  }
+  return (
+    process.env.PLATFORM_NG_BANK_TRANSFER_DETAILS || DEFAULT_NG_BANK_TRANSFER_DETAILS
+  );
+}
+
+function setNgBankTransferDetails(details) {
+  const value = String(details || "").trim();
+  if (!value) throw new Error("Bank transfer details cannot be empty");
+  if (value.length > 2000) throw new Error("Bank transfer details are too long");
+  getRegistryDb()
+    .prepare(
+      `INSERT INTO platform_settings (key, value) VALUES (?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+    )
+    .run(NG_BANK_TRANSFER_DETAILS_KEY, value);
+  return value;
 }
 
 const DEFAULT_GRACE_DAYS = Math.max(1, Number(process.env.PLATFORM_SUBSCRIPTION_GRACE_DAYS || 15));
@@ -192,9 +230,7 @@ function getTenantSubscription(orgSlug) {
     checkMailingAddress:
       process.env.PLATFORM_CHECK_MAILING_ADDRESS ||
       "Contact platform administrator for mailing instructions.",
-    bankTransferDetails:
-      process.env.PLATFORM_NG_BANK_TRANSFER_DETAILS ||
-      "Contact the platform administrator for bank transfer instructions.",
+    bankTransferDetails: getNgBankTransferDetails(),
   };
 }
 
@@ -443,4 +479,6 @@ module.exports = {
   subscriptionAccessDetails,
   seedDefaultSubscriptionGrace,
   extendSubscriptionGrace,
+  getNgBankTransferDetails,
+  setNgBankTransferDetails,
 };

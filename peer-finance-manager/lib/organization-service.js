@@ -69,6 +69,10 @@ function getRegistryDb() {
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
+      CREATE TABLE IF NOT EXISTS platform_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      );
       CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
         organization_slug TEXT NOT NULL,

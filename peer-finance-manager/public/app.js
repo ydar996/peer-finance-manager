@@ -909,6 +909,10 @@ async function loadPlatformOrganizations() {
     if (pricingEl && pricing) {
       pricingEl.textContent = formatSaasPricingLine(pricing, data.stripeConfigured);
     }
+    const ngBankEl = $("#platformNgBankDetails");
+    if (ngBankEl && data.ngBankTransferDetails && document.activeElement !== ngBankEl) {
+      ngBankEl.value = data.ngBankTransferDetails;
+    }
     const checkPlanSelect = document.querySelector('#platformCheckPaymentForm select[name="plan"]');
     if (checkPlanSelect && pricing) {
       checkPlanSelect.innerHTML = `
@@ -9338,6 +9342,25 @@ $("#platformCheckPaymentForm")?.addEventListener("submit", async (e) => {
     if (statusEl) setFormStatus(statusEl, `Check recorded for ${slug}. Subscription is active.`, true);
     e.target.reset();
     await loadPlatformOrganizations();
+  } catch (err) {
+    if (statusEl) setFormStatus(statusEl, err.message, false);
+  }
+});
+
+$("#platformNgBankDetailsForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const statusEl = $("#platformNgBankDetailsStatus");
+  const details = $("#platformNgBankDetails")?.value?.trim() || "";
+  if (statusEl) statusEl.textContent = "";
+  try {
+    const res = await fetch("/api/platform/ng-bank-transfer-details", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ details }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to save");
+    if (statusEl) setFormStatus(statusEl, "Bank transfer details saved.", true);
   } catch (err) {
     if (statusEl) setFormStatus(statusEl, err.message, false);
   }

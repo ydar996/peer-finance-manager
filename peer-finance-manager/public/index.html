@@ -372,7 +372,7 @@
           </table>
         </div>
         <details class="card profile-disclosure" id="platformCheckPaymentPanel">
-          <summary>Record Check Payment</summary>
+          <summary>Record Offline Payment (Check/Bank Transfer)</summary>
           <div class="profile-disclosure-body">
             <form id="platformCheckPaymentForm" class="entry-form">
               <label>Organization Code
@@ -380,13 +380,13 @@
               </label>
               <label>Plan
                 <select name="plan" required>
-                  <option value="monthly">Monthly ($29.99)</option>
-                  <option value="quarterly">Quarterly ($89.07 : 1% discount)</option>
-                  <option value="annual">Annual ($345.48 : 4% discount)</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly (1% discount)</option>
+                  <option value="annual">Annual (4% discount)</option>
                 </select>
               </label>
-              <label>Check Number (optional)
-                <input type="text" name="checkNumber" placeholder="1234" />
+              <label>Payment Reference (optional)
+                <input type="text" name="checkNumber" placeholder="Check no. or transfer reference" />
               </label>
               <label>Billing Email (optional)
                 <input type="email" name="billingEmail" />
@@ -394,9 +394,22 @@
               <label>Notes (optional)
                 <textarea name="notes" rows="2"></textarea>
               </label>
-              <button type="submit" class="btn primary">Mark Subscription Active (Check)</button>
+              <button type="submit" class="btn primary">Mark Subscription Active</button>
             </form>
             <p id="platformCheckPaymentStatus" class="status"></p>
+          </div>
+        </details>
+        <details class="card profile-disclosure" id="platformNgBankDetailsPanel">
+          <summary>Nigerian Bank Transfer Details</summary>
+          <div class="profile-disclosure-body">
+            <p class="hint"><span class="hint-line">Account details shown to Nigerian Cooperatives on their Subscription tab when they pay by bank transfer.</span><span class="hint-line">Changes apply to all Nigerian tenants immediately.</span></p>
+            <form id="platformNgBankDetailsForm" class="entry-form">
+              <label>Account Details
+                <textarea name="details" id="platformNgBankDetails" rows="4" required></textarea>
+              </label>
+              <button type="submit" class="btn primary">Save Bank Transfer Details</button>
+            </form>
+            <p id="platformNgBankDetailsStatus" class="status"></p>
           </div>
         </details>
         <p id="platformOrgsStatus" class="status"></p>

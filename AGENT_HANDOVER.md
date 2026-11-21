@@ -175,6 +175,20 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **NG subscription bank-transfer details, editable by platform admin:**
+New `platform_settings` key/value table in the registry DB.
+`getNgBankTransferDetails()` resolves stored `ng_bank_transfer_details` ->
+`PLATFORM_NG_BANK_TRANSFER_DETAILS` env -> built-in default (currently
+GTBank / Awoyinka Daramola / 0001713399). `getTenantSubscription` serves it as
+`bankTransferDetails` to NG tenants on the Subscription tab.
+`POST /api/platform/ng-bank-transfer-details` (platform auth) saves a new value
+via `setNgBankTransferDetails`; `GET /api/platform/organizations` now includes
+`ngBankTransferDetails`. Platform console has a "Nigerian Bank Transfer
+Details" card (textarea + Save) that applies to all NG tenants immediately.
+The "Record Check Payment" card was retitled "Record Offline Payment
+(Check/Bank Transfer)" with generic labels since it confirms NG bank transfers
+too (payment method auto-records as `bank_transfer` by org country).
+
 - **2026-11-21** - **Hint readability:** new `.hint-line` block style puts each
   sentence of a long hint on its own line with 8px spacing. Applied to the
   Members & Profiles, Record tab, and Membership Policy hints.
