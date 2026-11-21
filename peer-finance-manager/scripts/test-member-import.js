@@ -38,15 +38,15 @@ runWithOrg(ORG, () => {
   assert(headerRow.includes("First Name"));
   assert(headerRow.includes("Last Name"));
   const csv = buildMemberImportTemplateCsv();
-  assert(csv.startsWith(`"First Name"`));
+  assert(csv.startsWith(`"Member No"`));
 
   // 2. Import a filled workbook: two valid rows, one missing Last Name, one duplicate.
   const upload = [
     TEMPLATE_HEADERS,
-    ["Ada", "Obi", "", "Female", "15/03/1990", "ada@example.org", "+234 801", "12 Close", "Ikeja", "Lagos", "", "Nigeria", "Tunde Obi", "+234 802", "Spouse", "15/01/2026", "Yes", 25000, "founding"],
-    ["Chidi", "Eze", "", "", "", "", "", "", "", "", "", "", "", "", "", "20/01/2026", "", "", ""],
-    ["NoLast", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-    ["Ada", "Obi", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+    ["TTFC25001", "Ada", "Obi", "", "Female", "15/03/1990", "ada@example.org", "+234 801", "12 Close", "Ikeja", "Lagos", "", "Nigeria", "Tunde Obi", "+234 802", "Spouse", "15/01/2026", "Yes", 25000, "founding"],
+    ["TTFC25002", "Chidi", "Eze", "", "", "", "", "", "", "", "", "", "", "", "", "", "20/01/2026", "", "", ""],
+    ["", "NoLast", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+    ["TTFC25001", "Ada", "Obi", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ];
   const wu = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wu, XLSX.utils.aoa_to_sheet([["inst"]]), "Instructions");
@@ -74,8 +74,8 @@ runWithOrg(ORG, () => {
   assert.strictEqual(chidi.membership_fee_paid, 0);
 
   // Member numbers auto-assigned.
-  assert(ada.member_number && /-\d{3}$/.test(ada.member_number));
-  assert(chidi.member_number && chidi.member_number !== ada.member_number);
+  assert.strictEqual(ada.member_number, "TTFC25001");
+  assert.strictEqual(chidi.member_number, "TTFC25002");
 
   // 3. Opening deposit recorded as a transaction, no membership-fee transaction.
   const txs = db.prepare(`SELECT * FROM transactions WHERE member_id = ?`).all(ada.id);
@@ -110,7 +110,7 @@ const US_ORG = "member-import-us-coop";
 openOrgDatabase(US_ORG);
 runWithOrg(US_ORG, () => {
   applyCountryProfileDefaults("US", { forceLocaleSettings: true });
-  const upload = [TEMPLATE_HEADERS, ["Jane", "Smith"]];
+  const upload = [TEMPLATE_HEADERS, ["", "Jane", "Smith"]];
   const wu = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wu, XLSX.utils.aoa_to_sheet(upload), "Members");
   const p = path.join(tmpRoot, "us.xlsx");

@@ -175,6 +175,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Member Import Template gains optional `Member No` column:**
+Cooperatives migrating existing members can keep their own numbering (e.g. Twilight Funds
+`TTFC25001` style, no hyphen). `Member No` is the first template column; aliases include
+membernumber/memberid/membershipno. Supplied numbers are stored verbatim on `members.member_number`
+(`createMember` accepts `payload.memberNumber`, rejects collisions); blank cells still get an
+auto-assigned `PREFIX-###` number via `ensureMemberNumber`. Rows whose Member No already exists
+are skipped like name duplicates. Tests updated in `scripts/test-member-import.js`.
+**Production:** `git push`. Hard-refresh Import before downloading a fresh template.
 - **2026-11-21** - **Member Import Template pipeline (bulk-create member accounts for existing Cooperatives):**
 New org onboarding tool on **Import -> Member Import Template**.
 Admin downloads a CSV/xlsx template (`GET /api/member-import/template.csv|xlsx`),

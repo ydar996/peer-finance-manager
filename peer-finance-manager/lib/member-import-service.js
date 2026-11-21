@@ -19,6 +19,7 @@ const {
 const { TRANSACTION_TYPES } = require("./constants");
 
 const TEMPLATE_HEADERS = [
+  "Member No",
   "First Name",
   "Last Name",
   "Middle Name",
@@ -41,6 +42,7 @@ const TEMPLATE_HEADERS = [
 ];
 
 const HEADER_ALIASES = {
+  memberNumber: ["memberno", "membernumber", "memberid", "membershipno", "membershipnumber"],
   firstName: ["firstname", "first", "givenname", "fname"],
   lastName: ["lastname", "last", "surname", "familyname", "lname"],
   middleName: ["middlename", "middle", "othername", "othernames"],
@@ -90,7 +92,7 @@ function buildMemberImportTemplateXlsxBuffer() {
     [""],
     ["Use this file to create accounts for members your Cooperative already has."],
     ["First Name and Last Name are required on every row. Every other column is optional."],
-    ["Member numbers are assigned automatically on import."],
+    ["Member No is optional. Leave it blank to have member numbers assigned automatically; fill it to keep your own numbering."],
     ["Rows whose First Name + Last Name match an existing member are skipped, not duplicated."],
     [""],
     ["Date format", `${DATE_FORMAT_OPTIONS[dateFormat]?.label || "MM/DD/YYYY"} (for example ${formatCooperativeDate("2026-01-15")})`],
@@ -108,8 +110,8 @@ function buildMemberImportTemplateXlsxBuffer() {
   const exampleDate = formatCooperativeDate("2026-01-15");
   const members = [
     TEMPLATE_HEADERS,
-    ["Adeola", "Ogunleye", "", "Female", exampleDate, "adeola@example.org", "+234 801 234 5678", "12 Adebayo Close", "Ikeja", "Lagos", "", "Nigeria", "Tunde Ogunleye", "+234 802 345 6789", "Spouse", exampleDate, "Yes", 50000, ""],
-    ["Chinedu", "Eze", "", "Male", "", "chinedu@example.org", "+234 803 456 7890", "5 Nnamdi Street", "Enugu", "Enugu", "", "Nigeria", "Amara Eze", "", "Sister", exampleDate, "", "", "Founding member"],
+    ["COOP-001", "Adeola", "Ogunleye", "", "Female", exampleDate, "adeola@example.org", "+234 801 234 5678", "12 Adebayo Close", "Ikeja", "Lagos", "", "Nigeria", "Tunde Ogunleye", "+234 802 345 6789", "Spouse", exampleDate, "Yes", 50000, ""],
+    ["", "Chinedu", "Eze", "", "Male", "", "chinedu@example.org", "+234 803 456 7890", "5 Nnamdi Street", "Enugu", "Enugu", "", "Nigeria", "Amara Eze", "", "Sister", exampleDate, "", "", "Founding member"],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(members), "Members");
   return XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -121,7 +123,7 @@ function buildMemberImportTemplateCsv() {
   const quote = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const rows = [
     TEMPLATE_HEADERS,
-    ["Adeola", "Ogunleye", "", "Female", exampleDate, "adeola@example.org", "+234 801 234 5678", "12 Adebayo Close", "Ikeja", "Lagos", "", "Nigeria", "Tunde Ogunleye", "+234 802 345 6789", "Spouse", exampleDate, "Yes", "50000", ""],
+    ["COOP-001", "Adeola", "Ogunleye", "", "Female", exampleDate, "adeola@example.org", "+234 801 234 5678", "12 Adebayo Close", "Ikeja", "Lagos", "", "Nigeria", "Tunde Ogunleye", "+234 802 345 6789", "Spouse", exampleDate, "Yes", "50000", ""],
   ];
   return rows.map((row) => row.map(quote).join(",")).join("\r\n") + "\r\n";
 }
@@ -217,6 +219,10 @@ function importMemberTemplate(filePath) {
   const seenNames = new Set(
     db.prepare(`SELECT name FROM members`).all().map((r) => String(r.name).toLowerCase())
   );
+  const seenNumbers = new Set(
+    db.prepare(`SELECT member_number FROM members WHERE member_number IS NOT NULL`)
+      .all().map((r) => String(r.member_number).toLowerCase())
+  );
 
   for (let i = header.index + 1; i < rows.length; i++) {
     const row = rows[i];
@@ -241,6 +247,11 @@ function importMemberTemplate(filePath) {
     }
 
     const displayName = [firstName, cellText(record.middleName), lastName].filter(Boolean).join(" ");
+    const memberNo = cellText(record.memberNumber);
+    if (memberNo && seenNumbers.has(memberNo.toLowerCase())) {
+      skipped.push({ row: rowNumber, name: displayName, reason: `Member No ${memberNo} already exists` });
+      continue;
+    }
     if (seenNames.has(displayName.toLowerCase()) || seenNames.has(`${firstName} ${lastName}`.toLowerCase())) {
       skipped.push({ row: rowNumber, name: displayName, reason: "Member name already exists" });
       continue;
@@ -249,6 +260,7 @@ function importMemberTemplate(filePath) {
     const nok = splitNextOfKinName(record.nextOfKinName);
     try {
       const result = createMember({
+        memberNumber: memberNo || undefined,
         firstName,
         middleName: cellText(record.middleName) || undefined,
         lastName,
@@ -289,6 +301,7 @@ function importMemberTemplate(filePath) {
       }
 
       seenNames.add(displayName.toLowerCase());
+      if (memberNo) seenNumbers.add(memberNo.toLowerCase());
       created.push({
         row: rowNumber,
         name: result.ledgerName,

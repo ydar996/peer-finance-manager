@@ -322,7 +322,19 @@ function createMember(payload = {}) {
       .prepare(`INSERT INTO members (name, joined_at, notes) VALUES (?, ?, ?)`)
       .run(ledgerName, joinedAt, notes);
     const memberId = insert.lastInsertRowid;
-    ensureMemberNumber(db, memberId);
+    const suppliedNumber = String(payload.memberNumber || "").trim();
+    if (suppliedNumber) {
+      const dup = db
+        .prepare(`SELECT id FROM members WHERE member_number = ?`)
+        .get(suppliedNumber);
+      if (dup) throw new Error(`Member number "${suppliedNumber}" is already in use`);
+      db.prepare(`UPDATE members SET member_number = ? WHERE id = ?`).run(
+        suppliedNumber,
+        memberId
+      );
+    } else {
+      ensureMemberNumber(db, memberId);
+    }
 
     if (shouldCreateProfile) {
       upsertMemberProfile(db, memberId, profileFields);
