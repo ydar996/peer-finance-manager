@@ -175,6 +175,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Import tab file pickers converted to dropzone pattern; spacing opened up:**
+All raw browser file inputs on the Import tab replaced with the styled `.file-dropzone`
+(dashed upload area, Choose File button, filename display) already used by bank statement
+uploads: Bank Account Import, Cooperative Spreadsheet, Member Import, WPForms Profiles,
+Loan Repayment Schedule. Submit buttons sit in a `.field-row` beside the dropzone.
+`bindChosenFileName` wired for all five. Vertical rhythm increased: `.profile-disclosure-body`
+sibling gap 10px -> 14px, `.entry-form` gap 10px -> 12px. Fixes the cramped look flagged
+on the Bank Account Import Template section. **Production:** . Hard-refresh Import.
 - **2026-11-21** - **App-wide spacing fix for crammed rows and disclosure bodies:**
  was used in ~20 places (import panels, bank account settings, members toolbar,
 loan policy, record forms) but had no global rule, so buttons, file inputs, and controls

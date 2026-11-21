@@ -607,7 +607,7 @@ th { background: #f8fafc; font-weight: 600; }
   padding: 0 14px 14px;
 }
 .profile-disclosure-body > * + * {
-  margin-top: 10px;
+  margin-top: 14px;
 }
 .field-row {
   display: flex;
@@ -1541,7 +1541,7 @@ tr.loan-row:hover { background: #f8fafc; }
 .entry-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 .entry-form label {
@@ -2822,4 +2822,17 @@ tr.loan-row:hover { background: #f8fafc; }
   min-height: 220px;
   resize: vertical;
   font-family: inherit;
+}
+
+.schedule-loan-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 110px;
+}
+.schedule-loan-label input {
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
 }

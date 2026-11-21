@@ -1955,8 +1955,14 @@
                   <button type="button" class="btn" id="downloadBankAccountTemplateXlsx">Download Bank Account Template (Xlsx)</button>
                 </div>
                 <form id="bankAccountImportForm" class="entry-form">
-                  <input type="file" name="file" accept=".xlsx,.xls,.csv" required />
-                  <button type="submit" class="btn primary">Import Bank Accounts</button>
+                  <div class="field-row">
+                    <div class="file-dropzone">
+                  <label class="btn" for="bankAccountImportFile">Choose File</label>
+                  <input type="file" id="bankAccountImportFile" name="file" class="visually-hidden-file" accept=".xlsx,.xls,.csv" required />
+                  <span class="file-name" id="bankAccountImportFileName"></span>
+                </div>
+                    <button type="submit" class="btn primary">Import Bank Accounts</button>
+                  </div>
                 </form>
                 <p id="bankAccountImportStatus" class="status"></p>
                 <div id="bankAccountImportResults" class="subtle"></div>
@@ -2085,7 +2091,13 @@
           </summary>
           <div class="profile-disclosure-body">
             <form id="spreadsheetForm" class="entry-form">
-              <input type="file" name="file" accept=".xlsx,.xls" required />
+              <div class="field-row">
+                <div class="file-dropzone">
+                  <label class="btn" for="spreadsheetFile">Choose File</label>
+                  <input type="file" id="spreadsheetFile" name="file" class="visually-hidden-file" accept=".xlsx,.xls" required />
+                  <span class="file-name" id="spreadsheetFileName"></span>
+                </div>
+              </div>
               <input type="text" name="sheetName" value="April 2026" placeholder="Sheet Name" />
               <label><input type="checkbox" name="replace" value="true" /> Replace Existing Ledger</label>
               <button type="submit" class="btn primary">Import Spreadsheet</button>
@@ -2106,8 +2118,14 @@
               <button type="button" class="btn" id="downloadMemberTemplateXlsx">Download Member Template (Xlsx)</button>
             </div>
             <form id="memberImportForm" class="entry-form">
-              <input type="file" name="file" accept=".xlsx,.xls,.csv" required />
-              <button type="submit" class="btn primary">Import Members</button>
+              <div class="field-row">
+                <div class="file-dropzone">
+                  <label class="btn" for="memberImportFile">Choose File</label>
+                  <input type="file" id="memberImportFile" name="file" class="visually-hidden-file" accept=".xlsx,.xls,.csv" required />
+                  <span class="file-name" id="memberImportFileName"></span>
+                </div>
+                <button type="submit" class="btn primary">Import Members</button>
+              </div>
             </form>
             <p id="memberImportStatus" class="status"></p>
             <div id="memberImportResults" class="subtle"></div>
@@ -2121,8 +2139,14 @@
           </summary>
           <div class="profile-disclosure-body">
             <form id="wpformsForm" class="entry-form">
-              <input type="file" name="file" accept=".csv" required />
-              <button type="submit" class="btn primary">Import Profiles</button>
+              <div class="field-row">
+                <div class="file-dropzone">
+                  <label class="btn" for="wpformsFile">Choose File</label>
+                  <input type="file" id="wpformsFile" name="file" class="visually-hidden-file" accept=".csv" required />
+                  <span class="file-name" id="wpformsFileName"></span>
+                </div>
+                <button type="submit" class="btn primary">Import Profiles</button>
+              </div>
             </form>
             <p id="wpformsStatus" class="status"></p>
           </div>
@@ -2135,9 +2159,17 @@
           </summary>
           <div class="profile-disclosure-body">
             <form id="scheduleForm" class="entry-form">
-              <input type="number" name="loanId" placeholder="Loan ID" required min="1" />
-              <input type="file" name="file" accept=".xlsx,.xls,.csv" required />
-              <button type="submit" class="btn">Import Schedule</button>
+              <div class="field-row">
+                <label class="schedule-loan-label"><span>Loan ID</span>
+                  <input type="number" name="loanId" placeholder="Loan ID" required min="1" />
+                </label>
+                <div class="file-dropzone">
+                  <label class="btn" for="scheduleFile">Choose File</label>
+                  <input type="file" id="scheduleFile" name="file" class="visually-hidden-file" accept=".xlsx,.xls,.csv" required />
+                  <span class="file-name" id="scheduleFileName"></span>
+                </div>
+                <button type="submit" class="btn">Import Schedule</button>
+              </div>
             </form>
             <p id="scheduleStatus" class="status"></p>
           </div>

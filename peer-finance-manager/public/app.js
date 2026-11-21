@@ -8907,6 +8907,11 @@ function bindChosenFileName(inputId, nameId) {
 bindChosenFileName("dataRestoreFile", "dataRestoreFileName");
 bindChosenFileName("bankAppendFile", "bankAppendFileName");
 bindChosenFileName("bankImportFile", "bankImportFileName");
+bindChosenFileName("bankAccountImportFile", "bankAccountImportFileName");
+bindChosenFileName("memberImportFile", "memberImportFileName");
+bindChosenFileName("spreadsheetFile", "spreadsheetFileName");
+bindChosenFileName("wpformsFile", "wpformsFileName");
+bindChosenFileName("scheduleFile", "scheduleFileName");
 
 $("#previewDataRestoreBtn")?.addEventListener("click", previewDataRestore);
 
