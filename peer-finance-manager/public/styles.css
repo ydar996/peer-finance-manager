@@ -411,12 +411,12 @@ th { background: #f8fafc; font-weight: 600; }
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
 }
 .card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 600; color: #1e293b; }
-.hint { color: #64748b; font-size: 12px; margin: 0 0 12px; line-height: 1.45; }
-.card form { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+.hint { color: #64748b; font-size: 12.5px; margin: 0 0 12px; line-height: 1.55; }
+.card form { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
 .status { font-size: 13px; margin-top: 10px; min-height: 20px; }
 .status.ok { color: #047857; }
 .status.err { color: #b91c1c; }
@@ -536,7 +536,7 @@ th { background: #f8fafc; font-weight: 600; }
 .profile-disclosure {
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  margin-top: 12px;
+  margin-top: 16px;
   background: #fff;
 }
 .profile-disclosure summary::-webkit-details-marker { display: none; }
@@ -551,7 +551,7 @@ th { background: #f8fafc; font-weight: 600; }
   gap: 4px;
   list-style: none;
   cursor: pointer;
-  padding: 14px 16px;
+  padding: 16px 18px;
   font-weight: 600;
 }
 .import-panel-title {
@@ -570,7 +570,7 @@ th { background: #f8fafc; font-weight: 600; }
 }
 .import-panel-section[open] summary::before { content: "▾ "; }
 .import-subsection {
-  margin-top: 10px;
+  margin-top: 14px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #f8fafc;
@@ -581,7 +581,7 @@ th { background: #f8fafc; font-weight: 600; }
   gap: 3px;
   list-style: none;
   cursor: pointer;
-  padding: 10px 12px;
+  padding: 13px 14px;
   font-weight: 600;
   font-size: 14px;
 }
@@ -598,21 +598,21 @@ th { background: #f8fafc; font-weight: 600; }
 }
 .import-subsection[open] summary::before { content: "▾ "; }
 .import-subsection .profile-disclosure-body {
-  padding: 0 12px 12px;
+  padding: 0 14px 14px;
 }
 .import-subsection .import-subsection {
   background: #fff;
 }
 .profile-disclosure-body {
-  padding: 0 14px 14px;
+  padding: 0 16px 16px;
 }
 .profile-disclosure-body > * + * {
-  margin-top: 14px;
+  margin-top: 16px;
 }
 .field-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 14px;
+  gap: 12px 16px;
   align-items: center;
 }
 .field-row[hidden] {
@@ -1541,13 +1541,13 @@ tr.loan-row:hover { background: #f8fafc; }
 .entry-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
 }
 .entry-form label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   font-size: 13px;
   font-weight: 600;
   color: #334155;

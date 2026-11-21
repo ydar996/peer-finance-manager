@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **App-wide density reduction (layout spacing pass):**
+User feedback that the app looks cramped/clunky. Global rhythm opened up:
+.card padding 20->24px and margin-bottom 16->20px; .card form gap 10->12px;
+.profile-disclosure margin-top 12->16px; import panel summary padding 14/16->16/18;
+import subsection margin-top 10->14px and summary padding 10/12->13/14;
+profile-disclosure-body padding -> 0 16px 16px (subsection 0 14px 14px);
+panel sibling gap 14->16px; .field-row gap -> 12/16px; .entry-form gap -> 14px;
+label inner gap 4->6px; hint font 12->12.5px and line-height 1.45->1.55.
+Pure CSS; no markup/JS changes. **Production:** . Hard-refresh app.
 - **2026-11-21** - **Bulk Distribution upload joins dropzone pattern (Import tab sweep complete):**
 Record -> Bulk Distribution (Excel) file picker converted to `.file-dropzone` with
 `bindChosenFileName`. Every raw file input is now converted except Messages attachments,
