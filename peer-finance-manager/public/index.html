@@ -1389,16 +1389,16 @@
                 <span class="amount-preview" id="membershipPolicyFeePreview"></span>
               </label>
               <label class="field-row hidden" id="membershipPolicyDuesRow">
-                <span>Annual Membership Fee Amount</span>
+                <span>Annual Membership Fee Amount (Required)</span>
                 <input type="text" inputmode="decimal" autocomplete="off" id="membershipPolicyDuesAmount" />
                 <span class="amount-preview" id="membershipPolicyDuesPreview"></span>
               </label>
               <p class="hint subtle hidden" id="membershipPolicyDuesHint"><span class="hint-line">This is the amount charged each year; members may pay it in full or in instalments with no penalty.</span><span class="hint-line">Editing it applies to future payments only: fees already recorded keep their original amounts.</span><span class="hint-line">When a future year gets a different amount by vote, add it under Amount by Year below; every earlier year keeps the previous amount.</span></p>
               <div class="hidden" id="membershipPolicyDuesScheduleRow">
-                <p class="hint dues-section-label">Amount by Year</p>
+                <p class="hint dues-section-label">Amount by Year (Optional)</p>
                 <div id="duesYearRows"></div>
-                <button type="button" class="btn" id="addDuesYearRow">Add Year</button>
-                <p class="hint subtle">Each year keeps the amount set for it; a year without its own amount uses the most recent earlier year's amount (or the annual amount above). A mid-year vote simply edits that year's amount: every change is stamped and logged below.</p>
+                <div class="dues-year-actions"><button type="button" class="btn" id="addDuesYearRow">Add Year</button></div>
+                <p class="hint subtle"><span class="hint-line">Each row pins the fee for that year. The current year is filled in for you; change it only when a vote sets a different amount mid-year.</span><span class="hint-line">Add more rows only when a future year gets a different amount. Years without a row use the most recent earlier year's amount (or the annual amount above).</span><span class="hint-line">Every change is stamped and logged under Fee Change History.</span></p>
                 <div id="duesHistoryWrap" class="hidden">
                   <p class="hint dues-section-label">Fee Change History</p>
                   <div id="duesHistoryList"></div>

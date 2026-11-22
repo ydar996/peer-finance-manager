@@ -4124,14 +4124,19 @@ function addDuesYearRow(year, entry) {
   wrap.append(row);
 }
 
-function renderDuesYearRows(schedule) {
+function renderDuesYearRows(schedule, { currentYear, currentRequirement } = {}) {
   const wrap = document.getElementById("duesYearRows");
   if (!wrap) return;
   wrap.innerHTML = "";
   const entries = Array.isArray(schedule) ? schedule : [];
   for (const entry of entries) addDuesYearRow(entry.year, entry);
-  const thisYear = new Date().getFullYear();
-  if (!entries.some((e) => e.year === thisYear)) addDuesYearRow(thisYear, null);
+  const thisYear = currentYear || new Date().getFullYear();
+  if (!entries.some((e) => e.year === thisYear)) {
+    addDuesYearRow(thisYear, currentRequirement != null ? { amount: currentRequirement } : null);
+    const row = wrap.lastElementChild;
+    const stamp = row?.querySelector(".dues-year-stamp");
+    if (stamp) stamp.textContent = "Mirrors the annual amount; saving pins it for this year.";
+  }
 }
 
 function renderDuesHistory(history) {
@@ -4212,7 +4217,10 @@ async function loadMembershipPolicyPanel() {
     if (shareToggle) shareToggle.checked = membershipPolicy.shareCapitalEnabled;
     if (model) model.value = membershipPolicy.feeModel;
     if (duesAmount) duesAmount.value = membershipPolicy.annualDuesAmount ? groupAmountDigits(String(membershipPolicy.annualDuesAmount)) : "";
-    renderDuesYearRows(data.annualDuesSchedule);
+    renderDuesYearRows(data.annualDuesSchedule, {
+      currentYear: data.currentDuesYear,
+      currentRequirement: data.currentDuesYearRequirement,
+    });
     renderDuesHistory(data.annualDuesHistory);
     if (reminderEnabled) reminderEnabled.checked = Boolean(data.annualDuesReminderEnabled);
     if (reminderFrequency) reminderFrequency.value = data.annualDuesReminderFrequency || "monthly";

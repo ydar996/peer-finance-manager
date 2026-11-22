@@ -2877,11 +2877,32 @@ tr.loan-row:hover { background: #f8fafc; }
   font-weight: 600;
   margin: 8px 0 6px;
 }
+#membershipPolicyDuesScheduleRow {
+  margin: 16px 0 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--surface-2, #f8fafc);
+}
 #duesYearRows {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+.dues-year-actions {
+  margin-bottom: 10px;
+}
+.dues-year-actions .btn {
+  padding: 6px 14px;
+}
+#duesHistoryWrap {
+  margin-top: 14px;
+}
+#duesHistoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .dues-year-row input.dues-year-input {
   width: 90px;

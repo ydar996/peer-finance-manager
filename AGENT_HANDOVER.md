@@ -175,6 +175,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Dues panel clarity/spacing pass:** policy GET now also
+  returns `currentDuesYear` + `currentDuesYearRequirement`; the current
+  year's Amount by Year row is prefilled with the resolved amount and
+  captioned "Mirrors the annual amount; saving pins it for this year" so
+  the base field (labeled Required) vs per-year overrides (Optional) is
+  unambiguous, and saving always pins the current year explicitly. The
+  schedule block got a bordered panel, row/action spacing, and history
+  layout styles.
 - **2026-11-22** - **Dues schedule becomes auditable per-year rows:** the
   freeform "Amount by Year" text field is now an editable year/amount row
   list with an Add Year button, per-row "Set DD/MM/YYYY by &lt;admin&gt;"

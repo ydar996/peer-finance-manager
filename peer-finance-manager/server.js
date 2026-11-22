@@ -917,9 +917,19 @@ app.patch("/api/cooperative/loan-policy", requireAdmin, restoreOrgContext, (req,
 
 app.get("/api/cooperative/membership-policy", requireAdmin, restoreOrgContext, (req, res) => {
   try {
-    const { getMembershipPolicy } = require("./lib/membership-policy-service");
+    const {
+      getMembershipPolicy,
+      duesRequirementForYear,
+    } = require("./lib/membership-policy-service");
     const { getPublicCountryProfile } = require("./lib/country-profile");
-    res.json({ ...getMembershipPolicy(), countryProfile: getPublicCountryProfile() });
+    const policy = getMembershipPolicy();
+    const currentDuesYear = new Date().getUTCFullYear();
+    res.json({
+      ...policy,
+      countryProfile: getPublicCountryProfile(),
+      currentDuesYear,
+      currentDuesYearRequirement: duesRequirementForYear(currentDuesYear),
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
