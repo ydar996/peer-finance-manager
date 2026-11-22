@@ -54,15 +54,24 @@ async function run() {
       { memberId: adaId, type: "deposit", amount: 50, date: "2026-10-07", transactionId: 2 },
       { memberId: benId, type: "loan_repayment", amount: 200, date: "2026-10-07", transactionId: 3 },
       { memberId: benId, type: "deposit", amount: 75, date: "2026-10-07", transactionId: 4 },
+      { memberId: adaId, type: "share_capital", amount: 500, date: "2026-10-08", transactionId: 5 },
     ]);
-    assert.equal(grouped.get(adaId).length, 2);
-    assert.equal(grouped.get(benId).length, 2);
-    assert.equal(grouped.has(formerId), false);
+    // Grouping is by member + type: Ben's deposit and repayment stay separate.
+    const adaDeposit = grouped.get(`${adaId}:deposit`);
+    const adaShare = grouped.get(`${adaId}:share_capital`);
+    const benRepay = grouped.get(`${benId}:loan_repayment`);
+    const benDeposit = grouped.get(`${benId}:deposit`);
+    assert.equal(adaDeposit.items.length, 2);
+    assert.equal(adaShare.items.length, 1);
+    assert.equal(benRepay.items.length, 1);
+    assert.equal(benDeposit.items.length, 1);
+    assert.equal([...grouped.values()].some((g) => g.memberId === formerId), false);
 
     const branding = { name: "Test Cooperative", portalUrl: "https://example.test/member" };
     const one = buildDepositAlertEmail({
       memberName: "Ada Okeke",
       deposits: [{ date: "2026-10-07", amount: 100, type: "deposit" }],
+      category: "deposit",
       branding,
     });
     assert.match(one.subject, /Deposit Received/);
@@ -72,22 +81,22 @@ async function run() {
     const repayment = buildDepositAlertEmail({
       memberName: "Ben Okeke",
       deposits: [{ date: "2026-10-07", amount: 200, type: "loan_repayment" }],
+      category: "loan_repayment",
       branding,
     });
     assert.match(repayment.subject, /Loan Repayment Received/);
     assert.match(repayment.text, /Loan Repayment of/);
+    assert.match(repayment.text, /applied to your loan account/);
 
-    const mixed = buildDepositAlertEmail({
-      memberName: "Ben Okeke",
-      deposits: [
-        { date: "2026-10-07", amount: 75, type: "deposit" },
-        { date: "2026-10-07", amount: 200, type: "loan_repayment" },
-      ],
+    const share = buildDepositAlertEmail({
+      memberName: "Ada Okeke",
+      deposits: [{ date: "2026-10-08", amount: 500, type: "share_capital" }],
+      category: "share_capital",
       branding,
     });
-    assert.match(mixed.subject, /Deposits\/Loan Repayments Received/);
-    assert.match(mixed.text, /Member Deposit/);
-    assert.match(mixed.text, /Loan Repayment/);
+    assert.match(share.subject, /Share Capital Received/);
+    assert.match(share.text, /Share Capital/);
+    assert.match(share.text, /credited to your Share Capital account/);
 
     const many = buildDepositAlertEmail({
       memberName: "Ada Okeke",
@@ -95,6 +104,7 @@ async function run() {
         { date: "2026-10-06", amount: 100, type: "deposit" },
         { date: "2026-10-07", amount: 50, type: "deposit" },
       ],
+      category: "deposit",
       branding,
     });
     assert.match(many.subject, /Deposits Received/);

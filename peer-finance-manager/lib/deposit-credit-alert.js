@@ -47,6 +47,7 @@ function organizationBranding() {
 const CREDIT_ALERT_TYPES = new Set([
   TRANSACTION_TYPES.DEPOSIT,
   TRANSACTION_TYPES.LOAN_REPAYMENT,
+  TRANSACTION_TYPES.SHARE_CAPITAL,
 ]);
 
 function isCreditAlertType(type) {
@@ -55,8 +56,21 @@ function isCreditAlertType(type) {
 
 function creditAlertLabel(type) {
   if (String(type || "") === TRANSACTION_TYPES.LOAN_REPAYMENT) return "Loan Repayment";
+  if (String(type || "") === TRANSACTION_TYPES.SHARE_CAPITAL) return "Share Capital";
   return "Member Deposit";
 }
+
+function creditAlertCategory(type) {
+  if (String(type || "") === TRANSACTION_TYPES.LOAN_REPAYMENT) return "loan_repayment";
+  if (String(type || "") === TRANSACTION_TYPES.SHARE_CAPITAL) return "share_capital";
+  return "deposit";
+}
+
+const CATEGORY_TEMPLATE = {
+  deposit: "deposit_credit_alert",
+  loan_repayment: "loan_repayment_received",
+  share_capital: "share_capital_received",
+};
 
 function ensureDepositAlertLog(db = getDb()) {
   db.exec(`
@@ -135,7 +149,7 @@ function lookupMemberAlertRecipient(memberId) {
 }
 
 function groupMemberDepositAlerts(insertedRows = []) {
-  const byMember = new Map();
+  const byMemberCategory = new Map();
   const sentIds = alreadyAlertedIds((insertedRows || []).map((row) => row.transactionId));
   for (const row of insertedRows || []) {
     if (!isCreditAlertType(row.type)) continue;
@@ -147,10 +161,11 @@ function groupMemberDepositAlerts(insertedRows = []) {
     const transactionId = Number(row.transactionId) || null;
     if (transactionId && sentIds.has(transactionId)) continue;
     const date = String(row.date || "").slice(0, 10);
-    if (!byMember.has(memberId)) {
-      byMember.set(memberId, []);
+    const key = `${memberId}:${creditAlertCategory(row.type)}`;
+    if (!byMemberCategory.has(key)) {
+      byMemberCategory.set(key, { memberId, category: creditAlertCategory(row.type), items: [] });
     }
-    byMember.get(memberId).push({
+    byMemberCategory.get(key).items.push({
       transactionId,
       type: row.type,
       date,
@@ -158,24 +173,24 @@ function groupMemberDepositAlerts(insertedRows = []) {
       description: row.description || "",
     });
   }
-  for (const deposits of byMember.values()) {
-    deposits.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  for (const group of byMemberCategory.values()) {
+    group.items.sort((a, b) => String(a.date).localeCompare(String(b.date)));
   }
-  return byMember;
+  return byMemberCategory;
 }
 
-function alertSubjectKind(items) {
-  const types = new Set((items || []).map((item) => String(item.type || TRANSACTION_TYPES.DEPOSIT)));
-  const hasDeposit = types.has(TRANSACTION_TYPES.DEPOSIT);
-  const hasRepayment = types.has(TRANSACTION_TYPES.LOAN_REPAYMENT);
-  if (hasDeposit && hasRepayment) return "Deposits/Loan Repayments Received";
-  if (hasRepayment) {
-    return items.length > 1 ? "Loan Repayments Received" : "Loan Repayment Received";
+function alertSubjectKind(category, count) {
+  const plural = count > 1;
+  if (category === "loan_repayment") {
+    return plural ? "Loan Repayments Received" : "Loan Repayment Received";
   }
-  return items.length > 1 ? "Deposits Received" : "Deposit Received";
+  if (category === "share_capital") {
+    return plural ? "Share Capital Payments Received" : "Share Capital Received";
+  }
+  return plural ? "Deposits Received" : "Deposit Received";
 }
 
-function buildDepositAlertEmail({ memberName, deposits, branding }) {
+function buildDepositAlertEmail({ memberName, deposits, category, branding }) {
   const { renderAutomatedEmail } = require("./automated-message-service");
   const greeting = memberName || "Member";
   const items = deposits || [];
@@ -191,11 +206,11 @@ function buildDepositAlertEmail({ memberName, deposits, branding }) {
         lines.map((line) => `- ${line.dateLabel}: ${line.kindLabel} ${line.amountLabel}`).join("\n")
       : `Your Cooperative has recorded your ${lines[0]?.kindLabel} of ${lines[0]?.amountLabel} on ${lines[0]?.dateLabel}.`;
 
-  return renderAutomatedEmail("deposit_credit_alert", {
+  return renderAutomatedEmail(CATEGORY_TEMPLATE[category] || CATEGORY_TEMPLATE.deposit, {
     memberName: greeting,
     orgName: branding.name,
     portalUrl: branding.portalUrl,
-    alertKind: alertSubjectKind(items),
+    alertKind: alertSubjectKind(category, items.length),
     details,
   });
 }
@@ -233,9 +248,9 @@ function listDepositsForBankImport(importId) {
               transaction_date AS date,
               description
        FROM transactions
-       WHERE bank_import_id = ? AND type IN (?, ?) AND member_id IS NOT NULL`
+       WHERE bank_import_id = ? AND type IN (?, ?, ?) AND member_id IS NOT NULL`
     )
-    .all(id, TRANSACTION_TYPES.DEPOSIT, TRANSACTION_TYPES.LOAN_REPAYMENT);
+    .all(id, TRANSACTION_TYPES.DEPOSIT, TRANSACTION_TYPES.LOAN_REPAYMENT, TRANSACTION_TYPES.SHARE_CAPITAL);
 }
 
 function findLatestAppendImport() {
@@ -262,7 +277,7 @@ function importAgeHours(importedAt) {
 
 async function notifyImportedMemberDeposits(insertedRows = []) {
   const grouped = groupMemberDepositAlerts(insertedRows);
-  const depositCount = [...grouped.values()].reduce((n, rows) => n + rows.length, 0);
+  const depositCount = [...grouped.values()].reduce((n, group) => n + group.items.length, 0);
   if (!depositCount) {
     return { sent: 0, failed: 0, skipped: 0, wouldEmail: 0, depositCount: 0 };
   }
@@ -274,7 +289,7 @@ async function notifyImportedMemberDeposits(insertedRows = []) {
   let skipped = 0;
   let wouldEmail = 0;
 
-  for (const [memberId, deposits] of grouped) {
+  for (const { memberId, category, items: deposits } of grouped.values()) {
     const recipient = lookupMemberAlertRecipient(memberId);
     if (!recipient) {
       skipped += 1;
@@ -284,6 +299,7 @@ async function notifyImportedMemberDeposits(insertedRows = []) {
     const message = buildDepositAlertEmail({
       memberName: recipient.memberName,
       deposits,
+      category,
       branding,
     });
     const { postMemberNoticeFromAutomatedEmail } = require("./messaging-service");
@@ -374,8 +390,11 @@ async function notifyImportedMemberDeposits(insertedRows = []) {
     }
   }
 
-  for (const [memberId, items] of grouped) {
-    if (!items.some((item) => String(item.type) === TRANSACTION_TYPES.DEPOSIT)) continue;
+  const verifiedCandidates = new Set();
+  for (const { memberId, category } of grouped.values()) {
+    if (category === "deposit") verifiedCandidates.add(memberId);
+  }
+  for (const memberId of verifiedCandidates) {
     try {
       require("./flexxforms-membership-service").maybeNotifyDepositsVerified(memberId);
     } catch (_) {
@@ -442,7 +461,7 @@ async function notifyLatestImportedDeposits({ maxAgeHours = DEFAULT_BACKFILL_HOU
     };
   }
   const pending = groupMemberDepositAlerts(rows);
-  const pendingCount = [...pending.values()].reduce((n, list) => n + list.length, 0);
+  const pendingCount = [...pending.values()].reduce((n, group) => n + group.items.length, 0);
   if (!pendingCount) {
     return {
       sent: 0,

@@ -227,14 +227,14 @@ const CATALOG = [
   },
   {
     id: "deposit_credit_alert",
-    title: "Deposit/Loan Repayment Received",
+    title: "Member Deposit Received",
     description:
-      "Sent after a Member Deposit or Loan Repayment is confirmed on the books (usually from Import New Bank Activity).",
+      "Sent after a Member Deposit is confirmed on the books (usually from Import New Bank Activity). Deposits are never combined with loan repayments or share capital receipts: each gets its own email.",
     placeholders: [
       { token: "memberName", meaning: "Member name" },
       { token: "orgName", meaning: "Cooperative name" },
-      { token: "alertKind", meaning: "Deposit Received, Loan Repayment Received, or mixed" },
-      { token: "details", meaning: "Confirmed payment date, type, and amount" },
+      { token: "alertKind", meaning: "Deposit Received or Deposits Received" },
+      { token: "details", meaning: "Confirmed deposit date and amount" },
       { token: "portalUrl", meaning: "Member portal sign-in link" },
     ],
     defaultSubject: "{{orgName}}: {{alertKind}}",
@@ -244,8 +244,56 @@ const CATALOG = [
       "You can also view this in the member portal:\n{{portalUrl}}",
     sample: {
       memberName: "Ada Okeke",
+      alertKind: "Deposit Received",
+      details: "Your Cooperative has recorded your Member Deposit of $200.00 on 10/07/2026.",
+    },
+  },
+  {
+    id: "loan_repayment_received",
+    title: "Loan Repayment Received",
+    description:
+      "Sent after a Loan Repayment is confirmed on the books (usually from Import New Bank Activity). Loan repayments get their own email and are never combined with deposits.",
+    placeholders: [
+      { token: "memberName", meaning: "Borrower name" },
+      { token: "orgName", meaning: "Cooperative name" },
+      { token: "alertKind", meaning: "Loan Repayment Received or Loan Repayments Received" },
+      { token: "details", meaning: "Confirmed repayment date and amount" },
+      { token: "portalUrl", meaning: "Member portal sign-in link" },
+    ],
+    defaultSubject: "{{orgName}}: {{alertKind}}",
+    defaultBody:
+      "Hello {{memberName}},\n\n" +
+      "{{details}}\n\n" +
+      "This payment has been applied to your loan account.\n\n" +
+      "You can also view this in the member portal:\n{{portalUrl}}",
+    sample: {
+      memberName: "Ada Okeke",
       alertKind: "Loan Repayment Received",
       details: "Your Cooperative has recorded your Loan Repayment of $200.00 on 10/07/2026.",
+    },
+  },
+  {
+    id: "share_capital_received",
+    title: "Share Capital Received",
+    description:
+      "Sent after a Share Capital purchase is confirmed on the books (usually from Import New Bank Activity). Only applies when Share Capital Accounts are enabled in Membership Policy.",
+    placeholders: [
+      { token: "memberName", meaning: "Member name" },
+      { token: "orgName", meaning: "Cooperative name" },
+      { token: "alertKind", meaning: "Share Capital Received or Share Capital Payments Received" },
+      { token: "details", meaning: "Confirmed share capital date and amount" },
+      { token: "portalUrl", meaning: "Member portal sign-in link" },
+    ],
+    defaultSubject: "{{orgName}}: {{alertKind}}",
+    defaultBody:
+      "Hello {{memberName}},\n\n" +
+      "{{details}}\n\n" +
+      "This payment has been credited to your Share Capital account.\n\n" +
+      "You can also view this in the member portal:\n{{portalUrl}}",
+    sample: {
+      memberName: "Ada Okeke",
+      alertKind: "Share Capital Received",
+      details: "Your Cooperative has recorded your Share Capital payment of $500.00 on 10/07/2026.",
     },
   },
   {
