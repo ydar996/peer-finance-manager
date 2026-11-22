@@ -175,6 +175,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Membership Policy usability pass:** each amount field now
+  shows a live currency-formatted preview (`= ₦150,000`), the per-year dues
+  field is retitled "Amount by Year (Optional)" with a per-line hint
+  explaining it vs the current annual amount, and Initial Contribution is
+  explicitly optional: `0` or empty means no minimum first deposit
+  (`requireNonNegativeAmount`, Verify Deposits skips the zero deposit and
+  the not-on-books hint omits it). Stored `0` resolves correctly instead of
+  falling back to the country default (`normalizeAmountAllowZero`).
 - **2026-11-22** - **Membership fee models: one-time vs annual dues.** New
   `feeModel` policy (default `one_time`, unchanged for Assurance/US) plus
   `annual` model for Cooperatives like Twilight that charge a yearly

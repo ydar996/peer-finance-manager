@@ -1098,12 +1098,13 @@ async function verifyMembershipDeposits(applicationId, { recordPayments = false 
       });
     }
     const afterFee = getApplicantPaymentReadiness(app.memberId);
-    if (!afterFee.depositTotal) {
+    const initialContribution = getMembershipPolicy().initialContribution;
+    if (!afterFee.depositTotal && initialContribution > 0) {
       const { recordMemberDepositEntry } = require("./manual-entry-service");
       recordMemberDepositEntry({
         memberId: app.memberId,
         type: TRANSACTION_TYPES.DEPOSIT,
-        amount: getMembershipPolicy().initialContribution,
+        amount: initialContribution,
         transactionDate: today,
         description: "Initial membership contribution",
       });
@@ -1113,8 +1114,12 @@ async function verifyMembershipDeposits(applicationId, { recordPayments = false 
   const result = await completeDepositVerificationIfReady(applicationId);
   if (!result) {
     const readiness = getApplicantPaymentReadiness(app.memberId);
+    const contribHint =
+      readiness.initialContributionRequired > 0
+        ? ` and initial contribution (${formatMoneySafe(readiness.initialContributionRequired)})`
+        : "";
     throw new Error(
-      `Deposits are not on the books yet. Record membership fee (${formatMoneySafe(readiness.membershipFeeRequired)}) and initial contribution (${formatMoneySafe(readiness.initialContributionRequired)}) on Record, or click Verify Deposits to record the standard amounts.`
+      `Deposits are not on the books yet. Record membership fee (${formatMoneySafe(readiness.membershipFeeRequired)})${contribHint} on Record, or click Verify Deposits to record the standard amounts.`
     );
   }
   return { memberId: app.memberId, ...result, alreadyVerified: false };

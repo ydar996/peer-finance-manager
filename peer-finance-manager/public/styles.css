@@ -618,6 +618,12 @@ th { background: #f8fafc; font-weight: 600; }
 .field-row[hidden] {
   display: none;
 }
+.amount-preview {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .profile-disclosure-note {
   margin: 0 0 12px;
 }

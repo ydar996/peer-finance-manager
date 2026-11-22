@@ -60,7 +60,10 @@ runWithOrg(NG_ORG, () => {
   assert.strictEqual(shareOff.shareCapitalEnabled, false);
 
   assert.throws(() => setMembershipPolicy({ membershipFee: 0 }), /greater than zero/);
-  assert.throws(() => setMembershipPolicy({ initialContribution: -5 }), /greater than zero/);
+  assert.throws(() => setMembershipPolicy({ initialContribution: -5 }), /zero or greater/);
+  // Zero initial contribution means no minimum first deposit (e.g. Twilight).
+  assert.strictEqual(setMembershipPolicy({ initialContribution: 0 }).initialContribution, 0);
+  setMembershipPolicy({ initialContribution: 10000 });
 });
 closeDb(NG_ORG);
 

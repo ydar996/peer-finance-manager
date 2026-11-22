@@ -4015,6 +4015,33 @@ function isAnnualFeeModel() {
   return membershipPolicy.feeModel === "annual";
 }
 
+function refreshAmountPreviews() {
+  const pairs = [
+    ["membershipPolicyFeeAmount", "membershipPolicyFeePreview"],
+    ["membershipPolicyDuesAmount", "membershipPolicyDuesPreview"],
+    ["membershipPolicyContributionAmount", "membershipPolicyContributionPreview"],
+  ];
+  for (const [inputId, previewId] of pairs) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    if (!input || !preview) continue;
+    const value = input.value === "" ? null : Number(input.value);
+    preview.textContent = value != null && Number.isFinite(value) ? `= ${fmt.format(value)}` : "";
+  }
+  const scheduleInput = document.getElementById("membershipPolicyDuesSchedule");
+  const schedulePreview = document.getElementById("membershipPolicyDuesSchedulePreview");
+  if (scheduleInput && schedulePreview) {
+    const entries = parseDuesScheduleInput(scheduleInput.value);
+    schedulePreview.textContent = entries.length
+      ? entries.map((e) => `${e.year}: ${fmt.format(e.amount)}`).join("  ·  ")
+      : "";
+  }
+}
+
+for (const id of ["membershipPolicyFeeAmount", "membershipPolicyDuesAmount", "membershipPolicyContributionAmount", "membershipPolicyDuesSchedule"]) {
+  document.getElementById(id)?.addEventListener("input", refreshAmountPreviews);
+}
+
 function applyMembershipPolicyToUi() {
   const annual = isAnnualFeeModel();
   const feeLabel = $("#recordMembershipFeeLabel");
@@ -4052,7 +4079,7 @@ async function loadMembershipPolicyPanel() {
     membershipPolicy = {
       feeModel: data.feeModel === "annual" ? "annual" : "one_time",
       membershipFee: Number(data.membershipFee) || membershipPolicy.membershipFee,
-      initialContribution: Number(data.initialContribution) || membershipPolicy.initialContribution,
+      initialContribution: data.initialContribution != null ? Number(data.initialContribution) : membershipPolicy.initialContribution,
       annualDuesAmount: Number(data.annualDuesAmount) || membershipPolicy.annualDuesAmount,
       shareCapitalEnabled: Boolean(data.shareCapitalEnabled),
     };
@@ -4078,6 +4105,7 @@ async function loadMembershipPolicyPanel() {
     if (reminderEnabled) reminderEnabled.checked = Boolean(data.annualDuesReminderEnabled);
     if (reminderFrequency) reminderFrequency.value = data.annualDuesReminderFrequency || "monthly";
     if (duesYear && !duesYear.value) duesYear.value = new Date().getFullYear();
+    refreshAmountPreviews();
     applyMembershipPolicyToUi();
     applyShareCapitalUi();
     if (membershipPolicy.feeModel === "annual") loadAnnualDuesStatus();

@@ -41,6 +41,13 @@ function normalizeAmount(value, fallback) {
   return Math.round(n * 100) / 100;
 }
 
+function normalizeAmountAllowZero(value, fallback) {
+  if (value == null || value === "") return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return Math.round(n * 100) / 100;
+}
+
 function countryMembershipDefaults() {
   try {
     const { getCountryProfile } = require("./country-profile");
@@ -104,7 +111,7 @@ function getMembershipPolicy() {
     readSetting(SETTING_MEMBERSHIP_FEE),
     normalizeAmount(defaults.membershipFee, MEMBERSHIP_FEE)
   );
-  const initialContribution = normalizeAmount(
+  const initialContribution = normalizeAmountAllowZero(
     readSetting(SETTING_INITIAL_CONTRIBUTION),
     normalizeAmount(defaults.initialContribution, INITIAL_MEMBERSHIP_CONTRIBUTION)
   );
@@ -136,6 +143,14 @@ function requirePositiveAmount(value, label) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) {
     throw new Error(`${label} must be greater than zero`);
+  }
+  return Math.round(n * 100) / 100;
+}
+
+function requireNonNegativeAmount(value, label) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) {
+    throw new Error(`${label} must be zero or greater`);
   }
   return Math.round(n * 100) / 100;
 }
@@ -175,7 +190,7 @@ function setMembershipPolicy({
     setCooperativeSetting(
       db,
       SETTING_INITIAL_CONTRIBUTION,
-      String(requirePositiveAmount(initialContribution, "Initial contribution"))
+      String(requireNonNegativeAmount(initialContribution, "Initial contribution"))
     );
   }
   if (annualDuesAmount != null && annualDuesAmount !== "") {
