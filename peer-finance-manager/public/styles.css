@@ -2928,4 +2928,5 @@ tr.loan-row:hover { background: #f8fafc; }
 }
 .dues-controls-row .dues-year-field { flex-wrap: nowrap; }
 #annualDuesYear { width: 110px; }
-#annualDuesTableWrap { margin-top: 4px; }
+#annualDuesTableWrap { margin-top: 20px; }
+#annualDuesTableWrap > .hint { margin: 0 0 10px; }

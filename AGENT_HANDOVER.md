@@ -177,9 +177,10 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 - **2026-11-22** - **Annual dues controls spacing:** the Dues Year input and
   Refresh Dues Status button now share a `.dues-controls-row` flex row, the
-  year input is 110px wide, and `#annualDuesSection > * + *` adds 14px
-  spacing between the section's inner blocks (controls, table, reminder
-  checkbox/frequency, action buttons).
+  year input is 110px wide, `#annualDuesSection > * + *` adds 14px spacing
+  between the section's inner blocks, and `#annualDuesTableWrap` gets a
+  20px top margin plus a 10px gap under the dues summary line before the
+  status table.
 - **2026-11-22** - **"Enable Loan Accounts" toggle (Membership Policy):**
   new `lib/loan-feature-service.js` (`loans_enabled` setting, default ON for
   all existing Cooperatives). GET/PATCH membership-policy carries
