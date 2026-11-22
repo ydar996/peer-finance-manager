@@ -175,6 +175,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Fee-model-aware "membership_fee" labels:** `membership_fee`
+  ledger entries were always labeled "Registration Fee" even for annual-model
+  Cooperatives. New `membershipFeeLabel()` returns "Annual Membership Fee" for
+  annual-model orgs and drives `formatTxType`, the reclassify/split dropdown
+  option, the record-fee card summary + nav link + hint, the profile "Fee Paid"
+  field, the Contributions card subtitle, and the books card note. `/api/members`
+  now also returns `feeModel` so non-admin/member views label correctly
+  (`feeModelFromMembers` fallback in `isAnnualFeeModel`).
 - **2026-11-22** - **Investment accounts feature + Members split view:**
   - New `lib/investment-account-service.js`: per-tenant
     `investment_accounts` table (name, institution, notes, active

@@ -2097,7 +2097,7 @@ async function loadBooks() {
       bookCardHtml("deposits-withdrawals", {
         label: "Member Contributions &amp; Withdrawals",
         amount: books.memberDeposits,
-        note: "Contributions Minus Withdrawals Only: Excludes Distributions &amp; Registration Fees",
+        note: `Contributions Minus Withdrawals Only: Excludes Distributions &amp; ${membershipFeeLabel()}s`,
       }),
       books.shareCapitalEnabled
         ? bookCardHtml("share-capital", {
@@ -2305,6 +2305,7 @@ async function loadMembers() {
     if (requestId !== membersListRequestId) return;
     const data = await res.json();
     shareCapitalEnabledFromMembers = Boolean(data.shareCapitalEnabled);
+    if (data.feeModel != null) feeModelFromMembers = data.feeModel;
     applyShareCapitalUi();
     membersListCache = data.members || [];
     renderMembersList();
@@ -2671,7 +2672,7 @@ function profileDemographicsGridHtml(p) {
         <h4>${paymentRailHeading()}</h4>
         ${profileFieldRow("Method", p.preferred_payment_method)}
         ${profileFieldRow(paymentRailNameLabel(), p.zelle_bank_name)}
-        ${profileFieldRow("Registration Fee Paid", p.membership_fee_paid ? "Yes" : "No")}
+        ${profileFieldRow(`${membershipFeeLabel()} Paid`, p.membership_fee_paid ? "Yes" : "No")}
         ${profileFieldRow("Joined", p.joined_at)}
       </section>
       <section>
@@ -2793,7 +2794,7 @@ function formatTxType(type) {
     deposit: "Contribution",
     withdrawal: "Withdrawal",
     distribution: "Distribution",
-    membership_fee: "Registration Fee",
+    membership_fee: membershipFeeLabel(),
     loan_disbursement: "Loan Disbursement",
     loan_repayment: "Loan Repayment",
     loan_overpayment: "Loan Overpayment",
@@ -2823,9 +2824,12 @@ const LEDGER_RECLASSIFY_SHARE_TYPES = [
 ];
 
 function ledgerReclassifyTypes() {
+  const base = LEDGER_RECLASSIFY_TYPES.map((t) =>
+    t.value === "membership_fee" ? { ...t, label: membershipFeeLabel() } : t
+  );
   return shareCapitalUiEnabled()
-    ? [...LEDGER_RECLASSIFY_TYPES, ...LEDGER_RECLASSIFY_SHARE_TYPES]
-    : LEDGER_RECLASSIFY_TYPES;
+    ? [...base, ...LEDGER_RECLASSIFY_SHARE_TYPES]
+    : base;
 }
 
 function ledgerAdjustableTypes() {
@@ -3868,7 +3872,7 @@ async function showProfile(memberId) {
         <button type="button" class="account-card deposit" data-account-panel="deposit" aria-expanded="false">
           <h4>Contributions Account</h4>
           <p class="account-balance money">${fmt.format(p.deposit_account_balance || 0)}</p>
-          <p class="subtle">Contributions, Withdrawals, Distributions, Registration Fee</p>
+          <p class="subtle">Contributions, Withdrawals, Distributions, ${membershipFeeLabel()}</p>
           <p class="account-card-hint">Click for Full History</p>
         </button>
         ${p.share_capital_enabled ? `
@@ -4053,6 +4057,7 @@ async function loadLoans() {
 
 let membershipPolicy = { feeModel: "one_time", membershipFee: 100, initialContribution: 100, annualDuesAmount: 0, shareCapitalEnabled: false };
 let shareCapitalEnabledFromMembers = false;
+let feeModelFromMembers = null;
 
 function shareCapitalUiEnabled() {
   return Boolean(membershipPolicy.shareCapitalEnabled || shareCapitalEnabledFromMembers);
@@ -4064,7 +4069,11 @@ function applyShareCapitalUi() {
 }
 
 function isAnnualFeeModel() {
-  return membershipPolicy.feeModel === "annual";
+  return membershipPolicy.feeModel === "annual" || feeModelFromMembers === "annual";
+}
+
+function membershipFeeLabel() {
+  return isAnnualFeeModel() ? "Annual Membership Fee" : "Registration Fee";
 }
 
 function groupAmountDigits(raw) {
@@ -4231,6 +4240,16 @@ document.getElementById("addDuesYearRow")?.addEventListener("click", () => {
 
 function applyMembershipPolicyToUi() {
   const annual = isAnnualFeeModel();
+  const feeCardSummary = document.querySelector("#recordSectionMembershipFee > summary");
+  if (feeCardSummary) feeCardSummary.textContent = membershipFeeLabel();
+  const feeNavLink = document.querySelector('a[href="#recordSectionMembershipFee"]');
+  if (feeNavLink) feeNavLink.textContent = membershipFeeLabel();
+  const feeCardHint = document.querySelector("#recordSectionMembershipFee .profile-disclosure-body > .subtle");
+  if (feeCardHint) {
+    feeCardHint.textContent = annual
+      ? "Record an Annual Membership Fee Payment for an Existing Member."
+      : "Record the One-Time Membership Fee for an Existing Member.";
+  }
   const feeLabel = $("#recordMembershipFeeLabel");
   if (feeLabel) {
     feeLabel.textContent = annual
@@ -8556,11 +8575,12 @@ async function loadRecordTabData() {
       fetch("/api/loans?status=active"),
     ]);
     if (requestId !== recordTabRequestId) return;
-    const { members, shareCapitalEnabled } = await membersRes.json();
+    const { members, shareCapitalEnabled, feeModel } = await membersRes.json();
     if (shareCapitalEnabled != null) {
       shareCapitalEnabledFromMembers = Boolean(shareCapitalEnabled);
       applyShareCapitalUi();
     }
+    if (feeModel != null) feeModelFromMembers = feeModel;
     const { categories } = await categoriesRes.json();
     const { loans } = await loansRes.json();
     cachedMembers = members || [];

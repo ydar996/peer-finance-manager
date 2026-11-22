@@ -319,6 +319,10 @@ app.get("/api/members", (req, res) => {
     const withProfiles = req.query.profiles === "true";
     const { isShareCapitalEnabled } = require("./lib/share-capital-service");
     const shareCapitalEnabled = isShareCapitalEnabled();
+    let feeModel = "one_time";
+    try {
+      feeModel = require("./lib/membership-policy-service").getMembershipPolicy().feeModel || feeModel;
+    } catch (_) {}
     // Admins/staff may include former members for pickers and Show Former Members.
     // Members always see only their own active row.
     const includeFormer =
@@ -330,13 +334,14 @@ app.get("/api/members", (req, res) => {
         ? listMembersWithProfiles({ includeFormer: true })
         : listMembersWithBalances({ includeFormer: true });
       const mine = all.filter((m) => m.id === req.user.memberId);
-      return res.json({ members: mine, shareCapitalEnabled });
+      return res.json({ members: mine, shareCapitalEnabled, feeModel });
     }
     res.json({
       members: withProfiles
         ? listMembersWithProfiles(listOpts)
         : listMembersWithBalances(listOpts),
       shareCapitalEnabled,
+      feeModel,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
