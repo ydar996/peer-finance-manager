@@ -2218,7 +2218,7 @@ async function loadBooks() {
         ? bookCardHtml("investments", {
             label: "Cooperative Investments",
             amount: books.investments,
-            note: "Caribe Restaurant and Lounge",
+            note: books.investmentNote || "Cooperative Investment Accounts",
           })
         : "",
       bookCardHtml("members-profiles", {

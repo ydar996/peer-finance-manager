@@ -112,10 +112,25 @@ function getCooperativeAssetTotals() {
        WHERE type IN ('cd_purchase', 'cd_liquidation', 'investment')`
     )
     .get();
+  const investmentDescriptions = db
+    .prepare(
+      `SELECT DISTINCT TRIM(description) AS description
+       FROM transactions
+       WHERE type = 'investment' AND TRIM(COALESCE(description, '')) != ''
+       ORDER BY description`
+    )
+    .all()
+    .map((r) => r.description);
   return {
     cdPurchased: row.cdPurchased || 0,
     cdLiquidated: row.cdLiquidated || 0,
     investments: row.investments || 0,
+    investmentNote:
+      investmentDescriptions.length === 0
+        ? null
+        : investmentDescriptions.length <= 2
+          ? investmentDescriptions.join(" · ")
+          : `${investmentDescriptions.length} Investment Types`,
   };
 }
 
@@ -353,6 +368,7 @@ function getCooperativeBooks() {
     totalCooperativeIncome,
     cooperativeNetIncome,
     investments: assets.investments,
+    investmentNote: assets.investmentNote,
     cooperativeNet:
       memberDeposits +
       registrationIncome +

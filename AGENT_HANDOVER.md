@@ -175,6 +175,16 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Cooperative Investments card note de-hardcoded:**
+  the card subtitle was hardcoded to "Caribe Restaurant and Lounge"
+  (Assurance's specific investment) for every tenant. `cooperative-books.js`
+  now returns `investmentNote` built from the org's distinct investment
+  transaction descriptions (joined when <=2, else "N Investment Types"),
+  and `app.js` falls back to "Cooperative Investment Accounts". The
+  ledger-CSV `TYPE_TO_NARRATIVE` investment narrative is now generic
+  "Investment" (row descriptions still carry real text), and
+  `TYPE_MAP` gained `Investment -> investment` so generic narratives
+  re-import. Same fixes applied to the legacy root `lib/`+`public/` copy.
 - **2026-11-22** - **Record-tab index/cards aligned:** the left
   `record-index` labels drifted out of line with their cards because
   `membershipPolicyPanel` lacked the `record-section` class (kept

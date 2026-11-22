@@ -37,7 +37,7 @@ const TYPE_TO_NARRATIVE = {
   [TRANSACTION_TYPES.EXPENSE]: "Expenses",
   [TRANSACTION_TYPES.CD_PURCHASE]: "Purchase of Certificate of Deposit",
   [TRANSACTION_TYPES.CD_LIQUIDATION]: "Liquidation of Certificate of Deposit",
-  [TRANSACTION_TYPES.INVESTMENT]: "Investment in Caribe Restaurant and Lounge",
+  [TRANSACTION_TYPES.INVESTMENT]: "Investment",
   [TRANSACTION_TYPES.SHARE_CAPITAL]: "Share Capital",
   [TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION]: "Share Capital Redemption",
 };
