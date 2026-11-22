@@ -1809,7 +1809,7 @@ label.toggle-row,
   .record-index {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 12px;
     position: sticky;
     top: 92px;
   }
@@ -1820,7 +1820,10 @@ label.toggle-row,
   }
 
   .record-index a {
-    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    height: 58px;
+    padding: 0 10px;
     border-radius: var(--pv-radius-sm);
     color: var(--pv-ink-700);
     font-size: 15px;

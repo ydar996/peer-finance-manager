@@ -175,6 +175,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Record-tab index/cards aligned:** the left
+  `record-index` labels drifted out of line with their cards because
+  `membershipPolicyPanel` lacked the `record-section` class (kept
+  `.card` 24px padding and `margin-top:16px`, making it taller and
+  offset) and nav links used a 36px/6px rhythm vs the cards' ~58px/12px.
+  The panel now carries `record-section`/`record-section-summary`, and
+  record-index links use `height:58px` flex-centered with `gap:12px` so
+  each label sits beside its card.
 - **2026-11-22** - **Policy save message copy clarified:** "Applies to new
   activity only" read as if past transactions were ignored; replaced with
   "New amounts apply to fees recorded from now on; existing ledger
