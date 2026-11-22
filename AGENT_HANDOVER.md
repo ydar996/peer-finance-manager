@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Dues mirror row fixes:** the auto-added current-year
+  row under Amount by Year showed `0` because
+  `currentDuesYearRequirement` read the raw stored setting (unset -> 0)
+  while the Annual Membership Fee field shows the resolved default
+  (NGN 50,000). `duesRequirementForYear` is now called with the resolved
+  `policy.annualDuesAmount` so the row prefills consistently. The row is
+  also a live mirror: typing in Annual Membership Fee Amount updates it
+  until the admin edits the row directly (turning it into a real
+  override). Confirmed deployed commit via `/api/health` `build.commit`.
 - **2026-11-22** - **Membership policy save failures diagnosed + made
   loud:** the persistence complaint root cause was most likely the PATCH
   400ing on validation, not the 402 subscription gate (Twilight's

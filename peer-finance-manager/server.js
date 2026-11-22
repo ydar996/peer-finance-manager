@@ -935,7 +935,7 @@ app.get("/api/cooperative/membership-policy", requireAdmin, restoreOrgContext, (
       ...policy,
       countryProfile: getPublicCountryProfile(),
       currentDuesYear,
-      currentDuesYearRequirement: duesRequirementForYear(currentDuesYear),
+      currentDuesYearRequirement: duesRequirementForYear(currentDuesYear, policy.annualDuesAmount),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

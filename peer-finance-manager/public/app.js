@@ -4109,11 +4109,23 @@ for (const id of ["membershipPolicyFeeAmount", "membershipPolicyDuesAmount", "me
   attachGroupedAmountInput(input);
   input?.addEventListener("input", refreshAmountPreviews);
 }
-function addDuesYearRow(year, entry) {
+
+// The auto-added current-year dues row mirrors the base annual amount while
+// the admin types; editing that row directly turns it into a pinned override.
+document.getElementById("membershipPolicyDuesAmount")?.addEventListener("input", (e) => {
+  const value = e.target.value;
+  document.querySelectorAll("#duesYearRows .dues-year-row[data-auto-year]").forEach((row) => {
+    const amountInput = row.querySelector(".dues-year-amount");
+    if (amountInput) amountInput.value = value;
+  });
+  refreshAmountPreviews();
+});
+function addDuesYearRow(year, entry, auto = false) {
   const wrap = document.getElementById("duesYearRows");
   if (!wrap) return;
   const row = document.createElement("div");
   row.className = "field-row dues-year-row";
+  if (auto) row.dataset.autoYear = "1";
   const yearInput = document.createElement("input");
   yearInput.type = "number";
   yearInput.className = "dues-year-input";
@@ -4127,7 +4139,10 @@ function addDuesYearRow(year, entry) {
   amountInput.className = "dues-year-amount";
   amountInput.value = entry?.amount != null ? groupAmountDigits(String(entry.amount)) : "";
   attachGroupedAmountInput(amountInput);
-  amountInput.addEventListener("input", refreshAmountPreviews);
+  amountInput.addEventListener("input", () => {
+    delete row.dataset.autoYear;
+    refreshAmountPreviews();
+  });
   const preview = document.createElement("span");
   preview.className = "amount-preview";
   const stamp = document.createElement("span");
@@ -4155,7 +4170,7 @@ function renderDuesYearRows(schedule, { currentYear, currentRequirement } = {}) 
   for (const entry of entries) addDuesYearRow(entry.year, entry);
   const thisYear = currentYear || new Date().getFullYear();
   if (!entries.some((e) => e.year === thisYear)) {
-    addDuesYearRow(thisYear, currentRequirement != null ? { amount: currentRequirement } : null);
+    addDuesYearRow(thisYear, currentRequirement != null ? { amount: currentRequirement } : null, true);
     const row = wrap.lastElementChild;
     const stamp = row?.querySelector(".dues-year-stamp");
     if (stamp) stamp.textContent = "Mirrors the annual amount; saving pins it for this year.";
