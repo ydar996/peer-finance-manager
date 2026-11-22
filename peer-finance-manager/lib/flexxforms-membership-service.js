@@ -735,13 +735,15 @@ function getApplicantPaymentReadiness(memberId) {
       )
       .get(memberId, TRANSACTION_TYPES.DEPOSIT)?.total || 0;
 
-  const membershipFeePaid =
-    Boolean(member?.membership_fee_paid) ||
-    Boolean(
-      db
-        .prepare(`SELECT 1 FROM transactions WHERE member_id = ? AND type = ? LIMIT 1`)
-        .get(memberId, TRANSACTION_TYPES.MEMBERSHIP_FEE)
-    );
+  const annualModel = policy.feeModel === "annual";
+  const membershipFeePaid = annualModel
+    ? true
+    : Boolean(member?.membership_fee_paid) ||
+      Boolean(
+        db
+          .prepare(`SELECT 1 FROM transactions WHERE member_id = ? AND type = ? LIMIT 1`)
+          .get(memberId, TRANSACTION_TYPES.MEMBERSHIP_FEE)
+      );
   const extraAfterFee = membershipFeePaid
     ? Number(depositTotal) - policy.membershipFee
     : Number(depositTotal);
@@ -749,7 +751,7 @@ function getApplicantPaymentReadiness(memberId) {
 
   return {
     membershipFeePaid,
-    membershipFeeRequired: policy.membershipFee,
+    membershipFeeRequired: annualModel ? 0 : policy.membershipFee,
     initialContributionMet,
     initialContributionRequired: policy.initialContribution,
     depositTotal: Number(depositTotal),

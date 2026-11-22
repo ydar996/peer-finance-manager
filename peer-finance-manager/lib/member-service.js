@@ -129,22 +129,31 @@ function upsertMemberProfile(db, memberId, fields) {
   ).run({ member_id: memberId, ...fields });
 }
 
-function recordMembershipFee(memberId, { feeDate, amount } = {}) {
+function recordMembershipFee(memberId, { feeDate, amount, duesYear } = {}) {
   const db = getDb();
   const member = db.prepare(`SELECT * FROM members WHERE id = ?`).get(memberId);
   if (!member) throw new Error("Member not found");
   const { assertActiveDirectoryMember } = require("./membership-status-service");
   assertActiveDirectoryMember(memberId, { action: "Registration fees" });
 
-  const existing = db
-    .prepare(
-      `SELECT id FROM transactions WHERE member_id = ? AND type = ?`
-    )
-    .get(memberId, TRANSACTION_TYPES.MEMBERSHIP_FEE);
-  if (existing) throw new Error("Membership fee already recorded for this member");
+  const policy = getMembershipPolicy();
+  const annualModel = policy.feeModel === "annual";
+
+  if (!annualModel) {
+    const existing = db
+      .prepare(
+        `SELECT id FROM transactions WHERE member_id = ? AND type = ?`
+      )
+      .get(memberId, TRANSACTION_TYPES.MEMBERSHIP_FEE);
+    if (existing) throw new Error("Membership fee already recorded for this member");
+  }
 
   const feeAmount =
-    amount != null ? Number(amount) : getMembershipPolicy().membershipFee;
+    amount != null
+      ? Number(amount)
+      : annualModel
+        ? policy.annualDuesAmount
+        : policy.membershipFee;
   if (!Number.isFinite(feeAmount) || feeAmount <= 0) {
     throw new Error("Membership fee amount must be greater than zero");
   }
@@ -152,19 +161,34 @@ function recordMembershipFee(memberId, { feeDate, amount } = {}) {
   const txDate =
     feeDate || member.joined_at || new Date().toISOString().slice(0, 10);
   const signedAmount = -Math.abs(feeAmount);
+  const year = Number.isInteger(Number(duesYear)) && Number(duesYear) > 2000
+    ? Number(duesYear)
+    : Number(txDate.slice(0, 4));
 
   const txId = addTransaction({
     memberId,
     type: TRANSACTION_TYPES.MEMBERSHIP_FEE,
     amount: signedAmount,
     transactionDate: txDate,
-    description: `One-time membership fee (${feeAmount})`,
+    description: annualModel
+      ? `Annual membership fee payment for ${year} (${feeAmount})`
+      : `One-time membership fee (${feeAmount})`,
     source: "manual",
   });
 
-  db.prepare(
-    `UPDATE members SET membership_fee_paid = 1, joined_at = COALESCE(joined_at, ?) WHERE id = ?`
-  ).run(txDate, memberId);
+  if (annualModel) {
+    const { memberDuesPaid } = require("./annual-dues-service");
+    const { duesRequirementForYear } = require("./membership-policy-service");
+    const paid = memberDuesPaid(memberId, year);
+    const required = duesRequirementForYear(year, policy.annualDuesAmount);
+    db.prepare(
+      `UPDATE members SET membership_fee_paid = ?, joined_at = COALESCE(joined_at, ?) WHERE id = ?`
+    ).run(paid + 0.005 >= required ? 1 : 0, txDate, memberId);
+  } else {
+    db.prepare(
+      `UPDATE members SET membership_fee_paid = 1, joined_at = COALESCE(joined_at, ?) WHERE id = ?`
+    ).run(txDate, memberId);
+  }
 
   try {
     require("./flexxforms-membership-service").maybeNotifyDepositsVerified(memberId);
@@ -193,6 +217,7 @@ function memberHasMembershipFeeTransaction(memberId) {
 function memberEligibleForFirstDepositFee(memberId) {
   const id = Number(memberId);
   if (!Number.isInteger(id) || id <= 0) return false;
+  if (getMembershipPolicy().feeModel === "annual") return false;
   const db = getDb();
   const member = db.prepare(`SELECT membership_fee_paid, joined_at FROM members WHERE id = ?`).get(id);
   if (!member) return false;

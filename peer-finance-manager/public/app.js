@@ -3999,7 +3999,7 @@ async function loadLoans() {
   }
 }
 
-let membershipPolicy = { membershipFee: 100, initialContribution: 100, shareCapitalEnabled: false };
+let membershipPolicy = { feeModel: "one_time", membershipFee: 100, initialContribution: 100, annualDuesAmount: 0, shareCapitalEnabled: false };
 let shareCapitalEnabledFromMembers = false;
 
 function shareCapitalUiEnabled() {
@@ -4011,16 +4011,33 @@ function applyShareCapitalUi() {
   document.body.classList.toggle("share-capital-enabled", enabled);
 }
 
+function isAnnualFeeModel() {
+  return membershipPolicy.feeModel === "annual";
+}
+
 function applyMembershipPolicyToUi() {
+  const annual = isAnnualFeeModel();
   const feeLabel = $("#recordMembershipFeeLabel");
   if (feeLabel) {
-    feeLabel.textContent = `Record Registration Fee (${fmt.format(membershipPolicy.membershipFee)})`;
+    feeLabel.textContent = annual
+      ? `Record Annual Membership Fee Payment (${fmt.format(membershipPolicy.annualDuesAmount)})`
+      : `Record Registration Fee (${fmt.format(membershipPolicy.membershipFee)})`;
   }
   const feeAmountInput = document.querySelector("#membershipFeeForm [name='amount']");
   if (feeAmountInput) {
-    feeAmountInput.value = membershipPolicy.membershipFee;
+    feeAmountInput.value = annual ? membershipPolicy.annualDuesAmount : membershipPolicy.membershipFee;
     feeAmountInput.dataset.autoFee = "1";
   }
+  const feeRow = $("#membershipPolicyFeeRow");
+  const duesRow = $("#membershipPolicyDuesRow");
+  const duesHint = $("#membershipPolicyDuesHint");
+  const duesScheduleRow = $("#membershipPolicyDuesScheduleRow");
+  const duesSection = $("#annualDuesSection");
+  feeRow?.classList.toggle("hidden", annual);
+  duesRow?.classList.toggle("hidden", !annual);
+  duesHint?.classList.toggle("hidden", !annual);
+  duesScheduleRow?.classList.toggle("hidden", !annual);
+  duesSection?.classList.toggle("hidden", !annual);
 }
 
 async function loadMembershipPolicyPanel() {
@@ -4033,18 +4050,37 @@ async function loadMembershipPolicyPanel() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Could not load membership policy");
     membershipPolicy = {
+      feeModel: data.feeModel === "annual" ? "annual" : "one_time",
       membershipFee: Number(data.membershipFee) || membershipPolicy.membershipFee,
       initialContribution: Number(data.initialContribution) || membershipPolicy.initialContribution,
+      annualDuesAmount: Number(data.annualDuesAmount) || membershipPolicy.annualDuesAmount,
       shareCapitalEnabled: Boolean(data.shareCapitalEnabled),
     };
     const fee = $("#membershipPolicyFeeAmount");
     const contrib = $("#membershipPolicyContributionAmount");
     const shareToggle = $("#membershipPolicyShareCapital");
+    const model = $("#membershipPolicyFeeModel");
+    const duesAmount = $("#membershipPolicyDuesAmount");
+    const duesSchedule = $("#membershipPolicyDuesSchedule");
+    const reminderEnabled = $("#annualDuesReminderEnabled");
+    const reminderFrequency = $("#annualDuesReminderFrequency");
+    const duesYear = $("#annualDuesYear");
     if (fee) fee.value = membershipPolicy.membershipFee;
     if (contrib) contrib.value = membershipPolicy.initialContribution;
     if (shareToggle) shareToggle.checked = membershipPolicy.shareCapitalEnabled;
+    if (model) model.value = membershipPolicy.feeModel;
+    if (duesAmount) duesAmount.value = membershipPolicy.annualDuesAmount || "";
+    if (duesSchedule) {
+      duesSchedule.value = (data.annualDuesSchedule || [])
+        .map((e) => `${e.year}:${e.amount}`)
+        .join(", ");
+    }
+    if (reminderEnabled) reminderEnabled.checked = Boolean(data.annualDuesReminderEnabled);
+    if (reminderFrequency) reminderFrequency.value = data.annualDuesReminderFrequency || "monthly";
+    if (duesYear && !duesYear.value) duesYear.value = new Date().getFullYear();
     applyMembershipPolicyToUi();
     applyShareCapitalUi();
+    if (membershipPolicy.feeModel === "annual") loadAnnualDuesStatus();
     if (status) status.textContent = "";
   } catch (err) {
     if (status) {
@@ -4054,29 +4090,50 @@ async function loadMembershipPolicyPanel() {
   }
 }
 
+function parseDuesScheduleInput(value) {
+  const out = [];
+  for (const part of String(value || "").split(",")) {
+    const [y, a] = part.split(":").map((s) => s?.trim());
+    const year = Math.trunc(Number(y));
+    const amount = Number(a);
+    if (Number.isInteger(year) && year > 2000 && Number.isFinite(amount) && amount > 0) {
+      out.push({ year, amount });
+    }
+  }
+  return out;
+}
+
 async function saveMembershipPolicy() {
   const status = $("#membershipPolicyStatus");
+  const feeModel = $("#membershipPolicyFeeModel")?.value === "annual" ? "annual" : "one_time";
   const membershipFee = Number($("#membershipPolicyFeeAmount")?.value);
   const initialContribution = Number($("#membershipPolicyContributionAmount")?.value);
+  const annualDuesAmount = Number($("#membershipPolicyDuesAmount")?.value);
+  const annualDuesSchedule = parseDuesScheduleInput($("#membershipPolicyDuesSchedule")?.value);
   const shareCapitalEnabled = Boolean($("#membershipPolicyShareCapital")?.checked);
   try {
     const res = await fetch("/api/cooperative/membership-policy", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ membershipFee, initialContribution, shareCapitalEnabled }),
+      body: JSON.stringify({ feeModel, membershipFee, initialContribution, annualDuesAmount, annualDuesSchedule, shareCapitalEnabled }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Save failed");
     membershipPolicy = {
+      feeModel,
       membershipFee: Number(data.membershipFee) || membershipFee,
       initialContribution: Number(data.initialContribution) || initialContribution,
+      annualDuesAmount: Number(data.annualDuesAmount) || annualDuesAmount,
       shareCapitalEnabled: Boolean(data.shareCapitalEnabled),
     };
     applyMembershipPolicyToUi();
     applyShareCapitalUi();
     renderMembersList();
+    if (feeModel === "annual") loadAnnualDuesStatus();
     if (status) {
-      status.textContent = `Saved: Registration fee ${fmt.format(membershipPolicy.membershipFee)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}. Applies to new activity only.`;
+      status.textContent = feeModel === "annual"
+        ? `Saved: Annual membership fee model, annual fee ${fmt.format(membershipPolicy.annualDuesAmount)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}. Applies to new activity only.`
+        : `Saved: Registration fee ${fmt.format(membershipPolicy.membershipFee)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}. Applies to new activity only.`;
       status.className = "status ok";
     }
   } catch (err) {
@@ -4088,6 +4145,99 @@ async function saveMembershipPolicy() {
 }
 
 $("#saveMembershipPolicy")?.addEventListener("click", () => saveMembershipPolicy());
+$("#membershipPolicyFeeModel")?.addEventListener("change", (e) => {
+  membershipPolicy.feeModel = e.target.value === "annual" ? "annual" : "one_time";
+  applyMembershipPolicyToUi();
+});
+
+async function loadAnnualDuesStatus() {
+  const wrap = $("#annualDuesTableWrap");
+  const status = $("#annualDuesStatus");
+  const year = Number($("#annualDuesYear")?.value) || new Date().getFullYear();
+  if (!wrap) return;
+  try {
+    const res = await fetch(`/api/cooperative/annual-dues?year=${year}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load dues status");
+    const rows = data.rows || [];
+    if (!rows.length) {
+      wrap.innerHTML = `<p class="hint subtle">No Active Members.</p>`;
+      return;
+    }
+    const body = rows
+      .map((r) => {
+        const badge =
+          r.status === "paid"
+            ? `<span class="badge ok">Paid</span>`
+            : r.status === "partial"
+              ? `<span class="badge warn">Partial</span>`
+              : `<span class="badge former">Unpaid</span>`;
+        return `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.memberNo)}</td><td class="num">${fmt.format(r.paid)}</td><td class="num">${fmt.format(r.required)}</td><td class="num">${fmt.format(r.outstanding)}</td><td>${badge}</td></tr>`;
+      })
+      .join("");
+    wrap.innerHTML = `<p class="hint subtle">${data.totals.paid} of ${data.totals.members} members fully paid for ${data.year}. Outstanding total: ${fmt.format(data.totals.outstandingTotal)}.</p>
+      <table class="data-table"><thead><tr><th>Member</th><th>Member No</th><th class="num">Paid</th><th class="num">Required</th><th class="num">Outstanding</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
+    if (status) { status.textContent = ""; status.className = "status"; }
+  } catch (err) {
+    wrap.innerHTML = "";
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+}
+
+$("#refreshAnnualDues")?.addEventListener("click", () => loadAnnualDuesStatus());
+
+$("#saveDuesReminderSettings")?.addEventListener("click", async () => {
+  const status = $("#annualDuesStatus");
+  try {
+    const res = await fetch("/api/cooperative/membership-policy", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        annualDuesReminderEnabled: Boolean($("#annualDuesReminderEnabled")?.checked),
+        annualDuesReminderFrequency: $("#annualDuesReminderFrequency")?.value || "monthly",
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed");
+    if (status) {
+      status.textContent = `Reminder settings saved: ${data.annualDuesReminderEnabled ? "automatic reminders on" : "automatic reminders off"}, ${data.annualDuesReminderFrequency}.`;
+      status.className = "status ok";
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+});
+
+$("#sendDuesRemindersNow")?.addEventListener("click", async () => {
+  const status = $("#annualDuesStatus");
+  const year = Number($("#annualDuesYear")?.value) || new Date().getFullYear();
+  try {
+    const res = await fetch("/api/cooperative/annual-dues/send-reminders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ year }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Send failed");
+    if (status) {
+      status.textContent = data.outstanding
+        ? `Reminders sent: ${data.sent}, skipped (no email or email not configured): ${data.skipped + data.failed}.`
+        : "No members with outstanding dues for this year.";
+      status.className = "status ok";
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  }
+});
 
 async function loadLoanPaymentPolicyPanel() {
   const panel = $("#loanPaymentPolicyPanel");

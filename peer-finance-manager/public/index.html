@@ -1375,10 +1375,26 @@
           <details class="card profile-disclosure admin-only-report-settings hidden" id="membershipPolicyPanel">
             <summary>Membership Policy</summary>
             <div class="profile-disclosure-body">
-              <p class="hint"><span class="hint-line">Set the One-Time Registration Fee and Initial Contribution Amount for this Cooperative.</span><span class="hint-line">These amounts apply to new registrations, fee recordings, and deposit verification.</span><span class="hint-line">Existing ledger entries are not changed.</span></p>
+              <p class="hint"><span class="hint-line">Choose How Your Cooperative Charges Members: a One-Time Registration Fee or a Recurring Annual Membership Fee.</span><span class="hint-line">These settings apply to new registrations, fee recordings, and deposit verification.</span><span class="hint-line">Existing ledger entries are not changed.</span></p>
               <label class="field-row">
+                <span>Membership Fee Model</span>
+                <select id="membershipPolicyFeeModel">
+                  <option value="one_time">One-Time Registration Fee</option>
+                  <option value="annual">Annual Membership Fee</option>
+                </select>
+              </label>
+              <label class="field-row" id="membershipPolicyFeeRow">
                 <span>Registration Fee Amount</span>
                 <input type="number" id="membershipPolicyFeeAmount" min="0.01" step="0.01" />
+              </label>
+              <label class="field-row hidden" id="membershipPolicyDuesRow">
+                <span>Annual Membership Fee Amount</span>
+                <input type="number" id="membershipPolicyDuesAmount" min="0.01" step="0.01" />
+              </label>
+              <p class="hint subtle hidden" id="membershipPolicyDuesHint">Members may pay the annual fee in full or in instalments with no penalty. Changing the amount applies to future years and new payments: fees already recorded keep their original amounts. To set a different amount for a specific year, use the Yearly Amounts field below.</p>
+              <label class="field-row hidden" id="membershipPolicyDuesScheduleRow">
+                <span>Yearly Amounts (Optional)</span>
+                <input type="text" id="membershipPolicyDuesSchedule" placeholder="e.g. 2026:150000, 2027:175000" />
               </label>
               <label class="field-row">
                 <span>Initial Contribution Amount</span>
@@ -1392,6 +1408,33 @@
               <p class="hint subtle">Amounts display in the Cooperative currency. Changing them does not rewrite fees or contributions already on the books.</p>
               <button type="button" class="btn primary" id="saveMembershipPolicy">Save Membership Policy</button>
               <p id="membershipPolicyStatus" class="status"></p>
+              <div class="hidden" id="annualDuesSection">
+                <hr />
+                <p class="hint"><span class="hint-line">Annual Dues Status and Reminders.</span><span class="hint-line">See which members have paid, paid in part, or still owe the annual fee.</span><span class="hint-line">Send reminders on demand, or let the system send them automatically at the frequency you choose.</span></p>
+                <label class="field-row">
+                  <span>Dues Year</span>
+                  <input type="number" id="annualDuesYear" min="2000" step="1" />
+                </label>
+                <button type="button" class="btn" id="refreshAnnualDues">Refresh Dues Status</button>
+                <div id="annualDuesTableWrap"></div>
+                <label class="field-row checkbox-row">
+                  <input type="checkbox" id="annualDuesReminderEnabled" />
+                  <span>Send Dues Reminders Automatically</span>
+                </label>
+                <label class="field-row">
+                  <span>Reminder Frequency</span>
+                  <select id="annualDuesReminderFrequency">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </label>
+                <div class="actions">
+                  <button type="button" class="btn" id="saveDuesReminderSettings">Save Reminder Settings</button>
+                  <button type="button" class="btn primary" id="sendDuesRemindersNow">Send Reminders to Members With Unpaid Dues</button>
+                </div>
+                <p id="annualDuesStatus" class="status"></p>
+              </div>
             </div>
           </details>
           <details class="card accent profile-disclosure record-section" id="recordSectionRegisterMember">

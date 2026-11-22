@@ -22,8 +22,13 @@ const { applyCountryProfileDefaults } = require("../lib/country-profile");
 
 // No org context: legacy US constants.
 assert.deepStrictEqual(getMembershipPolicy(), {
+  feeModel: "one_time",
   membershipFee: 100,
   initialContribution: 100,
+  annualDuesAmount: 100,
+  annualDuesSchedule: [],
+  annualDuesReminderEnabled: false,
+  annualDuesReminderFrequency: "monthly",
   shareCapitalEnabled: false,
 });
 
@@ -39,8 +44,13 @@ runWithOrg(NG_ORG, () => {
   assert.strictEqual(updated.membershipFee, 25000);
   assert.strictEqual(updated.initialContribution, 10000);
   assert.deepStrictEqual(getMembershipPolicy(), {
+    feeModel: "one_time",
     membershipFee: 25000,
     initialContribution: 10000,
+    annualDuesAmount: 50000,
+    annualDuesSchedule: [],
+    annualDuesReminderEnabled: false,
+    annualDuesReminderFrequency: "monthly",
     shareCapitalEnabled: false,
   });
 
@@ -59,8 +69,13 @@ openOrgDatabase(US_ORG);
 runWithOrg(US_ORG, () => {
   applyCountryProfileDefaults("US", { forceLocaleSettings: true });
   assert.deepStrictEqual(getMembershipPolicy(), {
+    feeModel: "one_time",
     membershipFee: 100,
     initialContribution: 100,
+    annualDuesAmount: 100,
+    annualDuesSchedule: [],
+    annualDuesReminderEnabled: false,
+    annualDuesReminderFrequency: "monthly",
     shareCapitalEnabled: false,
   });
 });

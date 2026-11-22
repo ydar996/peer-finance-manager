@@ -437,6 +437,7 @@ app.post("/api/transactions/membership-fee", (req, res) => {
     const result = recordMembershipFee(memberId, {
       feeDate: req.body.feeDate,
       amount: req.body.amount,
+      duesYear: req.body.duesYear,
     });
     res.json({ success: true, ...result });
   } catch (err) {
@@ -928,11 +929,42 @@ app.patch("/api/cooperative/membership-policy", requireAdmin, restoreOrgContext,
   try {
     const { setMembershipPolicy } = require("./lib/membership-policy-service");
     const policy = setMembershipPolicy({
+      feeModel: req.body?.feeModel,
       membershipFee: req.body?.membershipFee,
       initialContribution: req.body?.initialContribution,
+      annualDuesAmount: req.body?.annualDuesAmount,
+      annualDuesSchedule: req.body?.annualDuesSchedule,
+      annualDuesReminderEnabled: req.body?.annualDuesReminderEnabled,
+      annualDuesReminderFrequency: req.body?.annualDuesReminderFrequency,
       shareCapitalEnabled: req.body?.shareCapitalEnabled,
     });
     res.json({ success: true, ...policy });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/api/cooperative/annual-dues", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { getAnnualDuesStatus, currentDuesYear } = require("./lib/annual-dues-service");
+    const year = Number.isInteger(Number(req.query.year))
+      ? Number(req.query.year)
+      : currentDuesYear();
+    res.json(getAnnualDuesStatus(year));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/cooperative/annual-dues/send-reminders", requireAdmin, restoreOrgContext, async (req, res) => {
+  try {
+    const { sendDuesReminders } = require("./lib/annual-dues-reminder-service");
+    const { currentDuesYear } = require("./lib/annual-dues-service");
+    const year = Number.isInteger(Number(req.body?.year))
+      ? Number(req.body.year)
+      : currentDuesYear();
+    const outcome = await sendDuesReminders({ year, manual: true });
+    res.json({ success: true, ...outcome });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -1832,6 +1864,18 @@ function startServer(port, callback) {
       setInterval(() => {
         runScheduledLoanDueNoticesForAllOrganizations().catch((err) => {
           trace.info("Loan due notice scheduler error", { error: err.message });
+        });
+      }, 6 * 60 * 60 * 1000);
+
+      const {
+        runScheduledDuesRemindersForAllOrganizations,
+      } = require("./lib/annual-dues-reminder-service");
+      runScheduledDuesRemindersForAllOrganizations().catch((err) => {
+        trace.info("Annual dues reminder scheduler error", { error: err.message });
+      });
+      setInterval(() => {
+        runScheduledDuesRemindersForAllOrganizations().catch((err) => {
+          trace.info("Annual dues reminder scheduler error", { error: err.message });
         });
       }, 6 * 60 * 60 * 1000);
 

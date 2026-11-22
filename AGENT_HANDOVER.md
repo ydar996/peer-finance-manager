@@ -175,6 +175,60 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Membership fee models: one-time vs annual dues.** New
+  `feeModel` policy (default `one_time`, unchanged for Assurance/US) plus
+  `annual` model for Cooperatives like Twilight that charge a yearly
+  membership fee instead of a registration fee. `membership-policy-service`
+  now resolves `feeModel`, `annualDuesAmount`, a per-year
+  `annualDuesSchedule` (`[{year, amount}]`, inheritance: exact year, else
+  latest earlier year, else current amount) and reminder settings.
+  `annual-dues-service` computes per-active-member paid/required/outstanding
+  from `membership_fee` transactions in the calendar year; amount edits never
+  rewrite recorded transactions (historical immutability).
+  `recordMembershipFee` is model-aware: one-time keeps the single-fee rule,
+  annual allows repeated instalment payments (description "Annual membership
+  fee payment for YYYY") and flips `membership_fee_paid` only once the year's
+  requirement is covered. First-deposit fee split and FlexxForms fee
+  readiness are bypassed in annual mode. `annual-dues-reminder-service`
+  emails outstanding members via a per-org scheduler (6h cadence, gated by
+  daily/weekly/monthly frequency + last-sent stamp), auditable in Email
+  Notices. Routes: `GET /api/cooperative/annual-dues?year=`,
+  `POST .../annual-dues/send-reminders` (manual on-demand send).
+  Membership Policy panel gained a model selector, annual amount + optional
+  yearly schedule (`2026:150000, 2027:175000`), a per-year dues status table
+  (Paid/Partial/Unpaid, outstanding total), reminder toggle + frequency, and
+  a "Send Reminders Now" action. Test `test-annual-dues.js` covers schedule
+  inheritance, instalments, status transitions, reminder gating, historical
+  immutability, and one-time coexistence.
+- **2026-11-22** - **Receipt emails split by transaction type:** the old
+  combined "Deposit/Loan Repayment Received" notice is now three templates
+  under Automated Messages: Member Deposit Received (id
+  `deposit_credit_alert`, existing overrides preserved), Loan Repayment
+  Received, and Share Capital Received. `deposit-credit-alert` groups
+  imported rows per member **and** per transaction type, so a member who
+  paid both in one import gets two separate emails, never a combined one.
+  `share_capital` rows joined the credit-alert types and the bank-import
+  deposit query; emails/portal notices inherit the Share Capital template.
+  `email-audit-service` label map updated. Manual Record-tab entries still
+  do not email (unchanged, consistent with deposits).
+- **2026-11-21** - **TTFC workbook ledger converted for import:** sheet
+  "09 Bank Ledger" (383 rows, 4 Providus accounts) transformed into
+  `cooperative-bank-ledger-reference.csv` format (429 rows) at
+  `C:\Users\ydara\Downloads\ttfc-cooperative-bank-ledger-reference.csv`.
+  Mapping: Savings -> `deposit`; Entrance Fee / Annual Dues / the two
+  treasurer-approved split rows -> paired `deposit` + `membership_fee`
+  (fee leg negative, kept out of the bank balance per ledger convention);
+  Share Capital / SC-credit-wrong-account / Diran Oni ₦5,000 ->
+  `share_capital`; bank fees, salaries, regulatory, PAYE, WHT, refunds ->
+  `expense`; UBA/StanChart/FSDH placements + FD capitalized interest +
+  the two Sterling "Other Cooperative Income" credits -> `investment`.
+  All 21 internal own-account transfer legs (ops<->FD, ops<->share,
+  ops<->savings) excluded as they net to zero in the consolidated book.
+  Member names emitted from the Linked Member No. -> app member-name map.
+  Import via Admin -> Import -> Full Ledger Refresh. Not committed to git
+  (member PII in the one-off script, kept at
+  `C:\Users\ydara\Downloads\ttfc-workbook-to-ledger.js`).
+
 - **2026-11-21** - **NG subscription bank-transfer details, editable by platform admin:**
 New `platform_settings` key/value table in the registry DB.
 `getNgBankTransferDetails()` resolves stored `ng_bank_transfer_details` ->

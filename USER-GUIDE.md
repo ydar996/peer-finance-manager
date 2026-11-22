@@ -19,7 +19,7 @@ Login placeholders use a sample code (`acme`), not a live Cooperative. The app u
 ## Cooperative Country, Membership Amounts, and Welcome Email (November 2026)
 
 - **Country**: Register offers United States and Nigeria. Nigeria links from the `/productngn` page preselect Nigeria. Nigeria displays naira (₦), West Africa (Lagos) time, DD/MM/YYYY dates, Nigerian banks, and Bank Transfer wording. The United States path is unchanged (USD, MM/DD/YYYY).
-- **Membership Policy**: Administrators set the One-Time Registration Fee and Initial Contribution Amount per Cooperative on **Manual Record -> Membership Policy**. Amounts apply to new registrations, fee recordings, and deposit verification only; existing ledger entries are not rewritten. United States defaults remain $100/$100; Nigeria defaults to 50,000/50,000 NGN until the Cooperative confirms its own amounts.
+- **Membership Policy**: Administrators choose the Cooperative's fee model on **Manual Record -> Membership Policy**: **One-Time Registration Fee** (membership fee plus initial contribution, the default used by Cooperatives like Assurance) or **Annual Membership Fee** (a recurring yearly due, used by Cooperatives like Twilight at NGN 150,000 this year). The annual amount is editable and optionally scheduled per year (for example `2026:150000, 2027:175000`); earlier years inherit the latest earlier amount, and editing never rewrites recorded payments. Members may pay the annual fee in full or in instalments with no penalty. The Annual Dues section shows each member's Paid/Partial/Unpaid status and outstanding balance for the chosen year, sends reminder emails on demand (**Send Reminders to Members With Unpaid Dues**), and can send them automatically at a chosen frequency (daily, weekly, monthly). Amounts apply to new registrations, fee recordings, and deposit verification only; existing ledger entries are not rewritten. United States defaults remain $100/$100; Nigeria defaults to 50,000/50,000 NGN until the Cooperative confirms its own amounts.
 - **Share Capital Accounts**: Also in **Membership Policy**, the **Enable Share Capital Accounts** toggle gives every member a third account for share purchases and redemptions (common for Nigerian Cooperatives, off by default). When on, Share Capital shows on the member profile as a third account card with full history and running balance, as a Members &amp; Accounts table column, on the member's own portal, as a Record tab entry form, as a Cooperative Books total card, and as an import Type (statement rows mentioning "share capital", "share cap", or "share subscription" classify automatically; payment aliases can also default to it). Existing entries stay on the ledger if the feature is turned off again.
 - **Welcome Email**: Registering a Cooperative emails the administrator a welcome message with the organization code and sign-in links. The same wording is editable under **Automated Messages** (Organization Administrator Welcome) and every send appears under **Messages -> Email Notices**.
 
@@ -499,7 +499,7 @@ Admins compose in a **rich text box**: paste from Microsoft Word and keep basic 
 |--------|----------------|
 | **Inbox** | Messages members sent you, system notices, and replies to notes you sent. |
 | **Sent** | Portal messages this Cooperative sent to members (minutes, notes, deposit/loan repayment acknowledgements, loan payment due notices, loan repayment terms, loan approval notices). |
-| **Email Notices** | Automatic notices (loan repayment terms, loan application approved, loan payment due, deposit/loan repayment confirmed, meetings, reports) with the exact wording each member received and send status. |
+| **Email Notices** | Automatic notices (loan repayment terms, loan application approved, loan payment due, deposit confirmed, loan repayment confirmed, share capital received, meetings, reports) with the exact wording each member received and send status. |
 
 | Action | Steps |
 |--------|-------|
@@ -608,7 +608,7 @@ Temporary passwords must be changed on first member sign-in. Former members cann
 
 ## 19. Automated Messages Tab
 
-Open **Automated Messages** any time to read and edit the emails members receive automatically (loan repayment terms, loan application approved, loan disbursed, loan payment due, deposit/loan repayment confirmed, membership received, deposits verified, welcome login, password reset, meeting notices, published reports, month-end reminder, and new portal message tips). Those notices are also posted to the member portal inbox so members and administrators can re-read the same wording later.
+Open **Automated Messages** any time to read and edit the emails members receive automatically (loan repayment terms, loan application approved, loan disbursed, loan payment due, deposit confirmed, loan repayment confirmed, share capital received, annual dues reminder, membership received, deposits verified, welcome login, password reset, meeting notices, published reports, month-end reminder, and new portal message tips). Deposits, loan repayments, and share capital receipts each get their own email and are never combined into one message. Those notices are also posted to the member portal inbox so members and administrators can re-read the same wording later.
 
 | Action | What it does |
 |--------|--------------|
