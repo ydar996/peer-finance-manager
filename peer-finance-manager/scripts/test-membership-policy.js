@@ -31,6 +31,7 @@ assert.deepStrictEqual(getMembershipPolicy(), {
   annualDuesReminderEnabled: false,
   annualDuesReminderFrequency: "monthly",
   shareCapitalEnabled: false,
+  loansEnabled: true,
 });
 
 const NG_ORG = "membership-policy-ng-coop";
@@ -54,12 +55,18 @@ runWithOrg(NG_ORG, () => {
     annualDuesReminderEnabled: false,
     annualDuesReminderFrequency: "monthly",
     shareCapitalEnabled: false,
+  loansEnabled: true,
   });
 
   const shareOn = setMembershipPolicy({ shareCapitalEnabled: true });
   assert.strictEqual(shareOn.shareCapitalEnabled, true);
   const shareOff = setMembershipPolicy({ shareCapitalEnabled: false });
   assert.strictEqual(shareOff.shareCapitalEnabled, false);
+
+  const loansOff = setMembershipPolicy({ loansEnabled: false });
+  assert.strictEqual(loansOff.loansEnabled, false);
+  const loansOn = setMembershipPolicy({ loansEnabled: true });
+  assert.strictEqual(loansOn.loansEnabled, true);
 
   assert.throws(() => setMembershipPolicy({ membershipFee: -5 }), /zero or greater/);
   assert.throws(() => setMembershipPolicy({ initialContribution: -5 }), /zero or greater/);
@@ -86,6 +93,7 @@ runWithOrg(US_ORG, () => {
     annualDuesReminderEnabled: false,
     annualDuesReminderFrequency: "monthly",
     shareCapitalEnabled: false,
+  loansEnabled: true,
   });
 });
 closeDb(US_ORG);

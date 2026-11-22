@@ -212,6 +212,13 @@ function getMembershipPolicy() {
     annualDuesReminderEnabled: reminderEnabled,
     annualDuesReminderFrequency: reminderFrequency,
     shareCapitalEnabled: isShareCapitalEnabled(),
+    loansEnabled: (() => {
+      try {
+        return require("./loan-feature-service").isLoansEnabled();
+      } catch (_) {
+        return true;
+      }
+    })(),
   };
 }
 
@@ -249,6 +256,7 @@ function setMembershipPolicy({
   annualDuesReminderEnabled,
   annualDuesReminderFrequency,
   shareCapitalEnabled,
+  loansEnabled,
   changedBy,
 } = {}) {
   const db = getDb();
@@ -290,6 +298,10 @@ function setMembershipPolicy({
   if (shareCapitalEnabled != null) {
     const { setShareCapitalEnabled } = require("./share-capital-service");
     setShareCapitalEnabled(truthy(shareCapitalEnabled));
+  }
+  if (loansEnabled != null) {
+    const { setLoansEnabled } = require("./loan-feature-service");
+    setLoansEnabled(truthy(loansEnabled));
   }
   return getMembershipPolicy();
 }

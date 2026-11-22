@@ -175,6 +175,21 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **"Enable Loan Accounts" toggle (Membership Policy):**
+  new `lib/loan-feature-service.js` (`loans_enabled` setting, default ON for
+  all existing Cooperatives). GET/PATCH membership-policy carries
+  `loansEnabled`; `/api/members` returns it; `POST /api/loans` and
+  `/api/loans/:id/repayments` call `assertLoansEnabled`. Frontend:
+  `loansUiEnabled()` + `applyLoansUi()` toggles `body.loans-disabled`, and
+  `.loans-col` marks the Loans nav tab, member-table Loan column, profile
+  loan card/panel, record loan forms + nav links, member-portal loan
+  panels (Loan Outstanding, Loan Terms, Apply for a Loan), and
+  loan-terms cards; dashboard/books loan cards (loans outstanding,
+  loan interest income, expected loan interest, repayments due) and the
+  reclassify dropdown loan types are gated. Status report drops the
+  Loans to Members row, loan unearned income, loan interest income, and
+  the performance-overview loan sentence when off. Toggling does not
+  touch ledger data; everything reappears when re-enabled.
 - **2026-11-22** - **Fee-model-aware "membership_fee" labels:** `membership_fee`
   ledger entries were always labeled "Registration Fee" even for annual-model
   Cooperatives. New `membershipFeeLabel()` returns "Annual Membership Fee" for

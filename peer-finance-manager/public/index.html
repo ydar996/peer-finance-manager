@@ -452,7 +452,7 @@
         <button type="button" class="tab active" data-tab="books" data-roles="admin,staff">Cooperative Books</button>
         <button type="button" class="tab" data-tab="members" data-roles="admin,staff">Members &amp; Accounts</button>
         <button type="button" class="tab" data-tab="statements" data-roles="admin,staff">Statements</button>
-        <button type="button" class="tab" data-tab="loans" data-roles="admin,staff">Loans</button>
+        <button type="button" class="tab loans-col" data-tab="loans" data-roles="admin,staff">Loans</button>
         <button type="button" class="tab" data-tab="record" data-roles="admin">Record</button>
         <button type="button" class="tab" data-tab="import" data-roles="admin">Import</button>
         </div>
@@ -1227,7 +1227,7 @@
                     <th>Member</th>
                     <th>Contributions Account</th>
                     <th class="share-capital-col">Share Capital</th>
-                    <th>Loan Account</th>
+                    <th class="loans-col">Loan Account</th>
                     <th>Profile</th>
                   </tr>
                 </thead>
@@ -1367,8 +1367,8 @@
           <a href="#recordSectionInvestmentAccounts">Investment Accounts</a>
           <a href="#recordSectionDistribution">Distribution</a>
           <a href="#recordSectionBulkDistribution">Bulk Distribution</a>
-          <a href="#recordSectionNewLoan">New Loan</a>
-          <a href="#recordSectionLoanRepayment">Loan Repayment</a>
+          <a href="#recordSectionNewLoan" class="loans-col">New Loan</a>
+          <a href="#recordSectionLoanRepayment" class="loans-col">Loan Repayment</a>
           <a href="#recordSectionExpense">Expense</a>
           <a href="#recordSectionRecentExpenses">Recent Expenses</a>
           <a href="#recordSectionRecentDistributions">Recent Distributions</a>
@@ -1417,6 +1417,11 @@
                 <span>Enable Share Capital Accounts</span>
               </label>
               <p class="hint subtle">Turn On Share Capital when your Cooperative issues member shares. It adds a Share Capital account to every member profile, the Members &amp; Accounts table, the Record tab, and statement imports. Leave it off if your Cooperative only uses contributions and loans.</p>
+              <label class="field-row checkbox-row">
+                <input type="checkbox" id="membershipPolicyLoansEnabled" checked />
+                <span>Enable Loan Accounts</span>
+              </label>
+              <p class="hint subtle">Turn Off Loan Accounts when your Cooperative does not issue member loans. Loan cards, the member Loan Account column, the Record loan forms, the Loans tab, and member-portal loan sections hide app-wide. Existing ledger entries are untouched and reappear if you turn it back on.</p>
               <p class="hint subtle">Amounts display in the Cooperative currency. Changing them does not rewrite fees or contributions already on the books.</p>
               <button type="button" class="btn primary" id="saveMembershipPolicy">Save Membership Policy</button>
               <p id="membershipPolicyStatus" class="status"></p>
@@ -1876,7 +1881,7 @@
             </div>
           </details>
 
-          <details class="card profile-disclosure record-section" id="recordSectionNewLoan">
+          <details class="card profile-disclosure record-section loans-col" id="recordSectionNewLoan">
             <summary class="record-section-summary">New Loan</summary>
             <div class="profile-disclosure-body">
             <form id="newLoanForm" class="entry-form">
@@ -1923,7 +1928,7 @@
             </div>
           </details>
 
-          <details class="card profile-disclosure record-section" id="recordSectionLoanRepayment">
+          <details class="card profile-disclosure record-section loans-col" id="recordSectionLoanRepayment">
             <summary class="record-section-summary">Loan Repayment</summary>
             <div class="profile-disclosure-body">
             <form id="repaymentForm" class="entry-form">
@@ -2612,7 +2617,7 @@
             <ul class="file-list my-meetings-list" id="myMeetingsList"></ul>
           </div>
         </details>
-        <details class="profile-disclosure hidden" id="myLoanTermsCard">
+        <details class="profile-disclosure loans-col hidden" id="myLoanTermsCard">
           <summary class="monthly-status-report-summary">
             <span class="monthly-status-report-summary-text">Loan Terms to Review</span>
             <span class="badge" id="myLoanTermsBadge">:</span>
@@ -2622,7 +2627,7 @@
             <div id="myLoanTermsList"></div>
           </div>
         </details>
-        <details class="profile-disclosure hidden" id="myLoanApplyCard">
+        <details class="profile-disclosure loans-col hidden" id="myLoanApplyCard">
           <summary class="monthly-status-report-summary">
             <span class="monthly-status-report-summary-text">Apply for a Loan</span>
           </summary>
@@ -2632,7 +2637,7 @@
           </div>
         </details>
         <div class="my-account-sections">
-          <details class="my-account-panel profile-disclosure loan" id="myLoanPanel">
+          <details class="my-account-panel profile-disclosure loan loans-col" id="myLoanPanel">
             <summary class="my-account-panel-summary">
               <span class="my-account-panel-title">Loan Outstanding</span>
               <span class="my-account-panel-balance money" id="myLoanBalanceSummary">:</span>

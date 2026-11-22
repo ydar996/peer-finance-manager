@@ -320,8 +320,12 @@ app.get("/api/members", (req, res) => {
     const { isShareCapitalEnabled } = require("./lib/share-capital-service");
     const shareCapitalEnabled = isShareCapitalEnabled();
     let feeModel = "one_time";
+    let loansEnabled = true;
     try {
       feeModel = require("./lib/membership-policy-service").getMembershipPolicy().feeModel || feeModel;
+    } catch (_) {}
+    try {
+      loansEnabled = require("./lib/loan-feature-service").isLoansEnabled();
     } catch (_) {}
     // Admins/staff may include former members for pickers and Show Former Members.
     // Members always see only their own active row.
@@ -334,7 +338,7 @@ app.get("/api/members", (req, res) => {
         ? listMembersWithProfiles({ includeFormer: true })
         : listMembersWithBalances({ includeFormer: true });
       const mine = all.filter((m) => m.id === req.user.memberId);
-      return res.json({ members: mine, shareCapitalEnabled, feeModel });
+      return res.json({ members: mine, shareCapitalEnabled, feeModel, loansEnabled });
     }
     res.json({
       members: withProfiles
@@ -342,6 +346,7 @@ app.get("/api/members", (req, res) => {
         : listMembersWithBalances(listOpts),
       shareCapitalEnabled,
       feeModel,
+      loansEnabled,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -626,6 +631,7 @@ app.post("/api/loans/validate", (req, res) => {
 
 app.post("/api/loans", (req, res) => {
   try {
+    require("./lib/loan-feature-service").assertLoansEnabled();
     const { loanId } = createManualLoan(req.body);
     res.json({ success: true, loanId });
   } catch (err) {
@@ -635,6 +641,7 @@ app.post("/api/loans", (req, res) => {
 
 app.post("/api/loans/:id/repayments", (req, res) => {
   try {
+    require("./lib/loan-feature-service").assertLoansEnabled();
     const result = recordManualLoanRepayment({
       loanId: Number(req.params.id),
       amount: req.body.amount,
@@ -1032,6 +1039,7 @@ app.patch("/api/cooperative/membership-policy", requireAdmin, restoreOrgContext,
       annualDuesReminderEnabled: req.body?.annualDuesReminderEnabled,
       annualDuesReminderFrequency: req.body?.annualDuesReminderFrequency,
       shareCapitalEnabled: req.body?.shareCapitalEnabled,
+      loansEnabled: req.body?.loansEnabled,
       changedBy: req.user?.displayName || req.user?.username || req.user?.email,
     });
     res.json({ success: true, ...policy });

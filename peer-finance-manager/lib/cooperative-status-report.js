@@ -139,6 +139,7 @@ function buildPerformanceOverview(data, books) {
   const { period, organizationName, incomeStatement, balanceSheet, bankBalances, unearnedIncome } =
     data;
   const memberCount = books.memberCount || 0;
+  const loansEnabled = books.loansEnabled !== false;
   const activeBorrowers = books.loanBorrowerCount || 0;
   const netPhrase =
     incomeStatement.netIncome >= 0
@@ -148,7 +149,9 @@ function buildPerformanceOverview(data, books) {
   const sentences = [
     `As at ${period.labelUs}, ${organizationName} serves ${memberCount} member${memberCount === 1 ? "" : "s"} with ${formatMoney(balanceSheet.membersDeposits)} in deposit accounts and ${formatMoney(balanceSheet.totalAssets)} in total assets.`,
     `The Cooperative generated ${formatMoney(incomeStatement.totalIncome)} in income and reported ${netPhrase} after operational expenses of ${formatMoney(incomeStatement.operationalExpenses)}.`,
-    `Liquid resources total ${formatMoney(bankBalances.total)} between the checking account and the certificate of deposit. Outstanding member loans are ${formatMoney(balanceSheet.loansOutstanding)}${activeBorrowers ? ` across ${activeBorrowers} active borrower${activeBorrowers === 1 ? "" : "s"}` : ""}.`,
+    loansEnabled
+      ? `Liquid resources total ${formatMoney(bankBalances.total)} between the checking account and the certificate of deposit. Outstanding member loans are ${formatMoney(balanceSheet.loansOutstanding)}${activeBorrowers ? ` across ${activeBorrowers} active borrower${activeBorrowers === 1 ? "" : "s"}` : ""}.`
+      : `Liquid resources total ${formatMoney(bankBalances.total)} between the checking account and the certificate of deposit.`,
   ];
 
   if (unearnedIncome.total > 0) {
@@ -181,7 +184,8 @@ function getCooperativeStatusReportData(options = {}) {
     .all();
 
   const membersDeposits = books.totalMemberDepositAccounts || 0;
-  const loansOutstanding = books.loansOutstanding || 0;
+  const loansEnabled = books.loansEnabled !== false;
+  const loansOutstanding = loansEnabled ? books.loansOutstanding || 0 : 0;
   const cdBalance = books.cdBalance != null ? Number(books.cdBalance) : 0;
   const investments = books.investments || 0;
 
@@ -189,7 +193,7 @@ function getCooperativeStatusReportData(options = {}) {
   const checkingBalance = checking.balance;
 
   const interestIncomeEarned =
-    (books.loanInterestIncome || 0) + (books.cdInterestIncome || 0);
+    (loansEnabled ? books.loanInterestIncome || 0 : 0) + (books.cdInterestIncome || 0);
   const registrationIncome = books.registrationIncome || 0;
   const totalIncome = interestIncomeEarned + registrationIncome;
   const operationalExpenses = books.expenses || 0;
@@ -212,7 +216,7 @@ function getCooperativeStatusReportData(options = {}) {
   const loanPortfolio = getLoanPortfolioFromBankLedger();
   const loanPublicIdMap = buildLoanPublicIdMap(loanPortfolio);
 
-  const activeLoans = loanPortfolio
+  const activeLoans = (loansEnabled ? loanPortfolio : [])
     .filter((row) => row.status === "active")
     .map((row) => {
       const scheduled = row.scheduledTotalInterest;
@@ -229,11 +233,12 @@ function getCooperativeStatusReportData(options = {}) {
 
   const expectedCdInterest = books.expectedCdInterest || 0;
   const totalUnearnedIncome =
-    (books.expectedLoanInterest || 0) + expectedCdInterest;
+    (loansEnabled ? books.expectedLoanInterest || 0 : 0) + expectedCdInterest;
 
   const reportCore = {
     organizationName: branding.organizationName,
     website: branding.website,
+    loansEnabled,
     period,
     preparedOn: cooperativeLocaleDateString(new Date(), {
       year: "numeric",
@@ -405,7 +410,7 @@ function buildCooperativeStatusReportHtml(data) {
       <h3>Assets</h3>
       <table class="report-table">
         <tbody>
-          <tr><td>Loans to Members</td><td class="money">${formatMoney(sheet.loansOutstanding)}</td></tr>
+          ${data.loansEnabled !== false ? `<tr><td>Loans to Members</td><td class="money">${formatMoney(sheet.loansOutstanding)}</td></tr>` : ""}
           <tr><td>${escapeHtml(sheet.checkingLabel || "Checking Account")}</td><td class="money">${formatMoney(sheet.checkingBalance)}</td></tr>
           <tr><td>${escapeHtml(sheet.cdLabel)}</td><td class="money">${formatMoney(sheet.cdBalance)}</td></tr>
           <tr><td>${escapeHtml(sheet.investmentLabel)}</td><td class="money">${formatMoney(sheet.investments)}</td></tr>
@@ -440,7 +445,7 @@ function buildCooperativeStatusReportHtml(data) {
       <table class="report-table">
         <thead><tr><th>Description</th><th class="money">Amount</th></tr></thead>
         <tbody>
-          ${loanUnearnedHtml || '<tr><td colspan="2">No unearned loan interest on active loans</td></tr>'}
+          ${loanUnearnedHtml || (data.loansEnabled !== false ? '<tr><td colspan="2">No unearned loan interest on active loans</td></tr>' : (!cdUnearnedRow ? '<tr><td colspan="2">No expected future earnings</td></tr>' : ""))}
           ${cdUnearnedRow}
           <tr class="total-row"><td>Total Unearned Income</td><td class="money">${formatMoney(data.unearnedIncome.total)}</td></tr>
         </tbody>

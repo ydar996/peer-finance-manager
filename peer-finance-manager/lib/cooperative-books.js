@@ -332,6 +332,10 @@ function getCooperativeBooks() {
   } = require("./share-capital-service");
   const shareCapitalEnabled = isShareCapitalEnabled();
   const totalShareCapital = shareCapitalEnabled ? getTotalShareCapital() : 0;
+  let loansEnabled = true;
+  try {
+    loansEnabled = require("./loan-feature-service").isLoansEnabled();
+  } catch (_) {}
 
   return {
     memberCount,
@@ -343,6 +347,7 @@ function getCooperativeBooks() {
     totalMemberDepositAccounts: totalMemberBalances,
     shareCapitalEnabled,
     totalMemberShareCapital: totalShareCapital,
+    loansEnabled,
     loansOutstanding: hasBankLoanLedgerData
       ? bankLoanOutstanding
       : Math.max(0, (loanPortfolio.principal || 0) - (loanPortfolio.collected || 0)),

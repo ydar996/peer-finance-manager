@@ -1827,14 +1827,16 @@ function dashboardCardsHtml(dashboard) {
       amount: ytd.total,
       note: `vs ${ytd.lastYear.year} ${fmt.format(ytd.lastYear.total)} (${formatPctChangeLabel(ytd.lastYear.pctChange)}) · vs ${ytd.twoYearsAgo.year} ${fmt.format(ytd.twoYearsAgo.total)} (${formatPctChangeLabel(ytd.twoYearsAgo.pctChange)})`,
     }),
-    dashboardCardHtml("loan-repayments-due", {
-      label: `Loan Repayments Due (${due.monthLabel})`,
-      amount: due.total,
-      note:
-        due.borrowersStillDue > 0
-          ? `${due.borrowersStillDue} borrower${due.borrowersStillDue === 1 ? "" : "s"} still owe scheduled payment${due.borrowersStillDue === 1 ? "" : "s"} this month`
-          : "All active borrowers have paid this month’s scheduled amount",
-    }),
+    loansUiEnabled()
+      ? dashboardCardHtml("loan-repayments-due", {
+          label: `Loan Repayments Due (${due.monthLabel})`,
+          amount: due.total,
+          note:
+            due.borrowersStillDue > 0
+              ? `${due.borrowersStillDue} borrower${due.borrowersStillDue === 1 ? "" : "s"} still owe scheduled payment${due.borrowersStillDue === 1 ? "" : "s"} this month`
+              : "All active borrowers have paid this month’s scheduled amount",
+        })
+      : "",
   ].join("");
 }
 
@@ -2117,7 +2119,7 @@ async function loadBooks() {
             note: `Realized ${fmt.format(books.cdInterestRealized || 0)} · Accrued ${fmt.format(books.cdInterestAccrued || 0)}`,
           })
         : "",
-      (books.loanCount || 0) > 0
+      loansUiEnabled() && (books.loanCount || 0) > 0
         ? bookCardHtml("loan-interest-income", {
             label: "Loan Interest Income",
             amount: books.loanInterestIncome || 0,
@@ -2128,7 +2130,9 @@ async function loadBooks() {
         accent: true,
         label: "Total Cooperative Income",
         amount: books.totalCooperativeIncome || 0,
-        note: "Registration + Loan Interest + CD Interest",
+        note: loansUiEnabled()
+          ? "Registration + Loan Interest + CD Interest"
+          : "Registration + CD Interest",
       }),
       bookCardHtml("expenses", {
         label: "Cooperative Expenses",
@@ -2144,20 +2148,22 @@ async function loadBooks() {
         amount: books.cooperativeNetIncome || 0,
         note: `Income ${fmt.format(books.totalCooperativeIncome || 0)} − Expenses ${fmt.format(books.expenses || 0)}`,
       }),
-      (books.loanCount || 0) > 0
+      loansUiEnabled() && (books.loanCount || 0) > 0
         ? bookCardHtml("expected-loan-interest", {
             label: "Expected Future Loan Interest",
             amount: books.expectedLoanInterest || 0,
             note: "Scheduled Interest Remaining on Active Loans",
           })
         : "",
-      bookCardHtml("loans", {
-        label: "Loans Outstanding",
-        amount: books.loansOutstanding,
-        note: books.loanCount
-          ? `${books.loanCount} Loans · Disbursed ${fmt.format(books.loansPrincipal)} · Repaid ${fmt.format(books.loansCollected)}`
-          : `Disbursed ${fmt.format(books.loansPrincipal)} · Repaid ${fmt.format(books.loansCollected)}`,
-      }),
+      loansUiEnabled()
+        ? bookCardHtml("loans", {
+            label: "Loans Outstanding",
+            amount: books.loansOutstanding,
+            note: books.loanCount
+              ? `${books.loanCount} Loans · Disbursed ${fmt.format(books.loansPrincipal)} · Repaid ${fmt.format(books.loansCollected)}`
+              : `Disbursed ${fmt.format(books.loansPrincipal)} · Repaid ${fmt.format(books.loansCollected)}`,
+          })
+        : "",
       books.checkingBalance != null || books.ledgerCheckingBalance != null
         ? bookCardHtml("checking-balance", {
             label: "Current Bank Balance",
@@ -2306,7 +2312,9 @@ async function loadMembers() {
     const data = await res.json();
     shareCapitalEnabledFromMembers = Boolean(data.shareCapitalEnabled);
     if (data.feeModel != null) feeModelFromMembers = data.feeModel;
+    if (data.loansEnabled != null) loansEnabledFromMembers = Boolean(data.loansEnabled);
     applyShareCapitalUi();
+    applyLoansUi();
     membersListCache = data.members || [];
     renderMembersList();
   } catch (err) {
@@ -2373,7 +2381,7 @@ function renderMembersList() {
       }</td>
       <td class="money member-account-cell" data-account-panel="deposit">${fmt.format(m.deposit_balance ?? m.balance)}</td>
       <td class="money member-account-cell share-capital-col" data-account-panel="share">${fmt.format(m.share_capital_balance || 0)}</td>
-      <td class="money member-account-cell" data-account-panel="loan">${fmt.format(m.loan_balance || 0)}</td>
+      <td class="money member-account-cell loans-col" data-account-panel="loan">${fmt.format(m.loan_balance || 0)}</td>
       <td>${m.profile_id ? '<span class="badge ok">On File</span>' : '<span class="badge warn">Missing</span>'}</td>
     </tr>`
     )
@@ -2823,10 +2831,15 @@ const LEDGER_RECLASSIFY_SHARE_TYPES = [
   { value: "share_capital_redemption", label: "Share Redemption" },
 ];
 
+const LOAN_RECLASSIFY_TYPES = new Set([
+  "loan_repayment",
+  "loan_disbursement",
+]);
+
 function ledgerReclassifyTypes() {
   const base = LEDGER_RECLASSIFY_TYPES.map((t) =>
     t.value === "membership_fee" ? { ...t, label: membershipFeeLabel() } : t
-  );
+  ).filter((t) => loansUiEnabled() || !LOAN_RECLASSIFY_TYPES.has(t.value));
   return shareCapitalUiEnabled()
     ? [...base, ...LEDGER_RECLASSIFY_SHARE_TYPES]
     : base;
@@ -3882,7 +3895,7 @@ async function showProfile(memberId) {
           <p class="subtle">Shares Purchased Minus Redemptions</p>
           <p class="account-card-hint">Click for Full History</p>
         </button>` : ""}
-        <button type="button" class="account-card loan" data-account-panel="loan" aria-expanded="false">
+        <button type="button" class="account-card loan loans-col" data-account-panel="loan" aria-expanded="false">
           <h4>Loan Account</h4>
           <p class="account-balance money">${fmt.format(p.loan_account_balance || 0)}</p>
           <p class="subtle">Outstanding Balance</p>
@@ -3903,7 +3916,7 @@ async function showProfile(memberId) {
 
       <div id="memberAccountDetail" class="account-detail-wrap hidden">
         <div data-account-panel-body="deposit">${depositActivityPanelHtml(p, memberId)}</div>
-        <div data-account-panel-body="loan" class="hidden">${loanActivityPanelHtml(p, memberId)}</div>
+        <div data-account-panel-body="loan" class="loans-col hidden">${loanActivityPanelHtml(p, memberId)}</div>
         ${p.share_capital_enabled ? `<div data-account-panel-body="share" class="hidden">${shareCapitalActivityPanelHtml(p, memberId)}</div>` : ""}
       </div>
 
@@ -4055,9 +4068,10 @@ async function loadLoans() {
   }
 }
 
-let membershipPolicy = { feeModel: "one_time", membershipFee: 100, initialContribution: 100, annualDuesAmount: 0, shareCapitalEnabled: false };
+let membershipPolicy = { feeModel: "one_time", membershipFee: 100, initialContribution: 100, annualDuesAmount: 0, shareCapitalEnabled: false, loansEnabled: true };
 let shareCapitalEnabledFromMembers = false;
 let feeModelFromMembers = null;
+let loansEnabledFromMembers = null;
 
 function shareCapitalUiEnabled() {
   return Boolean(membershipPolicy.shareCapitalEnabled || shareCapitalEnabledFromMembers);
@@ -4070,6 +4084,14 @@ function applyShareCapitalUi() {
 
 function isAnnualFeeModel() {
   return membershipPolicy.feeModel === "annual" || feeModelFromMembers === "annual";
+}
+
+function loansUiEnabled() {
+  return membershipPolicy.loansEnabled !== false && loansEnabledFromMembers !== false;
+}
+
+function applyLoansUi() {
+  document.body.classList.toggle("loans-disabled", !loansUiEnabled());
 }
 
 function membershipFeeLabel() {
@@ -4289,10 +4311,12 @@ async function loadMembershipPolicyPanel() {
       initialContribution: data.initialContribution != null ? Number(data.initialContribution) : membershipPolicy.initialContribution,
       annualDuesAmount: Number(data.annualDuesAmount) || membershipPolicy.annualDuesAmount,
       shareCapitalEnabled: Boolean(data.shareCapitalEnabled),
+      loansEnabled: data.loansEnabled !== false,
     };
     const fee = $("#membershipPolicyFeeAmount");
     const contrib = $("#membershipPolicyContributionAmount");
     const shareToggle = $("#membershipPolicyShareCapital");
+    const loansToggle = $("#membershipPolicyLoansEnabled");
     const model = $("#membershipPolicyFeeModel");
     const duesAmount = $("#membershipPolicyDuesAmount");
     const reminderEnabled = $("#annualDuesReminderEnabled");
@@ -4301,6 +4325,7 @@ async function loadMembershipPolicyPanel() {
     if (fee) fee.value = groupAmountDigits(String(membershipPolicy.membershipFee));
     if (contrib) contrib.value = groupAmountDigits(String(membershipPolicy.initialContribution));
     if (shareToggle) shareToggle.checked = membershipPolicy.shareCapitalEnabled;
+    if (loansToggle) loansToggle.checked = membershipPolicy.loansEnabled;
     if (model) model.value = membershipPolicy.feeModel;
     if (duesAmount) duesAmount.value = membershipPolicy.annualDuesAmount ? groupAmountDigits(String(membershipPolicy.annualDuesAmount)) : "";
     renderDuesYearRows(data.annualDuesSchedule, {
@@ -4314,6 +4339,7 @@ async function loadMembershipPolicyPanel() {
     refreshAmountPreviews();
     applyMembershipPolicyToUi();
     applyShareCapitalUi();
+    applyLoansUi();
     if (membershipPolicy.feeModel === "annual") loadAnnualDuesStatus();
     if (status) status.textContent = "";
   } catch (err) {
@@ -4337,11 +4363,12 @@ async function saveMembershipPolicy() {
     }))
     .filter((e) => Number.isInteger(e.year) && e.year > 2000 && e.amount != null && e.amount > 0);
   const shareCapitalEnabled = Boolean($("#membershipPolicyShareCapital")?.checked);
+  const loansEnabled = Boolean($("#membershipPolicyLoansEnabled")?.checked);
   try {
     const res = await fetch("/api/cooperative/membership-policy", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ feeModel, membershipFee, initialContribution, annualDuesAmount, annualDuesSchedule, shareCapitalEnabled }),
+      body: JSON.stringify({ feeModel, membershipFee, initialContribution, annualDuesAmount, annualDuesSchedule, shareCapitalEnabled, loansEnabled }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Save failed");
@@ -4351,15 +4378,19 @@ async function saveMembershipPolicy() {
       initialContribution: data.initialContribution != null ? Number(data.initialContribution) : membershipPolicy.initialContribution,
       annualDuesAmount: data.annualDuesAmount != null ? Number(data.annualDuesAmount) : membershipPolicy.annualDuesAmount,
       shareCapitalEnabled: Boolean(data.shareCapitalEnabled),
+      loansEnabled: data.loansEnabled !== false,
     };
     applyMembershipPolicyToUi();
     applyShareCapitalUi();
+    applyLoansUi();
     renderMembersList();
+    loadBooks();
     if (feeModel === "annual") loadAnnualDuesStatus();
     if (status) {
+      const loanBit = `, loan accounts ${membershipPolicy.loansEnabled ? "on" : "off"}`;
       status.textContent = feeModel === "annual"
-        ? `Saved: Annual membership fee model, annual fee ${fmt.format(membershipPolicy.annualDuesAmount)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}. New amounts apply to fees recorded from now on; existing ledger entries are unchanged.`
-        : `Saved: Registration fee ${fmt.format(membershipPolicy.membershipFee)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}. New amounts apply to fees recorded from now on; existing ledger entries are unchanged.`;
+        ? `Saved: Annual membership fee model, annual fee ${fmt.format(membershipPolicy.annualDuesAmount)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}${loanBit}. New amounts apply to fees recorded from now on; existing ledger entries are unchanged.`
+        : `Saved: Registration fee ${fmt.format(membershipPolicy.membershipFee)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}${loanBit}. New amounts apply to fees recorded from now on; existing ledger entries are unchanged.`;
       status.className = "status ok";
     }
   } catch (err) {
@@ -8575,12 +8606,16 @@ async function loadRecordTabData() {
       fetch("/api/loans?status=active"),
     ]);
     if (requestId !== recordTabRequestId) return;
-    const { members, shareCapitalEnabled, feeModel } = await membersRes.json();
+    const { members, shareCapitalEnabled, feeModel, loansEnabled } = await membersRes.json();
     if (shareCapitalEnabled != null) {
       shareCapitalEnabledFromMembers = Boolean(shareCapitalEnabled);
       applyShareCapitalUi();
     }
     if (feeModel != null) feeModelFromMembers = feeModel;
+    if (loansEnabled != null) {
+      loansEnabledFromMembers = Boolean(loansEnabled);
+      applyLoansUi();
+    }
     const { categories } = await categoriesRes.json();
     const { loans } = await loansRes.json();
     cachedMembers = members || [];
@@ -11569,7 +11604,7 @@ async function loadMyLoanTermsCard() {
     }
     if (!list) return;
     list.innerHTML = apps
-      .map((a) => `<article class="loan-terms-member-card" data-member-loan-app="${a.id}">${renderMemberLoanTermsActionCard(a)}</article>`)
+      .map((a) => `<article class="loan-terms-member-card loans-col" data-member-loan-app="${a.id}">${renderMemberLoanTermsActionCard(a)}</article>`)
       .join("");
     bindLoanTermsDecisionButtons(list);
     bindRepaymentPlanButtons(list);
