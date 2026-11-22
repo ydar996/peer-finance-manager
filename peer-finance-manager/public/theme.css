@@ -1871,7 +1871,21 @@ label.toggle-row,
 #panel-members .members-layout {
   flex: 1 1 auto;
   min-height: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#panel-members:not(.member-detail-open) .member-profile-pane {
+  display: none;
+}
+
+#panel-members.member-detail-open .members-list-pane,
+#panel-members.member-detail-open .members-search-row,
+#panel-members.member-detail-open > .hint {
+  display: none;
+}
+
+.member-detail-bar {
+  margin-bottom: 12px;
 }
 
 .members-list-pane,

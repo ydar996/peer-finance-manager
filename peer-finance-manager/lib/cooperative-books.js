@@ -112,15 +112,32 @@ function getCooperativeAssetTotals() {
        WHERE type IN ('cd_purchase', 'cd_liquidation', 'investment')`
     )
     .get();
-  const investmentDescriptions = db
-    .prepare(
-      `SELECT DISTINCT TRIM(description) AS description
-       FROM transactions
-       WHERE type = 'investment' AND TRIM(COALESCE(description, '')) != ''
-       ORDER BY description`
-    )
-    .all()
-    .map((r) => r.description);
+  let investmentDescriptions;
+  try {
+    investmentDescriptions = db
+      .prepare(
+        `SELECT DISTINCT label FROM (
+           SELECT COALESCE(NULLIF(TRIM(ia.name), ''), NULLIF(TRIM(t.description), '')) AS label
+           FROM transactions t
+           LEFT JOIN investment_accounts ia ON ia.id = t.investment_account_id
+           WHERE t.type = 'investment'
+         )
+         WHERE label IS NOT NULL AND label != ''
+         ORDER BY label`
+      )
+      .all()
+      .map((r) => r.label);
+  } catch (_) {
+    investmentDescriptions = db
+      .prepare(
+        `SELECT DISTINCT TRIM(description) AS label
+         FROM transactions
+         WHERE type = 'investment' AND TRIM(COALESCE(description, '')) != ''
+         ORDER BY label`
+      )
+      .all()
+      .map((r) => r.label);
+  }
   return {
     cdPurchased: row.cdPurchased || 0,
     cdLiquidated: row.cdLiquidated || 0,
@@ -128,9 +145,9 @@ function getCooperativeAssetTotals() {
     investmentNote:
       investmentDescriptions.length === 0
         ? null
-        : investmentDescriptions.length <= 2
+        : investmentDescriptions.length <= 4
           ? investmentDescriptions.join(" · ")
-          : `${investmentDescriptions.length} Investment Types`,
+          : `${investmentDescriptions.length} Investment Accounts`,
   };
 }
 
@@ -1065,13 +1082,27 @@ function getBookDetail(slug) {
   }
 
   if (slug === "investments") {
-    const rows = db
-      .prepare(
-        `SELECT transaction_date, amount, description
-         FROM transactions WHERE type = 'investment'
-         ORDER BY transaction_date`
-      )
-      .all();
+    let rows;
+    try {
+      rows = db
+        .prepare(
+          `SELECT t.transaction_date, t.amount, t.description,
+                  ia.name AS accountName
+           FROM transactions t
+           LEFT JOIN investment_accounts ia ON ia.id = t.investment_account_id
+           WHERE t.type = 'investment'
+           ORDER BY t.transaction_date`
+        )
+        .all();
+    } catch (_) {
+      rows = db
+        .prepare(
+          `SELECT transaction_date, amount, description, NULL AS accountName
+           FROM transactions WHERE type = 'investment'
+           ORDER BY transaction_date`
+        )
+        .all();
+    }
     return {
       slug,
       title,
@@ -1080,11 +1111,13 @@ function getBookDetail(slug) {
       columns: [
         { key: "date", label: "Date", format: "date" },
         { key: "amount", label: "Amount", format: "money" },
+        { key: "account", label: "Account" },
         { key: "description", label: "Description" },
       ],
       rows: rows.map((row) => ({
         date: row.transaction_date,
         amount: Math.abs(row.amount),
+        account: row.accountName || "",
         description: row.description || "",
       })),
     };

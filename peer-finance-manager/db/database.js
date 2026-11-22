@@ -135,6 +135,14 @@ function openOrgDatabase(orgSlug) {
     const { ensureLoanPolicySchema } = require("../lib/loan-policy-service");
     ensureLoanPolicySchema(database);
   } catch (_) {}
+  try {
+    const {
+      ensureInvestmentAccountSchema,
+      syncAccountsFromTransactions,
+    } = require("../lib/investment-account-service");
+    ensureInvestmentAccountSchema(database);
+    syncAccountsFromTransactions(database);
+  } catch (_) {}
   dbByOrg.set(slug, database);
 
   const { backfillMemberNumbers } = require("../lib/member-number-service");

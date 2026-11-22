@@ -232,9 +232,9 @@ Click **Refresh** to reload after imports or manual entries.
 ### Find a member
 
 - Search by **name** or **member number** (e.g. AIC-001).
-- Click a row to open their profile on the right.
-- On a wide screen the member list and the profile share the window **half and half**. All columns (**Member #**, **Member**, **Contributions Account**, **Loan Account**, **Profile**, plus **Share Capital** when enabled) stay in the list; if the window is tight, the list scrolls sideways. Each pane scrolls if it is taller than the window. **Contributions Account**, **Share Capital** (when enabled), and **Loan Account** cards sit at the top of the profile so they stay on screen with the list.
-- On a narrower window the profile moves under the list. Scroll the page as needed.
+- Click a row to open the member's **account details page**: biodata, contributions, share capital (when enabled), and loan accounts fill the window.
+- Clicking the **Contributions Account**, **Share Capital**, or **Loan Account** cell opens the detail straight on that account section.
+- Use **Back to Member List** at the top of the profile to return to the full list. The list keeps the last selected row highlighted.
 - Default list shows **Active** members only.
 - Turn on **Show Former Members** to see Resigned, Deceased, Expelled, or Suspended accounts (ledger history still available).
 
@@ -304,6 +304,8 @@ Each form is collapsed until you expand it.
 | **CD Account Balance and Term** | Update CD balance from a bank statement, and enter term details when a CD is new or rolls over (beginning balance, annual rate, APY, renewal date, maturity date, term length). From Cooperative Books, **Expected CD Interest** → **Open Record** opens this form. |
 | **Member Contributions Account** | Post a **Contribution** or **Withdrawal** for one member. |
 | **Member Share Capital Account** | Post a **Share Purchase** or **Share Redemption** for one member. Shown only when Share Capital is enabled in Membership Policy. |
+| **Cooperative Investment** | Record an investment **Placement** (money out) or **Return/Income** (money in) against a named investment account. Pick an existing account or choose **+ New Investment Account** to create one inline. |
+| **Investment Accounts** | Name and manage the Cooperative's investment accounts (fixed deposits, ventures, etc.). Imported ledger rows auto-group into accounts named after their descriptions; rename them here (renaming updates matching ledger descriptions). The **Reclassify Ledger Entries** table moves any entry to a different account. Accounts with entries cannot be deleted; reassign the entries or set Active To first. |
 | **Member Distribution** | Credit one member with profit/interest (distribution). |
 | **Bulk Distribution (Excel)** | Upload a sheet with member names and amounts for a batch distribution. |
 | **New Loan** | Create a loan (borrower, two guarantors, principal, rate, term). |

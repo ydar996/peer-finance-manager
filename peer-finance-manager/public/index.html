@@ -1204,7 +1204,7 @@
             <button type="button" class="btn" id="refreshMembers">Refresh</button>
           </div>
         </div>
-        <p class="hint"><span class="hint-line">Select a Member to View Their Biodata, Contributions Account, and Loan Account.</span><span class="hint-line">Search by name or member number (e.g. AIC-001).</span><span class="hint-line">Use <strong>Register Member</strong> on the Record Tab to Add Members Manually : Excel Import Is Optional.</span><span class="hint-line">Former Members (Resigned, Deceased, Expelled, Suspended) Stay in the Ledger but Leave the Active List and Member Emails.</span></p>
+        <p class="hint"><span class="hint-line">Click a Member to Open Their Account Details : Biodata, Contributions Account, and Loan Account. Use Back to Member List to Return.</span><span class="hint-line">Search by name or member number (e.g. AIC-001).</span><span class="hint-line">Use <strong>Register Member</strong> on the Record Tab to Add Members Manually : Excel Import Is Optional.</span><span class="hint-line">Former Members (Resigned, Deceased, Expelled, Suspended) Stay in the Ledger but Leave the Active List and Member Emails.</span></p>
 
         <div class="members-search-row">
           <label class="field-row members-search-label">
@@ -1363,6 +1363,8 @@
           <a href="#recordSectionCdBalance">CD Account</a>
           <a href="#recordSectionDeposit">Contributions Account</a>
           <a href="#recordSectionShareCapital" class="share-capital-col">Share Capital</a>
+          <a href="#recordSectionInvestment">Cooperative Investment</a>
+          <a href="#recordSectionInvestmentAccounts">Investment Accounts</a>
           <a href="#recordSectionDistribution">Distribution</a>
           <a href="#recordSectionBulkDistribution">Bulk Distribution</a>
           <a href="#recordSectionNewLoan">New Loan</a>
@@ -1746,6 +1748,77 @@
               <button type="submit" class="btn primary">Record Share Entry</button>
             </form>
             <p id="shareCapitalStatus" class="status"></p>
+            </div>
+          </details>
+
+          <details class="card accent profile-disclosure record-section" id="recordSectionInvestment">
+            <summary class="record-section-summary">Cooperative Investment</summary>
+            <div class="profile-disclosure-body">
+            <p class="subtle">Record a Cooperative Investment Placement or an Investment Return/Income Entry.</p>
+            <form id="investmentForm" class="entry-form">
+              <label>Investment Account
+                <select name="accountId" id="investmentAccountSelect"></select>
+              </label>
+              <div id="investmentNewAccountFields" class="hidden">
+                <label>New Account Name
+                  <input type="text" name="newAccountName" placeholder="e.g. Fixed Deposit - GTBank" />
+                </label>
+                <label>Institution (Optional)
+                  <input type="text" name="newAccountInstitution" placeholder="e.g. GTBank" />
+                </label>
+              </div>
+              <label>Entry Type
+                <select name="direction" required>
+                  <option value="placement">Placement (Money Out)</option>
+                  <option value="return">Return/Income (Money In)</option>
+                </select>
+              </label>
+              <label>Amount
+                <input type="number" name="amount" step="0.01" min="0.01" required />
+              </label>
+              <label>Date
+                <input type="date" name="transactionDate" required />
+              </label>
+              <label>Description (Optional)
+                <input type="text" name="description" placeholder="Defaults to the account name" />
+              </label>
+              <label>Reference (Optional)
+                <input type="text" name="reference" placeholder="Bank ref or certificate no." />
+              </label>
+              <button type="submit" class="btn primary">Record Investment</button>
+            </form>
+            <p id="investmentStatus" class="status"></p>
+            </div>
+          </details>
+
+          <details class="card profile-disclosure record-section" id="recordSectionInvestmentAccounts">
+            <summary class="record-section-summary">Investment Accounts</summary>
+            <div class="profile-disclosure-body">
+            <p class="subtle">Name and manage the Cooperative's investment accounts. Renaming an account updates matching ledger descriptions. Accounts with entries cannot be deleted: reassign the entries first.</p>
+            <div class="table-wrap">
+              <table class="data-table compact" id="investmentAccountsTable">
+                <thead><tr><th>Account</th><th>Institution</th><th>Entries</th><th>Total</th><th></th></tr></thead>
+                <tbody id="investmentAccountsTableBody"></tbody>
+              </table>
+            </div>
+            <form id="investmentAccountCreateForm" class="entry-form" style="margin-top:12px;">
+              <label>New Account Name
+                <input type="text" name="name" placeholder="e.g. Fixed Deposit - GTBank" required />
+              </label>
+              <label>Institution (Optional)
+                <input type="text" name="institutionName" placeholder="e.g. GTBank" />
+              </label>
+              <button type="submit" class="btn primary">Add Investment Account</button>
+            </form>
+            <p id="investmentAccountsStatus" class="status"></p>
+            <h4 style="margin:16px 0 8px;">Reclassify Ledger Entries</h4>
+            <p class="subtle">Move an entry to a different investment account using the dropdown in its row.</p>
+            <div class="table-wrap">
+              <table class="data-table compact" id="investmentEntriesTable">
+                <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Account</th></tr></thead>
+                <tbody id="investmentEntriesTableBody"></tbody>
+              </table>
+            </div>
             </div>
           </details>
 

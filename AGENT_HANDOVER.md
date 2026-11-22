@@ -175,6 +175,36 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Investment accounts feature + Members split view:**
+  - New `lib/investment-account-service.js`: per-tenant
+    `investment_accounts` table (name, institution, notes, active
+    window), `transactions.investment_account_id` column, and a
+    `syncAccountsFromTransactions` that auto-creates one account per
+    distinct imported investment description (empty description ->
+    "Unclassified Investments") and backfills row links. Runs at
+    `openOrgDatabase` so every tenant migrates on next open.
+    CRUD + `assignInvestmentEntries` + `recordInvestment` (placement
+    = negative, return/income = positive, queues ledger CSV sync).
+    Renaming an account updates matching ledger descriptions; accounts
+    with entries cannot be deleted (reassign or set Active To).
+  - Routes: `GET/POST /api/investment-accounts`,
+    `PATCH/DELETE /api/investment-accounts/:id`,
+    `POST /api/investment-accounts/assign`, `POST /api/investments`
+    (all requireAdmin).
+  - `cooperative-books.js`: investments card note now lists account
+    names (up to 4, else "N Investment Accounts"), detail table gains
+    an Account column. Both fall back to raw descriptions if the
+    table is missing.
+  - Record tab: new "Cooperative Investment" card (account picker or
+    inline new account, placement/return direction, amount, date) and
+    "Investment Accounts" card (rename/delete/add accounts, plus a
+    Reclassify Ledger Entries table with per-row account dropdowns).
+  - Members & Accounts is now a list/detail split: the member table
+    fills the panel; clicking a row (or an account cell) swaps to the
+    full-width profile detail with a "Back to Member List" bar. The
+    list no longer auto-opens a profile on load, and post-save
+    refreshes use `refreshProfileIfOpen` so record actions no longer
+    yank the admin into a member detail view.
 - **2026-11-22** - **Cooperative Investments card note de-hardcoded:**
   the card subtitle was hardcoded to "Caribe Restaurant and Lounge"
   (Assurance's specific investment) for every tenant. `cooperative-books.js`

@@ -1232,6 +1232,7 @@ async function bootstrapApp() {
   if (role === "admin") {
     loadLoanPaymentPolicyPanel();
     loadMembershipPolicyPanel();
+    loadInvestmentAccounts();
     loadRecordTabData();
     loadUsers();
     handleBillingReturnParams();
@@ -2241,6 +2242,10 @@ async function loadBooks() {
 
 $("#booksDetailBack")?.addEventListener("click", closeBookDetail);
 
+$("#memberDetail")?.addEventListener("click", (e) => {
+  if (e.target.closest("#memberBackBtn")) closeMemberDetailView();
+});
+
 function updateMemberRowSelection() {
   $("#membersBody")?.querySelectorAll(".member-row").forEach((row) => {
     row.classList.toggle("selected", Number(row.dataset.memberId) === selectedMemberId);
@@ -2270,6 +2275,7 @@ function selectMember(memberId, accountPanel = null, { force = false } = {}) {
   ) {
     const root = $("#memberDetail");
     if (root?.querySelector("#memberAccountDetail")) {
+      openMemberDetailView();
       updateMemberRowSelection();
       selectMemberAccountPanel(root, accountPanel);
       root.querySelector("#memberAccountDetail")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -2277,6 +2283,7 @@ function selectMember(memberId, accountPanel = null, { force = false } = {}) {
     }
   }
   if (!force && !accountPanel && selectedMemberId === memberId && loadedProfileMemberId === memberId) {
+    openMemberDetailView();
     updateMemberRowSelection();
     return;
   }
@@ -2379,7 +2386,7 @@ function renderMembersList() {
     selectedMemberId = filtered[0].id;
   }
   updateMemberRowSelection();
-  if (selectedMemberId) {
+  if (selectedMemberId && isMemberDetailOpen()) {
     showProfile(selectedMemberId);
   }
 }
@@ -2584,7 +2591,7 @@ function bindMembershipStatusForm(el, memberId) {
         true
       );
       await loadMembers();
-      if (selectedMemberId === memberId) await showProfile(memberId);
+      await refreshProfileIfOpen(memberId);
     } catch (err) {
       setFormStatus(statusEl, err.message, false);
     }
@@ -2930,7 +2937,7 @@ async function submitLedgerReclassify(selectEl) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Reclassification failed");
     showLedgerAdjustmentPrompt(data);
-    if (memberId) await showProfile(memberId);
+    if (memberId) await refreshProfileIfOpen(memberId);
     loadMembers();
     loadBooks();
   } catch (err) {
@@ -3083,7 +3090,7 @@ async function submitLedgerSplit() {
       `Split saved as ${data.splitLineCount || lines.length} ledger lines. Download the updated Xlsx (and Csv) ledger now and replace your local master file so cloud and PC stay in sync.`,
       { title: "Download Updated Ledger", variant: "success", confirmLabel: "Got It" }
     );
-    if (ctx.memberId) await showProfile(ctx.memberId);
+    if (ctx.memberId) await refreshProfileIfOpen(ctx.memberId);
     loadMembers();
     loadBooks();
   } catch (err) {
@@ -3776,9 +3783,28 @@ function loanLotsSectionHtml(lots, memberId, loanTransactions) {
   return lots.map((lot) => loanLotCardHtml(lot, memberId, loanTransactions)).join("");
 }
 
+function isMemberDetailOpen() {
+  return Boolean($("#panel-members")?.classList.contains("member-detail-open"));
+}
+
+function openMemberDetailView() {
+  $("#panel-members")?.classList.add("member-detail-open");
+}
+
+function closeMemberDetailView() {
+  $("#panel-members")?.classList.remove("member-detail-open");
+}
+
+async function refreshProfileIfOpen(memberId) {
+  if (memberId === selectedMemberId && isMemberDetailOpen()) {
+    await showProfile(memberId);
+  }
+}
+
 async function showProfile(memberId) {
   const requestId = ++profileRequestId;
   const el = $("#memberDetail");
+  openMemberDetailView();
   if (el) el.innerHTML = '<p class="subtle">Loading profile…</p>';
 
   const res = await fetch(`/api/members/${memberId}/profile`);
@@ -3794,6 +3820,9 @@ async function showProfile(memberId) {
   const hasBiodata = Boolean(p.id);
 
   el.innerHTML = `
+    <div class="member-detail-bar">
+      <button type="button" class="btn" id="memberBackBtn">&larr; Back to Member List</button>
+    </div>
     <div class="profile-card">
       <div class="profile-header">
         <div class="profile-photo-wrap">
@@ -8695,7 +8724,7 @@ $("#updateProfileForm")?.addEventListener("submit", async (e) => {
     setFormStatus(status, "Profile saved.", true);
     loadMembers();
     loadUsers();
-    if (selectedMemberId === memberId) showProfile(memberId);
+    refreshProfileIfOpen(memberId);
   } catch (err) {
     setFormStatus(status, err.message, false);
   }
@@ -8723,7 +8752,7 @@ $("#membershipFeeForm")?.addEventListener("submit", async (e) => {
     e.target.amount.value = membershipPolicy.membershipFee;
     loadMembers();
     loadBooks();
-    if (selectedMemberId === payload.memberId) showProfile(payload.memberId);
+    refreshProfileIfOpen(payload.memberId);
   } catch (err) {
     setFormStatus(status, err.message, false);
   }
@@ -8749,7 +8778,7 @@ $("#depositForm")?.addEventListener("submit", async (e) => {
     e.target.reference.value = "";
     loadMembers();
     loadBooks();
-    if (selectedMemberId === payload.memberId) showProfile(payload.memberId);
+    refreshProfileIfOpen(payload.memberId);
   } catch (err) {
     setFormStatus(status, err.message, false);
   }
@@ -8776,7 +8805,215 @@ $("#shareCapitalForm")?.addEventListener("submit", async (e) => {
     e.target.reference.value = "";
     loadMembers();
     loadBooks();
-    if (selectedMemberId === payload.memberId) showProfile(payload.memberId);
+    refreshProfileIfOpen(payload.memberId);
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+let investmentAccountsCache = [];
+
+function toggleInvestmentNewAccountFields() {
+  const select = $("#investmentAccountSelect");
+  const wrap = $("#investmentNewAccountFields");
+  if (!select || !wrap) return;
+  const isNew = select.value === "__new__";
+  wrap.classList.toggle("hidden", !isNew);
+  const nameInput = wrap.querySelector('input[name="newAccountName"]');
+  if (nameInput) nameInput.required = isNew;
+}
+
+function renderInvestmentAccountSelect(accounts) {
+  const select = $("#investmentAccountSelect");
+  if (!select) return;
+  select.innerHTML =
+    accounts
+      .map((a) => `<option value="${a.id}">${escapeHtml(a.name)}</option>`)
+      .join("") + `<option value="__new__">+ New Investment Account</option>`;
+  toggleInvestmentNewAccountFields();
+}
+
+function renderInvestmentAccountsTable(accounts) {
+  const tbody = $("#investmentAccountsTableBody");
+  if (!tbody) return;
+  if (!accounts.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="subtle">No Investment Accounts Yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = accounts
+    .map(
+      (a) => `<tr data-account-id="${a.id}">
+        <td><input type="text" class="invest-acct-name" value="${escapeHtml(a.name)}" /></td>
+        <td><input type="text" class="invest-acct-inst" value="${escapeHtml(a.institutionName)}" /></td>
+        <td>${a.entryCount}</td>
+        <td>${fmt.format(a.totalAmount)}</td>
+        <td>
+          <button type="button" class="btn invest-acct-save">Save</button>
+          <button type="button" class="btn btn-danger invest-acct-delete">Delete</button>
+        </td>
+      </tr>`
+    )
+    .join("");
+}
+
+function renderInvestmentEntriesTable(entries, accounts) {
+  const tbody = $("#investmentEntriesTableBody");
+  if (!tbody) return;
+  if (!entries.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="subtle">No Investment Entries Recorded.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = entries
+    .map((e) => {
+      const options = accounts
+        .map(
+          (a) =>
+            `<option value="${a.id}"${a.id === e.accountId ? " selected" : ""}>${escapeHtml(a.name)}</option>`
+        )
+        .join("");
+      return `<tr>
+        <td>${escapeHtml(formatDate(e.transactionDate))}</td>
+        <td>${escapeHtml(e.description || "")}</td>
+        <td>${fmt.format(Math.abs(e.amount))}</td>
+        <td><select class="invest-entry-account" data-tx-id="${e.id}">${options}</select></td>
+      </tr>`;
+    })
+    .join("");
+}
+
+async function loadInvestmentAccounts() {
+  const tbody = $("#investmentAccountsTableBody");
+  try {
+    const res = await fetch("/api/investment-accounts");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load investment accounts");
+    investmentAccountsCache = data.accounts || [];
+    renderInvestmentAccountSelect(investmentAccountsCache);
+    renderInvestmentAccountsTable(investmentAccountsCache);
+    renderInvestmentEntriesTable(data.entries || [], investmentAccountsCache);
+  } catch (err) {
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+}
+
+$("#investmentAccountSelect")?.addEventListener("change", toggleInvestmentNewAccountFields);
+
+$("#investmentAccountCreateForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#investmentAccountsStatus");
+  status.textContent = "Saving…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    const res = await fetch("/api/investment-accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(status, `Added investment account "${data.account.name}".`, true);
+    e.target.reset();
+    loadInvestmentAccounts();
+    loadBooks();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
+$("#investmentAccountsTableBody")?.addEventListener("click", async (e) => {
+  const row = e.target.closest("tr[data-account-id]");
+  if (!row) return;
+  const accountId = Number(row.dataset.accountId);
+  const account = investmentAccountsCache.find((a) => a.id === accountId);
+  const status = $("#investmentAccountsStatus");
+
+  if (e.target.closest(".invest-acct-save")) {
+    const name = row.querySelector(".invest-acct-name")?.value?.trim();
+    const institutionName = row.querySelector(".invest-acct-inst")?.value?.trim();
+    try {
+      const res = await fetch(`/api/investment-accounts/${accountId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, institutionName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setFormStatus(status, `Saved "${data.account.name}".`, true);
+      loadInvestmentAccounts();
+      loadBooks();
+    } catch (err) {
+      setFormStatus(status, err.message, false);
+    }
+    return;
+  }
+
+  if (e.target.closest(".invest-acct-delete")) {
+    const ok = await appConfirm(
+      `Delete investment account "${account?.name || ""}"? Only empty accounts can be deleted.`
+    );
+    if (!ok) return;
+    try {
+      const res = await fetch(`/api/investment-accounts/${accountId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setFormStatus(status, `Deleted "${data.name}".`, true);
+      loadInvestmentAccounts();
+      loadBooks();
+    } catch (err) {
+      setFormStatus(status, err.message, false);
+    }
+  }
+});
+
+$("#investmentEntriesTableBody")?.addEventListener("change", async (e) => {
+  const select = e.target.closest(".invest-entry-account");
+  if (!select) return;
+  const status = $("#investmentAccountsStatus");
+  try {
+    const res = await fetch("/api/investment-accounts/assign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accountId: Number(select.value),
+        transactionIds: [Number(select.dataset.txId)],
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    setFormStatus(status, "Entry reassigned.", true);
+    loadInvestmentAccounts();
+    loadBooks();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+    loadInvestmentAccounts();
+  }
+});
+
+$("#investmentForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#investmentStatus");
+  status.textContent = "Saving…";
+  status.className = "status";
+  try {
+    const payload = formJson(e.target);
+    if (payload.accountId === "__new__") payload.accountId = null;
+    const res = await fetch("/api/investments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const verb = payload.direction === "return" ? "investment return" : "investment placement";
+    setFormStatus(status, `Recorded ${verb} of ${fmt.format(Math.abs(data.amount))}.`, true);
+    e.target.amount.value = "";
+    e.target.description.value = "";
+    e.target.reference.value = "";
+    loadInvestmentAccounts();
+    loadBooks();
   } catch (err) {
     setFormStatus(status, err.message, false);
   }
@@ -8806,7 +9043,7 @@ $("#distributionForm")?.addEventListener("submit", async (e) => {
     loadMembers();
     loadBooks();
     loadDistributions();
-    if (selectedMemberId === payload.memberId) showProfile(payload.memberId);
+    refreshProfileIfOpen(payload.memberId);
   } catch (err) {
     setFormStatus(status, err.message, false);
   }

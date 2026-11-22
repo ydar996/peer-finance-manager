@@ -898,6 +898,79 @@ app.delete("/api/bank-accounts/:id", requireAdmin, restoreOrgContext, (req, res)
   }
 });
 
+app.get("/api/investment-accounts", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const {
+      listInvestmentAccounts,
+      listInvestmentEntries,
+    } = require("./lib/investment-account-service");
+    res.json({
+      accounts: listInvestmentAccounts(),
+      entries: listInvestmentEntries(),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/investment-accounts", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { createInvestmentAccount } = require("./lib/investment-account-service");
+    const account = createInvestmentAccount(req.body || {});
+    res.json({ account });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.patch("/api/investment-accounts/:id", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { updateInvestmentAccount } = require("./lib/investment-account-service");
+    const account = updateInvestmentAccount(req.params.id, req.body || {});
+    res.json({ account });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/api/investment-accounts/:id", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { deleteInvestmentAccount } = require("./lib/investment-account-service");
+    const result = deleteInvestmentAccount(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post(
+  "/api/investment-accounts/assign",
+  requireAdmin,
+  restoreOrgContext,
+  (req, res) => {
+    try {
+      const { assignInvestmentEntries } = require("./lib/investment-account-service");
+      const result = assignInvestmentEntries(
+        req.body?.accountId,
+        req.body?.transactionIds
+      );
+      res.json({ success: true, ...result });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
+app.post("/api/investments", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { recordInvestment } = require("./lib/investment-account-service");
+    const result = recordInvestment(req.body || {});
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.get("/api/cooperative/loan-policy", requireAdmin, restoreOrgContext, (req, res) => {
   try {
     const { getLoanPaymentPolicy } = require("./lib/loan-policy-service");
