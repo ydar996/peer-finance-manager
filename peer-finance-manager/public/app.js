@@ -4015,6 +4015,51 @@ function isAnnualFeeModel() {
   return membershipPolicy.feeModel === "annual";
 }
 
+function groupAmountDigits(raw) {
+  const text = String(raw ?? "");
+  const dot = text.indexOf(".");
+  const int = dot === -1 ? text : text.slice(0, dot);
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return dot === -1 ? grouped : `${grouped}.${text.slice(dot + 1)}`;
+}
+
+function parseGroupedAmount(value) {
+  if (value == null || String(value).trim() === "") return null;
+  const n = Number(String(value).replace(/,/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+function attachGroupedAmountInput(input) {
+  if (!input) return;
+  input.addEventListener("input", () => {
+    const caret = input.selectionStart ?? input.value.length;
+    const digitsBefore = (input.value.slice(0, caret).match(/[0-9]/g) || []).length;
+    const cleaned = input.value.replace(/[^0-9.]/g, "");
+    const firstDot = cleaned.indexOf(".");
+    const normalized =
+      firstDot === -1 ? cleaned : cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "");
+    const formatted = groupAmountDigits(normalized);
+    if (formatted === input.value) return;
+    input.value = formatted;
+    if (digitsBefore === 0) {
+      input.setSelectionRange(0, 0);
+      return;
+    }
+    let seen = 0;
+    let pos = formatted.length;
+    for (let i = 0; i < formatted.length; i++) {
+      if (/\d/.test(formatted[i])) {
+        seen++;
+        if (seen === digitsBefore) {
+          pos = i + 1;
+          break;
+        }
+      }
+    }
+    input.setSelectionRange(pos, pos);
+  });
+}
+
 function refreshAmountPreviews() {
   const pairs = [
     ["membershipPolicyFeeAmount", "membershipPolicyFeePreview"],
@@ -4025,8 +4070,8 @@ function refreshAmountPreviews() {
     const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
     if (!input || !preview) continue;
-    const value = input.value === "" ? null : Number(input.value);
-    preview.textContent = value != null && Number.isFinite(value) ? `= ${fmt.format(value)}` : "";
+    const value = parseGroupedAmount(input.value);
+    preview.textContent = value != null ? `= ${fmt.format(value)}` : "";
   }
   const scheduleInput = document.getElementById("membershipPolicyDuesSchedule");
   const schedulePreview = document.getElementById("membershipPolicyDuesSchedulePreview");
@@ -4038,9 +4083,12 @@ function refreshAmountPreviews() {
   }
 }
 
-for (const id of ["membershipPolicyFeeAmount", "membershipPolicyDuesAmount", "membershipPolicyContributionAmount", "membershipPolicyDuesSchedule"]) {
-  document.getElementById(id)?.addEventListener("input", refreshAmountPreviews);
+for (const id of ["membershipPolicyFeeAmount", "membershipPolicyDuesAmount", "membershipPolicyContributionAmount"]) {
+  const input = document.getElementById(id);
+  attachGroupedAmountInput(input);
+  input?.addEventListener("input", refreshAmountPreviews);
 }
+document.getElementById("membershipPolicyDuesSchedule")?.addEventListener("input", refreshAmountPreviews);
 
 function applyMembershipPolicyToUi() {
   const annual = isAnnualFeeModel();
@@ -4055,6 +4103,7 @@ function applyMembershipPolicyToUi() {
     feeAmountInput.value = annual ? membershipPolicy.annualDuesAmount : membershipPolicy.membershipFee;
     feeAmountInput.dataset.autoFee = "1";
   }
+  refreshAmountPreviews();
   const feeRow = $("#membershipPolicyFeeRow");
   const duesRow = $("#membershipPolicyDuesRow");
   const duesHint = $("#membershipPolicyDuesHint");
@@ -4092,11 +4141,11 @@ async function loadMembershipPolicyPanel() {
     const reminderEnabled = $("#annualDuesReminderEnabled");
     const reminderFrequency = $("#annualDuesReminderFrequency");
     const duesYear = $("#annualDuesYear");
-    if (fee) fee.value = membershipPolicy.membershipFee;
-    if (contrib) contrib.value = membershipPolicy.initialContribution;
+    if (fee) fee.value = groupAmountDigits(String(membershipPolicy.membershipFee));
+    if (contrib) contrib.value = groupAmountDigits(String(membershipPolicy.initialContribution));
     if (shareToggle) shareToggle.checked = membershipPolicy.shareCapitalEnabled;
     if (model) model.value = membershipPolicy.feeModel;
-    if (duesAmount) duesAmount.value = membershipPolicy.annualDuesAmount || "";
+    if (duesAmount) duesAmount.value = membershipPolicy.annualDuesAmount ? groupAmountDigits(String(membershipPolicy.annualDuesAmount)) : "";
     if (duesSchedule) {
       duesSchedule.value = (data.annualDuesSchedule || [])
         .map((e) => `${e.year}:${e.amount}`)
@@ -4120,10 +4169,12 @@ async function loadMembershipPolicyPanel() {
 
 function parseDuesScheduleInput(value) {
   const out = [];
-  for (const part of String(value || "").split(",")) {
-    const [y, a] = part.split(":").map((s) => s?.trim());
-    const year = Math.trunc(Number(y));
-    const amount = Number(a);
+  const text = String(value || "");
+  const pattern = /(\d{4})\s*:\s*([0-9][0-9,.]*)/g;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    const year = Math.trunc(Number(match[1]));
+    const amount = Number(match[2].replace(/,/g, ""));
     if (Number.isInteger(year) && year > 2000 && Number.isFinite(amount) && amount > 0) {
       out.push({ year, amount });
     }
@@ -4134,9 +4185,9 @@ function parseDuesScheduleInput(value) {
 async function saveMembershipPolicy() {
   const status = $("#membershipPolicyStatus");
   const feeModel = $("#membershipPolicyFeeModel")?.value === "annual" ? "annual" : "one_time";
-  const membershipFee = Number($("#membershipPolicyFeeAmount")?.value);
-  const initialContribution = Number($("#membershipPolicyContributionAmount")?.value);
-  const annualDuesAmount = Number($("#membershipPolicyDuesAmount")?.value);
+  const membershipFee = parseGroupedAmount($("#membershipPolicyFeeAmount")?.value) ?? "";
+  const initialContribution = parseGroupedAmount($("#membershipPolicyContributionAmount")?.value) ?? 0;
+  const annualDuesAmount = parseGroupedAmount($("#membershipPolicyDuesAmount")?.value) ?? "";
   const annualDuesSchedule = parseDuesScheduleInput($("#membershipPolicyDuesSchedule")?.value);
   const shareCapitalEnabled = Boolean($("#membershipPolicyShareCapital")?.checked);
   try {
@@ -4149,9 +4200,9 @@ async function saveMembershipPolicy() {
     if (!res.ok) throw new Error(data.error || "Save failed");
     membershipPolicy = {
       feeModel,
-      membershipFee: Number(data.membershipFee) || membershipFee,
-      initialContribution: Number(data.initialContribution) || initialContribution,
-      annualDuesAmount: Number(data.annualDuesAmount) || annualDuesAmount,
+      membershipFee: data.membershipFee != null ? Number(data.membershipFee) : membershipPolicy.membershipFee,
+      initialContribution: data.initialContribution != null ? Number(data.initialContribution) : membershipPolicy.initialContribution,
+      annualDuesAmount: data.annualDuesAmount != null ? Number(data.annualDuesAmount) : membershipPolicy.annualDuesAmount,
       shareCapitalEnabled: Boolean(data.shareCapitalEnabled),
     };
     applyMembershipPolicyToUi();

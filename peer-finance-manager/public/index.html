@@ -1385,12 +1385,12 @@
               </label>
               <label class="field-row" id="membershipPolicyFeeRow">
                 <span>Registration Fee Amount</span>
-                <input type="number" id="membershipPolicyFeeAmount" min="0.01" step="0.01" />
+                <input type="text" inputmode="decimal" autocomplete="off" id="membershipPolicyFeeAmount" />
                 <span class="amount-preview" id="membershipPolicyFeePreview"></span>
               </label>
               <label class="field-row hidden" id="membershipPolicyDuesRow">
                 <span>Annual Membership Fee Amount</span>
-                <input type="number" id="membershipPolicyDuesAmount" min="0.01" step="0.01" />
+                <input type="text" inputmode="decimal" autocomplete="off" id="membershipPolicyDuesAmount" />
                 <span class="amount-preview" id="membershipPolicyDuesPreview"></span>
               </label>
               <p class="hint subtle hidden" id="membershipPolicyDuesHint"><span class="hint-line">This is the amount charged each year; members may pay it in full or in instalments with no penalty.</span><span class="hint-line">Editing it applies to future payments only: fees already recorded keep their original amounts.</span><span class="hint-line">When a future year gets a different amount by vote, add it under Amount by Year below; every earlier year keeps the previous amount.</span></p>
@@ -1401,7 +1401,7 @@
               </label>
               <label class="field-row">
                 <span>Initial Contribution Amount (Optional)</span>
-                <input type="number" id="membershipPolicyContributionAmount" min="0" step="0.01" />
+                <input type="text" inputmode="decimal" autocomplete="off" id="membershipPolicyContributionAmount" />
                 <span class="amount-preview" id="membershipPolicyContributionPreview"></span>
               </label>
               <p class="hint subtle">Leave the initial contribution at 0 if your Cooperative does not require a minimum first deposit.</p>

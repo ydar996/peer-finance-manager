@@ -175,8 +175,12 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
-- **2026-11-22** - **Membership Policy usability pass:** each amount field now
-  shows a live currency-formatted preview (`= ₦150,000`), the per-year dues
+- **2026-11-22** - **Membership Policy usability pass:** amount fields are
+  text inputs that group thousands live while typing (`150000` -> `150,000`,
+  caret preserved via `attachGroupedAmountInput`/`groupAmountDigits`/
+  `parseGroupedAmount` in app.js) with a currency preview (`= ₦150,000`);
+  the Amount by Year parser accepts commas inside amounts
+  (`2026:150,000, 2027:175,000`); the per-year dues
   field is retitled "Amount by Year (Optional)" with a per-line hint
   explaining it vs the current annual amount, and Initial Contribution is
   explicitly optional: `0` or empty means no minimum first deposit
