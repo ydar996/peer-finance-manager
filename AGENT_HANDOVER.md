@@ -175,6 +175,16 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Subscription-blocked writes now surface loudly:** the
+  Membership Policy "not persisting" report traced to
+  `requireActiveSubscription` (`platform-routes.js`), which returns 402
+  `{error, subscriptionStatus}` on every non-GET `/api` call when the
+  Cooperative's subscription is inactive and past grace. GETs pass, so
+  panels load normally and failed saves showed only a small red status
+  line. A global `window.fetch` interceptor in `app.js` now pops an
+  appAlert "Subscription Required" whenever a 402 subscription response
+  arrives, covering every write path. If Twilight writes revert on
+  refresh, check the Subscription tab/platform console for its status.
 - **2026-11-22** - **Dues panel clarity/spacing pass:** policy GET now also
   returns `currentDuesYear` + `currentDuesYearRequirement`; the current
   year's Amount by Year row is prefilled with the resolved amount and

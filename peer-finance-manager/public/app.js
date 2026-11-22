@@ -199,6 +199,29 @@ function appConfirm(message, { title = "Confirm", variant = "warning", confirmLa
   }).then((ok) => Boolean(ok));
 }
 
+// Surface subscription-blocked writes as a prominent alert instead of a
+// quiet red status line that is easy to miss. The server returns 402 with
+// { error, subscriptionStatus } when a Cooperative's subscription gates a
+// write; every fetch path benefits from this single interceptor.
+const __pfmFetch = window.fetch.bind(window);
+window.fetch = async (...args) => {
+  const res = await __pfmFetch(...args);
+  try {
+    if (res.status === 402 && String(res.headers.get("content-type") || "").includes("application/json")) {
+      const data = await res.clone().json();
+      if (data?.subscriptionStatus || /subscription/i.test(data?.error || "")) {
+        void appAlert(
+          `${data.error || "Your Cooperative's subscription is inactive, so changes cannot be saved."}`,
+          { title: "Subscription Required", variant: "warning" }
+        );
+      }
+    }
+  } catch (_) {
+    /* never block the caller */
+  }
+  return res;
+};
+
 function appPrompt(message, { title = "Input", variant = "info", label = "", defaultValue = "", confirmLabel = "OK", cancelLabel = "Cancel" } = {}) {
   return openAppNotice({
     title,
