@@ -4310,8 +4310,8 @@ async function saveMembershipPolicy() {
     if (feeModel === "annual") loadAnnualDuesStatus();
     if (status) {
       status.textContent = feeModel === "annual"
-        ? `Saved: Annual membership fee model, annual fee ${fmt.format(membershipPolicy.annualDuesAmount)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}. Applies to new activity only.`
-        : `Saved: Registration fee ${fmt.format(membershipPolicy.membershipFee)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}. Applies to new activity only.`;
+        ? `Saved: Annual membership fee model, annual fee ${fmt.format(membershipPolicy.annualDuesAmount)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}. New amounts apply to fees recorded from now on; existing ledger entries are unchanged.`
+        : `Saved: Registration fee ${fmt.format(membershipPolicy.membershipFee)}, initial contribution ${fmt.format(membershipPolicy.initialContribution)}, share capital ${membershipPolicy.shareCapitalEnabled ? "on" : "off"}. New amounts apply to fees recorded from now on; existing ledger entries are unchanged.`;
       status.className = "status ok";
     }
   } catch (err) {

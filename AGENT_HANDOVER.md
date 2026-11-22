@@ -175,6 +175,11 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Policy save message copy clarified:** "Applies to new
+  activity only" read as if past transactions were ignored; replaced with
+  "New amounts apply to fees recorded from now on; existing ledger
+  entries are unchanged." Historical payments still count toward dues
+  status and reports.
 - **2026-11-22** - **Dues mirror row fixes:** the auto-added current-year
   row under Amount by Year showed `0` because
   `currentDuesYearRequirement` read the raw stored setting (unset -> 0)
