@@ -937,6 +937,7 @@ app.patch("/api/cooperative/membership-policy", requireAdmin, restoreOrgContext,
       annualDuesReminderEnabled: req.body?.annualDuesReminderEnabled,
       annualDuesReminderFrequency: req.body?.annualDuesReminderFrequency,
       shareCapitalEnabled: req.body?.shareCapitalEnabled,
+      changedBy: req.user?.displayName || req.user?.username || req.user?.email,
     });
     res.json({ success: true, ...policy });
   } catch (err) {

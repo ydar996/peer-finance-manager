@@ -32,6 +32,8 @@ const SETTING_DUES_SCHEDULE = "annual_dues_schedule";
 const SETTING_DUES_REMINDER_ENABLED = "annual_dues_reminder_enabled";
 const SETTING_DUES_REMINDER_FREQUENCY = "annual_dues_reminder_frequency";
 const SETTING_DUES_REMINDER_LAST_SENT = "annual_dues_reminder_last_sent";
+const SETTING_DUES_HISTORY = "annual_dues_change_log";
+const DUES_HISTORY_LIMIT = 200;
 
 const DUES_REMINDER_FREQUENCIES = ["daily", "weekly", "monthly"];
 
@@ -75,11 +77,84 @@ function parseDuesSchedule(raw) {
     const list = JSON.parse(raw || "[]");
     if (!Array.isArray(list)) return [];
     return list
-      .map((e) => ({ year: Number(e?.year), amount: normalizeAmount(e?.amount, 0) }))
+      .map((e) => ({
+        year: Number(e?.year),
+        amount: normalizeAmount(e?.amount, 0),
+        setAt: typeof e?.setAt === "string" ? e.setAt : null,
+        setBy: typeof e?.setBy === "string" ? e.setBy : null,
+      }))
       .filter((e) => Number.isInteger(e.year) && e.year > 2000 && e.amount > 0)
       .sort((a, b) => a.year - b.year);
   } catch (_) {
     return [];
+  }
+}
+
+function getDuesHistory() {
+  try {
+    const list = JSON.parse(readSetting(SETTING_DUES_HISTORY) || "[]");
+    return Array.isArray(list) ? list : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+/** Append amount changes to the audit log; returns stamped schedule entries. */
+function stampDuesChanges({ oldAmount, newAmount, oldSchedule, newSchedule, changedBy, at }) {
+  const history = getDuesHistory();
+  const actor = changedBy || "Administrator";
+  if (oldAmount !== newAmount) {
+    history.push({ at, by: actor, scope: "default", from: oldAmount, to: newAmount });
+  }
+  const oldByYear = new Map(oldSchedule.map((e) => [e.year, e]));
+  const next = newSchedule.map((e) => {
+    const prev = oldByYear.get(e.year);
+    if (prev?.amount === e.amount) {
+      return { ...e, setAt: prev.setAt ?? e.setAt ?? null, setBy: prev.setBy ?? e.setBy ?? null };
+    }
+    history.push({ at, by: actor, scope: e.year, from: prev?.amount ?? null, to: e.amount });
+    return { ...e, setAt: at, setBy: actor };
+  });
+  for (const e of oldSchedule) {
+    if (!next.some((n) => n.year === e.year)) {
+      history.push({ at, by: actor, scope: e.year, from: e.amount, to: null });
+    }
+  }
+  return { history: history.slice(-DUES_HISTORY_LIMIT), schedule: next };
+}
+
+function setDuesAmounts({ annualDuesAmount, annualDuesSchedule, changedBy }) {
+  const db = getDb();
+  const at = new Date().toISOString();
+  const oldAmount = normalizeAmount(readSetting(SETTING_ANNUAL_DUES), 0);
+  const oldSchedule = getDuesSchedule();
+  const newAmount =
+    annualDuesAmount != null && annualDuesAmount !== ""
+      ? requirePositiveAmount(annualDuesAmount, "Annual membership fee")
+      : oldAmount;
+  const newSchedule = Array.isArray(annualDuesSchedule)
+    ? annualDuesSchedule
+        .map((e) => ({
+          year: Math.trunc(Number(e?.year)),
+          amount: requirePositiveAmount(e?.amount, "Annual dues amount"),
+        }))
+        .filter((e) => e.year > 2000)
+        .sort((a, b) => a.year - b.year)
+    : oldSchedule;
+  const { history, schedule } = stampDuesChanges({
+    oldAmount,
+    newAmount,
+    oldSchedule,
+    newSchedule,
+    changedBy,
+    at,
+  });
+  if (newAmount !== oldAmount) {
+    setCooperativeSetting(db, SETTING_ANNUAL_DUES, String(newAmount));
+  }
+  setCooperativeSetting(db, SETTING_DUES_SCHEDULE, JSON.stringify(schedule));
+  if (history.length) {
+    setCooperativeSetting(db, SETTING_DUES_HISTORY, JSON.stringify(history));
   }
 }
 
@@ -133,6 +208,7 @@ function getMembershipPolicy() {
     initialContribution,
     annualDuesAmount,
     annualDuesSchedule: getDuesSchedule(),
+    annualDuesHistory: getDuesHistory().slice().reverse(),
     annualDuesReminderEnabled: reminderEnabled,
     annualDuesReminderFrequency: reminderFrequency,
     shareCapitalEnabled: isShareCapitalEnabled(),
@@ -173,6 +249,7 @@ function setMembershipPolicy({
   annualDuesReminderEnabled,
   annualDuesReminderFrequency,
   shareCapitalEnabled,
+  changedBy,
 } = {}) {
   const db = getDb();
   ensureSettingsTable(db);
@@ -193,22 +270,8 @@ function setMembershipPolicy({
       String(requireNonNegativeAmount(initialContribution, "Initial contribution"))
     );
   }
-  if (annualDuesAmount != null && annualDuesAmount !== "") {
-    setCooperativeSetting(
-      db,
-      SETTING_ANNUAL_DUES,
-      String(requirePositiveAmount(annualDuesAmount, "Annual membership fee"))
-    );
-  }
-  if (Array.isArray(annualDuesSchedule)) {
-    const cleaned = annualDuesSchedule
-      .map((e) => ({
-        year: Math.trunc(Number(e?.year)),
-        amount: requirePositiveAmount(e?.amount, "Annual dues amount"),
-      }))
-      .filter((e) => e.year > 2000)
-      .sort((a, b) => a.year - b.year);
-    setCooperativeSetting(db, SETTING_DUES_SCHEDULE, JSON.stringify(cleaned));
+  if ((annualDuesAmount != null && annualDuesAmount !== "") || Array.isArray(annualDuesSchedule)) {
+    setDuesAmounts({ annualDuesAmount, annualDuesSchedule, changedBy });
   }
   if (annualDuesReminderEnabled != null) {
     setCooperativeSetting(
@@ -247,4 +310,6 @@ module.exports = {
   getMembershipPolicy,
   setMembershipPolicy,
   duesRequirementForYear,
+  getDuesHistory,
+  SETTING_DUES_HISTORY,
 };

@@ -2872,3 +2872,27 @@ tr.loan-row:hover { background: #f8fafc; }
   border-radius: 8px;
   font-size: 14px;
 }
+
+.dues-section-label {
+  font-weight: 600;
+  margin: 8px 0 6px;
+}
+#duesYearRows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.dues-year-row input.dues-year-input {
+  width: 90px;
+}
+.dues-year-row input.dues-year-amount {
+  width: 140px;
+}
+.dues-year-stamp {
+  font-size: 12px;
+}
+.dues-history-line {
+  margin: 2px 0;
+  font-variant-numeric: tabular-nums;
+}

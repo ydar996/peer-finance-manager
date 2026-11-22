@@ -4073,14 +4073,12 @@ function refreshAmountPreviews() {
     const value = parseGroupedAmount(input.value);
     preview.textContent = value != null ? `= ${fmt.format(value)}` : "";
   }
-  const scheduleInput = document.getElementById("membershipPolicyDuesSchedule");
-  const schedulePreview = document.getElementById("membershipPolicyDuesSchedulePreview");
-  if (scheduleInput && schedulePreview) {
-    const entries = parseDuesScheduleInput(scheduleInput.value);
-    schedulePreview.textContent = entries.length
-      ? entries.map((e) => `${e.year}: ${fmt.format(e.amount)}`).join("  ·  ")
-      : "";
-  }
+  document.querySelectorAll("#duesYearRows .dues-year-amount").forEach((input) => {
+    const preview = input.parentElement?.querySelector(".amount-preview");
+    if (!preview) return;
+    const value = parseGroupedAmount(input.value);
+    preview.textContent = value != null ? `= ${fmt.format(value)}` : "";
+  });
 }
 
 for (const id of ["membershipPolicyFeeAmount", "membershipPolicyDuesAmount", "membershipPolicyContributionAmount"]) {
@@ -4088,7 +4086,76 @@ for (const id of ["membershipPolicyFeeAmount", "membershipPolicyDuesAmount", "me
   attachGroupedAmountInput(input);
   input?.addEventListener("input", refreshAmountPreviews);
 }
-document.getElementById("membershipPolicyDuesSchedule")?.addEventListener("input", refreshAmountPreviews);
+function addDuesYearRow(year, entry) {
+  const wrap = document.getElementById("duesYearRows");
+  if (!wrap) return;
+  const row = document.createElement("div");
+  row.className = "field-row dues-year-row";
+  const yearInput = document.createElement("input");
+  yearInput.type = "number";
+  yearInput.className = "dues-year-input";
+  yearInput.min = "2000";
+  yearInput.step = "1";
+  yearInput.value = year ?? "";
+  const amountInput = document.createElement("input");
+  amountInput.type = "text";
+  amountInput.inputMode = "decimal";
+  amountInput.autocomplete = "off";
+  amountInput.className = "dues-year-amount";
+  amountInput.value = entry?.amount != null ? groupAmountDigits(String(entry.amount)) : "";
+  attachGroupedAmountInput(amountInput);
+  amountInput.addEventListener("input", refreshAmountPreviews);
+  const preview = document.createElement("span");
+  preview.className = "amount-preview";
+  const stamp = document.createElement("span");
+  stamp.className = "dues-year-stamp subtle";
+  stamp.textContent = entry?.setAt
+    ? `Set ${new Date(entry.setAt).toLocaleDateString()} by ${entry.setBy || "Administrator"}`
+    : "";
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "btn small";
+  remove.textContent = "Remove";
+  remove.addEventListener("click", () => {
+    row.remove();
+    refreshAmountPreviews();
+  });
+  row.append(yearInput, amountInput, preview, stamp, remove);
+  wrap.append(row);
+}
+
+function renderDuesYearRows(schedule) {
+  const wrap = document.getElementById("duesYearRows");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  const entries = Array.isArray(schedule) ? schedule : [];
+  for (const entry of entries) addDuesYearRow(entry.year, entry);
+  const thisYear = new Date().getFullYear();
+  if (!entries.some((e) => e.year === thisYear)) addDuesYearRow(thisYear, null);
+}
+
+function renderDuesHistory(history) {
+  const wrap = document.getElementById("duesHistoryWrap");
+  const list = document.getElementById("duesHistoryList");
+  if (!wrap || !list) return;
+  const entries = Array.isArray(history) ? history : [];
+  wrap.classList.toggle("hidden", entries.length === 0);
+  list.innerHTML = entries
+    .map((h) => {
+      const when = h.at ? new Date(h.at).toLocaleString() : "";
+      const scope = h.scope === "default" ? "Annual amount" : `${h.scope} dues`;
+      const from = h.from == null ? "not set" : fmt.format(h.from);
+      const to = h.to == null ? "removed" : fmt.format(h.to);
+      return `<p class="hint subtle dues-history-line">${escapeHtml(when)} · ${escapeHtml(scope)}: ${escapeHtml(from)} &rarr; ${escapeHtml(to)} · ${escapeHtml(h.by || "Administrator")}</p>`;
+    })
+    .join("");
+}
+
+document.getElementById("addDuesYearRow")?.addEventListener("click", () => {
+  const rows = [...document.querySelectorAll("#duesYearRows .dues-year-input")];
+  const years = rows.map((r) => Number(r.value)).filter((y) => Number.isInteger(y) && y > 0);
+  addDuesYearRow(years.length ? Math.max(...years) + 1 : new Date().getFullYear(), null);
+});
 
 function applyMembershipPolicyToUi() {
   const annual = isAnnualFeeModel();
@@ -4137,7 +4204,6 @@ async function loadMembershipPolicyPanel() {
     const shareToggle = $("#membershipPolicyShareCapital");
     const model = $("#membershipPolicyFeeModel");
     const duesAmount = $("#membershipPolicyDuesAmount");
-    const duesSchedule = $("#membershipPolicyDuesSchedule");
     const reminderEnabled = $("#annualDuesReminderEnabled");
     const reminderFrequency = $("#annualDuesReminderFrequency");
     const duesYear = $("#annualDuesYear");
@@ -4146,11 +4212,8 @@ async function loadMembershipPolicyPanel() {
     if (shareToggle) shareToggle.checked = membershipPolicy.shareCapitalEnabled;
     if (model) model.value = membershipPolicy.feeModel;
     if (duesAmount) duesAmount.value = membershipPolicy.annualDuesAmount ? groupAmountDigits(String(membershipPolicy.annualDuesAmount)) : "";
-    if (duesSchedule) {
-      duesSchedule.value = (data.annualDuesSchedule || [])
-        .map((e) => `${e.year}:${e.amount}`)
-        .join(", ");
-    }
+    renderDuesYearRows(data.annualDuesSchedule);
+    renderDuesHistory(data.annualDuesHistory);
     if (reminderEnabled) reminderEnabled.checked = Boolean(data.annualDuesReminderEnabled);
     if (reminderFrequency) reminderFrequency.value = data.annualDuesReminderFrequency || "monthly";
     if (duesYear && !duesYear.value) duesYear.value = new Date().getFullYear();
@@ -4167,28 +4230,18 @@ async function loadMembershipPolicyPanel() {
   }
 }
 
-function parseDuesScheduleInput(value) {
-  const out = [];
-  const text = String(value || "");
-  const pattern = /(\d{4})\s*:\s*([0-9][0-9,.]*)/g;
-  let match;
-  while ((match = pattern.exec(text)) !== null) {
-    const year = Math.trunc(Number(match[1]));
-    const amount = Number(match[2].replace(/,/g, ""));
-    if (Number.isInteger(year) && year > 2000 && Number.isFinite(amount) && amount > 0) {
-      out.push({ year, amount });
-    }
-  }
-  return out;
-}
-
 async function saveMembershipPolicy() {
   const status = $("#membershipPolicyStatus");
   const feeModel = $("#membershipPolicyFeeModel")?.value === "annual" ? "annual" : "one_time";
   const membershipFee = parseGroupedAmount($("#membershipPolicyFeeAmount")?.value) ?? "";
   const initialContribution = parseGroupedAmount($("#membershipPolicyContributionAmount")?.value) ?? 0;
   const annualDuesAmount = parseGroupedAmount($("#membershipPolicyDuesAmount")?.value) ?? "";
-  const annualDuesSchedule = parseDuesScheduleInput($("#membershipPolicyDuesSchedule")?.value);
+  const annualDuesSchedule = [...document.querySelectorAll("#duesYearRows .dues-year-row")]
+    .map((row) => ({
+      year: Math.trunc(Number(row.querySelector(".dues-year-input")?.value)),
+      amount: parseGroupedAmount(row.querySelector(".dues-year-amount")?.value),
+    }))
+    .filter((e) => Number.isInteger(e.year) && e.year > 2000 && e.amount != null && e.amount > 0);
   const shareCapitalEnabled = Boolean($("#membershipPolicyShareCapital")?.checked);
   try {
     const res = await fetch("/api/cooperative/membership-policy", {

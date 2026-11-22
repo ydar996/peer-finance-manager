@@ -1394,11 +1394,16 @@
                 <span class="amount-preview" id="membershipPolicyDuesPreview"></span>
               </label>
               <p class="hint subtle hidden" id="membershipPolicyDuesHint"><span class="hint-line">This is the amount charged each year; members may pay it in full or in instalments with no penalty.</span><span class="hint-line">Editing it applies to future payments only: fees already recorded keep their original amounts.</span><span class="hint-line">When a future year gets a different amount by vote, add it under Amount by Year below; every earlier year keeps the previous amount.</span></p>
-              <label class="field-row hidden" id="membershipPolicyDuesScheduleRow">
-                <span>Amount by Year (Optional)</span>
-                <input type="text" id="membershipPolicyDuesSchedule" placeholder="e.g. 2027:175000" />
-                <span class="amount-preview" id="membershipPolicyDuesSchedulePreview"></span>
-              </label>
+              <div class="hidden" id="membershipPolicyDuesScheduleRow">
+                <p class="hint dues-section-label">Amount by Year</p>
+                <div id="duesYearRows"></div>
+                <button type="button" class="btn" id="addDuesYearRow">Add Year</button>
+                <p class="hint subtle">Each year keeps the amount set for it; a year without its own amount uses the most recent earlier year's amount (or the annual amount above). A mid-year vote simply edits that year's amount: every change is stamped and logged below.</p>
+                <div id="duesHistoryWrap" class="hidden">
+                  <p class="hint dues-section-label">Fee Change History</p>
+                  <div id="duesHistoryList"></div>
+                </div>
+              </div>
               <label class="field-row">
                 <span>Initial Contribution Amount (Optional)</span>
                 <input type="text" inputmode="decimal" autocomplete="off" id="membershipPolicyContributionAmount" />

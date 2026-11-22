@@ -175,6 +175,16 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Dues schedule becomes auditable per-year rows:** the
+  freeform "Amount by Year" text field is now an editable year/amount row
+  list with an Add Year button, per-row "Set DD/MM/YYYY by &lt;admin&gt;"
+  stamps, and a **Fee Change History** block. Backend stores schedule
+  entries as `{year, amount, setAt, setBy}` and appends every amount change
+  to `annual_dues_change_log` (`{at, by, scope: year|"default", from, to}`,
+  capped at 200). Mid-year votes edit the current year's row; unchanged
+  years keep their original stamps. `setMembershipPolicy` accepts
+  `changedBy` (route passes `req.user` display name/username/email). Policy
+  GET returns `annualDuesHistory` newest-first.
 - **2026-11-22** - **Membership Policy usability pass:** amount fields are
   text inputs that group thousands live while typing (`150000` -> `150,000`,
   caret preserved via `attachGroupedAmountInput`/`groupAmountDigits`/

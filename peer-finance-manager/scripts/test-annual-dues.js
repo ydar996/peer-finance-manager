@@ -59,6 +59,42 @@ runWithOrg(ORG, () => {
   assert.strictEqual(duesRequirementForYear(2029), 200000); // inherits 2028
   assert.strictEqual(duesRequirementForYear(2025), 150000); // before all schedule entries: current amount
 
+  // Audit: every change is stamped (setAt/setBy) and appended to the history.
+  let schedule = getMembershipPolicy().annualDuesSchedule;
+  assert.strictEqual(schedule.length, 2);
+  assert.ok(schedule.every((e) => e.setAt && e.setBy));
+
+  const { getDuesHistory } = require("../lib/membership-policy-service");
+  let history = getDuesHistory();
+  assert.ok(history.some((h) => h.scope === 2026 && h.to === 150000));
+  assert.ok(history.some((h) => h.scope === 2028 && h.to === 200000));
+
+  // Mid-year vote: 2026 amount changes; historical payments untouched, and
+  // the change is logged with the actor.
+  setMembershipPolicy({
+    annualDuesSchedule: [
+      { year: 2026, amount: 175000 },
+      { year: 2028, amount: 200000 },
+    ],
+    changedBy: "Test Admin",
+  });
+  assert.strictEqual(duesRequirementForYear(2026), 175000);
+  history = getDuesHistory();
+  const change = history.find((h) => h.scope === 2026 && h.from === 150000 && h.to === 175000);
+  assert.ok(change, "mid-year amount change logged");
+  assert.strictEqual(change.by, "Test Admin");
+  // Unchanged 2028 entry keeps its original stamp, not a new one.
+  const s2028 = getMembershipPolicy().annualDuesSchedule.find((e) => e.year === 2028);
+  const firstStamp = schedule.find((e) => e.year === 2028).setAt;
+  assert.strictEqual(s2028.setAt, firstStamp);
+  // Restore the 2026 amount for the payment assertions below.
+  setMembershipPolicy({
+    annualDuesSchedule: [
+      { year: 2026, amount: 150000 },
+      { year: 2028, amount: 200000 },
+    ],
+  });
+
   // Members.
   const m1Id = createMember({ name: "Ada Member", memberNo: "T-001", recordMembershipFee: false }).memberId;
   const m2Id = createMember({ name: "Bola Member", memberNo: "T-002", recordMembershipFee: false }).memberId;
