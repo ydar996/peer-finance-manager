@@ -178,7 +178,14 @@ app.get("/api/health", (req, res) => {
   const { loadBetterSqlite3 } = require("./lib/native-sqlite");
   const { runWithOrg } = require("./lib/org-context");
   migrateLegacyDatabaseIfNeeded();
-  const payload = { ok: true, name: "Peer Finance Manager" };
+  const payload = {
+    ok: true,
+    name: "Peer Finance Manager",
+    build: {
+      commit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || null,
+      branch: process.env.RENDER_GIT_BRANCH || null,
+    },
+  };
   try {
     const dbPath = path.join(getOrgDataDir(ASSURANCE_SLUG), "peerfinance.db");
     if (fs.existsSync(dbPath)) {

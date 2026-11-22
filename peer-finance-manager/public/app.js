@@ -4304,6 +4304,10 @@ async function saveMembershipPolicy() {
       status.textContent = err.message;
       status.className = "status err";
     }
+    void appAlert(`The Membership Policy was NOT saved: ${err.message}`, {
+      title: "Save Failed",
+      variant: "danger",
+    });
   }
 }
 

@@ -182,7 +182,7 @@ function duesRequirementForYear(year, annualDuesAmount) {
 
 function getMembershipPolicy() {
   const defaults = countryMembershipDefaults();
-  const membershipFee = normalizeAmount(
+  const membershipFee = normalizeAmountAllowZero(
     readSetting(SETTING_MEMBERSHIP_FEE),
     normalizeAmount(defaults.membershipFee, MEMBERSHIP_FEE)
   );
@@ -260,7 +260,7 @@ function setMembershipPolicy({
     setCooperativeSetting(
       db,
       SETTING_MEMBERSHIP_FEE,
-      String(requirePositiveAmount(membershipFee, "Membership fee"))
+      String(requireNonNegativeAmount(membershipFee, "Membership fee"))
     );
   }
   if (initialContribution != null && initialContribution !== "") {

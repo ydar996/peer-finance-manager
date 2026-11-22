@@ -175,6 +175,20 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Membership policy save failures diagnosed + made
+  loud:** the persistence complaint root cause was most likely the PATCH
+  400ing on validation, not the 402 subscription gate (Twilight's
+  subscription is ACTIVE). Pre-52eb805 builds threw
+  `requirePositiveAmount` on `initialContribution: 0` (and the oldest
+  build ignored feeModel/dues fields entirely while returning
+  `{success:true}`), so every save failed with only a small red status
+  line. Fixes shipped: `membershipFee`/`initialContribution` now accept
+  0 (a Cooperative may charge no one-time fee; `initialContribution` 0
+  was already allowed), the saveMembershipPolicy catch now pops a
+  danger-variant appAlert naming the failure, and `/api/health` returns
+  `build.commit` from `RENDER_GIT_COMMIT` so the deployed version can be
+  verified against the repo. A global `window.fetch` interceptor also
+  still pops "Subscription Required" on any 402 response.
 - **2026-11-22** - **Subscription-blocked writes now surface loudly:** the
   Membership Policy "not persisting" report traced to
   `requireActiveSubscription` (`platform-routes.js`), which returns 402
