@@ -1428,11 +1428,13 @@
               <div class="hidden" id="annualDuesSection">
                 <hr />
                 <p class="hint"><span class="hint-line">Annual Dues Status and Reminders.</span><span class="hint-line">See which members have paid, paid in part, or still owe the annual fee.</span><span class="hint-line">Send reminders on demand, or let the system send them automatically at the frequency you choose.</span></p>
-                <label class="field-row">
-                  <span>Dues Year</span>
-                  <input type="number" id="annualDuesYear" min="2000" step="1" />
-                </label>
-                <button type="button" class="btn" id="refreshAnnualDues">Refresh Dues Status</button>
+                <div class="dues-controls-row">
+                  <label class="field-row dues-year-field">
+                    <span>Dues Year</span>
+                    <input type="number" id="annualDuesYear" min="2000" step="1" />
+                  </label>
+                  <button type="button" class="btn" id="refreshAnnualDues">Refresh Dues Status</button>
+                </div>
                 <div id="annualDuesTableWrap"></div>
                 <label class="field-row checkbox-row">
                   <input type="checkbox" id="annualDuesReminderEnabled" />
