@@ -24,6 +24,7 @@ const STATEMENT_FORMATS = {
   csv_summary_then_transactions: { label: "CSV: Summary Block Then Transactions" },
   template_explicit: { label: "PFM Import Template (Type Required)" },
   ofx: { label: "OFX/QFX" },
+  providus_business: { label: "Providus Bank Statement" },
   custom_map: { label: "Custom Column Mapping" },
 };
 
@@ -319,7 +320,29 @@ function parseStatementFileWithFormat({
     };
   }
 
+  if (ext === ".pdf" || statementFormat === "providus_business") {
+    const providus = require("./providus-statement");
+    if (ext === ".pdf" && providus.isProvidusPdf(filePath)) {
+      const parsed = providus.parseProvidusPdf(filePath, memberNames);
+      return { ...parsed, resolvedFormat: "providus_business" };
+    }
+    if (ext !== ".pdf" && providus.isProvidusWorkbook(filePath)) {
+      const parsed = providus.parseProvidusWorkbook(filePath, memberNames);
+      return { ...parsed, resolvedFormat: "providus_business" };
+    }
+    if (ext === ".pdf") {
+      throw new Error(
+        "Unrecognized PDF statement. Upload a Providus Bank statement, or convert the file to CSV/XLSX."
+      );
+    }
+  }
+
   if (isSpreadsheetFile(filePath, originalName) && statementFormat !== "custom_map") {
+    const providus = require("./providus-statement");
+    if (providus.isProvidusWorkbook(filePath)) {
+      const parsed = providus.parseProvidusWorkbook(filePath, memberNames);
+      return { ...parsed, resolvedFormat: "providus_business" };
+    }
     const wb = XLSX.readFile(filePath);
     const sheetName = wb.SheetNames.find((n) => /transaction/i.test(n)) || wb.SheetNames[0];
     const tmpCsv = path.join(path.dirname(filePath), `_fmt_${Date.now()}.csv`);
