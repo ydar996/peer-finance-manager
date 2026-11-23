@@ -1521,8 +1521,10 @@ async function loadMyAccount() {
     }
 
     const depositTypes = DEPOSIT_LEDGER_TYPES;
-    const depositRows = withDepositRunningBalances(
-      (data.depositTransactions || []).filter((t) => depositTypes.has(t.type))
+    const depositRows = mergeFeeDepositPairs(
+      withDepositRunningBalances(
+        (data.depositTransactions || []).filter((t) => depositTypes.has(t.type))
+      )
     );
     depositBody.innerHTML = depositRows.length
       ? depositRows
@@ -3477,11 +3479,11 @@ function mergeFeeDepositPairs(transactions) {
   for (let i = 0; i < transactions.length; i++) {
     const pair = isFeeDepositPair(transactions[i], transactions[i + 1]);
     if (pair) {
-      const first = transactions[i];
+      const later = pair.fee.id > pair.dep.id ? pair.fee : pair.dep;
       rows.push({
         ...pair.fee,
         amount: pair.dep.amount,
-        balance_after: first.balance_after,
+        balance_after: later.balance_after,
         description: pair.dep.description || pair.fee.description,
         controlsTx: pair.dep,
       });

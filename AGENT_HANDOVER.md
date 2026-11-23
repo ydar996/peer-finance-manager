@@ -176,15 +176,20 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 ## Changelog
 
 - **2026-11-23** - **Member profile: merged fee/deposit display pairs.**
-  Contributions Account Activity (and Share Capital panel, harmless
-  no-op) now renders a membership_fee + deposit pair sharing the same
-  date and absolute amount as ONE row: fee type label, deposit
-  description, post-pair balance. Ledger data unchanged - both legs
-  still exist; admin Category/Split controls attach to the deposit
-  (bank) leg. Verified on live data pattern: Fagbenro 15/12/2025
-  100k entrance fee + 12/02/2026 150k annual dues each appear once.
-  Standalone fee or deposit rows still render normally.
-  `isFeeDepositPair` requires opposite signs and matching abs amounts.
+  Contributions Account Activity (admin profile AND member portal My
+  Contributions; Share Capital panel is a harmless no-op) now renders a
+  membership_fee + deposit pair sharing the same date and absolute
+  amount as ONE row: fee type label, deposit description, post-pair
+  balance (max-id leg's balance_after, sort-order independent). Ledger
+  data unchanged - both legs still exist; admin Category/Split controls
+  attach to the deposit (bank) leg. Verified on live data pattern:
+  Fagbenro 15/12/2025 100k entrance fee + 12/02/2026 150k annual dues
+  each appear once. Standalone fee or deposit rows still render
+  normally. `isFeeDepositPair` requires opposite signs and matching abs
+  amounts. NOTE: the generated member statement PDF
+  (member-deposit-statement.js) still lists both legs deliberately -
+  merge there too if the Owner wants one-line presentation on formal
+  statements.
 - **2026-11-23** - **Maintenance tab cleanup:** removed the raw JSON
   "Live Database Status" card (diagnostic noise for nontechnical
   admins), its Refresh button, and `loadMaintenancePanel()` in app.js.
