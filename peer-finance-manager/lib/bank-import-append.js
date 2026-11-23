@@ -337,7 +337,7 @@ function previewBankStatementAppend({
 
   const { audit } = applyAuditWarnings(previewRows, auditInput, memberNames);
 
-  const ledger = getLedgerEndingBalance();
+  const ledger = getLedgerEndingBalance(null, account.id);
   const readyDelta = previewRows
     .filter((r) => r.bucket === "ready")
     .reduce((sum, r) => sum + Number(r.amount || 0), 0);
@@ -640,7 +640,7 @@ function applyBankStatementAppend({
 
   const readyRows = preview.rows.filter((r) => r.bucket === "ready");
   if (!readyRows.length) {
-    const ledgerIdle = getLedgerEndingBalance();
+    const ledgerIdle = getLedgerEndingBalance(null, preview.bankAccount?.id);
     const { captureBankReconcileAfterAppend, getBankReconcileStatus } = require(
       "./bank-reconcile-service"
     );
@@ -768,7 +768,7 @@ function applyBankStatementAppend({
     queueCooperativeBankLedgerCsvSync("append_import");
   }
 
-  const ledger = getLedgerEndingBalance();
+  const ledger = getLedgerEndingBalance(null, preview.bankAccount?.id);
 
   let message =
     counts.inserted > 0

@@ -250,7 +250,20 @@ function importBankLedgerCore({
       ).run();
     }
 
-    db.prepare(`DELETE FROM transactions WHERE source = 'bank_import'`).run();
+    // Full refresh rebuilds the primary account's ledger. Bank-imported rows
+    // on other accounts (e.g. appended share-capital/savings ledgers) are
+    // out of scope and must survive; rows with no account id are primary.
+    const primaryAccountId =
+      db.prepare(`SELECT id FROM bank_accounts WHERE is_primary = 1`).get()?.id ?? null;
+    if (primaryAccountId != null) {
+      db.prepare(
+        `DELETE FROM transactions
+         WHERE source = 'bank_import'
+           AND (bank_account_id IS NULL OR bank_account_id = ?)`
+      ).run(primaryAccountId);
+    } else {
+      db.prepare(`DELETE FROM transactions WHERE source = 'bank_import'`).run();
+    }
     const manualPlaceholders = LEDGER_TYPES.map(() => "?").join(", ");
     db.prepare(
       `DELETE FROM transactions WHERE source = 'manual' AND type IN (${manualPlaceholders})`

@@ -115,6 +115,7 @@ function loadLedgerRowsFromDb(db) {
               t.amount,
               t.description,
               t.source,
+              t.bank_account_id,
               m.name AS member_name
        FROM transactions t
        LEFT JOIN members m ON m.id = t.member_id
@@ -406,9 +407,22 @@ function queueCooperativeBankLedgerCsvSync(reason) {
   });
 }
 
-function getLedgerEndingBalance(asOfDateIso = null) {
+function getLedgerEndingBalance(asOfDateIso = null, bankAccountId = null) {
   const db = getDb();
   let rows = loadLedgerRowsFromDb(db);
+  if (bankAccountId != null) {
+    let primaryId = null;
+    try {
+      primaryId =
+        db.prepare(`SELECT id FROM bank_accounts WHERE is_primary = 1`).get()?.id ?? null;
+    } catch (_) {}
+    const targetId = Number(bankAccountId);
+    rows = rows.filter(
+      (row) =>
+        row.bank_account_id === targetId ||
+        (row.bank_account_id == null && (targetId === primaryId || primaryId == null))
+    );
+  }
   if (asOfDateIso) {
     rows = rows.filter((row) => String(row.transaction_date) <= asOfDateIso);
   }

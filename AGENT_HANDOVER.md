@@ -1627,3 +1627,15 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
   Ledger Refresh, Cooperative Spreadsheet, Membership Applications, Loan
   Repayment Schedule, Member Import, Bank Account Import). Error paths
   still re-render the preview so flagged rows can be fixed.
+- **2026-11-23** - **Bank reconcile anchor scoped per bank account.** The
+  reconcile card previously compared all-ledger totals against the
+  primary account's verified statement balance, so appending other
+  accounts' ledgers falsely reported Out of Sync. The anchor now stores
+  the bank account (legacy anchors resolve to primary; rows with no
+  account id count as primary, same rule as import dedupe) and both the
+  balance-at-anchor and bank_import row count are account-scoped. Append
+  preview/apply balance checks now project the target account's balance.
+  Full Ledger Refresh now deletes only primary-account (or unassigned)
+  bank_import rows: appended ledgers on other accounts survive a refresh.
+  Verified: second-account appends keep the anchor reconciled; backdated
+  primary-account rows still flag Out of Sync.

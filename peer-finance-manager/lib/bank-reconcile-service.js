@@ -13,6 +13,7 @@ const SETTING_KEYS = {
   verifiedAt: "bank_reconcile_verified_at",
   source: "bank_reconcile_source",
   label: "bank_reconcile_label",
+  bankAccountId: "bank_reconcile_bank_account_id",
 };
 
 const BALANCE_TOLERANCE = 0.02;
@@ -21,10 +22,35 @@ function roundMoney(value) {
   return Math.round(Number(value) * 100) / 100;
 }
 
-function countBankImportRows(db = getDb()) {
+function primaryBankAccountId(db = getDb()) {
+  try {
+    return db.prepare(`SELECT id FROM bank_accounts WHERE is_primary = 1`).get()?.id ?? null;
+  } catch (_) {
+    return null;
+  }
+}
+
+// Same rule as import dedupe: rows with no account id belong to the primary
+// account. An anchor with no stored account was captured on the primary.
+function resolveAnchorAccountId(anchorAccountId, db = getDb()) {
+  return anchorAccountId != null ? Number(anchorAccountId) : primaryBankAccountId(db);
+}
+
+function countBankImportRows(db = getDb(), bankAccountId = null) {
+  if (bankAccountId == null) {
+    return db
+      .prepare(`SELECT COUNT(1) AS c FROM transactions WHERE source = 'bank_import'`)
+      .get().c;
+  }
+  const primaryId = primaryBankAccountId(db);
+  const targetId = Number(bankAccountId);
   return db
-    .prepare(`SELECT COUNT(1) AS c FROM transactions WHERE source = 'bank_import'`)
-    .get().c;
+    .prepare(
+      `SELECT COUNT(1) AS c FROM transactions
+       WHERE source = 'bank_import'
+         AND (bank_account_id = ? OR (bank_account_id IS NULL AND ? = 1))`
+    )
+    .get(targetId, targetId === primaryId || primaryId == null ? 1 : 0).c;
 }
 
 function readStoredAnchor() {
@@ -34,6 +60,7 @@ function readStoredAnchor() {
   const verifiedAt = getCooperativeSetting(SETTING_KEYS.verifiedAt);
   const source = getCooperativeSetting(SETTING_KEYS.source);
   const label = getCooperativeSetting(SETTING_KEYS.label);
+  const bankAccountIdRaw = getCooperativeSetting(SETTING_KEYS.bankAccountId);
 
   if (balanceRaw == null || !asOf || rowsRaw == null || !verifiedAt) {
     return null;
@@ -52,6 +79,10 @@ function readStoredAnchor() {
     verifiedAt,
     source: source || null,
     label: label || null,
+    bankAccountId:
+      bankAccountIdRaw != null && bankAccountIdRaw !== ""
+        ? Number(bankAccountIdRaw)
+        : null,
   };
 }
 
@@ -60,6 +91,7 @@ function captureBankReconcileAnchor({
   asOf,
   source,
   label = null,
+  bankAccountId = null,
   db = getDb(),
 } = {}) {
   const amount = Number(balance);
@@ -72,7 +104,8 @@ function captureBankReconcileAnchor({
   }
 
   ensureSettingsTable(db);
-  const bankImportRows = countBankImportRows(db);
+  const anchorAccountId = resolveAnchorAccountId(bankAccountId, db);
+  const bankImportRows = countBankImportRows(db, anchorAccountId);
   const verifiedAt = new Date().toISOString();
 
   setCooperativeSetting(db, SETTING_KEYS.balance, roundMoney(amount));
@@ -80,6 +113,11 @@ function captureBankReconcileAnchor({
   setCooperativeSetting(db, SETTING_KEYS.bankImportRows, bankImportRows);
   setCooperativeSetting(db, SETTING_KEYS.verifiedAt, verifiedAt);
   setCooperativeSetting(db, SETTING_KEYS.source, source || "unknown");
+  setCooperativeSetting(
+    db,
+    SETTING_KEYS.bankAccountId,
+    anchorAccountId != null ? String(anchorAccountId) : ""
+  );
   if (label != null && String(label).trim()) {
     setCooperativeSetting(db, SETTING_KEYS.label, String(label).trim());
   }
@@ -91,11 +129,13 @@ function captureBankReconcileAnchor({
     verifiedAt,
     source: source || "unknown",
     label: label || null,
+    bankAccountId: anchorAccountId,
   };
 }
 
-function captureBankReconcileAnchorFromLedger({ source, label = null, db = getDb() } = {}) {
-  const ledger = getLedgerEndingBalance();
+function captureBankReconcileAnchorFromLedger({ source, label = null, bankAccountId = null, db = getDb() } = {}) {
+  const anchorAccountId = resolveAnchorAccountId(bankAccountId, db);
+  const ledger = getLedgerEndingBalance(null, anchorAccountId);
   if (ledger?.balance == null || !ledger?.asOf) {
     return null;
   }
@@ -104,6 +144,7 @@ function captureBankReconcileAnchorFromLedger({ source, label = null, db = getDb
     asOf: ledger.asOf,
     source,
     label,
+    bankAccountId: anchorAccountId,
     db,
   });
 }
@@ -162,11 +203,15 @@ function compareBankReconcileStatus({ anchor, liveBalanceAtAnchor, liveBankImpor
 
 function getBankReconcileStatus() {
   const anchor = readStoredAnchor();
-  const liveLedger = getLedgerEndingBalance();
+  const db = getDb();
+  // The anchor is per bank account: compare against rows on that account
+  // only, so appends to other accounts do not move the anchor's baseline.
+  const anchorAccountId = resolveAnchorAccountId(anchor?.bankAccountId, db);
+  const liveLedger = getLedgerEndingBalance(null, anchorAccountId);
   const liveBalanceAtAnchor = anchor?.asOf
-    ? getLedgerEndingBalance(anchor.asOf)
+    ? getLedgerEndingBalance(anchor.asOf, anchorAccountId)
     : null;
-  const liveBankImportRows = countBankImportRows();
+  const liveBankImportRows = countBankImportRows(db, anchorAccountId);
 
   let compared = compareBankReconcileStatus({
     anchor,
@@ -189,11 +234,13 @@ function getBankReconcileStatus() {
       asOf: anchor.asOf,
       source: "classification_row_align",
       label: anchor.label || "split/reclassify",
+      bankAccountId: anchorAccountId,
+      db,
     });
     compared = compareBankReconcileStatus({
       anchor: readStoredAnchor(),
       liveBalanceAtAnchor,
-      liveBankImportRows: countBankImportRows(),
+      liveBankImportRows: countBankImportRows(db, anchorAccountId),
       liveLedger,
     });
   }
@@ -207,7 +254,9 @@ function getBankReconcileStatus() {
 function refreshBankReconcileAfterClassification({ label = "split/reclassify" } = {}) {
   const anchor = readStoredAnchor();
   if (!anchor?.asOf) return null;
-  const liveBalanceAtAnchor = getLedgerEndingBalance(anchor.asOf);
+  const db = getDb();
+  const anchorAccountId = resolveAnchorAccountId(anchor.bankAccountId, db);
+  const liveBalanceAtAnchor = getLedgerEndingBalance(anchor.asOf, anchorAccountId);
   if (
     liveBalanceAtAnchor?.balance == null ||
     Math.abs(liveBalanceAtAnchor.balance - anchor.balance) > BALANCE_TOLERANCE
@@ -219,10 +268,12 @@ function refreshBankReconcileAfterClassification({ label = "split/reclassify" } 
     asOf: anchor.asOf,
     source: "ledger_adjustment",
     label,
+    bankAccountId: anchorAccountId,
+    db,
   });
 }
 
-function captureBankReconcileAfterAppend({ preview, ledgerEndingBalance, ledgerEndingAsOf, originalName }) {
+function captureBankReconcileAfterAppend({ preview, ledgerEndingBalance, ledgerEndingAsOf, originalName, bankAccountId }) {
   const bc = preview?.summary?.balanceCheck || {};
   const statementEnding = bc.statementEnding;
   const ledgerMatches =
@@ -246,6 +297,7 @@ function captureBankReconcileAfterAppend({ preview, ledgerEndingBalance, ledgerE
     asOf,
     source: "append",
     label: originalName || null,
+    bankAccountId: bankAccountId ?? preview?.bankAccount?.id ?? null,
   });
 }
 
