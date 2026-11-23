@@ -175,6 +175,27 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-23** - **Security round 2: MFA + webhook closure + favicon:**
+  TOTP two-factor authentication for admin/staff accounts - new
+  `lib/totp.js` (RFC 6238, zero deps) and `lib/mfa-service.js`
+  (enrollment secrets, 10-minute signed mfa tickets, replay-safe
+  challenge verify); users table gains mfa_enabled/mfa_secret columns via
+  auth migrations; `login()` returns `{ mfaRequired, mfaTicket }` for
+  MFA-enabled users instead of a session; new routes POST /api/mfa/start,
+  /api/mfa/confirm, /api/mfa/disable, GET /api/mfa/status, and public
+  POST /api/auth/mfa-verify (own limiter, 20/10min); app.js login flow
+  prompts for the code on mfaRequired; new Security tab
+  (data-roles="admin,staff") hosts self-service enroll/disable; Users
+  table gains a Two-Factor column with admin Reset button
+  (`POST /api/users/:id/reset-mfa`). FlexxForms webhook: unsigned
+  payloads now rejected outright even for orgs without a secret
+  (previously warn-and-accept); `webhookSecured` boolean added to
+  getFlexxFormsAdminView (secret value never leaves server). API flood
+  damper: 600 req/min per IP across /api (auth limiters still stricter).
+  Favicon set created (favicon.svg/.ico/-32/-512/apple-touch-icon from
+  the theme.css gradient + glyph) and linked on all 6 public HTML pages.
+  Verified: full e2e enroll/confirm/login/challenge/reject cycle passes;
+  node --check clean on all touched files.
 - **2026-11-23** - **Security hardening pass (audit-driven):**
   rate limiting on /api/auth/login, /api/platform/auth/login,
   /api/auth/register-organization, and /api/organizations/lookup via the

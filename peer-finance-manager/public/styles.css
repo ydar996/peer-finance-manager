@@ -2930,3 +2930,13 @@ tr.loan-row:hover { background: #f8fafc; }
 #annualDuesYear { width: 110px; }
 #annualDuesTableWrap { margin-top: 20px; }
 #annualDuesTableWrap > .hint { margin: 0 0 10px; }
+
+.mfa-secret-code {
+  display: inline-block;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--surface-alt, #f3f4f6);
+  user-select: all;
+}

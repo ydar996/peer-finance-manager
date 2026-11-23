@@ -220,6 +220,8 @@ function getFlexxFormsAdminView(slug, { consumeTempPassword = false, sessionUser
     organizationSlug: org.slug,
     organizationName: org.name,
     provisioned: Boolean(ff.tenantId && ff.apiKey),
+    // Boolean only: the secret value itself never leaves the server.
+    webhookSecured: Boolean(ff.webhookSecret),
     adminEmail: resolvedAdminEmail || ff.adminEmail || org.adminEmail || null,
     tempPassword,
     provisionError: ff.provisionError || null,
@@ -562,17 +564,18 @@ function verifyWebhookSignature(rawBody, signatureHeader, timestampHeader, secre
 
 /**
  * Enforces webhook authentication for a resolved organization.
- * Orgs with a configured webhookSecret must present a valid, fresh signature;
- * orgs without one cannot be verified (legacy/incomplete provisioning) and are
- * accepted unsigned with a warning so the gap is visible.
+ * Every webhook must carry a valid, fresh HMAC signature against the org's
+ * webhookSecret. Orgs without a configured secret cannot verify senders, so
+ * their webhooks are rejected outright — re-running FlexxForms provisioning
+ * (Retry FlexxForms Setup) stores a fresh secret and restores ingestion.
  */
 function assertWebhookAuthentic(org, headers, rawBody) {
   const ff = getOrganizationFlexxForms(org.slug);
   if (!ff?.webhookSecret) {
     console.warn(
-      `[flexxforms-webhook] unsigned webhook accepted for ${org.slug}: no webhook secret configured`
+      `[flexxforms-webhook] rejected webhook for ${org.slug}: no webhook secret configured`
     );
-    return;
+    throw new Error("FlexxForms webhook secret is not configured for this Cooperative");
   }
   const sig =
     headers["x-flexxforms-signature"] || headers["X-FlexxForms-Signature"];

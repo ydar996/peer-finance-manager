@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Peer Finance Manager</title>
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="description" content="Cooperative management software: member contributions, loans, books, bank imports, and statements." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Peer Finance Manager" />
@@ -490,6 +493,7 @@
         <button type="button" class="tab" data-tab="subscription" data-roles="admin">Subscription</button>
         <button type="button" class="tab" data-tab="users" data-roles="admin">Users</button>
         <button type="button" class="tab" data-tab="automated-messages" data-roles="admin">Automated Messages</button>
+        <button type="button" class="tab" data-tab="security" data-roles="admin,staff">Security</button>
         <button type="button" class="tab" data-tab="maintenance" data-roles="admin">Maintenance</button>
         <button type="button" class="tab" data-tab="my-account" data-roles="member">My Account</button>
         </div>
@@ -2574,12 +2578,49 @@
           <div class="table-wrap compact">
             <table>
               <thead>
-                <tr><th>Email</th><th>Username</th><th>Role</th><th>Member</th><th>Created</th></tr>
+                <tr><th>Email</th><th>Username</th><th>Role</th><th>Member</th><th>Two-Factor</th><th>Created</th></tr>
               </thead>
               <tbody id="usersBody">
-                <tr><td colspan="5">Loading…</td></tr>
+                <tr><td colspan="6">Loading…</td></tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-security" class="panel">
+        <div class="panel-head">
+          <h2>Account Security</h2>
+          <button type="button" class="btn" id="refreshSecurity">Refresh</button>
+        </div>
+        <p class="hint">Manage Two-Factor Authentication for Your Sign-In.</p>
+        <div class="card">
+          <h3>Two-Factor Authentication</h3>
+          <p class="subtle">Require a Code from an Authenticator App (Google Authenticator, Microsoft Authenticator, Authy, or 1Password) in Addition to Your Password.</p>
+          <p id="mfaStatusLine" class="status"></p>
+          <div id="mfaEnabledView" class="hidden">
+            <p class="subtle">Two-Factor Authentication Is <strong>On</strong> for Your Account. You Will Need Your Authenticator App Each Time You Sign In.</p>
+            <button type="button" class="btn danger" id="mfaDisableBtn">Turn Off Two-Factor</button>
+          </div>
+          <div id="mfaDisabledView" class="hidden">
+            <p class="subtle">Two-Factor Authentication Is <strong>Off</strong>. Turn It On to Protect Your Account Even If Your Password Is Stolen.</p>
+            <button type="button" class="btn primary" id="mfaEnableBtn">Set Up Two-Factor</button>
+          </div>
+          <div id="mfaSetupView" class="hidden">
+            <p class="subtle"><strong>1.</strong> Add This Account to Your Authenticator App. Enter the Key Manually or Use the Link on Mobile.</p>
+            <p class="mfa-secret-row">Key: <code id="mfaSecretCode" class="mfa-secret-code"></code></p>
+            <p class="subtle"><a id="mfaOtpauthLink" href="#" target="_blank" rel="noopener">Open in Authenticator App</a> (Mobile Only)</p>
+            <p class="subtle"><strong>2.</strong> Enter the 6-Digit Code the App Shows:</p>
+            <form id="mfaConfirmForm" class="entry-form">
+              <label>Authenticator Code
+                <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required />
+              </label>
+              <div class="panel-head-actions">
+                <button type="submit" class="btn primary">Confirm and Enable</button>
+                <button type="button" class="btn" id="mfaCancelSetupBtn">Cancel</button>
+              </div>
+            </form>
+            <p id="mfaSetupStatus" class="status"></p>
           </div>
         </div>
       </section>

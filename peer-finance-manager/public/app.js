@@ -1307,7 +1307,7 @@ async function loadUsers() {
     }
 
     if (!users?.length) {
-      body.innerHTML = '<tr><td colspan="5" class="subtle">No Accounts Yet</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" class="subtle">No Accounts Yet</td></tr>';
       return;
     }
     body.innerHTML = users
@@ -1318,12 +1318,24 @@ async function loadUsers() {
         <td>${escapeHtml(u.username || ":")}</td>
         <td>${escapeHtml(roleLabel(u.role))}</td>
         <td>${escapeHtml(u.memberName || ":")}</td>
+        <td>${
+          u.mfaEnabled
+            ? `<span class="badge">On</span>${
+                u.id !== currentUser?.id
+                  ? ` <button type="button" class="btn small" data-reset-mfa="${u.id}" data-user-email="${escapeHtml(u.email || "")}">Reset</button>`
+                  : ""
+              }`
+            : "Off"
+        }</td>
         <td>${escapeHtml(u.createdAt || ":")}</td>
       </tr>`
       )
       .join("");
+    body.querySelectorAll("[data-reset-mfa]").forEach((btn) => {
+      btn.addEventListener("click", () => resetUserMfa(btn));
+    });
   } catch (err) {
-    body.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="status err">${escapeHtml(err.message)}</td></tr>`;
     if (memberBody) {
       memberBody.innerHTML = `<tr><td colspan="5" class="status err">${escapeHtml(err.message)}</td></tr>`;
     }
@@ -1702,6 +1714,13 @@ function switchTab(name, options = {}) {
   if (name === "users" && currentUser?.role === "admin" && !sameTab) {
     initMemberPickers();
     loadUsers();
+  }
+  if (
+    name === "security" &&
+    ["admin", "staff"].includes(currentUser?.role || "") &&
+    !sameTab
+  ) {
+    loadSecurityPanel();
   }
   if (activeTab === "import" && name !== "import") {
     resetImportTabSession();
@@ -9324,6 +9343,31 @@ async function handleLoginSubmit(e) {
       );
     }
     if (!res.ok) throw new Error(data.error || "Login failed");
+    if (data.mfaRequired) {
+      let verified = false;
+      for (let attempt = 0; attempt < 3 && !verified; attempt++) {
+        const code = await appPrompt("", {
+          title: "Two-Factor Authentication",
+          label: "Enter the 6-Digit Code from Your Authenticator App",
+          confirmLabel: "Verify",
+          variant: "info",
+        });
+        if (code == null) throw new Error("Sign-in canceled");
+        const vres = await nativeFetch("/api/auth/mfa-verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ticket: data.mfaTicket, code: String(code).trim() }),
+        });
+        const vdata = await vres.json().catch(() => ({}));
+        if (vres.ok) {
+          data = vdata;
+          verified = true;
+        } else if (/expired/i.test(String(vdata.error || "")) || attempt === 2) {
+          throw new Error(vdata.error || "Verification failed");
+        }
+      }
+      if (!verified) throw new Error("Verification failed");
+    }
     sessionToken = data.token;
     localStorage.setItem(SESSION_KEY, sessionToken);
     currentUser = data.user;
@@ -9702,6 +9746,135 @@ $("#createUserForm")?.addEventListener("submit", async (e) => {
 });
 
 $("#refreshUsers")?.addEventListener("click", () => loadUsers());
+
+async function resetUserMfa(btn) {
+  const userId = btn.dataset.resetMfa;
+  const email = btn.dataset.userEmail || "this account";
+  const ok = await appConfirm(
+    `Turn Off Two-Factor Authentication for ${email}? Use This If They Lost Their Authenticator.`,
+    { title: "Reset Two-Factor", confirmLabel: "Reset", variant: "warning" }
+  );
+  if (!ok) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}/reset-mfa`, {
+      method: "POST",
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Reset failed");
+    appToast("Two-Factor Reset for That Account.", { variant: "success" });
+    loadUsers();
+  } catch (err) {
+    btn.disabled = false;
+    void appAlert(err.message, { title: "Error", variant: "danger" });
+  }
+}
+
+let mfaSetupSecret = null;
+
+function renderMfaState(mfa) {
+  const status = $("#mfaStatusLine");
+  const enabledView = $("#mfaEnabledView");
+  const disabledView = $("#mfaDisabledView");
+  const setupView = $("#mfaSetupView");
+  if (!status || !enabledView || !disabledView || !setupView) return;
+  setupView.classList.add("hidden");
+  if (mfa?.enabled) {
+    enabledView.classList.remove("hidden");
+    disabledView.classList.add("hidden");
+    status.textContent = "";
+  } else {
+    enabledView.classList.add("hidden");
+    disabledView.classList.remove("hidden");
+    status.textContent = mfa?.eligible === false
+      ? "Two-Factor Is Available for Admin and Staff Accounts."
+      : "";
+  }
+}
+
+async function loadSecurityPanel() {
+  const status = $("#mfaStatusLine");
+  try {
+    const res = await fetch("/api/mfa/status");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load security settings");
+    renderMfaState(data);
+  } catch (err) {
+    if (status) setFormStatus(status, err.message, false);
+  }
+}
+
+$("#refreshSecurity")?.addEventListener("click", () => loadSecurityPanel());
+
+$("#mfaEnableBtn")?.addEventListener("click", async () => {
+  const status = $("#mfaSetupStatus");
+  try {
+    const res = await fetch("/api/mfa/start", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not start setup");
+    mfaSetupSecret = data.secret;
+    $("#mfaSecretCode").textContent = data.secret;
+    $("#mfaOtpauthLink").href = data.otpauthUri;
+    $("#mfaDisabledView").classList.add("hidden");
+    $("#mfaEnabledView").classList.add("hidden");
+    $("#mfaSetupView").classList.remove("hidden");
+    if (status) status.textContent = "";
+  } catch (err) {
+    const line = $("#mfaStatusLine");
+    if (line) setFormStatus(line, err.message, false);
+  }
+});
+
+$("#mfaCancelSetupBtn")?.addEventListener("click", () => {
+  mfaSetupSecret = null;
+  loadSecurityPanel();
+});
+
+$("#mfaConfirmForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#mfaSetupStatus");
+  const code = String(new FormData(e.target).get("code") || "").trim();
+  try {
+    const res = await fetch("/api/mfa/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Confirmation failed");
+    mfaSetupSecret = null;
+    appToast("Two-Factor Authentication Is On. Keep Your Authenticator Safe.", {
+      variant: "success",
+    });
+    loadSecurityPanel();
+  } catch (err) {
+    if (status) setFormStatus(status, err.message, false);
+  }
+});
+
+$("#mfaDisableBtn")?.addEventListener("click", async () => {
+  const password = await appPrompt("", {
+    title: "Turn Off Two-Factor",
+    label: "Enter Your Current Password to Confirm",
+    confirmLabel: "Turn Off",
+    variant: "warning",
+  });
+  if (password == null) return;
+  const status = $("#mfaStatusLine");
+  try {
+    const res = await fetch("/api/mfa/disable", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not turn off");
+    appToast("Two-Factor Authentication Is Off.", { variant: "success" });
+    loadSecurityPanel();
+  } catch (err) {
+    if (status) setFormStatus(status, err.message, false);
+  }
+});
 
 async function loadMaintenancePanel() {
   const host = $("#maintenanceDataStatus");

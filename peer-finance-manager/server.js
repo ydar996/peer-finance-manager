@@ -164,10 +164,27 @@ const orgLookupRateLimit = rateLimit("org-lookup", {
   message: "Too many lookups. Try again shortly.",
 });
 
+const mfaVerifyRateLimit = rateLimit("mfa-verify", {
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  message: "Too many code attempts. Log in again.",
+});
+
 app.use("/api/auth/login", loginRateLimit);
 app.use("/api/platform/auth/login", loginRateLimit);
+app.use("/api/auth/mfa-verify", mfaVerifyRateLimit);
 app.use("/api/auth/register-organization", registerOrgRateLimit);
 app.use("/api/organizations/lookup", orgLookupRateLimit);
+
+// Flood damper for everything else under /api (health checks, webhooks,
+// authenticated traffic). Generous per-IP ceiling: damps volumetric abuse
+// without touching real Cooperative usage, including shared office NAT IPs.
+const apiFloodLimit = rateLimit("api-flood", {
+  windowMs: 60 * 1000,
+  max: 600,
+  message: "Too many requests. Try again shortly.",
+});
+app.use("/api", apiFloodLimit);
 
 app.post(
   "/api/billing/stripe-webhook",
@@ -318,6 +335,7 @@ for (const publicPage of ["about", "bylaws", "apply"]) {
 app.use("/api", (req, res, next) => {
   if (
     req.path === "/auth/login" ||
+    req.path === "/auth/mfa-verify" ||
     req.path === "/auth/register-organization" ||
     req.path === "/organizations/lookup" ||
     req.path === "/countries" ||

@@ -90,6 +90,7 @@ function mapUser(row, organization) {
     memberId: row.member_id,
     displayName: row.display_name || row.member_name || row.username || row.email,
     mustChangePassword: Boolean(row.must_change_password),
+    mfaEnabled: Boolean(row.mfa_enabled_at && row.mfa_secret),
     active: Boolean(row.active),
     organizationSlug: organization?.slug || null,
     organizationName: organization?.name || null,
@@ -199,19 +200,41 @@ function login(identifier, password, portal = PORTALS.MEMBER, organizationSlug) 
         );
       }
     }
-    const token = createSessionToken();
-    getRegistryDb()
-      .prepare(
-        `INSERT INTO sessions (id, organization_slug, user_id, expires_at) VALUES (?, ?, ?, ?)`
-      )
-      .run(token, slug, row.id, sessionExpiryIso());
-    return { token, user, mustChangePassword: user.mustChangePassword, organization };
+    if (user.mfaEnabled) {
+      const { createMfaTicket } = require("./mfa-service");
+      const mfaTicket = createMfaTicket(slug, row.id);
+      return { mfaRequired: true, mfaTicket, organization };
+    }
+    return createSessionForUser(slug, row.id, organization);
   });
+}
+
+/** Create a registry session for a verified org user. Callers must already be
+ * inside runWithOrg for member checks that need the org DB. */
+function createSessionForUser(slug, userId, organization) {
+  const org = organization || getOrganization(slug);
+  const user = runWithOrg(slug, () => getUserById(userId, org));
+  if (!user) throw new Error(LOGIN_INVALID_CREDENTIALS);
+  const token = createSessionToken();
+  getRegistryDb()
+    .prepare(
+      `INSERT INTO sessions (id, organization_slug, user_id, expires_at) VALUES (?, ?, ?, ?)`
+    )
+    .run(token, slug, userId, sessionExpiryIso());
+  return { token, user, mustChangePassword: user.mustChangePassword, organization: org };
 }
 
 function logout(token) {
   if (!token) return;
   getRegistryDb().prepare(`DELETE FROM sessions WHERE id = ?`).run(token);
+}
+
+function verifyUserPassword(userId, password) {
+  const db = getDb();
+  const row = db
+    .prepare(`SELECT password_hash FROM users WHERE id = ? AND active = 1`)
+    .get(Number(userId));
+  return Boolean(row && verifyPassword(password, row.password_hash));
 }
 
 function changePassword(userId, currentPassword, newPassword) {
@@ -298,6 +321,7 @@ function listUsers() {
   return db
     .prepare(
       `SELECT u.id, u.email, u.username, u.role, u.member_id, u.display_name, u.must_change_password,
+              u.mfa_secret, u.mfa_enabled_at,
               u.active, u.created_at, m.name AS member_name
        FROM users u
        LEFT JOIN members m ON m.id = u.member_id
@@ -313,6 +337,7 @@ function listUsers() {
       memberName: row.member_name,
       displayName: row.display_name,
       mustChangePassword: Boolean(row.must_change_password),
+      mfaEnabled: Boolean(row.mfa_enabled_at && row.mfa_secret),
       active: Boolean(row.active),
       createdAt: row.created_at,
     }));
@@ -824,6 +849,8 @@ module.exports = {
   login,
   logout,
   changePassword,
+  verifyUserPassword,
+  createSessionForUser,
   getSession,
   getUserById,
   listUsers,

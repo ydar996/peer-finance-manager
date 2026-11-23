@@ -9,6 +9,7 @@ const {
   listMemberCredentialsSummary,
   registerOrganizationWithAdmin,
   canAccessMember,
+  createSessionForUser,
   ROLES,
   PORTALS,
 } = require("./auth-service");
@@ -171,6 +172,75 @@ function registerAuthRoutes(app, deps = {}) {
       });
     } catch (err) {
       res.status(401).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/auth/mfa-verify", (req, res) => {
+    try {
+      const { ticket, code } = req.body || {};
+      const { verifyMfaChallenge } = require("./mfa-service");
+      const { organizationSlug, userId } = verifyMfaChallenge(ticket, code);
+      const result = createSessionForUser(organizationSlug, userId);
+      const { getCooperativeTimezone } = require("./cooperative-time");
+      const { getPublicCountryProfile } = require("./country-profile");
+      const localeInfo = runWithOrg(organizationSlug, () => ({
+        cooperativeTimezone: getCooperativeTimezone(),
+        countryProfile: getPublicCountryProfile(),
+      }));
+      res.json({ success: true, ...result, ...localeInfo });
+    } catch (err) {
+      res.status(401).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/mfa/status", requireAuth, (req, res) => {
+    try {
+      const { getMfaStatus } = require("./mfa-service");
+      res.json(getMfaStatus(req.user));
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/mfa/start", requireAuth, (req, res) => {
+    try {
+      const { startMfaEnrollment } = require("./mfa-service");
+      res.json({ success: true, ...startMfaEnrollment(req.user) });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/mfa/confirm", requireAuth, (req, res) => {
+    try {
+      const { confirmMfaEnrollment } = require("./mfa-service");
+      res.json({ success: true, ...confirmMfaEnrollment(req.user.id, req.body?.code) });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/mfa/disable", requireAuth, (req, res) => {
+    try {
+      const { verifyUserPassword } = require("./auth-service");
+      if (!verifyUserPassword(req.user.id, req.body?.password)) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+      const { disableMfa } = require("./mfa-service");
+      res.json({ success: true, ...disableMfa(req.user.id) });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/users/:userId/reset-mfa", requireAuth, requireAdmin, (req, res) => {
+    try {
+      const targetId = Number(req.params.userId);
+      if (!targetId) return res.status(400).json({ error: "Invalid user id" });
+      const { adminResetMfa } = require("./mfa-service");
+      res.json({ success: true, ...adminResetMfa(targetId) });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
     }
   });
 

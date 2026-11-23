@@ -92,7 +92,15 @@ function registerPlatformRoutes(app) {
         } catch (_) {
           /* org db may not exist yet */
         }
-        return { ...org, memberCount, adminEmail };
+        const { getOrganizationFlexxForms } = require("./flexxforms-service");
+        const ff = getOrganizationFlexxForms(org.slug) || {};
+        return {
+          ...org,
+          memberCount,
+          adminEmail,
+          flexxformsProvisioned: Boolean(ff.tenantId && ff.apiKey),
+          webhookSecured: Boolean(ff.webhookSecret),
+        };
       });
       res.json({
         organizations: orgs,
