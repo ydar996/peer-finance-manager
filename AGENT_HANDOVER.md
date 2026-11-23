@@ -175,6 +175,24 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-23** - **Twilight ledger split prep (Providus reconciliation):**
+  comparison of the real Providus current-account statement
+  (STATEMENT (4).xlsx, period 24/11/2025-10/11/2026) against the imported
+  TTFC workbook ledger showed the old ledger was a CONSOLIDATED funds
+  view, not the current account: 38.3M share-capital inflows and 32
+  member dues deposits (3.9M) never touched account 0215/0652442/001/0013/000,
+  and TD placements (41.9M) exceeded this account's funding (16.8M).
+  Owner chose per-account split. Generated in Downloads:
+  ttfc-ledger-providus-current.csv (243 statement rows + 67 membership_fee
+  mirrors; reference format for Full Ledger Refresh),
+  ttfc-ledger-share-capital.csv (24 share purchases + 32 unbanked dues
+  deposits + 2 transfers-in; template format for Import New Bank
+  Activity), ttfc-ledger-time-deposits.csv (24 investment rows).
+  Procedure: backup DB, create "Share Capital Account" + "Time Deposits"
+  bank accounts, Full Ledger Refresh with the current CSV (WIPES all
+  transactions - conflict check warns about manual rows), then append
+  the other two CSVs under their accounts. Verified parse: 243 rows,
+  52 members resolved, net = 1,977,905.38 closing balance.
 - **2026-11-23** - **Providus Bank statement import (NGN Cooperatives):**
   new `lib/providus-statement.js` recognizes Providus Bank business
   statements in both XLSX and PDF. XLSX: detects the "PROVIDUS BANK"
