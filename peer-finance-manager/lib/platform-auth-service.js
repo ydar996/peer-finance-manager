@@ -22,11 +22,20 @@ function hashPassword(password) {
 function verifyPassword(password, stored) {
   const parts = String(stored || "").split(":");
   if (parts[0] !== "scrypt" || parts.length !== 3) return false;
+
   const salt = Buffer.from(parts[1], "hex");
   const expected = Buffer.from(parts[2], "hex");
   const actual = crypto.scryptSync(String(password), salt, 64, SCRYPT_PARAMS);
   return crypto.timingSafeEqual(expected, actual);
 }
+
+// Fixed dummy hash so unknown emails take the same time as real ones
+// (prevents account-enumeration via response timing).
+const DUMMY_PASSWORD_HASH = (() => {
+  const salt = crypto.randomBytes(16);
+  const hash = crypto.scryptSync("not-a-real-password", salt, 64, SCRYPT_PARAMS);
+  return `scrypt:${salt.toString("hex")}:${hash.toString("hex")}`;
+})();
 
 function sessionExpiryIso() {
   const d = new Date();
@@ -112,7 +121,15 @@ function platformLogin(email, password) {
   const row = db
     .prepare(`SELECT * FROM platform_users WHERE lower(email) = lower(?) AND active = 1`)
     .get(normalizeEmail(email));
-  if (!row || !verifyPassword(password, row.password_hash)) {
+  if (!row) {
+    try {
+      verifyPassword(password, DUMMY_PASSWORD_HASH);
+    } catch (_) {
+      /* timing equalization only */
+    }
+    throw new Error("Invalid email or password");
+  }
+  if (!verifyPassword(password, row.password_hash)) {
     throw new Error("Invalid email or password");
   }
   const token = createSessionToken();

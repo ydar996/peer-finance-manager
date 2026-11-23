@@ -175,6 +175,24 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-23** - **Security hardening pass (audit-driven):**
+  rate limiting on /api/auth/login, /api/platform/auth/login,
+  /api/auth/register-organization, and /api/organizations/lookup via the
+  new in-memory lib/rate-limit.js (app now sets trust proxy: 1);
+  org lookup response trimmed to { slug, name, countryCode } (was
+  leaking adminEmail, billingEmail, stripeCustomerId,
+  checkPaymentReference); FlexxForms webhook now requires a valid fresh
+  HMAC signature whenever the org has a webhookSecret (5-minute replay
+  window enforced) and rejects signed payloads that match no secret;
+  security headers middleware added (CSP script-src self + flexxforms,
+  X-Frame-Options, nosniff, HSTS, Referrer-Policy, Permissions-Policy)
+  with all inline scripts extracted to /boot.js, /brochure.js,
+  /cooperative-public.js; ?access_token= session-token-in-URL support
+  removed entirely (repayment-plan downloads now always fetch with the
+  Authorization header); login timing side channel closed on both
+  tenant and platform auth via dummy-hash scrypt on unknown users.
+  Deploy via git push (Render auto-deploys).
+
 - **2026-11-23** - **Platform admin: delete Cooperative:** new
   `DELETE /api/platform/organizations/:slug` (platform auth +
   type-the-code `confirmSlug` guard) backed by

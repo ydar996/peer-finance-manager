@@ -54,7 +54,15 @@ function registerAuthRoutes(app, deps = {}) {
     try {
       const organization = getOrganization(req.query.slug || "");
       if (!organization) return res.status(404).json({ error: "Organization not found" });
-      res.json({ organization });
+      // Public endpoint: only the fields the login screen needs. Never expose
+      // admin emails, billing details, or Stripe identifiers here.
+      res.json({
+        organization: {
+          slug: organization.slug,
+          name: organization.name,
+          countryCode: organization.countryCode || null,
+        },
+      });
     } catch (err) {
       res.status(400).json({ error: err.message });
     }

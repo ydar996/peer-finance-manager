@@ -100,6 +100,36 @@ const upload = multer({
 
 const app = express();
 const { capitalizeCooperativeWording } = require("./lib/text-format");
+const { rateLimit } = require("./lib/rate-limit");
+
+// Behind a single proxy hop (Render edge / Netlify) so req.ip is the real client.
+app.set("trust proxy", 1);
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      // FlexxForms embed script + hosted-form iframes come from their origin.
+      "script-src 'self' https://flexxforms.netlify.app https://*.flexxforms.netlify.app",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "img-src 'self' data: https:",
+      "connect-src 'self' https://flexxforms.netlify.app https://*.flexxforms.netlify.app https://api.stripe.com",
+      "frame-src 'self' https://flexxforms.netlify.app https://*.flexxforms.netlify.app https://checkout.stripe.com https://js.stripe.com",
+      "frame-ancestors 'self'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+    ].join("; ")
+  );
+  next();
+});
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -116,6 +146,28 @@ app.use((req, res, next) => {
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
+
+// Abuse throttles on the unauthenticated attack surface.
+const loginRateLimit = rateLimit("login", {
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: "Too many sign-in attempts. Try again in a few minutes.",
+});
+const registerOrgRateLimit = rateLimit("register-org", {
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: "Too many registration attempts. Try again later.",
+});
+const orgLookupRateLimit = rateLimit("org-lookup", {
+  windowMs: 60 * 1000,
+  max: 30,
+  message: "Too many lookups. Try again shortly.",
+});
+
+app.use("/api/auth/login", loginRateLimit);
+app.use("/api/platform/auth/login", loginRateLimit);
+app.use("/api/auth/register-organization", registerOrgRateLimit);
+app.use("/api/organizations/lookup", orgLookupRateLimit);
 
 app.post(
   "/api/billing/stripe-webhook",

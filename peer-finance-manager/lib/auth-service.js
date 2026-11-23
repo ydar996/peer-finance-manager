@@ -54,6 +54,22 @@ function verifyPassword(password, stored) {
   return crypto.timingSafeEqual(expected, actual);
 }
 
+// Runs a full scrypt against a fixed dummy hash so unknown usernames take the
+// same time as real ones (prevents user-enumeration via response timing).
+const DUMMY_PASSWORD_HASH = (() => {
+  const salt = crypto.randomBytes(16);
+  const hash = crypto.scryptSync("not-a-real-password", salt, 64, SCRYPT_PARAMS);
+  return `scrypt:${salt.toString("hex")}:${hash.toString("hex")}`;
+})();
+
+function burnPasswordTime(password) {
+  try {
+    verifyPassword(password || "x", DUMMY_PASSWORD_HASH);
+  } catch (_) {
+    /* timing equalization only */
+  }
+}
+
 function sessionExpiryIso() {
   const d = new Date();
   d.setDate(d.getDate() + SESSION_DAYS);
@@ -161,7 +177,11 @@ function login(identifier, password, portal = PORTALS.MEMBER, organizationSlug) 
   return runWithOrg(slug, () => {
     const organization = getOrganization(slug);
     const row = getUserRowByIdentifier(identifier);
-    if (!row || !verifyPassword(password, row.password_hash)) {
+    if (!row) {
+      burnPasswordTime(password);
+      throw new Error(LOGIN_INVALID_CREDENTIALS);
+    }
+    if (!verifyPassword(password, row.password_hash)) {
       throw new Error(LOGIN_INVALID_CREDENTIALS);
     }
     const user = mapUser(row, organization);

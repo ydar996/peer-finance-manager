@@ -538,6 +538,15 @@ async function createLoanAgreementDocument(slug, loanId, purpose) {
 
 function verifyWebhookSignature(rawBody, signatureHeader, timestampHeader, secret) {
   if (!secret || !signatureHeader || !timestampHeader) return false;
+  // Reject stale timestamps: the signature covers `ts.body`, so without a
+  // freshness window a captured payload could be replayed indefinitely.
+  const tsValue = String(timestampHeader).trim();
+  let tsMs = /^\d+$/.test(tsValue)
+    ? Number(tsValue) * (tsValue.length <= 10 ? 1000 : 1)
+    : Date.parse(tsValue);
+  if (!Number.isFinite(tsMs) || Math.abs(Date.now() - tsMs) > 5 * 60 * 1000) {
+    return false;
+  }
   const payload = `${timestampHeader}.${rawBody}`;
   const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
   const provided = String(signatureHeader).replace(/^sha256=/i, "").trim();
@@ -551,22 +560,36 @@ function verifyWebhookSignature(rawBody, signatureHeader, timestampHeader, secre
   }
 }
 
+/**
+ * Enforces webhook authentication for a resolved organization.
+ * Orgs with a configured webhookSecret must present a valid, fresh signature;
+ * orgs without one cannot be verified (legacy/incomplete provisioning) and are
+ * accepted unsigned with a warning so the gap is visible.
+ */
+function assertWebhookAuthentic(org, headers, rawBody) {
+  const ff = getOrganizationFlexxForms(org.slug);
+  if (!ff?.webhookSecret) {
+    console.warn(
+      `[flexxforms-webhook] unsigned webhook accepted for ${org.slug}: no webhook secret configured`
+    );
+    return;
+  }
+  const sig =
+    headers["x-flexxforms-signature"] || headers["X-FlexxForms-Signature"];
+  const ts =
+    headers["x-flexxforms-timestamp"] || headers["X-FlexxForms-Timestamp"];
+  if (!sig || !ts || !verifyWebhookSignature(rawBody, sig, ts, ff.webhookSecret)) {
+    throw new Error("Invalid FlexxForms webhook signature");
+  }
+}
+
 function resolveWebhookOrganization(payload, headers, rawBody) {
   const meta = payload?.metadata || payload?.data?.metadata || {};
   const cooperativeId = meta.cooperativeId || meta.cooperative_id || payload?.cooperativeId;
   if (cooperativeId) {
     const org = getOrganization(cooperativeId);
     if (org) {
-      const ff = getOrganizationFlexxForms(org.slug);
-      const sig =
-        headers["x-flexxforms-signature"] || headers["X-FlexxForms-Signature"];
-      const ts =
-        headers["x-flexxforms-timestamp"] || headers["X-FlexxForms-Timestamp"];
-      if (ff?.webhookSecret && sig && ts) {
-        if (!verifyWebhookSignature(rawBody, sig, ts, ff.webhookSecret)) {
-          throw new Error("Invalid FlexxForms webhook signature");
-        }
-      }
+      assertWebhookAuthentic(org, headers, rawBody);
       return org;
     }
   }
@@ -579,12 +602,18 @@ function resolveWebhookOrganization(payload, headers, rawBody) {
       if (!ff?.webhookSecret) continue;
       if (verifyWebhookSignature(rawBody, sig, ts, ff.webhookSecret)) return org;
     }
+    // Signed request matched no known secret: reject rather than fall through
+    // to unauthenticated resolution paths.
+    throw new Error("Invalid FlexxForms webhook signature");
   }
 
   const tenantId = payload?.tenantId || payload?.tenant_id || payload?.data?.tenantId;
   if (tenantId) {
     const org = findOrganizationByFlexxFormsTenantId(tenantId);
-    if (org) return org;
+    if (org) {
+      assertWebhookAuthentic(org, headers, rawBody);
+      return org;
+    }
   }
 
   return null;
