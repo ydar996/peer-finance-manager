@@ -947,6 +947,7 @@ td:last-child .btn {
 
 .book-note {
   margin: 8px 0 0;
+  min-height: calc(1.5em * 2);
   font-size: 13px;
   font-weight: 400;
   line-height: 1.5;

@@ -175,6 +175,13 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-22** - **Uniform Cooperative Books card rhythm:** every book card
+  now always renders a `.book-note` explainer (cards that lacked one -
+  Registration Income, Cooperative Expenses, Distributions Paid, Active
+  Members/Profiles - got notes; Registration Income's label/note are now
+  fee-model-aware via `membershipFeeLabel()`, as is the Total Cooperative
+  Income note). `.book-note` has a 2-line min-height so all cards share one
+  rhythm (2-line title zone + amount + 2-line note zone).
 - **2026-11-22** - **Annual dues controls spacing:** the Dues Year input and
   Refresh Dues Status button now share a `.dues-controls-row` flex row, the
   year input is 110px wide, `#annualDuesSection > * + *` adds 14px spacing

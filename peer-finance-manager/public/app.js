@@ -1758,13 +1758,13 @@ function resolveDetailCellFormat(row, col) {
   return row.format || col.format;
 }
 
-function bookCardHtml(slug, { accent, warn, label, amount, note }) {
+function bookCardHtml(slug, { accent, warn, label, amount, note = "" }) {
   const variantClass = warn ? " reconcile-warn" : accent ? " accent" : "";
   return `
     <button type="button" class="book-card${variantClass}" data-book-slug="${slug}">
       <p class="book-label">${label}</p>
       <p class="book-amount${typeof amount === "number" ? " money" : ""}">${typeof amount === "number" ? fmt.format(amount) : escapeHtml(amount)}</p>
-      ${note ? `<p class="book-note">${note}</p>` : ""}
+      <p class="book-note">${note}</p>
     </button>`;
 }
 
@@ -1794,12 +1794,12 @@ function bankReconcileCardNote(reconcile) {
   return parts.join(" · ") || "Verified against last successful bank import";
 }
 
-function dashboardCardHtml(slug, { accent, label, amount, note }) {
+function dashboardCardHtml(slug, { accent, label, amount, note = "" }) {
   return `
     <button type="button" class="book-card dashboard-card${accent ? " accent" : ""}" data-book-slug="${slug}">
       <p class="book-label">${label}</p>
       <p class="book-amount${typeof amount === "number" ? " money" : ""}">${typeof amount === "number" ? fmt.format(amount) : escapeHtml(amount)}</p>
-      ${note ? `<p class="book-note">${note}</p>` : ""}
+      <p class="book-note">${note}</p>
     </button>`;
 }
 
@@ -2109,8 +2109,9 @@ async function loadBooks() {
           })
         : "",
       bookCardHtml("registration-income", {
-        label: "Registration Income",
+        label: `${membershipFeeLabel()} Income`,
         amount: books.registrationIncome,
+        note: `${membershipFeeLabel()}s Collected to Date`,
       }),
       (books.cdInterestIncome || 0) > 0
         ? bookCardHtml("cd-interest-income", {
@@ -2131,16 +2132,18 @@ async function loadBooks() {
         label: "Total Cooperative Income",
         amount: books.totalCooperativeIncome || 0,
         note: loansUiEnabled()
-          ? "Registration + Loan Interest + CD Interest"
-          : "Registration + CD Interest",
+          ? `${membershipFeeLabel()} + Loan Interest + CD Interest`
+          : `${membershipFeeLabel()} + CD Interest`,
       }),
       bookCardHtml("expenses", {
         label: "Cooperative Expenses",
         amount: books.expenses,
+        note: "Operating Expenses Recorded to Date",
       }),
       bookCardHtml("distributions", {
         label: "Distributions Paid",
         amount: books.distributions,
+        note: "Surplus Returned to Members to Date",
       }),
       bookCardHtml("net-income", {
         accent: true,
@@ -2234,7 +2237,7 @@ async function loadBooks() {
         note:
           Number(books.formerMemberCount) > 0
             ? `${books.formerMemberCount} former not counted`
-            : "",
+            : "Active Profiles vs Total Members",
       }),
     ].join("");
     bindBookCards();
