@@ -175,6 +175,12 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-23** - **OG thumbnails on app + public pages:** `index.html`
+  (serves /admin /member /register /staff /platform) had no OG tags, so
+  WhatsApp/shared links showed only the title. Added the standard OG/Twitter
+  block with `og-product.jpg`; `cooperative-public.html` (the `/c/*` public
+  Cooperative pages) got `og:image` too. Link previews on every route now
+  render the product thumbnail.
 - **2026-11-21** - **Custom domain prep (peerfinancemanager.com):** all
   hardcoded `peer-finance-manager.netlify.app` references moved to
   `peerfinancemanager.com` - `lib/portal-urls.js` + `lib/platform-billing-service.js`
