@@ -52,6 +52,9 @@ function applyProfileMigrations(database) {
   if (!cols.includes("next_of_kin_email")) {
     database.exec(`ALTER TABLE member_profiles ADD COLUMN next_of_kin_email TEXT`);
   }
+  if (!cols.includes("district")) {
+    database.exec(`ALTER TABLE member_profiles ADD COLUMN district TEXT`);
+  }
 }
 
 function applyAuthMigrations(database) {

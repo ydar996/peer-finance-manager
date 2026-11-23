@@ -59,6 +59,7 @@ function profileFieldsFromPayload(payload) {
     address_line1: payload.addressLine1?.trim() || null,
     address_line2: payload.addressLine2?.trim() || null,
     city: payload.city?.trim() || null,
+    district: payload.district?.trim() || null,
     state: payload.state?.trim() || null,
     postal_code: payload.postalCode?.trim() || null,
     country: payload.country?.trim() || null,
@@ -87,7 +88,7 @@ function upsertMemberProfile(db, memberId, fields) {
     `INSERT INTO member_profiles (
       member_id, photo_path, first_name, middle_name, last_name, display_name,
       gender, date_of_birth, email, phone,
-      address_line1, address_line2, city, state, postal_code, country,
+      address_line1, address_line2, city, district, state, postal_code, country,
       next_of_kin_first_name, next_of_kin_last_name, next_of_kin_email, next_of_kin_phone,
       next_of_kin_relationship, application_signed_at, signature_name,
       preferred_payment_method, zelle_bank_name, cooperative_account_status,
@@ -95,7 +96,7 @@ function upsertMemberProfile(db, memberId, fields) {
     ) VALUES (
       @member_id, NULL, @first_name, @middle_name, @last_name, @display_name,
       @gender, @date_of_birth, @email, @phone,
-      @address_line1, @address_line2, @city, @state, @postal_code, @country,
+      @address_line1, @address_line2, @city, @district, @state, @postal_code, @country,
       @next_of_kin_first_name, @next_of_kin_last_name, @next_of_kin_email, @next_of_kin_phone,
       @next_of_kin_relationship, NULL, NULL,
       @preferred_payment_method, @zelle_bank_name, @cooperative_account_status,
@@ -113,6 +114,7 @@ function upsertMemberProfile(db, memberId, fields) {
       address_line1 = excluded.address_line1,
       address_line2 = excluded.address_line2,
       city = excluded.city,
+      district = excluded.district,
       state = excluded.state,
       postal_code = excluded.postal_code,
       country = excluded.country,

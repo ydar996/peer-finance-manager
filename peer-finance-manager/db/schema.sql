@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS member_profiles (
   address_line1 TEXT,
   address_line2 TEXT,
   city TEXT,
+  district TEXT,
   state TEXT,
   postal_code TEXT,
   country TEXT,

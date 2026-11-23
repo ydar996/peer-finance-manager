@@ -98,6 +98,9 @@ function applyPaymentRailLabels(profile) {
       el.textContent = kind === "optional" ? "Zelle/Bank Name (Optional)" : "Zelle/Bank Name";
     }
   });
+  document.querySelectorAll("[data-district-label]").forEach((el) => {
+    el.textContent = profile?.districtLabel || (isNg ? "LGA" : "County/District");
+  });
 }
 
 function coopCopy(text) {
@@ -2468,7 +2471,8 @@ function addressBlock(profile) {
   const lines = [
     profile.address_line1,
     profile.address_line2,
-    [profile.city, profile.state, profile.postal_code].filter(Boolean).join(", "),
+    [profile.district, profile.city].filter(Boolean).join(", "),
+    [profile.state, profile.postal_code].filter(Boolean).join(", "),
     profile.country,
   ].filter(Boolean);
   return lines.length ? lines.map(escapeHtml).join("<br />") : ":";
@@ -8474,6 +8478,7 @@ async function loadProfileIntoUpdateForm(memberId) {
     set("addressLine1", p.address_line1);
     set("addressLine2", p.address_line2);
     set("city", p.city);
+    set("district", p.district);
     set("state", p.state);
     set("postalCode", p.postal_code);
     set("country", p.country);

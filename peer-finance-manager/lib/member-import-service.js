@@ -29,6 +29,7 @@ const TEMPLATE_HEADERS = [
   "Phone",
   "Address",
   "City",
+  "District/LGA",
   "State",
   "Postal Code",
   "Country",
@@ -42,7 +43,7 @@ const TEMPLATE_HEADERS = [
 ];
 
 const HEADER_ALIASES = {
-  memberNumber: ["memberno", "membernumber", "memberid", "membershipno", "membershipnumber"],
+  memberNumber: ["memberno", "membernumber", "memberid", "memberidno", "membershipno", "membershipnumber"],
   firstName: ["firstname", "first", "givenname", "fname"],
   lastName: ["lastname", "last", "surname", "familyname", "lname"],
   middleName: ["middlename", "middle", "othername", "othernames"],
@@ -51,16 +52,18 @@ const HEADER_ALIASES = {
   email: ["email", "emailaddress", "mail"],
   phone: ["phone", "phonenumber", "telephone", "mobile", "cell", "gsm"],
   addressLine1: ["address", "addressline1", "street", "homeaddress", "residentialaddress"],
-  city: ["city", "town", "lga"],
+  city: ["city", "town"],
+  district: ["district", "districtlga", "lga", "localgovernmentarea", "localgovernment", "lganame", "county", "countyname", "districtarea"],
   state: ["state", "stateprovince", "province", "region"],
   postalCode: ["postalcode", "postcode", "zip", "zipcode"],
   country: ["country", "nationality"],
   nextOfKinName: ["nextofkinname", "nokname", "nextofkin"],
   nextOfKinPhone: ["nextofkinphone", "nokphone"],
   nextOfKinRelationship: ["nextofkinrelationship", "nokrelationship", "relationship"],
-  joinedDate: ["joineddate", "joindate", "membershipdate", "datejoined"],
+  joinedDate: ["joineddate", "joindate", "membershipdate", "datejoined", "joinedat"],
   membershipFeePaid: ["membershipfeepaid", "feepaid", "registrationfeepaid"],
   openingDeposit: ["openingdeposit", "openingbalance", "depositbalance", "contributionsbalance"],
+  paymentName: ["bankaccountname", "accountname", "paymentname", "banktransfername", "zellebankname", "payername", "accounttitle"],
   notes: ["notes", "note", "comments"],
 };
 
@@ -100,7 +103,10 @@ function buildMemberImportTemplateXlsxBuffer() {
     ["Membership Fee Paid", "Enter Yes only if the member already paid the registration fee. It marks the flag; it does not record a transaction."],
     ["Opening Deposit", "Optional positive amount recorded as the member's opening contribution balance, dated Joined Date or today."],
     ["Membership fees", "No fee transaction is recorded on import. Record fees on the Record tab if needed."],
+    ["District/LGA", "Optional second-level area: Local Government Area (Nigeria) or County/District (United States)."],
     ["Notes", "Optional free text kept on the member ledger entry."],
+    ["Extra columns", "Any other populated columns are kept in the member's Notes automatically; blank cells are ignored."],
+    ["Existing members", "A row matching an existing member fills blank profile fields only; nothing is overwritten or duplicated."],
     [""],
     ["Columns"],
     ...TEMPLATE_HEADERS.map((h) => [`${h}${h === "First Name" || h === "Last Name" ? " *" : ""}`]),
@@ -110,8 +116,8 @@ function buildMemberImportTemplateXlsxBuffer() {
   const exampleDate = formatCooperativeDate("2026-01-15");
   const members = [
     TEMPLATE_HEADERS,
-    ["COOP-001", "Adeola", "Ogunleye", "", "Female", exampleDate, "adeola@example.org", "+234 801 234 5678", "12 Adebayo Close", "Ikeja", "Lagos", "", "Nigeria", "Tunde Ogunleye", "+234 802 345 6789", "Spouse", exampleDate, "Yes", 50000, ""],
-    ["", "Chinedu", "Eze", "", "Male", "", "chinedu@example.org", "+234 803 456 7890", "5 Nnamdi Street", "Enugu", "Enugu", "", "Nigeria", "Amara Eze", "", "Sister", exampleDate, "", "", "Founding member"],
+    ["COOP-001", "Adeola", "Ogunleye", "", "Female", exampleDate, "adeola@example.org", "+234 801 234 5678", "12 Adebayo Close", "Ikeja", "Ikeja LGA", "Lagos", "", "Nigeria", "Tunde Ogunleye", "+234 802 345 6789", "Spouse", exampleDate, "Yes", 50000, ""],
+    ["", "Chinedu", "Eze", "", "Male", "", "chinedu@example.org", "+234 803 456 7890", "5 Nnamdi Street", "Enugu", "", "Enugu", "", "Nigeria", "Amara Eze", "", "Sister", exampleDate, "", "", "Founding member"],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(members), "Members");
   return XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -123,15 +129,18 @@ function buildMemberImportTemplateCsv() {
   const quote = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const rows = [
     TEMPLATE_HEADERS,
-    ["COOP-001", "Adeola", "Ogunleye", "", "Female", exampleDate, "adeola@example.org", "+234 801 234 5678", "12 Adebayo Close", "Ikeja", "Lagos", "", "Nigeria", "Tunde Ogunleye", "+234 802 345 6789", "Spouse", exampleDate, "Yes", "50000", ""],
+    ["COOP-001", "Adeola", "Ogunleye", "", "Female", exampleDate, "adeola@example.org", "+234 801 234 5678", "12 Adebayo Close", "Ikeja", "Ikeja LGA", "Lagos", "", "Nigeria", "Tunde Ogunleye", "+234 802 345 6789", "Spouse", exampleDate, "Yes", "50000", ""],
   ];
   return rows.map((row) => row.map(quote).join(",")).join("\r\n") + "\r\n";
 }
 
+const BLANK_TOKENS = new Set(["", "null", "n/a", "na", "none", "nil", "-", "--", "?"]);
+
 function cellText(value) {
   if (value == null) return "";
   if (value instanceof Date) return value.toISOString().slice(0, 10);
-  return String(value).trim();
+  const text = String(value).trim();
+  return BLANK_TOKENS.has(text.toLowerCase()) ? "" : text;
 }
 
 function parseDateCell(value, rowErrors, label) {
@@ -214,18 +223,39 @@ function importMemberTemplate(filePath) {
   const db = getDb();
   const rail = defaultPaymentRailLabel();
   const created = [];
+  const updated = [];
   const skipped = [];
   const errors = [];
-  const seenNames = new Set(
-    db.prepare(`SELECT name FROM members`).all().map((r) => String(r.name).toLowerCase())
-  );
+
+  const memberRows = db
+    .prepare(`SELECT id, name, member_number, joined_at, notes FROM members`)
+    .all();
+  const seenNames = new Set(memberRows.map((r) => String(r.name).toLowerCase()));
   const seenNumbers = new Set(
-    db.prepare(`SELECT member_number FROM members WHERE member_number IS NOT NULL`)
-      .all().map((r) => String(r.member_number).toLowerCase())
+    memberRows.filter((r) => r.member_number != null).map((r) => String(r.member_number).toLowerCase())
   );
+  const memberByName = new Map(memberRows.map((r) => [String(r.name).toLowerCase(), r]));
+  const memberByNumber = new Map(
+    memberRows.filter((r) => r.member_number != null).map((r) => [String(r.member_number).toLowerCase(), r])
+  );
+
+  // Header columns that did not map to a schema field are preserved in
+  // members.notes as "Header: value" pairs so no imported data is lost.
+  const extraCols = [];
+  for (let c = 0; c < rows[header.index].length; c++) {
+    if (!header.colToField.has(c)) {
+      const label = String(rows[header.index][c] || "").trim();
+      if (label) extraCols.push({ col: c, label });
+    }
+  }
 
   for (let i = header.index + 1; i < rows.length; i++) {
     const row = rows[i];
+    const isBlankRow = row.every((cell) => {
+      if (cell == null || cell === "") return true;
+      return BLANK_TOKENS.has(String(cell).trim().toLowerCase());
+    });
+    if (isBlankRow) continue;
     const record = {};
     for (const [colIdx, field] of header.colToField) {
       record[field] = row[colIdx];
@@ -248,6 +278,70 @@ function importMemberTemplate(filePath) {
 
     const displayName = [firstName, cellText(record.middleName), lastName].filter(Boolean).join(" ");
     const memberNo = cellText(record.memberNumber);
+    const extrasText = extraCols
+      .map(({ col, label }) => {
+        const v = cellText(row[col]);
+        return v && v !== "0" ? `${label}: ${v}` : null;
+      })
+      .filter(Boolean)
+      .join("; ");
+    const rowNotes = [cellText(record.notes), extrasText].filter(Boolean).join(" | ");
+
+    const byNo = memberNo ? memberByNumber.get(memberNo.toLowerCase()) : null;
+    const byName =
+      memberByName.get(displayName.toLowerCase()) ||
+      memberByName.get(`${firstName} ${lastName}`.toLowerCase());
+    if (byNo && byName && byNo.id !== byName.id) {
+      skipped.push({ row: rowNumber, name: displayName, reason: `Member No ${memberNo} belongs to a different member` });
+      continue;
+    }
+    const existing = byNo || byName;
+    if (existing) {
+      // Fill blank profile/member fields only; never overwrite or duplicate.
+      const nok = splitNextOfKinName(record.nextOfKinName);
+      const profileFields = {
+        middle_name: cellText(record.middleName),
+        gender: cellText(record.gender),
+        date_of_birth: dateOfBirth,
+        email: cellText(record.email),
+        phone: cellText(record.phone),
+        address_line1: cellText(record.addressLine1),
+        city: cellText(record.city),
+        district: cellText(record.district),
+        state: cellText(record.state),
+        postal_code: cellText(record.postalCode),
+        country: cellText(record.country),
+        next_of_kin_first_name: nok.first,
+        next_of_kin_last_name: nok.last,
+        next_of_kin_phone: cellText(record.nextOfKinPhone),
+        next_of_kin_relationship: cellText(record.nextOfKinRelationship),
+        zelle_bank_name: cellText(record.paymentName),
+      };
+      const filled = fillMemberProfileBlanks(db, existing.id, profileFields);
+      const memberSets = [];
+      const memberParams = { id: existing.id };
+      if (joinedDate) {
+        memberSets.push(`joined_at = COALESCE(joined_at, @joined_at)`);
+        memberParams.joined_at = joinedDate;
+      }
+      if (memberNo && !existing.member_number) {
+        memberSets.push(`member_number = @member_number`);
+        memberParams.member_number = memberNo;
+        seenNumbers.add(memberNo.toLowerCase());
+      }
+      if (rowNotes) {
+        const current = String(existing.notes || "");
+        if (!current.includes(extrasText || rowNotes)) {
+          memberSets.push(`notes = @notes`);
+          memberParams.notes = [current, rowNotes].filter(Boolean).join(" | ");
+        }
+      }
+      if (memberSets.length) {
+        db.prepare(`UPDATE members SET ${memberSets.join(", ")} WHERE id = @id`).run(memberParams);
+      }
+      updated.push({ row: rowNumber, name: existing.name, memberNumber: existing.member_number || memberNo || null, memberId: existing.id, filled });
+      continue;
+    }
     if (memberNo && seenNumbers.has(memberNo.toLowerCase())) {
       skipped.push({ row: rowNumber, name: displayName, reason: `Member No ${memberNo} already exists` });
       continue;
@@ -270,6 +364,7 @@ function importMemberTemplate(filePath) {
         phone: cellText(record.phone) || undefined,
         addressLine1: cellText(record.addressLine1) || undefined,
         city: cellText(record.city) || undefined,
+        district: cellText(record.district) || undefined,
         state: cellText(record.state) || undefined,
         postalCode: cellText(record.postalCode) || undefined,
         country: cellText(record.country) || undefined,
@@ -278,9 +373,10 @@ function importMemberTemplate(filePath) {
         nextOfKinPhone: cellText(record.nextOfKinPhone) || undefined,
         nextOfKinRelationship: cellText(record.nextOfKinRelationship) || undefined,
         preferredPaymentMethod: rail,
+        zelleBankName: cellText(record.paymentName) || undefined,
         applicationSource: "Member import template",
         joinedAt: joinedDate || undefined,
-        notes: cellText(record.notes) || undefined,
+        notes: rowNotes || undefined,
         recordMembershipFee: false,
       });
 
@@ -324,12 +420,35 @@ function importMemberTemplate(filePath) {
 
   return {
     created: created.length,
+    updated: updated.length,
     skipped: skipped.length,
     failed: errors.length,
     members: created,
+    updatedRows: updated,
     skippedRows: skipped,
     errors,
   };
+}
+
+// Set each supplied profile field only where the stored value is blank;
+// never overwrites existing data. Returns the list of columns supplied.
+function fillMemberProfileBlanks(db, memberId, fields) {
+  db.prepare(`INSERT OR IGNORE INTO member_profiles (member_id) VALUES (?)`).run(memberId);
+  const sets = [];
+  const params = { id: memberId };
+  const filled = [];
+  for (const [col, val] of Object.entries(fields)) {
+    if (!val) continue;
+    sets.push(`${col} = COALESCE(NULLIF(TRIM(${col}), ''), @${col})`);
+    params[col] = val;
+    filled.push(col);
+  }
+  if (sets.length) {
+    db.prepare(
+      `UPDATE member_profiles SET ${sets.join(", ")}, updated_at = datetime('now') WHERE member_id = @id`
+    ).run(params);
+  }
+  return filled;
 }
 
 module.exports = {

@@ -26,6 +26,7 @@ const COUNTRY_PROFILES = {
     dateFormat: "MDY",
     defaultBankInstitution: "",
     paymentRailLabel: "Zelle/Bank",
+    districtLabel: "County/District",
     membershipDefaults: {
       membershipFee: MEMBERSHIP_FEE,
       initialContribution: INITIAL_MEMBERSHIP_CONTRIBUTION,
@@ -43,6 +44,7 @@ const COUNTRY_PROFILES = {
     dateFormat: "DMY",
     defaultBankInstitution: "Primary Bank",
     paymentRailLabel: "Bank Transfer",
+    districtLabel: "LGA",
     membershipDefaults: {
       membershipFee: 50000,
       initialContribution: 50000,
@@ -89,6 +91,7 @@ function publicCountryProfile(profile) {
     bankInstitutions: catalog.banks,
     states: catalog.states,
     paymentRailLabel: profile.paymentRailLabel,
+    districtLabel: profile.districtLabel || "County/District",
     statementHint: profile.statementHint,
   };
 }

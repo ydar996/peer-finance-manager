@@ -159,6 +159,7 @@ function normalizeProfileFields(fields = {}) {
     address_line1: formatAddressLine(fields.address_line1),
     address_line2: formatAddressLine(fields.address_line2),
     city: formatTitleField(fields.city),
+    district: formatTitleField(fields.district),
     state: formatState(fields.state),
     country: formatCountry(fields.country),
     next_of_kin_first_name: formatNamePart(fields.next_of_kin_first_name),

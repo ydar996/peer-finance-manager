@@ -37,7 +37,7 @@ function listMembersWithProfiles({ includeFormer = false } = {}) {
               mp.display_name, mp.date_of_birth, mp.email, mp.phone, mp.photo_path,
               mp.preferred_payment_method, mp.zelle_bank_name,
               mp.cooperative_account_status, mp.membership_status_changed_at,
-              mp.membership_status_note, mp.city, mp.state
+              mp.membership_status_note, mp.city, mp.district, mp.state
        FROM members m
        LEFT JOIN member_profiles mp ON mp.member_id = m.id
        WHERE ${statusFilter}

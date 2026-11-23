@@ -175,6 +175,19 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-23** - **Member import: tolerant fields + district (LGA).**
+  member-import-service now: treats NULL/N/A/- cells as blank; skips
+  fully blank rows; maps Member ID No and Bank Account Name (->
+  payment name); captures any unmapped populated column into
+  members.notes as "Header: value" pairs (zeros dropped); and
+  UPDATES existing members by filling blank profile/member fields
+  instead of skipping (never overwrites; reported as `updated`).
+  New member_profiles.district column (migration in
+  applyProfileMigrations + schema.sql): "LGA" for NG, "County/District"
+  for US via countryProfile.districtLabel; register + update-profile
+  forms, address block, template header "District/LGA" all wired.
+  Verified on TTFC Member Data -2.xlsx: 28 created, 1 updated,
+  0 failed (trailing blank row tolerated).
 - **2026-11-23** - **UI copy: spacing fixes.** App-wide correction of
   "word : word" to "word: word" and "word / word" to "word/word" in
   user-facing strings only (topbar subtitle, hints, buttons, timezone
