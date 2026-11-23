@@ -175,6 +175,12 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-23** - **Members & Accounts panel: normal page scroll.**
+  Removed the fixed-viewport app frame (#appShell 100vh overflow:hidden,
+  members-list-pane internal scroll) so the header, hint block, and
+  search row scroll away with the page and the full member table is
+  reachable with one page scroll - same behavior the <=900px breakpoint
+  already had. member-detail-open hide rules and 1-column layout kept.
 - **2026-11-23** - **Member profile: merged fee/deposit display pairs.**
   Contributions Account Activity (admin profile AND member portal My
   Contributions; Share Capital panel is a harmless no-op) now renders a

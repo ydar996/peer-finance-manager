@@ -1838,40 +1838,14 @@ label.toggle-row,
   }
 }
 
-/* Members & Accounts: list gets remaining width so all 5 columns show;
-   profile stays a fixed-width pane. Both panes fill the leftover viewport
-   and scroll internally so the table and profile stay on screen together. */
-#appShell.app:has(#panel-members.active) {
-  height: 100vh;
-  overflow: hidden;
-}
-
-#appShell.app:has(#panel-members.active) .app-main {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-#appShell.app:has(#panel-members.active) .app-content {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  padding-bottom: 16px;
-}
-
+/* Members & Accounts: the panel scrolls with the page like every other
+   tab (header, hints, and search scroll up out of the way) so the full
+   member list is reachable with normal page scrolling. */
 #panel-members.active {
-  flex: 1 1 auto;
-  min-height: 0;
   gap: 12px;
 }
 
 #panel-members .members-layout {
-  flex: 1 1 auto;
-  min-height: 0;
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -1893,7 +1867,7 @@ label.toggle-row,
 .member-profile-pane {
   min-width: 0;
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
 }
 
 .members-list-pane {
