@@ -401,6 +401,25 @@ function migrateLegacyDatabaseIfNeeded() {
   }
 }
 
+function deleteOrganization(slug) {
+  const normalized = normalizeSlug(slug);
+  const org = getOrganization(normalized);
+  if (!org) throw new Error("Organization not found");
+  const db = getRegistryDb();
+  db.prepare(`DELETE FROM organizations WHERE slug = ?`).run(normalized);
+  let dataDirRemoved = false;
+  try {
+    const orgDir = getOrgDataDir(normalized);
+    if (fs.existsSync(orgDir)) {
+      fs.rmSync(orgDir, { recursive: true, force: true });
+    }
+    dataDirRemoved = !fs.existsSync(orgDir);
+  } catch (_) {
+    dataDirRemoved = false;
+  }
+  return { ...org, dataDirRemoved };
+}
+
 module.exports = {
   ASSURANCE_SLUG,
   ASSURANCE_NAME,
@@ -416,6 +435,7 @@ module.exports = {
   getOrganization,
   organizationExists,
   registerOrganization,
+  deleteOrganization,
   updateOrganizationCountry,
   updateOrganizationAdminEmail,
   updateOrganizationBilling,

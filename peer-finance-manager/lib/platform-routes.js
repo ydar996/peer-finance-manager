@@ -133,6 +133,33 @@ function registerPlatformRoutes(app) {
     }
   );
 
+  app.delete(
+    "/api/platform/organizations/:slug",
+    attachPlatformUser,
+    requirePlatformAuth,
+    (req, res) => {
+      try {
+        const slug = String(req.params.slug || "").trim().toLowerCase();
+        const confirmSlug = String(req.body?.confirmSlug || "").trim().toLowerCase();
+        if (!slug) {
+          return res.status(400).json({ error: "Organization code is required" });
+        }
+        if (confirmSlug !== slug) {
+          return res
+            .status(400)
+            .json({ error: "Type the organization code exactly to confirm deletion." });
+        }
+        const { closeDb } = require("../db/database");
+        const { deleteOrganization } = require("./organization-service");
+        closeDb(slug);
+        const deleted = deleteOrganization(slug);
+        res.json({ success: true, deleted });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
+
   app.post(
     "/api/platform/organizations/:slug/check-payment",
     attachPlatformUser,

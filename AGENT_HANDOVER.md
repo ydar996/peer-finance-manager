@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-23** - **Platform admin: delete Cooperative:** new
+  `DELETE /api/platform/organizations/:slug` (platform auth +
+  type-the-code `confirmSlug` guard) backed by
+  `organization-service.deleteOrganization` - removes the organizations
+  row (sessions cascade), closes the cached org db handle (`closeDb`),
+  and removes the org data dir recursively. UI: red **Delete** button per
+  org row in the platform organizations table; prompts for the exact
+  organization code before calling. Irreversible: wipes the org's
+  ledger, members, imports, uploads, and reports.
 - **2026-11-23** - **OG thumbnails on app + public pages:** `index.html`
   (serves /admin /member /register /staff /platform) had no OG tags, so
   WhatsApp/shared links showed only the title. Added the standard OG/Twitter

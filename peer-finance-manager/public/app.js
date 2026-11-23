@@ -965,6 +965,7 @@ async function loadPlatformOrganizations() {
           <button type="button" class="btn btn-small" data-platform-action="extend-grace" data-slug="${escapeHtml(org.slug)}">+15 Days Grace</button>
           <button type="button" class="btn btn-small" data-platform-action="grant-legacy" data-slug="${escapeHtml(org.slug)}">Grant Legacy</button>
           <button type="button" class="btn btn-small" data-platform-action="cancel" data-slug="${escapeHtml(org.slug)}">Cancel</button>
+          <button type="button" class="btn btn-small btn-danger" data-platform-action="delete" data-slug="${escapeHtml(org.slug)}">Delete</button>
         </td>
       </tr>`;
       })
@@ -998,6 +999,37 @@ async function platformOrgAction(action, slug) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to extend grace");
       if (statusEl) setFormStatus(statusEl, `Grace extended for ${slug}.`, true);
+      await loadPlatformOrganizations();
+    } catch (err) {
+      if (statusEl) setFormStatus(statusEl, err.message, false);
+    }
+    return;
+  }
+  if (action === "delete") {
+    const typed = await appPrompt(
+      `This permanently deletes the Cooperative, its members, ledger, imports, and uploaded files. This cannot be undone.`,
+      {
+        title: `Delete Cooperative: ${slug}`,
+        variant: "danger",
+        label: `Type ${slug} to confirm`,
+        defaultValue: "",
+        confirmLabel: "Delete Cooperative",
+      }
+    );
+    if (typed === null) return;
+    if (String(typed).trim().toLowerCase() !== slug) {
+      if (statusEl) setFormStatus(statusEl, "Organization code did not match; nothing was deleted.", false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/platform/organizations/${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmSlug: String(typed).trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete Cooperative");
+      if (statusEl) setFormStatus(statusEl, `Deleted ${slug}.`, true);
       await loadPlatformOrganizations();
     } catch (err) {
       if (statusEl) setFormStatus(statusEl, err.message, false);
