@@ -175,6 +175,13 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-23** - **UI copy: spacing fixes.** App-wide correction of
+  "word : word" to "word: word" and "word / word" to "word/word" in
+  user-facing strings only (topbar subtitle, hints, buttons, timezone
+  labels, subscription text, CSV generator headers, statement/email
+  generators). Done with a string-literal-aware rewrite so code
+  ternaries/division/regexes were untouched; all JS files pass
+  node --check. ~48 strings across 14 files.
 - **2026-11-23** - **Members & Accounts panel: normal page scroll.**
   Removed the fixed-viewport app frame (#appShell 100vh overflow:hidden,
   members-list-pane internal scroll) so the header, hint block, and

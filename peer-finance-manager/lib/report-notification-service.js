@@ -110,7 +110,7 @@ async function sendReportReminderEmails({ triggerType, dedupeKey, periodSlug, su
 
   const recipients = listMemberNotificationRecipients();
   if (!recipients.length) {
-    trace.info("Report reminder email skipped : no member emails on file", { triggerType, periodSlug });
+    trace.info("Report reminder email skipped: no member emails on file", { triggerType, periodSlug });
     return { sent: false, skipped: true, reason: "no_recipients" };
   }
 

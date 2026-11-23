@@ -36,7 +36,7 @@ function setShareCapitalEnabled(enabled) {
 function assertShareCapitalEnabled() {
   if (!isShareCapitalEnabled()) {
     throw new Error(
-      "Share Capital accounts are not enabled for this Cooperative. Turn them on in Record : Membership Policy."
+      "Share Capital accounts are not enabled for this Cooperative. Turn them on in Record: Membership Policy."
     );
   }
 }

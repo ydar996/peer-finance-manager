@@ -86,7 +86,7 @@ function buildBankAccountImportTemplateXlsxBuffer() {
   const dateFormat = getCooperativeDateFormat();
   const wb = XLSX.utils.book_new();
   const instructions = [
-    ["Peer Finance Manager : Bank Account Import Template"],
+    ["Peer Finance Manager: Bank Account Import Template"],
     [""],
     ["Use this file to register the bank accounts your Cooperative already operates."],
     ["Account Label is required on every row. Every other column is optional."],

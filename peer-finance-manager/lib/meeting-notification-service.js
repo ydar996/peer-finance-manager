@@ -101,7 +101,7 @@ async function sendMemberBroadcastEmail({ triggerType, dedupeKey, subject, textF
   }
   const recipients = listMemberNotificationRecipients();
   if (!recipients.length) {
-    trace.info("Meeting email skipped : no member emails on file", { triggerType, dedupeKey });
+    trace.info("Meeting email skipped: no member emails on file", { triggerType, dedupeKey });
     return { sent: false, skipped: true, reason: "no_recipients" };
   }
   const deliveries = [];

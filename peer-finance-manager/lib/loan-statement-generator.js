@@ -136,7 +136,7 @@ function buildScheduleHtml(loan) {
   }
   return `
     <h3 style="margin-top:24px">${loan.scheduleTitle || "Agreed Repayment Schedule"}</h3>
-    <p class="subtle">Informational only : actual repayments come from bank records.</p>
+    <p class="subtle">Informational only: actual repayments come from bank records.</p>
     ${meta.length ? `<p class="subtle">${meta.join(" · ")}</p>` : ""}
     <div class="table-wrap">
       <table class="statement-table">

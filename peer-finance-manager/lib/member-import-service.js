@@ -88,7 +88,7 @@ function buildMemberImportTemplateXlsxBuffer() {
   const dateFormat = getCooperativeDateFormat();
   const wb = XLSX.utils.book_new();
   const instructions = [
-    ["Peer Finance Manager : Member Import Template"],
+    ["Peer Finance Manager: Member Import Template"],
     [""],
     ["Use this file to create accounts for members your Cooperative already has."],
     ["First Name and Last Name are required on every row. Every other column is optional."],

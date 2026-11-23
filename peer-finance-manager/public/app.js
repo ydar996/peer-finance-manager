@@ -510,8 +510,8 @@ function applyOrganizationBranding(organizationName) {
   const appSubtitle = $("#appOrgSubtitle");
   if (appSubtitle) {
     appSubtitle.textContent = orgName
-      ? `${orgName} : Cooperative Asset Management : Member Contributions Accounts, Loan Accounts, and Books`
-      : "Cooperative Asset Management : Member Contributions Accounts, Loan Accounts, and Books";
+      ? `${orgName}: Cooperative Asset Management: Member Contributions Accounts, Loan Accounts, and Books`
+      : "Cooperative Asset Management: Member Contributions Accounts, Loan Accounts, and Books";
   }
   const sidebarOrg = $("#sidebarOrgName");
   if (sidebarOrg) {
@@ -776,7 +776,7 @@ function formatSaasPricingLine(pricing, stripeConfigured) {
   if (!pricing) return "";
   const stripeNote = stripeConfigured
     ? "Stripe: configured"
-    : "Stripe: not configured : see STRIPE-SETUP.md";
+    : "Stripe: not configured: see STRIPE-SETUP.md";
   return `SaaS pricing: $${pricing.monthlyPriceUsd.toFixed(2)}/month, $${pricing.quarterlyPriceUsd.toFixed(2)}/quarter (${pricing.quarterlyDiscountPercent}% off 3 months), or $${pricing.annualPriceUsd.toFixed(2)}/year (${pricing.annualDiscountPercent}% off). ${stripeNote}.`;
 }
 
@@ -801,10 +801,10 @@ function updateSubscriptionPayButtons(pricing) {
     monthlyBtn.textContent = `Pay Monthly (${formatSubscriptionAmount(pricing, pricing.monthlyPrice)})`;
   }
   if (quarterlyBtn) {
-    quarterlyBtn.textContent = `Pay Quarterly (${formatSubscriptionAmount(pricing, pricing.quarterlyPrice)} : ${pricing.quarterlyDiscountPercent}% off)`;
+    quarterlyBtn.textContent = `Pay Quarterly (${formatSubscriptionAmount(pricing, pricing.quarterlyPrice)}: ${pricing.quarterlyDiscountPercent}% off)`;
   }
   if (annualBtn) {
-    annualBtn.textContent = `Pay Annual (${formatSubscriptionAmount(pricing, pricing.annualPrice)} : ${pricing.annualDiscountPercent}% off)`;
+    annualBtn.textContent = `Pay Annual (${formatSubscriptionAmount(pricing, pricing.annualPrice)}: ${pricing.annualDiscountPercent}% off)`;
   }
   if (checkBtn) {
     checkBtn.textContent =
@@ -1108,7 +1108,7 @@ async function loadPlatformSubscriptionPanel() {
       updateSubscriptionPayButtons(sub.pricing);
       let accessNote = "";
       if (sub.inGracePeriod && !sub.active) {
-        accessNote = `<p class="subscription-grace-banner">Full access continues through <strong>${escapeHtml(formatSubscriptionDate(sub.subscriptionGraceUntil))}</strong> (${sub.graceDaysRemaining} day(s) remaining). You may pay now or before that date : restricted access begins after the grace period unless subscription is active.</p>`;
+        accessNote = `<p class="subscription-grace-banner">Full access continues through <strong>${escapeHtml(formatSubscriptionDate(sub.subscriptionGraceUntil))}</strong> (${sub.graceDaysRemaining} day(s) remaining). You may pay now or before that date: restricted access begins after the grace period unless subscription is active.</p>`;
       } else if (!sub.active) {
         accessNote = `<p class="subscription-banner">An active subscription is required to record changes in Cooperative Books. Pay below or contact the platform administrator.</p>`;
       }
@@ -3111,7 +3111,7 @@ function updateLedgerSplitSumStatus() {
   const remaining = Math.round((original - total) * 100) / 100;
   const ok = lines.length >= 2 && Math.abs(remaining) < 0.005;
   el.textContent = ok
-    ? `Lines total ${fmt.format(total)} : Ready to Save (${lines.length} lines)`
+    ? `Lines total ${fmt.format(total)}: Ready to Save (${lines.length} lines)`
     : `Lines total ${fmt.format(total)} · Remaining ${fmt.format(remaining)} · Need ${Math.max(0, 2 - lines.length)} more line(s) if under 2, and exact total before Save`;
   el.className = ok ? "subtle status ok" : "subtle status err";
   if (saveBtn) saveBtn.disabled = !ok;
@@ -3795,7 +3795,7 @@ function loanScheduleHtml(lot) {
     <details class="profile-disclosure loan-schedule-disclosure">
       <summary>Agreed Loan Repayment Schedule</summary>
       <div class="profile-disclosure-body">
-        <p class="subtle profile-disclosure-note">Informational Only : Actual Repayments Come From Bank Records. Balance drops by interest plus principal each period.</p>
+        <p class="subtle profile-disclosure-note">Informational Only: Actual Repayments Come From Bank Records. Balance drops by interest plus principal each period.</p>
         ${scheduleMeta.length ? `<p class="subtle">${scheduleMeta.join(" · ")}</p>` : ""}
         <div class="table-wrap compact">
           <table>
@@ -3926,7 +3926,7 @@ async function showProfile(memberId) {
               ? `<button type="button" class="btn" data-reset-profile-password="${memberId}">Reset Portal Password</button>`
               : ""
           }
-          ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File : Use the Record Tab to Add or Update Profile.</p>'}
+          ${hasBiodata ? "" : '<p class="status err">Membership Biodata Not on File: Use the Record Tab to Add or Update Profile.</p>'}
           <p><span class="badge ${
             String(p.cooperative_account_status || "active").toLowerCase() === "active"
               ? "ok"
@@ -5884,7 +5884,7 @@ async function loadEmailNoticeStandalone(batchId) {
     const deliveries = data.deliveries || [];
     const subject = batch.subject || batch.triggerLabel || "Email Notice";
     if (titleEl) titleEl.textContent = subject;
-    document.title = `${subject} : Email Notice`;
+    document.title = `${subject}: Email Notice`;
     if (metaEl) {
       const when = formatEmailAuditWhen(batch.sentAt);
       const count = `${deliveries.length} Recipient${deliveries.length === 1 ? "" : "s"}`;
@@ -6054,8 +6054,8 @@ async function loadEmailSendAuditBatch(batchId) {
     renderEmailNoticeCopies($("#emailSendAuditCopy"), deliveries);
     if (meta) {
       meta.textContent = deliveries.length
-        ? `${batch.triggerLabel || "Send"} : ${formatEmailAuditWhen(batch.sentAt)} · ${deliveries.length} recipient row(s)`
-        : `${batch.triggerLabel || "Send"} : ${formatEmailAuditWhen(batch.sentAt)} · No per-recipient rows (this send was logged before detailed audit). Count only: ${batch.recipientCount ?? 0}.`;
+        ? `${batch.triggerLabel || "Send"}: ${formatEmailAuditWhen(batch.sentAt)} · ${deliveries.length} recipient row(s)`
+        : `${batch.triggerLabel || "Send"}: ${formatEmailAuditWhen(batch.sentAt)} · No per-recipient rows (this send was logged before detailed audit). Count only: ${batch.recipientCount ?? 0}.`;
     }
     body.innerHTML = deliveries.length
       ? deliveries
@@ -7986,7 +7986,7 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
         r.skippedNoMember ? `${r.skippedNoMember} skipped (member not matched)` : null,
         r.cdBalance != null ? `CD balance set to ${Number(r.cdBalance).toFixed(2)}` : null,
         warningCount
-          ? `${warningCount} ledger warning(s) listed below : fix the file and run Full Ledger Refresh again before relying on member balances.`
+          ? `${warningCount} ledger warning(s) listed below: fix the file and run Full Ledger Refresh again before relying on member balances.`
           : null,
         "Use Download Csv Ledger or Download Xlsx Ledger to pull a date-ordered copy matching live books.",
       ]
@@ -8053,7 +8053,7 @@ async function loadStatementFiles() {
     });
 
     distSelect.innerHTML =
-      '<option value="">None : Use Distribution Column in Workbook Only</option>';
+      '<option value="">None: Use Distribution Column in Workbook Only</option>';
     (data.distributionFiles || []).forEach((rel) => {
       const opt = document.createElement("option");
       opt.value = rel;
@@ -8165,7 +8165,7 @@ $("#generateStatementsBtn")?.addEventListener("click", async () => {
       if (data.done) {
         wrap.classList.add("hidden");
         if (data.success) {
-          status.textContent = `Done : ${data.count} PDFs saved to ${data.outputDir}`;
+          status.textContent = `Done: ${data.count} PDFs saved to ${data.outputDir}`;
           status.className = "status ok";
         } else {
           status.textContent = data.error || "Generation failed";
@@ -8684,7 +8684,7 @@ async function loadRecordTabData() {
       (loans || []).forEach((l) => {
         const opt = document.createElement("option");
         opt.value = l.id;
-        opt.textContent = `#${l.id} : ${l.borrower_name} (${fmt.format(l.principal)})`;
+        opt.textContent = `#${l.id}: ${l.borrower_name} (${fmt.format(l.principal)})`;
         loanSelect.appendChild(opt);
       });
     }
@@ -9371,7 +9371,7 @@ async function handleLoginSubmit(e) {
       throw new Error(
         res.status >= 500
           ? "Server is waking up or unavailable. Wait 30 seconds and try again."
-          : "Login failed : server returned an unexpected response."
+          : "Login failed: server returned an unexpected response."
       );
     }
     if (!res.ok) throw new Error(data.error || "Login failed");
@@ -9714,7 +9714,7 @@ $("#provisionMembersBtn")?.addEventListener("click", async () => {
     if (created && data.created) {
       const preview = data.created
         .slice(0, 5)
-        .map((row) => `${row.memberName}: ${row.username} / ${row.tempPassword}`)
+        .map((row) => `${row.memberName}: ${row.username}/${row.tempPassword}`)
         .join("; ");
       message += `. ${preview}${created > 5 ? "…" : ""}`;
     }
@@ -10380,7 +10380,7 @@ function setPublicPageBranding(organizationName, pageLabel) {
   if (orgEl) orgName ? (orgEl.textContent = orgName) : (orgEl.textContent = "");
   const pageTitle = $("#publicPageTitle");
   if (pageTitle && pageLabel) pageTitle.textContent = pageLabel;
-  document.title = orgName ? `${orgName} : ${pageLabel}` : pageLabel;
+  document.title = orgName ? `${orgName}: ${pageLabel}` : pageLabel;
 }
 
 async function loadPublicAboutPage(slug) {

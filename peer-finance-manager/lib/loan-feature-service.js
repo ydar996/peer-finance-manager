@@ -32,7 +32,7 @@ function setLoansEnabled(enabled) {
 function assertLoansEnabled() {
   if (!isLoansEnabled()) {
     throw new Error(
-      "Loan accounts are not enabled for this Cooperative. Turn them on in Record : Membership Policy."
+      "Loan accounts are not enabled for this Cooperative. Turn them on in Record: Membership Policy."
     );
   }
 }

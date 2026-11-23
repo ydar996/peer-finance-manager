@@ -42,7 +42,7 @@ function buildImportTemplateXlsxBuffer() {
 
   const wb = XLSX.utils.book_new();
   const instructions = [
-    ["Peer Finance Manager : Transaction Import Template"],
+    ["Peer Finance Manager: Transaction Import Template"],
     [""],
     ["Institution", account?.institutionName || ""],
     ["Account label", account?.accountLabel || "Main Operating Account"],

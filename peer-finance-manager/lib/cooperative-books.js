@@ -824,7 +824,7 @@ function getBookDetail(slug) {
           type: "Balance Update",
           amount: row.balance,
           description: row.note
-            ? `Manual update : ${row.note}`
+            ? `Manual update: ${row.note}`
             : "Manual balance update",
         })),
         ...(balance != null && !snapshot.history.length
@@ -1189,7 +1189,7 @@ function getBookDetail(slug) {
       summary: `${withProfile}/${rows.length}`,
       note:
         formerCount > 0
-          ? `${formerCount} former member${formerCount === 1 ? "" : "s"} not counted (use Members & Accounts : Show Former Members).`
+          ? `${formerCount} former member${formerCount === 1 ? "" : "s"} not counted (use Members & Accounts: Show Former Members).`
           : null,
       columns: [
         { key: "member", label: "Member" },

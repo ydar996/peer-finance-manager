@@ -437,7 +437,7 @@ const CATALOG = [
     defaultSubject: "{{orgName}}: Meeting Reminder: {{meetingTitle}}",
     defaultBody:
       "Hello {{memberName}},\n" +
-      "Reminder : Cooperative meeting coming up:\n" +
+      "Reminder: Cooperative meeting coming up:\n" +
       "{{meetingDetails}}\n" +
       "Best regards,\n" +
       "{{orgName}}\n" +
@@ -463,7 +463,7 @@ const CATALOG = [
     defaultBody:
       "Hello {{memberName}},\n\n" +
       "The following Cooperative meeting has been cancelled:\n\n" +
-      "{{meetingTitle}} : {{meetingWhen}}\n\n" +
+      "{{meetingTitle}}: {{meetingWhen}}\n\n" +
       "{{orgName}}",
     sample: {
       memberName: "Ada Okeke",
