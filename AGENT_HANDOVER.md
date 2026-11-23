@@ -175,6 +175,12 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-23** - **Maintenance tab cleanup:** removed the raw JSON
+  "Live Database Status" card (diagnostic noise for nontechnical
+  admins), its Refresh button, and `loadMaintenancePanel()` in app.js.
+  The `/api/admin/data-status` endpoint stays on the server for
+  diagnostics but is no longer rendered. Bank reconcile status remains
+  visible in friendly form on the Cooperative Books card.
 - **2026-11-23** - **Twilight ledger split prep (Providus reconciliation):**
   comparison of the real Providus current-account statement
   (STATEMENT (4).xlsx, period 24/11/2025-10/11/2026) against the imported

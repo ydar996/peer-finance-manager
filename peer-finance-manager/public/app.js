@@ -1740,7 +1740,6 @@ function switchTab(name, options = {}) {
   if (name === "automated-messages" && currentUser?.role === "admin" && !sameTab) {
     loadAutomatedMessagesPanel();
   }
-  if (name === "maintenance" && currentUser?.role === "admin" && !sameTab) loadMaintenancePanel();
   if (name === "books" && (currentUser?.role === "admin" || currentUser?.role === "staff") && !sameTab) {
     loadBooks();
   }
@@ -9876,22 +9875,6 @@ $("#mfaDisableBtn")?.addEventListener("click", async () => {
   }
 });
 
-async function loadMaintenancePanel() {
-  const host = $("#maintenanceDataStatus");
-  if (!host) return;
-  host.textContent = "Loading…";
-  try {
-    const res = await fetch("/api/admin/data-status");
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Status failed");
-    host.textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    host.textContent = err.message;
-  }
-}
-
-$("#refreshMaintenance")?.addEventListener("click", () => loadMaintenancePanel());
-
 $("#downloadDataBackupBtn")?.addEventListener("click", async () => {
   const status = $("#dataBackupStatus");
   const btn = $("#downloadDataBackupBtn");
@@ -10003,7 +9986,6 @@ $("#dataRestoreForm")?.addEventListener("submit", async (e) => {
     if (status) setFormStatus(status, data.message || "Database restored.", true);
     form.reset();
     $("#dataRestorePreview")?.classList.add("hidden");
-    loadMaintenancePanel();
     loadBooks();
   } catch (err) {
     if (status) setFormStatus(status, err.message, false);

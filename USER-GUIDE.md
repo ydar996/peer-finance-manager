@@ -748,7 +748,6 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 | **Database Backup** | Download `peerfinance.db` for this Cooperative (archive or before risky changes). On a wide screen this sits beside **Database Restore**. |
 | **Database Restore** | **Choose File** to select a `.db` backup, preview row counts, then restore. Replaces live data; no Manual Deploy required. |
 | **Normalize Profiles (Title Case)** | Preview and apply formatting to member profiles and ledger names on production. |
-| **Live Database Status** | Row counts, integrity, and reconcile snapshot. |
 
 **When to use restore:** disaster recovery or copying a known-good backup onto production. For bank ledger corrections, prefer **Import → Full Ledger Refresh** + **Import New Bank Activity** so reconcile anchor stays correct.
 
