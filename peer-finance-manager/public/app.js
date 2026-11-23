@@ -7549,10 +7549,13 @@ $("#memberImportForm")?.addEventListener("submit", async (e) => {
     const res = await fetch("/api/member-import", { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    status.textContent = `Created ${data.created} member account${data.created === 1 ? "" : "s"}. Skipped ${data.skipped}; failed ${data.failed}.`;
+    status.textContent = `Created ${data.created} member account${data.created === 1 ? "" : "s"}. Updated ${data.updated || 0}; skipped ${data.skipped}; failed ${data.failed}.`;
     status.className = "status ok";
     if (resultsEl) {
       const lines = [];
+      if (data.updatedRows?.length) {
+        lines.push("<p>Updated:</p><ul>" + data.updatedRows.map((r) => `<li>Row ${r.row}: ${escapeHtml(r.name)}${r.filled?.length ? ` (${escapeHtml(r.filled.length + " field" + (r.filled.length === 1 ? "" : "s"))})` : ""}</li>`).join("") + "</ul>");
+      }
       if (data.skippedRows?.length) {
         lines.push("<p>Skipped:</p><ul>" + data.skippedRows.map((r) => `<li>Row ${r.row}: ${escapeHtml(r.name)} (${escapeHtml(r.reason)})</li>`).join("") + "</ul>");
       }
