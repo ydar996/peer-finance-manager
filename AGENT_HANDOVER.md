@@ -191,11 +191,13 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
   Ifie Onome). Wired into import-format-service as resolvedFormat
   `providus_business`; non-Providus PDFs get a clear error; file input
   accepts .pdf. Verified: XLSX and PDF produce identical results - 243
-  rows, 73 deposits / 157 expenses / 13 investments, net =
-  NGN 1,977,905.38 = statement closing balance. PDF limitation:
-  narrations truncate at column width so member names are absent -
-  deposit rows flag for member assignment in preview (XLSX is the
-  richer source). Dates parse via the org DMY setting.
+  rows, 73 deposits / 157 expenses / 13 investments, 30 members
+  resolved, net = NGN 1,977,905.38 = statement closing balance. PDF
+  narrations wrap as multi-line cells (Tm+Tj continuation ops without
+  Tf) - the extractor attributes each Tj to the latest Tm and groups
+  continuation lines into the owning transaction by Post Date anchors,
+  so full narrations including sender names survive. Dates parse via
+  the org DMY setting.
 - **2026-11-23** - **Security round 2: MFA + webhook closure + favicon:**
   TOTP two-factor authentication for admin/staff accounts - new
   `lib/totp.js` (RFC 6238, zero deps) and `lib/mfa-service.js`

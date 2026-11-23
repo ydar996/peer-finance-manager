@@ -248,24 +248,28 @@ function readPdfString(src, start) {
 }
 
 function extractPdfTokens(buf) {
-  // Tokens: {stream, x, y, text} from `Tm` + `Tj` text-show ops.
+  // Tokens: {stream, x, y, text} from every `Tm` + `Tj` text-show pair.
+  // Continuation lines of a wrapped cell repeat Tm without Tf, so each
+  // Tj is attributed to the most recent Tm position.
   const tokens = [];
   const streams = inflatePdfStreams(buf);
+  const opRe =
+    /(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+Tm|\(/g;
   streams.forEach((content, stream) => {
-    const tmRe = /(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+Tm/g;
-    const anchors = [];
+    let curX = 0;
+    let curY = 0;
     let m;
-    while ((m = tmRe.exec(content))) {
-      anchors.push({ pos: m.index + m[0].length, x: +m[5], y: +m[6] });
-    }
-    for (const a of anchors) {
-      const after = content.slice(a.pos, a.pos + 4000);
-      const tjMatch = after.match(/\/F\d+\s+[\d.]+\s+Tf\s*\(/);
-      if (!tjMatch) continue;
-      const strStart = a.pos + tjMatch.index + tjMatch[0].length - 1;
-      const { text, next } = readPdfString(content, strStart);
-      if (!/^\s*Tj/.test(content.slice(next, next + 8))) continue;
-      if (text.trim()) tokens.push({ stream, x: a.x, y: a.y, text });
+    while ((m = opRe.exec(content))) {
+      if (m[0] === "(") {
+        const { text, next } = readPdfString(content, m.index);
+        opRe.lastIndex = next;
+        if (/^\s*Tj/.test(content.slice(next, next + 8)) && text.trim()) {
+          tokens.push({ stream, x: curX, y: curY, text });
+        }
+        continue;
+      }
+      curX = +m[5];
+      curY = +m[6];
     }
   });
   return tokens;
@@ -325,39 +329,63 @@ function parseProvidusPdfLines(tokens, memberNames) {
       return sa - sb || yb - ya;
     });
   const anchors = findColumnAnchors(lines);
+  const narrStart = DEFAULT_COLS.narr - 20; // past the actual-date column (~115)
+  const narrEnd = anchors.value - 5; // stop before the value-date column (~256)
+
+  // Row anchors: the Post Date cell (x~70) holds dd/mm/yyyy at each row's
+  // top line. Narration wraps into continuation lines below it (same x
+  // band, lower y), so a row owns every line between its anchor and the
+  // next anchor.
+  const anchors2 = lines
+    .map((line) => {
+      const post = line.cells.find(
+        (c) => Math.abs(c.x - DEFAULT_COLS.post) < 15 && /^\d{2}\/\d{2}\/\d{4}$/.test(c.text.trim())
+      );
+      return post ? { key: line.key, y: +line.key.split("|")[1], line, post } : null;
+    })
+    .filter(Boolean);
+
   const out = [];
   let summary = null;
-  for (const line of lines) {
-    const post = line.cells.find((c) => Math.abs(c.x - DEFAULT_COLS.post) < 15);
-    if (!post || !/^\d{2}\/\d{2}\/\d{4}$/.test(post.text.trim())) continue;
+  for (let i = 0; i < anchors2.length; i++) {
+    const row = anchors2[i];
+    const nextAnchor = anchors2[i + 1];
+    const samePage = nextAnchor && nextAnchor.key.split("|")[0] === row.key.split("|")[0];
+    const nextY = samePage ? nextAnchor.y : -Infinity;
+    const [stream] = row.key.split("|").map(Number);
     let debit = 0;
     let credit = 0;
     let balance = null;
     const narrParts = [];
-    const narrStart = DEFAULT_COLS.narr - 20; // past the actual-date column (~115)
-    const narrEnd = anchors.value - 5; // stop before the value-date column (~256)
-    for (const cell of line.cells) {
-      const col = assignColumn(cell.x, anchors);
-      if (cell.x >= narrStart && cell.x < narrEnd && col == null) {
-        narrParts.push(cell.text);
-        continue;
+    for (const line of lines) {
+      const [s, y] = line.key.split("|").map(Number);
+      if (s !== stream || y > row.y || y <= nextY) continue;
+      for (const cell of line.cells) {
+        const col = assignColumn(cell.x, anchors);
+        if (cell.x >= narrStart && cell.x < narrEnd && col == null) {
+          narrParts.push({ y, x: cell.x, text: cell.text });
+          continue;
+        }
+        if (y !== row.y) continue; // amounts sit on the row's top line only
+        const n = parseMoney(cell.text);
+        if (col === "debit" && n) debit = n;
+        else if (col === "credit" && n) credit = n;
+        else if (col === "balance") balance = n;
       }
-      const n = parseMoney(cell.text);
-      if (col === "debit" && n) debit = n;
-      else if (col === "credit" && n) credit = n;
-      else if (col === "balance" && n != null) balance = n;
     }
     if (!debit && !credit) continue;
-    const postDate = parseCooperativeDate(post.text.trim());
+    const postDate = parseCooperativeDate(row.post.text.trim());
     if (!postDate) continue;
+    const description = narrParts
+      .sort((a, b) => b.y - a.y || a.x - b.x)
+      .map((p) => p.text)
+      .join(" ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
     const amount = credit > 0 ? credit : -Math.abs(debit);
     out.push(
       buildRow(
-        {
-          dateIso: postDate.iso,
-          description: narrParts.join(" ").replace(/\s{2,}/g, " ").trim(),
-          amount,
-        },
+        { dateIso: postDate.iso, description, amount },
         memberNames
       )
     );
