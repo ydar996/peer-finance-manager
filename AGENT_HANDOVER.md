@@ -1619,3 +1619,11 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
   in preview `needsReview` on the append path and in the refresh conflict
   audit. Verified against all four rebuilt TTFC files: only genuinely
   review-worthy rows flagged.
+- **2026-11-23** - **Import success UX: clear preview + checkmark.** After a
+  successful bank-activity append, the preview table is cleared (no more
+  re-rendered statement) and the status line shows a checkmark with the
+  result counts; the chosen file input is also cleared for the next upload.
+  Checkmark added to all import success statuses for consistency (Full
+  Ledger Refresh, Cooperative Spreadsheet, Membership Applications, Loan
+  Repayment Schedule, Member Import, Bank Account Import). Error paths
+  still re-render the preview so flagged rows can be fixed.

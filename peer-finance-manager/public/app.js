@@ -6351,7 +6351,7 @@ $("#spreadsheetForm").addEventListener("submit", async (e) => {
     const res = await fetch("/api/import/spreadsheet", { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    status.textContent = `Imported ${data.memberCount} members, ${data.transactionCount} transactions.`;
+    status.textContent = `✓ Imported ${data.memberCount} members, ${data.transactionCount} transactions.`;
     status.className = "status ok";
     loadMembers();
     loadBooks();
@@ -6374,7 +6374,7 @@ $("#wpformsForm").addEventListener("submit", async (e) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    status.textContent = `Linked ${data.matchedCount} profiles (${data.unmatchedApplications?.length || 0} unmatched applications, ${data.membersWithoutApplication?.length || 0} accounts without applications).`;
+    status.textContent = `✓ Linked ${data.matchedCount} profiles (${data.unmatchedApplications?.length || 0} unmatched applications, ${data.membersWithoutApplication?.length || 0} accounts without applications).`;
     status.className = "status ok";
     loadMembers();
     loadBooks();
@@ -6397,7 +6397,7 @@ $("#scheduleForm").addEventListener("submit", async (e) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    status.textContent = `Imported ${data.installmentsImported} installments.`;
+    status.textContent = `✓ Imported ${data.installmentsImported} installments.`;
     status.className = "status ok";
     loadLoans();
   } catch (err) {
@@ -7231,10 +7231,12 @@ async function applyBankAppendImport(form) {
       throw new Error(data.error || "Import failed");
     }
     const result = data.result || {};
-    renderBankAppendPreview(result);
+    bankAppendPreviewData = null;
+    renderBankAppendPreview(null);
+    clearChosenFileInput("bankAppendFile", "bankAppendFileName");
     updateApplyBankAppendButton();
     if (status) {
-      status.textContent = result.message || "Import complete.";
+      status.textContent = `✓ ${result.message || "Import complete."}`;
       status.className = "status ok";
     }
     if (summary && result.ledgerEndingBalance != null) {
@@ -7518,7 +7520,7 @@ $("#bankAccountImportForm")?.addEventListener("submit", async (e) => {
     const res = await fetch("/api/bank-account-import", { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    status.textContent = `Registered ${data.created} account${data.created === 1 ? "" : "s"}. Skipped ${data.skipped}; failed ${data.failed}.`;
+    status.textContent = `✓ Registered ${data.created} account${data.created === 1 ? "" : "s"}. Skipped ${data.skipped}; failed ${data.failed}.`;
     status.className = "status ok";
     if (resultsEl) {
       const lines = [];
@@ -7549,7 +7551,7 @@ $("#memberImportForm")?.addEventListener("submit", async (e) => {
     const res = await fetch("/api/member-import", { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-    status.textContent = `Created ${data.created} member account${data.created === 1 ? "" : "s"}. Updated ${data.updated || 0}; skipped ${data.skipped}; failed ${data.failed}.`;
+    status.textContent = `✓ Created ${data.created} member account${data.created === 1 ? "" : "s"}. Updated ${data.updated || 0}; skipped ${data.skipped}; failed ${data.failed}.`;
     status.className = "status ok";
     if (resultsEl) {
       const lines = [];
@@ -7978,7 +7980,7 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
     if (status) {
       status.textContent = warningCount
         ? `Bank ledger updated with ${warningCount} ledger warning(s). See Ledger warnings below.`
-        : "Bank ledger updated.";
+        : "✓ Bank ledger updated.";
       status.className = warningCount ? "status warn" : "status ok";
     }
     if (summary) {
