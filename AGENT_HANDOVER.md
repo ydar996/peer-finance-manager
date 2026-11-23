@@ -1608,3 +1608,14 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
   skipped when appended to their own account (ops-side leg blocked the
   share-capital-side leg). Verified: SC append 88 ready/0 skipped;
   re-upload dedupes correctly.
+- **2026-11-23** - **Import audit flags classification mismatches.** Shared
+  `auditLedgerImport` now also warns when a row's narration contradicts its
+  ledger type: internal-transfer wording typed as member money/expense,
+  investment/TD wording typed as non-investment, member-money rows with no
+  member, negative deposit/share-capital amounts, positive
+  withdrawal/loan-type amounts, and bank-charge narrations typed as anything
+  but Expenses (charge narrations embed the transfer they were levied on,
+  so they are checked first to avoid false investment flags). Warnings land
+  in preview `needsReview` on the append path and in the refresh conflict
+  audit. Verified against all four rebuilt TTFC files: only genuinely
+  review-worthy rows flagged.
