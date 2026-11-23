@@ -6361,6 +6361,29 @@ $("#spreadsheetForm").addEventListener("submit", async (e) => {
   }
 });
 
+$("#wpformsForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#wpformsStatus");
+  status.textContent = "Importing profiles…";
+  status.className = "status";
+  const fd = new FormData(e.target);
+  try {
+    const res = await fetch("/api/import/wpforms-profiles", {
+      method: "POST",
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    status.textContent = `Linked ${data.matchedCount} profiles (${data.unmatchedApplications?.length || 0} unmatched applications, ${data.membersWithoutApplication?.length || 0} accounts without applications).`;
+    status.className = "status ok";
+    loadMembers();
+    loadBooks();
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = "status err";
+  }
+});
+
 $("#scheduleForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const status = $("#scheduleStatus");
@@ -9967,6 +9990,7 @@ bindChosenFileName("bankImportFile", "bankImportFileName");
 bindChosenFileName("bankAccountImportFile", "bankAccountImportFileName");
 bindChosenFileName("memberImportFile", "memberImportFileName");
 bindChosenFileName("spreadsheetFile", "spreadsheetFileName");
+bindChosenFileName("wpformsFile", "wpformsFileName");
 bindChosenFileName("scheduleFile", "scheduleFileName");
 bindChosenFileName("distributionBulkFile", "distributionBulkFileName");
 

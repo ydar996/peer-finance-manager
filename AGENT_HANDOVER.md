@@ -175,10 +175,11 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
-- **2026-11-23** - **Removed WPForms CSV card** from Import tab (tool
-  no longer used); backend /api/import/wpforms-profiles stays dormant.
-  Member-import results line now shows Updated count with per-row
-  filled-field detail.
+- **2026-11-23** - **Membership Applications card renamed** on the
+  Import tab: "(WPForms CSV)" dropped from the title per Owner; card,
+  form handler, and backend route retained (a prior over-broad removal
+  was reverted). Member-import results line now shows Updated count
+  with per-row filled-field detail.
 - **2026-11-23** - **Member import: tolerant fields + district (LGA).**
   member-import-service now: treats NULL/N/A/- cells as blank; skips
   fully blank rows; maps Member ID No and Bank Account Name (->

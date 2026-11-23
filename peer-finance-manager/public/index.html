@@ -2348,6 +2348,26 @@
 
         <details class="card profile-disclosure import-panel-section">
           <summary class="import-panel-summary">
+            <span class="import-panel-title">Membership Applications</span>
+            <span class="import-panel-hint">Import biodata and payment names; links applications to ledger accounts.</span>
+          </summary>
+          <div class="profile-disclosure-body">
+            <form id="wpformsForm" class="entry-form">
+              <div class="field-row">
+                <div class="file-dropzone">
+                  <label class="btn" for="wpformsFile">Choose File</label>
+                  <input type="file" id="wpformsFile" name="file" class="visually-hidden-file" accept=".csv" required />
+                  <span class="file-name" id="wpformsFileName"></span>
+                </div>
+                <button type="submit" class="btn primary">Import Profiles</button>
+              </div>
+            </form>
+            <p id="wpformsStatus" class="status"></p>
+          </div>
+        </details>
+
+        <details class="card profile-disclosure import-panel-section">
+          <summary class="import-panel-summary">
             <span class="import-panel-title">Loan Repayment Schedule</span>
             <span class="import-panel-hint">Upload installment schedule CSV/xlsx for a specific loan ID.</span>
           </summary>
