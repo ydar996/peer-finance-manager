@@ -4,7 +4,14 @@ const { getDb } = require("../db/database");
 const { TRANSACTION_TYPES } = require("./constants");
 const { registerBankImport, archiveUploadedBankFiles } = require("./bank-import");
 const { auditLedgerImport } = require("./ledger-import-audit");
-const { buildImportFingerprint, ledgerTransactionKey } = require("./import-fingerprint");
+const {
+  buildImportFingerprint,
+  buildImportFingerprintVariants,
+  descriptionTokenSet,
+  ledgerTransactionKey,
+  ledgerTransactionKeyVariants,
+  tokenOverlapScore,
+} = require("./import-fingerprint");
 const { typeLabelForLedger, memberRequiredForType } = require("./transaction-import-types");
 const { parseUploadedStatement, validateParsedRow } = require("./statement-import-parser");
 const {
@@ -39,9 +46,12 @@ function expenseCategory(description) {
   return "Other";
 }
 
+const NARRATION_SIMILARITY_THRESHOLD = 0.5;
+
 function loadExistingFingerprintSet(db, bankAccountId) {
   const fingerprints = new Set();
   const legacyKeys = new Set();
+  const narrationByDateAmount = new Map();
 
   const withFingerprint = db
     .prepare(
@@ -62,13 +72,16 @@ function loadExistingFingerprintSet(db, bankAccountId) {
     .all();
 
   for (const row of rows) {
-    const legacy = ledgerTransactionKey(row.transaction_date, row.amount, row.description);
-    legacyKeys.add(legacy);
-    if (row.bank_account_id != null) {
-      fingerprints.add(buildImportFingerprint(row.bank_account_id, row.transaction_date, row.amount, row.description));
-    } else {
-      fingerprints.add(buildImportFingerprint(bankAccountId, row.transaction_date, row.amount, row.description));
+    for (const key of ledgerTransactionKeyVariants(row.transaction_date, row.amount, row.description)) {
+      legacyKeys.add(key);
     }
+    const acct = row.bank_account_id != null ? row.bank_account_id : bankAccountId;
+    for (const fp of buildImportFingerprintVariants(acct, row.transaction_date, row.amount, row.description)) {
+      fingerprints.add(fp);
+    }
+    const dateAmt = `${row.transaction_date}|${Math.abs(Number(row.amount)).toFixed(2)}`;
+    if (!narrationByDateAmount.has(dateAmt)) narrationByDateAmount.set(dateAmt, []);
+    narrationByDateAmount.get(dateAmt).push(descriptionTokenSet(row.description));
   }
 
   const memberByFingerprint = new Map();
@@ -86,24 +99,24 @@ function loadExistingFingerprintSet(db, bankAccountId) {
     )
     .all();
   for (const row of namedRows) {
-    const legacy = ledgerTransactionKey(row.transactionDate, row.amount, row.description);
-    typeByLegacy.set(legacy, row.ledgerType);
-    const rebuilt = buildImportFingerprint(
+    const legacyVariants = ledgerTransactionKeyVariants(row.transactionDate, row.amount, row.description);
+    const rebuiltVariants = buildImportFingerprintVariants(
       row.bankAccountId != null ? row.bankAccountId : bankAccountId,
       row.transactionDate,
       row.amount,
       row.description
     );
-    typeByFingerprint.set(rebuilt, row.ledgerType);
+    for (const legacy of legacyVariants) typeByLegacy.set(legacy, row.ledgerType);
+    for (const rebuilt of rebuiltVariants) typeByFingerprint.set(rebuilt, row.ledgerType);
     if (row.fp) typeByFingerprint.set(row.fp, row.ledgerType);
     if (row.memberName) {
-      memberByLegacy.set(legacy, row.memberName);
+      for (const legacy of legacyVariants) memberByLegacy.set(legacy, row.memberName);
       if (row.fp) memberByFingerprint.set(row.fp, row.memberName);
-      memberByFingerprint.set(rebuilt, row.memberName);
+      for (const rebuilt of rebuiltVariants) memberByFingerprint.set(rebuilt, row.memberName);
     }
   }
 
-  return { fingerprints, legacyKeys, memberByFingerprint, memberByLegacy, typeByFingerprint, typeByLegacy };
+  return { fingerprints, legacyKeys, memberByFingerprint, memberByLegacy, typeByFingerprint, typeByLegacy, narrationByDateAmount };
 }
 
 function rowFingerprint(bankAccountId, row) {
@@ -180,19 +193,46 @@ function computeAppendBalanceCheck({
 function buildPreviewRow(row, index, memberNames, bankAccountId, existing) {
   const fingerprint = rowFingerprint(bankAccountId, row);
   const legacy = rowLegacyKey(row);
+  const fingerprintVariants = buildImportFingerprintVariants(
+    bankAccountId,
+    row.date,
+    row.amount,
+    row.description,
+    row.reference
+  );
+  const legacyVariants = ledgerTransactionKeyVariants(row.date, row.amount, row.description, row.reference);
   const validationIssues = validateParsedRow({ ...row }, memberNames);
 
+  let isDuplicate =
+    fingerprintVariants.some((fp) => existing.fingerprints.has(fp)) ||
+    legacyVariants.some((key) => existing.legacyKeys.has(key));
+
+  // Narration-drift fallback: same posting rendered differently across export
+  // formats. Only applies when date and absolute amount already coincide.
+  if (!isDuplicate && existing.narrationByDateAmount) {
+    const dateAmt = `${row.date}|${Math.abs(Number(row.amount)).toFixed(2)}`;
+    const candidates = existing.narrationByDateAmount.get(dateAmt);
+    if (candidates && candidates.length) {
+      const rowTokens = descriptionTokenSet(row.description);
+      isDuplicate = candidates.some(
+        (stored) => tokenOverlapScore(stored, rowTokens) >= NARRATION_SIMILARITY_THRESHOLD
+      );
+    }
+  }
+
   let bucket = "ready";
-  if (existing.fingerprints.has(fingerprint) || existing.legacyKeys.has(legacy)) {
+  if (isDuplicate) {
     bucket = "skipped";
   } else if (validationIssues.length) {
     bucket = "needsReview";
   }
 
-  const ledgerMember =
-    existing.memberByFingerprint?.get(fingerprint) || existing.memberByLegacy?.get(legacy) || null;
-  const storedType =
-    existing.typeByFingerprint?.get(fingerprint) || existing.typeByLegacy?.get(legacy) || null;
+  const lookup = (byFp, byLegacy) =>
+    fingerprintVariants.map((fp) => byFp?.get(fp)).find(Boolean) ||
+    legacyVariants.map((key) => byLegacy?.get(key)).find(Boolean) ||
+    null;
+  const ledgerMember = lookup(existing.memberByFingerprint, existing.memberByLegacy);
+  const storedType = lookup(existing.typeByFingerprint, existing.typeByLegacy);
   const effectiveType =
     bucket === "skipped" && storedType ? storedType : row.ledgerType || null;
 

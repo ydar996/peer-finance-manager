@@ -175,6 +175,20 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-23** - **Import dedupe hardened app-wide.** Re-uploading a
+  statement (same or different format) can no longer create duplicates.
+  lib/import-fingerprint.js now emits multiple candidate keys per row:
+  description-prefix, category-stripped (stored expenses carry
+  "Category: " prefixes), absolute-amount (reversal credits stored as
+  negative expenses), reference-token (DOC-NUM etc.), and embedded
+  5+ digit runs (bank doc numbers inside narrations).
+  bank-import-append.js checks all variants plus a narration-similarity
+  fallback (same date + same |amount| + token overlap >= 0.5) for
+  banks that narrate identical postings differently across formats
+  (e.g. COMMISSION vs STAMP DUTY, TRZL- vs TRZL- ). Legacy
+  import-bank-ledger.js sync-missing dedupe got the same variant set.
+  Verified: 243-row Providus statement applied, then XLSX re-upload
+  170/170 skipped and PDF cross-format re-upload 170/170 skipped.
 - **2026-11-23** - **Membership Applications card renamed** on the
   Import tab: "(WPForms CSV)" dropped from the title per Owner; card,
   form handler, and backend route retained (a prior over-broad removal

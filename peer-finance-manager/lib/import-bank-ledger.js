@@ -61,7 +61,7 @@ function expenseCategory(description) {
   return "Other";
 }
 
-const { buildImportFingerprint, ledgerTransactionKey } = require("./import-fingerprint");
+const { buildImportFingerprint, ledgerTransactionKey, ledgerTransactionKeyVariants } = require("./import-fingerprint");
 
 function findReferenceLedgerPath() {
   const slug = getOrgSlug();
@@ -347,11 +347,12 @@ function syncMissingBankLedgerRows({ referencePath } = {}) {
        WHERE source IN ('bank_import', 'manual')`
     )
     .all();
-  const existingKeys = new Set(
-    existingRows.map((row) =>
-      ledgerTransactionKey(row.transaction_date, row.amount, row.description)
-    )
-  );
+  const existingKeys = new Set();
+  for (const row of existingRows) {
+    for (const key of ledgerTransactionKeyVariants(row.transaction_date, row.amount, row.description)) {
+      existingKeys.add(key);
+    }
+  }
 
   const before = getLedgerEndingBalance();
   const importId = registerBankImport(`sync-missing:${path.basename(refPath)}`);
@@ -383,8 +384,8 @@ function syncMissingBankLedgerRows({ referencePath } = {}) {
 
   const run = db.transaction(() => {
     for (const tx of bankTxs) {
-      const key = ledgerTransactionKey(tx.date, tx.amount, tx.description);
-      if (existingKeys.has(key)) continue;
+      const keys = ledgerTransactionKeyVariants(tx.date, tx.amount, tx.description, tx.reference);
+      if (keys.some((k) => existingKeys.has(k))) continue;
       const inserted = insertBankLedgerTransaction({
         db,
         insertTx,
