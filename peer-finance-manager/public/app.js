@@ -3462,13 +3462,44 @@ function accountActivityTableRows(rows, { memberPortal = false, formatDates = fa
     .join("");
 }
 
+function isFeeDepositPair(a, b) {
+  if (!a || !b || a.transaction_date !== b.transaction_date) return null;
+  const fee = a.type === "membership_fee" ? a : b.type === "membership_fee" ? b : null;
+  const dep = a.type === "deposit" ? a : b.type === "deposit" ? b : null;
+  if (!fee || !dep) return null;
+  if (dep.amount <= 0 || fee.amount >= 0) return null;
+  if (Math.abs(dep.amount + fee.amount) >= 0.005) return null;
+  return { fee, dep };
+}
+
+function mergeFeeDepositPairs(transactions) {
+  const rows = [];
+  for (let i = 0; i < transactions.length; i++) {
+    const pair = isFeeDepositPair(transactions[i], transactions[i + 1]);
+    if (pair) {
+      const first = transactions[i];
+      rows.push({
+        ...pair.fee,
+        amount: pair.dep.amount,
+        balance_after: first.balance_after,
+        description: pair.dep.description || pair.fee.description,
+        controlsTx: pair.dep,
+      });
+      i++;
+    } else {
+      rows.push(transactions[i]);
+    }
+  }
+  return rows;
+}
+
 function depositTxTableRows(transactions, memberId) {
   const adminCols = adminCanEditLedgerRows();
   const colSpan = adminCols ? 6 : 5;
   if (!transactions?.length) {
     return `<tr><td colspan="${colSpan}" class="subtle">No Transactions</td></tr>`;
   }
-  return transactions
+  return mergeFeeDepositPairs(transactions)
     .map(
       (t) => `
     <tr>
@@ -3477,14 +3508,14 @@ function depositTxTableRows(transactions, memberId) {
       <td class="money">${fmt.format(t.amount)}</td>
       <td class="money">${fmt.format(t.balance_after ?? 0)}</td>
       <td>${escapeHtml(t.description || "")}</td>
-      ${ledgerTxControlCellHtml(t, memberId)}
+      ${ledgerTxControlCellHtml(t.controlsTx || t, memberId)}
     </tr>`
     )
     .join("");
 }
 
 function depositActivityPanelHtml(p, memberId) {
-  const txCount = p.deposit_transactions?.length || 0;
+  const txCount = mergeFeeDepositPairs(p.deposit_transactions || []).length;
   const adminCols = adminCanEditLedgerRows();
   return `
     <h4 class="section-title">Contributions Account Activity</h4>
