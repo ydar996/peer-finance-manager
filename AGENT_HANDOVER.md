@@ -175,6 +175,19 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-21** - **Custom domain prep (peerfinancemanager.com):** all
+  hardcoded `peer-finance-manager.netlify.app` references moved to
+  `peerfinancemanager.com` - `lib/portal-urls.js` + `lib/platform-billing-service.js`
+  fallbacks, `lib/automated-message-service.js` sample URLs, canonical/og
+  tags and link text on the brochure/product pages, and
+  `scripts/test-organization-code.js`. Env overrides still win
+  (`ALLOWED_ORIGINS`, `MEMBER_PORTAL_URL`). To finish the cutover: add the
+  domain in Netlify site settings, point Namecheap DNS at Netlify (A:
+  75.2.60.5 for apex, CNAME `www` -> the netlify site, or delegate NS),
+  then set Render `ALLOWED_ORIGINS`/`MEMBER_PORTAL_URL` to the new origin.
+  The netlify.app URL keeps working in parallel - zero downtime. FlexxForms
+  integration is unaffected (all its URLs are outbound to
+  flexxforms.netlify.app; `hostApp` is a slug, not a URL).
 - **2026-11-22** - **Uniform Cooperative Books card rhythm:** every book card
   now always renders a `.book-note` explainer (cards that lacked one -
   Registration Income, Cooperative Expenses, Distributions Paid, Active

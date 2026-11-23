@@ -67,12 +67,12 @@ function testGenerateFromName() {
 
 function testMemberLoginUrlIncludesOrg() {
   assert.strictEqual(
-    appendOrgQuery("https://peer-finance-manager.netlify.app/member", "acme-cooperative-482"),
-    "https://peer-finance-manager.netlify.app/member?org=acme-cooperative-482"
+    appendOrgQuery("https://peerfinancemanager.com/member", "acme-cooperative-482"),
+    "https://peerfinancemanager.com/member?org=acme-cooperative-482"
   );
   assert.strictEqual(
-    appendOrgQuery("https://peer-finance-manager.netlify.app/member?org=acme-cooperative-482", "other"),
-    "https://peer-finance-manager.netlify.app/member?org=acme-cooperative-482"
+    appendOrgQuery("https://peerfinancemanager.com/member?org=acme-cooperative-482", "other"),
+    "https://peerfinancemanager.com/member?org=acme-cooperative-482"
   );
   assert.ok(
     getMemberPortalLoginUrl("acme-cooperative-482").endsWith("/member?org=acme-cooperative-482")

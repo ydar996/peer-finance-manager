@@ -6,7 +6,7 @@ function publicSiteOrigin() {
     const first = origins.split(",")[0].trim();
     if (first) return first.replace(/\/$/, "");
   }
-  return "https://peer-finance-manager.netlify.app";
+  return "https://peerfinancemanager.com";
 }
 
 function appendOrgQuery(url, slug) {

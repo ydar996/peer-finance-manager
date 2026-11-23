@@ -167,7 +167,7 @@ function appBaseUrl() {
     const first = origins.split(",")[0].trim();
     if (first) return first.replace(/\/$/, "");
   }
-  return "https://peer-finance-manager.netlify.app";
+  return "https://peerfinancemanager.com";
 }
 
 function periodEndFromPlan(plan, fromDate = new Date()) {
