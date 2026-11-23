@@ -1602,3 +1602,9 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
 *End of handover. UI copy: `.cursor/rules/ui-copy-standards.mdc`. Continuous docs: `.cursor/rules/continuous-documentation.mdc` (always apply).*
 
 **User docs:** [USER-GUIDE.md](./USER-GUIDE.md) · **Publish updates:** [UPDATE-AND-PUBLISH.md](./UPDATE-AND-PUBLISH.md) · **Technical:** [README.md](./README.md)
+- **2026-11-23** - **Import dedupe scoped per bank account.** Matching
+  now only considers rows on the target account (rows with no account
+  id count as primary). Fixes internal-transfer legs being wrongly
+  skipped when appended to their own account (ops-side leg blocked the
+  share-capital-side leg). Verified: SC append 88 ready/0 skipped;
+  re-upload dedupes correctly.

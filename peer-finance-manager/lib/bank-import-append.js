@@ -53,14 +53,27 @@ function loadExistingFingerprintSet(db, bankAccountId) {
   const legacyKeys = new Set();
   const narrationByDateAmount = new Map();
 
+  // Dedupe is per bank account: a row in another account must not block the
+  // same posting's other leg here (e.g. an internal transfer exists once per
+  // account). Rows with no account assignment belong to the primary account.
+  let primaryAccountId = null;
+  try {
+    primaryAccountId =
+      db.prepare(`SELECT id FROM bank_accounts WHERE is_primary = 1`).get()?.id ?? null;
+  } catch (_) {}
+  const targetId = bankAccountId != null ? Number(bankAccountId) : primaryAccountId;
+  const inScope = (acctId) =>
+    acctId === targetId ||
+    (acctId == null && (targetId === primaryAccountId || primaryAccountId == null));
+
   const withFingerprint = db
     .prepare(
-      `SELECT import_fingerprint FROM transactions
+      `SELECT import_fingerprint, bank_account_id FROM transactions
        WHERE import_fingerprint IS NOT NULL AND import_fingerprint != ''`
     )
     .all();
   for (const row of withFingerprint) {
-    fingerprints.add(row.import_fingerprint);
+    if (inScope(row.bank_account_id)) fingerprints.add(row.import_fingerprint);
   }
 
   const rows = db
@@ -72,6 +85,7 @@ function loadExistingFingerprintSet(db, bankAccountId) {
     .all();
 
   for (const row of rows) {
+    if (!inScope(row.bank_account_id)) continue;
     for (const key of ledgerTransactionKeyVariants(row.transaction_date, row.amount, row.description)) {
       legacyKeys.add(key);
     }
@@ -99,6 +113,7 @@ function loadExistingFingerprintSet(db, bankAccountId) {
     )
     .all();
   for (const row of namedRows) {
+    if (!inScope(row.bankAccountId)) continue;
     const legacyVariants = ledgerTransactionKeyVariants(row.transactionDate, row.amount, row.description);
     const rebuiltVariants = buildImportFingerprintVariants(
       row.bankAccountId != null ? row.bankAccountId : bankAccountId,
