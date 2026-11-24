@@ -6,7 +6,7 @@ const {
   getCdTermMetrics,
 } = require("./cd-balance-service");
 const { getCheckingBalanceSnapshot } = require("./checking-balance-service");
-const { getBankReconcileStatus } = require("./bank-reconcile-service");
+const { getBankReconcileStatus, getBankReconcileStatusAll } = require("./bank-reconcile-service");
 const { getCooperativeSetting } = require("./cooperative-settings");
 const {
   getLoanPortfolioFromBankLedger,
@@ -362,7 +362,7 @@ function getCooperativeBooks() {
     checkingBalanceAsOf: checkingSnapshot.asOf,
     ledgerCheckingBalance: checkingSnapshot.ledgerBalance,
     ledgerCheckingAsOf: checkingSnapshot.ledgerAsOf,
-    bankReconcile: getBankReconcileStatus(),
+    bankReconcile: getBankReconcileStatusAll(),
     primaryCheckingCurrency: primaryBank?.currency || "USD",
     bankAccounts: bankAccounts.map((a) => ({
       id: a.id,
@@ -712,27 +712,46 @@ function getBookDetail(slug) {
   }
 
   if (slug === "bank-reconcile") {
-    const reconcile = getBankReconcileStatus();
+    const reconcile = getBankReconcileStatusAll();
     const rows = [];
-    if (reconcile.anchor) {
-      rows.push({
-        date: reconcile.anchor.asOf,
-        type: "Verified Balance",
-        amount: reconcile.anchor.balance,
-        description: `${reconcile.anchor.bankImportRows} bank import rows · ${reconcile.anchor.source || "import"}`,
-      });
+    const statusText = (status) =>
+      status === "reconciled"
+        ? "Reconciled"
+        : status === "out_of_sync"
+          ? "Out of Sync"
+          : "Not Verified";
+    const accountLabel = (a) =>
+      `${a?.accountLabel || "Bank Account"}${a?.institutionName ? ` (${a.institutionName})` : ""}`;
+
+    for (const result of reconcile.accounts || []) {
+      if (result.anchor) {
+        rows.push({
+          date: result.anchor.asOf,
+          type: accountLabel(result.account),
+          amount: result.anchor.balance,
+          description: `${statusText(result.status)} · ${result.anchor.bankImportRows} bank import rows · ${result.anchor.source || "import"}`,
+        });
+      } else {
+        rows.push({
+          date: result.live?.asOf || null,
+          type: accountLabel(result.account),
+          amount: result.live?.balanceLatest ?? null,
+          description: `Not Verified · ${result.live?.bankImportRows ?? 0} bank import rows · ledger balance to date`,
+        });
+      }
+      for (const divergence of result.divergences || []) {
+        rows.push({
+          date: result.anchor?.asOf || null,
+          type:
+            divergence.field === "bankImportRows"
+              ? "Row Count Drift"
+              : "Balance Drift",
+          amount: divergence.live,
+          description: `${accountLabel(result.account)} · Anchor ${divergence.anchor} · delta ${divergence.delta}`,
+        });
+      }
     }
-    for (const divergence of reconcile.divergences || []) {
-      rows.push({
-        date: reconcile.anchor?.asOf || null,
-        type:
-          divergence.field === "bankImportRows"
-            ? "Row Count Drift"
-            : "Balance Drift",
-        amount: divergence.live,
-        description: `Anchor ${divergence.anchor} · delta ${divergence.delta}`,
-      });
-    }
+
     return {
       slug,
       title,

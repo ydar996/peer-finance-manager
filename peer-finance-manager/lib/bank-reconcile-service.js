@@ -53,13 +53,44 @@ function countBankImportRows(db = getDb(), bankAccountId = null) {
     .get(targetId, targetId === primaryId || primaryId == null ? 1 : 0).c;
 }
 
-function readStoredAnchor() {
-  const balanceRaw = getCooperativeSetting(SETTING_KEYS.balance);
-  const asOf = getCooperativeSetting(SETTING_KEYS.asOf);
-  const rowsRaw = getCooperativeSetting(SETTING_KEYS.bankImportRows);
-  const verifiedAt = getCooperativeSetting(SETTING_KEYS.verifiedAt);
-  const source = getCooperativeSetting(SETTING_KEYS.source);
-  const label = getCooperativeSetting(SETTING_KEYS.label);
+// Per-account anchor keys, e.g. bank_reconcile_balance_acct_3. The
+// unsuffixed keys remain the primary account's legacy anchor.
+function accountSettingKeys(accountId) {
+  const suffix = `_acct_${accountId}`;
+  return {
+    balance: SETTING_KEYS.balance + suffix,
+    asOf: SETTING_KEYS.asOf + suffix,
+    bankImportRows: SETTING_KEYS.bankImportRows + suffix,
+    verifiedAt: SETTING_KEYS.verifiedAt + suffix,
+    source: SETTING_KEYS.source + suffix,
+    label: SETTING_KEYS.label + suffix,
+  };
+}
+
+function readStoredAnchor(bankAccountId = null, db = getDb()) {
+  const accountId = resolveAnchorAccountId(bankAccountId, db);
+  const primaryId = primaryBankAccountId(db);
+  let keys = accountSettingKeys(accountId);
+  let balanceRaw = getCooperativeSetting(keys.balance);
+  let asOf = getCooperativeSetting(keys.asOf);
+  let rowsRaw = getCooperativeSetting(keys.bankImportRows);
+  let verifiedAt = getCooperativeSetting(keys.verifiedAt);
+  let source = getCooperativeSetting(keys.source);
+  let label = getCooperativeSetting(keys.label);
+
+  // Legacy anchors (pre per-account storage) live on the primary account.
+  if (
+    (balanceRaw == null || !asOf || rowsRaw == null || !verifiedAt) &&
+    (accountId == null || accountId === primaryId || primaryId == null)
+  ) {
+    keys = SETTING_KEYS;
+    balanceRaw = getCooperativeSetting(SETTING_KEYS.balance);
+    asOf = getCooperativeSetting(SETTING_KEYS.asOf);
+    rowsRaw = getCooperativeSetting(SETTING_KEYS.bankImportRows);
+    verifiedAt = getCooperativeSetting(SETTING_KEYS.verifiedAt);
+    source = getCooperativeSetting(SETTING_KEYS.source);
+    label = getCooperativeSetting(SETTING_KEYS.label);
+  }
   const bankAccountIdRaw = getCooperativeSetting(SETTING_KEYS.bankAccountId);
 
   if (balanceRaw == null || !asOf || rowsRaw == null || !verifiedAt) {
@@ -80,9 +111,10 @@ function readStoredAnchor() {
     source: source || null,
     label: label || null,
     bankAccountId:
-      bankAccountIdRaw != null && bankAccountIdRaw !== ""
+      accountId ??
+      (bankAccountIdRaw != null && bankAccountIdRaw !== ""
         ? Number(bankAccountIdRaw)
-        : null,
+        : null),
   };
 }
 
@@ -108,18 +140,32 @@ function captureBankReconcileAnchor({
   const bankImportRows = countBankImportRows(db, anchorAccountId);
   const verifiedAt = new Date().toISOString();
 
-  setCooperativeSetting(db, SETTING_KEYS.balance, roundMoney(amount));
-  setCooperativeSetting(db, SETTING_KEYS.asOf, asOfDate);
-  setCooperativeSetting(db, SETTING_KEYS.bankImportRows, bankImportRows);
-  setCooperativeSetting(db, SETTING_KEYS.verifiedAt, verifiedAt);
-  setCooperativeSetting(db, SETTING_KEYS.source, source || "unknown");
-  setCooperativeSetting(
-    db,
-    SETTING_KEYS.bankAccountId,
-    anchorAccountId != null ? String(anchorAccountId) : ""
-  );
+  const keys = accountSettingKeys(anchorAccountId);
+  setCooperativeSetting(db, keys.balance, roundMoney(amount));
+  setCooperativeSetting(db, keys.asOf, asOfDate);
+  setCooperativeSetting(db, keys.bankImportRows, bankImportRows);
+  setCooperativeSetting(db, keys.verifiedAt, verifiedAt);
+  setCooperativeSetting(db, keys.source, source || "unknown");
   if (label != null && String(label).trim()) {
-    setCooperativeSetting(db, SETTING_KEYS.label, String(label).trim());
+    setCooperativeSetting(db, keys.label, String(label).trim());
+  }
+
+  // Keep the legacy (unsuffixed) keys in step for the primary account so
+  // older anchors and any reader that predates per-account storage agree.
+  if (anchorAccountId === primaryBankAccountId(db) || primaryBankAccountId(db) == null) {
+    setCooperativeSetting(db, SETTING_KEYS.balance, roundMoney(amount));
+    setCooperativeSetting(db, SETTING_KEYS.asOf, asOfDate);
+    setCooperativeSetting(db, SETTING_KEYS.bankImportRows, bankImportRows);
+    setCooperativeSetting(db, SETTING_KEYS.verifiedAt, verifiedAt);
+    setCooperativeSetting(db, SETTING_KEYS.source, source || "unknown");
+    setCooperativeSetting(
+      db,
+      SETTING_KEYS.bankAccountId,
+      anchorAccountId != null ? String(anchorAccountId) : ""
+    );
+    if (label != null && String(label).trim()) {
+      setCooperativeSetting(db, SETTING_KEYS.label, String(label).trim());
+    }
   }
 
   return {
@@ -201,12 +247,12 @@ function compareBankReconcileStatus({ anchor, liveBalanceAtAnchor, liveBankImpor
   };
 }
 
-function getBankReconcileStatus() {
-  const anchor = readStoredAnchor();
+function getBankReconcileStatus(bankAccountId = null) {
   const db = getDb();
   // The anchor is per bank account: compare against rows on that account
   // only, so appends to other accounts do not move the anchor's baseline.
-  const anchorAccountId = resolveAnchorAccountId(anchor?.bankAccountId, db);
+  const anchorAccountId = resolveAnchorAccountId(bankAccountId, db);
+  const anchor = readStoredAnchor(anchorAccountId, db);
   const liveLedger = getLedgerEndingBalance(null, anchorAccountId);
   const liveBalanceAtAnchor = anchor?.asOf
     ? getLedgerEndingBalance(anchor.asOf, anchorAccountId)
@@ -238,7 +284,7 @@ function getBankReconcileStatus() {
       db,
     });
     compared = compareBankReconcileStatus({
-      anchor: readStoredAnchor(),
+      anchor: readStoredAnchor(anchorAccountId, db),
       liveBalanceAtAnchor,
       liveBankImportRows: countBankImportRows(db, anchorAccountId),
       liveLedger,
@@ -249,10 +295,61 @@ function getBankReconcileStatus() {
 }
 
 /**
+ * Reconcile status for every configured bank account. The overall status is
+ * out_of_sync when any account diverges, reconciled when at least one anchor
+ * verifies, otherwise not_set. anchor/live/divergences mirror the worst
+ * (diverging) account so the headline card can surface its details.
+ */
+function getBankReconcileStatusAll() {
+  const db = getDb();
+  let accounts = [];
+  try {
+    accounts = db
+      .prepare(
+        `SELECT id, institution_name, account_label, is_primary
+         FROM bank_accounts ORDER BY is_primary DESC, id ASC`
+      )
+      .all();
+  } catch (_) {
+    accounts = [];
+  }
+
+  const results = accounts.map((account) => ({
+    account: {
+      id: account.id,
+      institutionName: account.institution_name,
+      accountLabel: account.account_label,
+      isPrimary: !!account.is_primary,
+    },
+    ...getBankReconcileStatus(account.id),
+  }));
+
+  const display =
+    results.find((r) => r.status === "out_of_sync") ||
+    results.find((r) => r.status === "reconciled") ||
+    results[0] ||
+    getBankReconcileStatus(null);
+
+  const status = results.some((r) => r.status === "out_of_sync")
+    ? "out_of_sync"
+    : results.some((r) => r.status === "reconciled")
+      ? "reconciled"
+      : "not_set";
+
+  return {
+    status,
+    anchor: display.anchor,
+    live: display.live,
+    divergences: display.divergences,
+    accounts: results,
+  };
+}
+
+/**
  * After split/reclassify rebuild: keep balance/as-of, refresh bank_import row count.
  */
 function refreshBankReconcileAfterClassification({ label = "split/reclassify" } = {}) {
-  const anchor = readStoredAnchor();
+  const anchor = readStoredAnchor(null);
   if (!anchor?.asOf) return null;
   const db = getDb();
   const anchorAccountId = resolveAnchorAccountId(anchor.bankAccountId, db);
@@ -310,6 +407,7 @@ module.exports = {
   captureBankReconcileAnchorFromLedger,
   compareBankReconcileStatus,
   getBankReconcileStatus,
+  getBankReconcileStatusAll,
   refreshBankReconcileAfterClassification,
   captureBankReconcileAfterAppend,
 };

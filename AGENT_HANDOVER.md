@@ -1682,3 +1682,13 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
   description contains the typed text, with a confirmation count. Both
   match case-insensitive substring on the bank description, skip rows
   already on the chosen label, and re-sort the table after applying.
+- **2026-11-24** - **Per-account reconcile anchors + all-accounts card
+  detail.** Anchors now store under per-account setting keys
+  (bank_reconcile_*_acct_<id>); legacy unsuffixed keys remain the primary
+  account's anchor for back-compat. getBankReconcileStatusAll() returns
+  each bank account's status (Reconciled / Out of Sync / Not Verified
+  with live balance + row count) and an aggregate headline (out_of_sync
+  if any account diverges). The Bank Reconcile Status card detail lists
+  one row per account plus its divergences. Statement appends that match
+  their statement ending capture an anchor for that account; template
+  appends (no statement summary) leave the account as Not Verified.
