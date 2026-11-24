@@ -276,6 +276,8 @@ function importAgeHours(importedAt) {
 }
 
 async function notifyImportedMemberDeposits(insertedRows = []) {
+  const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+  const memberEmailOn = memberEmailNotificationsEnabled();
   const grouped = groupMemberDepositAlerts(insertedRows);
   const depositCount = [...grouped.values()].reduce((n, group) => n + group.items.length, 0);
   if (!depositCount) {
@@ -325,7 +327,8 @@ async function notifyImportedMemberDeposits(insertedRows = []) {
       continue;
     }
     wouldEmail += 1;
-    if (!isEmailConfigured()) {
+    if (!memberEmailOn || !isEmailConfigured()) {
+      const skipReason = !memberEmailOn ? "member_email_disabled" : "not_configured";
       skipped += 1;
       markDepositsAlerted(deposits.map((d) => ({ ...d, memberId })), portal?.created ? "sent" : "skipped");
       deliveries.push({
@@ -336,7 +339,7 @@ async function notifyImportedMemberDeposits(insertedRows = []) {
         bodyText: message.text,
         bodyHtml: message.html,
         status: portal?.created ? "sent" : "skipped",
-        errorMessage: portal?.created ? "portal_only:not_configured" : "not_configured",
+        errorMessage: portal?.created ? `portal_only:${skipReason}` : skipReason,
       });
       continue;
     }

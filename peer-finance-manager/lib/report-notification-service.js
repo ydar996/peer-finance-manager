@@ -107,6 +107,10 @@ function escapeHtml(value) {
 }
 
 async function sendReportReminderEmails({ triggerType, dedupeKey, periodSlug, subject, textFor, htmlFor }) {
+  const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+  if (!memberEmailNotificationsEnabled()) {
+    return { sent: false, skipped: true, reason: "member_email_disabled" };
+  }
   if (!isEmailConfigured()) {
     return { sent: false, skipped: true, reason: "not_configured" };
   }

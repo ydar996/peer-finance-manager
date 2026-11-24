@@ -399,6 +399,8 @@ function queueNewMessageEmails({ thread, messagePreview, recipientUserIds, sende
       .get(userId);
     const email = String(row?.email || row?.userEmail || "").trim();
     if (!email) continue;
+    const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+    if (row?.role === "member" && !memberEmailNotificationsEnabled()) continue;
     const message = renderAutomatedEmail("inbox_new_message", {
       memberName: row.name || "Member",
       messageSubject: thread.subject,

@@ -465,6 +465,10 @@ async function emailMemberTempPassword({
   if (!to) {
     return { sent: false, skipped: true, reason: "no_email" };
   }
+  const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+  if (purpose === "welcome" && !memberEmailNotificationsEnabled()) {
+    return { sent: false, skipped: true, reason: "member_email_disabled" };
+  }
 
   const { renderAutomatedEmail } = require("./automated-message-service");
   const portalUrl = getMemberPortalLoginUrl(organizationSlug);

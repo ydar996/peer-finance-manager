@@ -6658,6 +6658,62 @@ function renderAutomatedMessageCard(tpl) {
   return card;
 }
 
+async function loadMemberEmailNotificationsToggle() {
+  const toggle = $("#memberEmailNotificationsToggle");
+  const status = $("#memberEmailNotificationsStatus");
+  if (!toggle || currentUser?.role !== "admin") return;
+  toggle.disabled = true;
+  try {
+    const res = await fetch("/api/cooperative/member-email-notifications");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load setting");
+    toggle.checked = data.enabled === true;
+    if (status) {
+      status.textContent = toggle.checked
+        ? "On: members receive automated email notifications."
+        : "Off: no automated email is sent to members.";
+      status.className = toggle.checked ? "status ok" : "status";
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  } finally {
+    toggle.disabled = false;
+  }
+}
+
+$("#memberEmailNotificationsToggle")?.addEventListener("change", async (e) => {
+  const toggle = e.target;
+  const status = $("#memberEmailNotificationsStatus");
+  toggle.disabled = true;
+  try {
+    const res = await fetch("/api/cooperative/member-email-notifications", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: toggle.checked }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Save failed");
+    toggle.checked = data.enabled === true;
+    if (status) {
+      status.textContent = toggle.checked
+        ? "On: members receive automated email notifications."
+        : "Off: no automated email is sent to members.";
+      status.className = toggle.checked ? "status ok" : "status";
+    }
+  } catch (err) {
+    toggle.checked = !toggle.checked;
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  } finally {
+    toggle.disabled = false;
+  }
+});
+
 async function loadAutomatedMessagesPanel() {
   const list = $("#automatedMessagesList");
   const status = $("#automatedMessagesStatus");
@@ -6666,6 +6722,7 @@ async function loadAutomatedMessagesPanel() {
     status.textContent = "";
     status.className = "status";
   }
+  loadMemberEmailNotificationsToggle();
   try {
     const res = await fetch("/api/cooperative/automated-messages");
     const data = await res.json();

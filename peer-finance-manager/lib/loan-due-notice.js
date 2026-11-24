@@ -355,6 +355,8 @@ function buildLoanDueNoticeEmail({ memberName, dueDate, loans, branding }) {
 }
 
 async function sendLoanDueNoticesForToday(date = new Date()) {
+  const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+  const memberEmailOn = memberEmailNotificationsEnabled();
   const dueDate = todayIso(date);
   const notices = listDueLoanNotices(dueDate);
   if (!notices.length) {
@@ -397,7 +399,14 @@ async function sendLoanDueNoticesForToday(date = new Date()) {
       bodyText: message.text,
       bodyHtml: message.html,
     };
-    if (!recipient.email || !isEmailConfigured()) {
+    if (!recipient.email || !memberEmailOn || !isEmailConfigured()) {
+      const skipReason = !recipient.email
+        ? portal?.created
+          ? "portal_only"
+          : "no_email"
+        : !memberEmailOn
+          ? "member_email_disabled"
+          : "not_configured";
       skipped += 1;
       recordDeliveryBatch({
         triggerType: TRIGGER_TYPE,
@@ -406,13 +415,9 @@ async function sendLoanDueNoticesForToday(date = new Date()) {
           {
             ...deliveryBase,
             status: portal?.created ? "sent" : "skipped",
-            errorMessage: !recipient.email
-              ? portal?.created
-                ? "portal_only"
-                : "no_email"
-              : portal?.created
-                ? "portal_only:not_configured"
-                : "not_configured",
+            errorMessage: portal?.created && recipient.email
+              ? `portal_only:${skipReason}`
+              : skipReason,
           },
         ],
       });

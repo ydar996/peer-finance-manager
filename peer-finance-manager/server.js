@@ -1857,6 +1857,24 @@ app.post("/api/cooperative/automated-messages/:id/reset", requireAdmin, restoreO
   }
 });
 
+app.get("/api/cooperative/member-email-notifications", requireAdmin, restoreOrgContext, (_req, res) => {
+  try {
+    const { memberEmailNotificationsEnabled } = require("./lib/member-email-gate");
+    res.json({ enabled: memberEmailNotificationsEnabled() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/cooperative/member-email-notifications", requireAdmin, restoreOrgContext, (req, res) => {
+  try {
+    const { setMemberEmailNotificationsEnabled } = require("./lib/member-email-gate");
+    res.json({ enabled: setMemberEmailNotificationsEnabled(req.body?.enabled === true) });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 app.get("/api/books/email-audit", requireAdmin, (req, res) => {
   try {
     const {

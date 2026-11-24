@@ -616,8 +616,11 @@ Temporary passwords must be changed on first member sign-in. Former members cann
 
 Open **Automated Messages** any time to read and edit the emails members receive automatically (loan repayment terms, loan application approved, loan disbursed, loan payment due, deposit confirmed, loan repayment confirmed, share capital received, annual dues reminder, membership received, deposits verified, welcome login, password reset, meeting notices, published reports, month-end reminder, and new portal message tips). Deposits, loan repayments, and share capital receipts each get their own email and are never combined into one message. Those notices are also posted to the member portal inbox so members and administrators can re-read the same wording later.
 
+**Email Members Automatically** (the switch at the top of the tab) controls whether any of these emails actually leave PFM. It is **off by default**: no automated email is sent to members until an administrator turns it on. Password resets requested for a member still send, and notices still post to the member portal inbox either way. Emails to administrators (Cooperative registration welcome, admin notices) are not affected.
+
 | Action | What it does |
 |--------|--------------|
+| **Email Members Automatically** | Master switch for all automated member email. Off means no member receives automated email; portal inbox notices still post. |
 | **Open a message** | Shows the current subject, body, placeholders, and a sample preview. |
 | **Save Message** | Stores your wording for this Cooperative. The next send uses it. |
 | **Restore Default** | Returns that message to the original PFM wording. |

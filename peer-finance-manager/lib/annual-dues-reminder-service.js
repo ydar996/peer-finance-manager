@@ -106,6 +106,10 @@ function buildDuesReminderEmail({ memberName, orgName, year, paid, required, out
  * `manual` bypasses the enabled flag (admin on-demand send).
  */
 async function sendDuesReminders({ year = currentDuesYear(), manual = false } = {}) {
+  const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+  if (!memberEmailNotificationsEnabled()) {
+    return { sent: 0, failed: 0, skipped: 0, outstanding: 0, reason: "member_email_disabled" };
+  }
   const policy = getMembershipPolicy();
   if (policy.feeModel !== FEE_MODEL_ANNUAL) {
     return { sent: 0, failed: 0, skipped: 0, outstanding: 0, reason: "not_annual_model" };

@@ -133,7 +133,9 @@ async function sendLoanApplicationNotice({
   });
   let status = portal?.created ? "sent" : "skipped";
   let errorMessage = portal?.created ? null : portal?.reason || portal?.error || null;
-  if (email && isEmailConfigured()) {
+  const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+  const memberEmailOn = memberEmailNotificationsEnabled();
+  if (email && memberEmailOn && isEmailConfigured()) {
     try {
       const result = await sendEmail({
         to: email,
@@ -159,11 +161,13 @@ async function sendLoanApplicationNotice({
       }
     }
   } else if (portal?.created) {
-    errorMessage = email ? "portal_only:not_configured" : "portal_only";
+    errorMessage = email
+      ? `portal_only:${!memberEmailOn ? "member_email_disabled" : "not_configured"}`
+      : "portal_only";
   } else if (!email) {
     errorMessage = "no_email";
   } else {
-    errorMessage = "not_configured";
+    errorMessage = !memberEmailOn ? "member_email_disabled" : "not_configured";
   }
 
   try {

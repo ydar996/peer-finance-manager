@@ -175,6 +175,33 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Master member-email switch (default OFF), after 37
+  member emails fired at Twilight.** `member_email_delivery_log` showed two
+  `deposit_credit_alert` batches (15 + 22 members, Nov 23 23:47/23:52)
+  triggered by `notifyImportedMemberDeposits` firing unconditionally after
+  every bank import; rebuilds reissue transaction ids so the
+  `deposit_credit_alert_log` dedupe cannot stop repeats. New
+  `lib/member-email-gate.js` reads cooperative setting
+  `member_email_notifications_enabled` (unset = OFF, opt-in). Gate applied
+  at every member-facing send: deposit credit alerts (`deposit-credit-alert.js`),
+  loan due notices (`loan-due-notice.js`), loan approval/terms/disbursement
+  notices (`loan-application-notify.js`), meeting announced/cancelled/reminder
+  emails (`meeting-notification-service.js` `sendMemberBroadcastEmail`),
+  report-published + month-end member reminders
+  (`report-notification-service.js` `sendReportReminderEmails`; the admin
+  preview send stays ungated), `inbox_new_message` portal email to members
+  (`messaging-service.js`), membership applicant emails +
+  deposits-verified corrections (`membership-application-notify.js`),
+  member portal welcome emails (`auth-service.js` `emailMemberTempPassword`
+  purpose `welcome`; purpose `reset` still sends: it is
+  member/admin-requested and `copyText` stays available), and annual dues
+  reminders (`annual-dues-reminder-service.js`: the master gate overrides
+  even `manual: true`). When off, the email is skipped and portal notices
+  still post; audit rows record reason `member_email_disabled`. Admin
+  endpoints `GET/PUT /api/cooperative/member-email-notifications`; toggle
+  "Email Members Automatically" at the top of the Automated Messages tab
+  (`index.html`, `app.js`). Admin-facing email is unaffected (org
+  registration welcome, admin inbox/report notices).
 - **2026-11-24** - **Deposits YTD card note uses full-year totals, drops
   empty years.** The note compared against same-period YTD of prior years,
   so Twilight's 2025 deposits (all made Nov 25+, after the Nov-24 cutoff)

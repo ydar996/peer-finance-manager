@@ -2461,6 +2461,14 @@
           <button type="button" class="btn" id="refreshAutomatedMessages">Refresh</button>
         </div>
         <p class="hint">Open Any Message to Adjust the Subject and Wording. Placeholders such as {{memberName}} Are Filled in When the Email is Sent. Restore Default Returns the Original Copy.</p>
+        <div class="card">
+          <label class="check">
+            <input type="checkbox" id="memberEmailNotificationsToggle" />
+            Email Members Automatically
+          </label>
+          <p class="subtle">When off, no automated email is sent to members: deposit alerts, dues reminders, loan and meeting notices, and report announcements are skipped. Member-requested password resets still send.</p>
+          <p id="memberEmailNotificationsStatus" class="status"></p>
+        </div>
         <p id="automatedMessagesStatus" class="status"></p>
         <div id="automatedMessagesList" class="automated-messages-list">
           <p class="subtle">Loading…</p>

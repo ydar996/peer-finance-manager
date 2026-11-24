@@ -71,6 +71,10 @@ function renderDepositsVerifiedMessage({
 }
 
 async function emailApplicantApplicationReceived({ to, memberName }) {
+  const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+  if (!memberEmailNotificationsEnabled()) {
+    return { sent: false, skipped: true, reason: "member_email_disabled" };
+  }
   if (!isEmailConfigured()) {
     return { sent: false, skipped: true, reason: "not_configured" };
   }
@@ -95,6 +99,10 @@ async function emailApplicantDepositsVerified({
   depositAmount,
   contributionAmount,
 } = {}) {
+  const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+  if (!memberEmailNotificationsEnabled()) {
+    return { sent: false, skipped: true, reason: "member_email_disabled" };
+  }
   if (!isEmailConfigured()) {
     return { sent: false, skipped: true, reason: "not_configured" };
   }
@@ -214,7 +222,10 @@ async function sendDepositsVerifiedCorrectionEmail({
     ...amounts,
   });
   let delivery = { status: "skipped", errorMessage: null };
-  if (!isEmailConfigured()) {
+  const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+  if (!memberEmailNotificationsEnabled()) {
+    delivery = { status: "skipped", errorMessage: "member_email_disabled" };
+  } else if (!isEmailConfigured()) {
     delivery = { status: "skipped", errorMessage: "not_configured" };
   } else {
     try {
