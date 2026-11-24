@@ -175,6 +175,19 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Configurable interest-income keywords.** New
+  "Interest Income Keywords (Comma-Separated)" field in Organization &
+  Report Settings on the Status Report page. Stored in
+  cooperative_settings.interest_income_keywords; normalized to
+  uppercase, deduped, and merged with DEFAULT_INTEREST_INCOME_KEYWORDS
+  (INTEREST, CAPITALIS in constants.js). getInterestIncomeKeywords() in
+  cooperative-books.js matches investment credits by case-insensitive
+  substring on the narration (was a hardcoded LIKE on INTEREST/
+  CAPITALIS). Settings payload field: interestIncomeKeywords (string or
+  array); empty clears back to defaults. Settings response also returns
+  interestIncomeKeywordsEffective, shown in the field hint. Deploy:
+  git push only.
+
 - **2026-11-24** - **Fixed/term deposit interest now counted in income.**
   getCdInterestBreakdown only tracked cd_purchase/cd_liquidation lots,
   so imported INTEREST CAPITALISED rows (typed investment) showed as

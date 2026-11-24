@@ -1,5 +1,5 @@
 const { getDb } = require("../db/database");
-const { TRANSACTION_TYPES } = require("./constants");
+const { TRANSACTION_TYPES, DEFAULT_INTEREST_INCOME_KEYWORDS } = require("./constants");
 const { getMemberDepositAccountBalance } = require("./balance-service");
 const {
   getCdBalanceSnapshot,
@@ -152,6 +152,14 @@ function getCooperativeAssetTotals() {
 }
 
 /** Realized + accrued interest on cooperative CDs (liquidations + current balance − purchases). */
+function getInterestIncomeKeywords() {
+  const custom = String(getCooperativeSetting("interest_income_keywords") || "")
+    .split(/[,;\n]+/)
+    .map((term) => term.trim().toUpperCase())
+    .filter(Boolean);
+  return [...new Set([...DEFAULT_INTEREST_INCOME_KEYWORDS, ...custom])];
+}
+
 function depositInstrumentLabel() {
   try {
     const { getCountryProfile } = require("./country-profile");
@@ -178,11 +186,15 @@ function getCdInterestBreakdown() {
       `SELECT transaction_date, amount, description
        FROM transactions
        WHERE type = 'investment' AND amount > 0
-         AND (UPPER(COALESCE(description, '')) LIKE '%INTEREST%'
-              OR UPPER(COALESCE(description, '')) LIKE '%CAPITALIS%')
        ORDER BY transaction_date, id`
     )
-    .all();
+    .all()
+    .filter((row) => {
+      const narration = String(row.description || "").toUpperCase();
+      return getInterestIncomeKeywords().some((keyword) =>
+        narration.includes(keyword)
+      );
+    });
 
   if (!events.length && !interestRows.length) {
     return { cdInterestIncome: 0, cdInterestRealized: 0, cdInterestAccrued: 0, rows: [] };

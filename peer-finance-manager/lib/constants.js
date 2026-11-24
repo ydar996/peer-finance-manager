@@ -41,8 +41,16 @@ const TRANSACTION_TYPES = {
   SHARE_CAPITAL_REDEMPTION: "share_capital_redemption",
 };
 
+/**
+ * Investment credits whose narration contains any of these words always
+ * count as realized deposit-instrument interest income. Administrators
+ * can extend the list via the Interest Income Keywords report setting.
+ */
+const DEFAULT_INTEREST_INCOME_KEYWORDS = ["INTEREST", "CAPITALIS"];
+
 module.exports = {
   MONTH_NAMES,
+  DEFAULT_INTEREST_INCOME_KEYWORDS,
   MEMBERSHIP_FEE,
   INITIAL_MEMBERSHIP_CONTRIBUTION,
   LATE_FEE_AMOUNT,

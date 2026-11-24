@@ -30,6 +30,7 @@ const {
 const SETTING_AUTO_GENERATE = "monthly_status_auto_generate";
 const SETTING_AUTO_PUBLISH = "monthly_status_auto_publish";
 const SETTING_ORG_WEBSITE = "organization_website";
+const SETTING_INTEREST_KEYWORDS = "interest_income_keywords";
 
 function ensureReportsTable(db) {
   ensureSettingsTable(db);
@@ -81,6 +82,19 @@ function settingEnabled(key, defaultWhenUnset = true) {
   return truthySetting(value);
 }
 
+function parseInterestKeywords(raw) {
+  return String(raw || "")
+    .split(/[,;\n]+/)
+    .map((term) => term.trim().toUpperCase())
+    .filter(Boolean);
+}
+
+function getInterestIncomeKeywordsEffective() {
+  const { DEFAULT_INTEREST_INCOME_KEYWORDS } = require("./constants");
+  const custom = parseInterestKeywords(getCooperativeSetting(SETTING_INTEREST_KEYWORDS));
+  return [...new Set([...DEFAULT_INTEREST_INCOME_KEYWORDS, ...custom])];
+}
+
 function getMonthlyStatusReportSettings() {
   const db = getDb();
   ensureReportsTable(db);
@@ -89,6 +103,10 @@ function getMonthlyStatusReportSettings() {
     autoGenerate: settingEnabled(SETTING_AUTO_GENERATE),
     autoPublish: settingEnabled(SETTING_AUTO_PUBLISH),
     organizationWebsite: getCooperativeSetting(SETTING_ORG_WEBSITE) || "",
+    interestIncomeKeywords: parseInterestKeywords(
+      getCooperativeSetting(SETTING_INTEREST_KEYWORDS)
+    ).join(", "),
+    interestIncomeKeywordsEffective: getInterestIncomeKeywordsEffective().join(", "),
     cooperativeTimezone: getCooperativeTimezone(),
     countryProfile: getPublicCountryProfile(),
     countries: listCountryProfiles(),
@@ -108,6 +126,20 @@ function updateMonthlyStatusReportSettings(payload = {}) {
     const website = String(payload.organizationWebsite || "").trim();
     if (website) setCooperativeSetting(db, SETTING_ORG_WEBSITE, website);
     else db.prepare(`DELETE FROM cooperative_settings WHERE key = ?`).run(SETTING_ORG_WEBSITE);
+  }
+  if (payload.interestIncomeKeywords !== undefined) {
+    const terms = parseInterestKeywords(
+      Array.isArray(payload.interestIncomeKeywords)
+        ? payload.interestIncomeKeywords.join(",")
+        : payload.interestIncomeKeywords
+    );
+    if (terms.length) {
+      setCooperativeSetting(db, SETTING_INTEREST_KEYWORDS, terms.join(", "));
+    } else {
+      db.prepare(`DELETE FROM cooperative_settings WHERE key = ?`).run(
+        SETTING_INTEREST_KEYWORDS
+      );
+    }
   }
   if (payload.cooperativeTimezone !== undefined) {
     setCooperativeTimezone(payload.cooperativeTimezone);

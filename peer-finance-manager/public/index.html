@@ -620,6 +620,11 @@
                 <span>Organization website (optional, shown on report cover)</span>
                 <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
               </label>
+              <label class="field-row">
+                <span>Interest Income Keywords (Comma-Separated)</span>
+                <input type="text" id="monthlyStatusInterestKeywords" placeholder="YIELD CREDIT, INT PAYMENT" />
+              </label>
+              <p class="hint subtle" id="monthlyStatusInterestKeywordsHint">Investment credits whose bank narration contains any of these words count as realized interest income. Default keywords always apply: INTEREST, CAPITALIS.</p>
               <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the Cooperative report is built as at that calendar month-end date and published to members. <strong>Generate Report</strong> and <strong>Publish to Members</strong> use today's date (the day you run them), not month-end. <strong>Send Preview to Admin Only</strong> emails the report announcement to your administrator account only, so you can check it before members receive it. Publishing asks for confirmation if no preview was sent. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
               <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Organization Settings</button>
             </div>

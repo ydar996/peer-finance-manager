@@ -4711,6 +4711,12 @@ function applyMonthlyStatusReportSettingsToForm(settings) {
   if (autoGen) autoGen.checked = Boolean(settings.autoGenerate);
   if (autoPub) autoPub.checked = Boolean(settings.autoPublish);
   if (website) website.value = settings.organizationWebsite || "";
+  const keywordsInput = $("#monthlyStatusInterestKeywords");
+  if (keywordsInput) keywordsInput.value = settings.interestIncomeKeywords || "";
+  const keywordsHint = $("#monthlyStatusInterestKeywordsHint");
+  if (keywordsHint && settings.interestIncomeKeywordsEffective) {
+    keywordsHint.textContent = `Investment credits whose bank narration contains any of these words count as realized interest income. Currently matching: ${settings.interestIncomeKeywordsEffective}.`;
+  }
   if (settings.cooperativeTimezone) {
     applyCooperativeTimezone(settings.cooperativeTimezone);
     populateTimezoneSelect(timezone, [], settings.cooperativeTimezone);
@@ -5672,6 +5678,7 @@ async function saveMonthlyStatusReportSettings() {
         autoGenerate: $("#monthlyStatusAutoGenerate")?.checked || false,
         autoPublish: $("#monthlyStatusAutoPublish")?.checked || false,
         organizationWebsite: $("#monthlyStatusOrgWebsite")?.value?.trim() || "",
+        interestIncomeKeywords: $("#monthlyStatusInterestKeywords")?.value || "",
         cooperativeTimezone: $("#cooperativeTimezone")?.value || cooperativeTimezone,
         countryCode: $("#cooperativeCountry")?.value || countryProfile.code,
       }),
