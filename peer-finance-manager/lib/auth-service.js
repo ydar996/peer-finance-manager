@@ -251,6 +251,9 @@ function changePassword(userId, currentPassword, newPassword) {
   db.prepare(
     `UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?`
   ).run(hashPassword(newPassword), userId);
+  getRegistryDb()
+    .prepare(`DELETE FROM sessions WHERE user_id = ? AND organization_slug = ?`)
+    .run(userId, getOrgSlug());
   return getUserById(userId, getOrganization(getOrgSlug()));
 }
 
@@ -267,10 +270,16 @@ function ensureAssuranceAdminUser() {
        WHERE id = ?`
     ).run(existing.id);
   } else {
+    const seedPassword = process.env.ASSURANCE_ADMIN_PASSWORD || "123456789";
+    if (!process.env.ASSURANCE_ADMIN_PASSWORD && process.env.NODE_ENV === "production") {
+      console.warn(
+        "[security] ASSURANCE_ADMIN_PASSWORD is not set; the seeded admin uses the repository default password. Set it in the environment."
+      );
+    }
     db.prepare(
       `INSERT INTO users (email, password_hash, role, display_name, active, must_change_password)
        VALUES (?, ?, 'admin', 'Administrator', 1, 0)`
-    ).run(ASSURANCE_ADMIN_EMAIL, hashPassword("123456789"));
+    ).run(ASSURANCE_ADMIN_EMAIL, hashPassword(seedPassword));
   }
 
   db.prepare(
@@ -616,6 +625,9 @@ async function resetMemberPortalPassword({
            active = 1, must_change_password = 1
        WHERE id = ?`
     ).run(loginEmail, username, hashPassword(tempPassword), displayName, existing.id);
+    getRegistryDb()
+      .prepare(`DELETE FROM sessions WHERE user_id = ? AND organization_slug = ?`)
+      .run(existing.id, orgSlug);
     wasReset = true;
     portalUserId = existing.id;
   } else {
@@ -769,17 +781,29 @@ function writeMemberCredentialsExport(created, skipped) {
   const stamp = new Date().toISOString().slice(0, 10);
   const exportPath = path.join(exportDir, `member-credentials-${stamp}.csv`);
 
+  const csvSafe = (v) => {
+    let s = String(v ?? "");
+    if (/^[\t\r ]*[=+\-@]/.test(s)) s = `'${s}`;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
   const lines = [
     "Member Name,Username,Temporary Password,Email,Member ID,Status",
     ...created.map(
       (row) =>
-        `"${row.memberName.replace(/"/g, '""')}",${row.username},${row.tempPassword},${row.email},${row.memberId},${row.reset ? "Reset" : "New"}`
+        `${csvSafe(row.memberName)},${csvSafe(row.username)},${csvSafe(row.tempPassword)},${csvSafe(row.email)},${row.memberId},"${row.reset ? "Reset" : "New"}"`
     ),
     ...skipped.map(
       (row) =>
-        `"${row.memberName.replace(/"/g, '""')}",${row.username || ""},,,${row.memberId},"Skipped: ${row.reason}"`
+        `${csvSafe(row.memberName)},${csvSafe(row.username || "")},,,${row.memberId},"Skipped: ${csvSafe(row.reason).slice(1, -1)}"`
     ),
   ];
+  for (const old of fs
+    .readdirSync(exportDir)
+    .filter((f) => f.startsWith("member-credentials-") && f.endsWith(".csv"))) {
+    try {
+      fs.unlinkSync(path.join(exportDir, old));
+    } catch (_) {}
+  }
   fs.writeFileSync(exportPath, lines.join("\n"), "utf8");
   return exportPath;
 }
@@ -876,6 +900,9 @@ function setPasswordFromSetupToken({ token, password, organizationSlug }) {
         `UPDATE users SET password_hash = ?, must_change_password = 0, active = 1 WHERE id = ?`
       )
       .run(hashPassword(password), userId);
+    getRegistryDb()
+      .prepare(`DELETE FROM sessions WHERE user_id = ? AND organization_slug = ?`)
+      .run(userId, org.slug);
     return { userId, organizationSlug: org.slug };
   });
 }

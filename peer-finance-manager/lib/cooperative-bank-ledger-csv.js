@@ -76,7 +76,8 @@ function formatRunningBalance(amount) {
 }
 
 function csvEscape(value) {
-  const s = String(value ?? "");
+  let s = String(value ?? "");
+  if (/^[\t\r ]*[=+\-@]/.test(s)) s = `'${s}`;
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }

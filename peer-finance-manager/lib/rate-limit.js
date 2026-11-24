@@ -20,11 +20,21 @@ function clientKey(req, scope) {
   return `${scope}:${req.ip || req.socket?.remoteAddress || "unknown"}`;
 }
 
+const PERSIST_RETENTION_MS = 24 * 60 * 60 * 1000;
+
 function sweep() {
   const now = Date.now();
   for (const [key, entry] of buckets) {
     entry.hits = entry.hits.filter((t) => now - t < entry.windowMs);
     if (!entry.hits.length) buckets.delete(key);
+  }
+  const db = persistStore();
+  if (db) {
+    try {
+      db.prepare(`DELETE FROM rate_limit_hits WHERE hit_at < ?`).run(
+        now - PERSIST_RETENTION_MS
+      );
+    } catch (_) {}
   }
 }
 

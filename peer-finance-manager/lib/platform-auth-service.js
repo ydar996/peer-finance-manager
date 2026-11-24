@@ -6,8 +6,6 @@ const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 
 const DEFAULT_PLATFORM_ADMIN_EMAIL =
   process.env.PLATFORM_ADMIN_EMAIL || "ydaramola@gmail.com";
-const DEFAULT_PLATFORM_ADMIN_PASSWORD =
-  process.env.PLATFORM_ADMIN_PASSWORD || "12345678";
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -84,26 +82,60 @@ function mapPlatformUser(row) {
 
 function ensurePlatformAdminUser({
   email = DEFAULT_PLATFORM_ADMIN_EMAIL,
-  password = DEFAULT_PLATFORM_ADMIN_PASSWORD,
+  password,
   displayName = "Platform Administrator",
 } = {}) {
   const db = getRegistryDb();
   ensurePlatformAuthTables(db);
   const normalized = normalizeEmail(email);
   if (!normalized) throw new Error("Platform admin email is required");
-  if (!password || String(password).length < 8) {
-    throw new Error("Platform admin password must be at least 8 characters");
-  }
 
   const existing = db
-    .prepare(`SELECT id, email FROM platform_users WHERE lower(email) = lower(?)`)
+    .prepare(
+      `SELECT id, email, password_hash FROM platform_users WHERE lower(email) = lower(?)`
+    )
     .get(normalized);
 
+  // An explicit password (arg or PLATFORM_ADMIN_PASSWORD env) is the
+  // operator's recovery path: it rotates the hash and revokes sessions.
+  // Without it, a restart must never revert a password set through the app.
+  const recoveryPassword = password ?? process.env.PLATFORM_ADMIN_PASSWORD;
+
   if (existing) {
+    if (recoveryPassword) {
+      if (String(recoveryPassword).length < 8) {
+        throw new Error("Platform admin password must be at least 8 characters");
+      }
+      if (!verifyPassword(recoveryPassword, existing.password_hash)) {
+        db.prepare(
+          `UPDATE platform_users SET password_hash = ?, display_name = ?, active = 1 WHERE id = ?`
+        ).run(hashPassword(recoveryPassword), displayName, existing.id);
+        db.prepare(`DELETE FROM platform_sessions WHERE platform_user_id = ?`).run(
+          existing.id
+        );
+        return { created: false, email: normalized, id: existing.id, passwordRotated: true };
+      }
+    }
     db.prepare(
-      `UPDATE platform_users SET password_hash = ?, display_name = ?, active = 1 WHERE id = ?`
-    ).run(hashPassword(password), displayName, existing.id);
+      `UPDATE platform_users SET display_name = ?, active = 1 WHERE id = ?`
+    ).run(displayName, existing.id);
     return { created: false, email: normalized, id: existing.id };
+  }
+
+  let seedPassword = recoveryPassword;
+  if (!seedPassword) {
+    if (process.env.NODE_ENV === "production") {
+      seedPassword = crypto.randomBytes(12).toString("base64url").slice(0, 16);
+      console.warn(
+        "[security] PLATFORM_ADMIN_PASSWORD is not set; generated a one-time platform admin password below. Set PLATFORM_ADMIN_PASSWORD in the environment to take control."
+      );
+      console.warn(`[security] platform admin password: ${seedPassword}`);
+    } else {
+      seedPassword = "12345678";
+    }
+  }
+  if (String(seedPassword).length < 8) {
+    throw new Error("Platform admin password must be at least 8 characters");
   }
 
   const result = db
@@ -111,7 +143,7 @@ function ensurePlatformAdminUser({
       `INSERT INTO platform_users (email, password_hash, display_name, role, active)
        VALUES (?, ?, ?, 'super_admin', 1)`
     )
-    .run(normalized, hashPassword(password), displayName);
+    .run(normalized, hashPassword(seedPassword), displayName);
   return { created: true, email: normalized, id: result.lastInsertRowid };
 }
 

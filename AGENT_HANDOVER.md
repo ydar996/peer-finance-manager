@@ -175,6 +175,54 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Security pass round 2: forced-reset fix, session
+  revocation, seed credentials, CSV injection, rate-limit pruning.**
+  - **Platform admin password no longer force-reset on boot**
+    (`lib/platform-auth-service.js` `ensurePlatformAdminUser`). Previously
+    every startup overwrote `password_hash` with
+    `PLATFORM_ADMIN_PASSWORD || "12345678"`, so any password change made
+    through the app was silently reverted on each deploy, and without the
+    env var the super-admin password was permanently the repo default.
+    Now: the hash is only rotated when `PLATFORM_ADMIN_PASSWORD` is
+    explicitly set AND differs from the stored hash (operator recovery
+    path); on rotation all `platform_sessions` for that user are revoked.
+    Without the env var, existing users are untouched; a fresh production
+    install gets a random password logged once to console (dev keeps the
+    "12345678" convenience default). `DEFAULT_PLATFORM_ADMIN_PASSWORD`
+    constant removed.
+  - **Session revocation on credential change** (`lib/auth-service.js`):
+    `changePassword`, `setPasswordFromSetupToken`, and
+    `resetMemberPortalPassword` now `DELETE FROM sessions WHERE user_id AND
+    organization_slug` in the registry DB, so a stolen session token dies
+    the moment the password rotates (was: valid up to 7 days).
+  - **Org admin seed credential env override**: `ensureAssuranceAdminUser`
+    new-user insert now uses `ASSURANCE_ADMIN_PASSWORD` env when set
+    (falls back to the historical default with a `[security]` console
+    warning in production). Existing users are untouched as before.
+  - **CSV formula injection guards**: `csvEscape`
+    (`lib/cooperative-bank-ledger-csv.js`) and the member-credentials
+    export (`writeMemberCredentialsExport` in `lib/auth-service.js`) now
+    prefix `'` on cells beginning with `=`, `+`, `-`, `@` (or leading
+    tab/space), so member-supplied names/descriptions cannot execute
+    spreadsheet formulas when an export is opened in Excel. XLSX exports
+    are unaffected (string cells are not evaluated as formulas).
+  - **Stale credential exports cleaned**: writing a new
+    `member-credentials-*.csv` now deletes prior ones, so plaintext temp
+    passwords do not accumulate on the server disk.
+  - **Rate-limit table pruning** (`lib/rate-limit.js`): `sweep()` now also
+    deletes `rate_limit_hits` rows older than 24h; persisted buckets no
+    longer grow unbounded.
+  - Verified: login -> change-password kills both live sessions (401);
+    boot no longer resets the platform password; all four edited files
+    pass `node --check`.
+  - Audit found clean: Stripe + FlexxForms webhooks verify signatures and
+    fail closed; all file-download endpoints are behind auth + ownership
+    checks; no hardcoded API keys/secrets in code.
+  - Remaining accepted residuals: MFA still off by owner choice;
+    `pkg` devDependency vuln (no published fix); `api-flood` limiter
+    in-memory by design; member-credentials CSV keeps only the latest
+    file (admin channel by design).
+
 - **2026-11-24** - **Security pass: session cookies, encrypted backups,
   persistent rate limits, set-password links, dependency audit.**
   - **Sessions:** `pfm_session` / `pfm_platform` HttpOnly SameSite=Lax
