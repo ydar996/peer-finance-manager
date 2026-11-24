@@ -102,12 +102,21 @@ function getMemberAccountSummary(memberId) {
 
 function getCooperativeAssetTotals() {
   const db = getDb();
+  // Investments are a position, not a turnover: placements are negative
+  // (recordInvestment and bank outflows), returns positive, so signed-net is
+  // what is currently placed. Internal transfers between the Cooperative's own
+  // accounts (e.g. operations -> fixed deposit product) cancel out. Legacy
+  // position-marker rows (positive, unlinked, not bank-imported) keep their
+  // absolute value.
   const row = db
     .prepare(
       `SELECT
          COALESCE(SUM(CASE WHEN type = 'cd_purchase' THEN ABS(amount) ELSE 0 END), 0) AS cdPurchased,
          COALESCE(SUM(CASE WHEN type = 'cd_liquidation' THEN amount ELSE 0 END), 0) AS cdLiquidated,
-         COALESCE(SUM(CASE WHEN type = 'investment' THEN ABS(amount) ELSE 0 END), 0) AS investments
+         COALESCE(SUM(CASE WHEN type = 'investment' THEN
+           CASE WHEN source = 'bank_import' OR investment_account_id IS NOT NULL
+                THEN -amount ELSE ABS(amount) END
+         ELSE 0 END), 0) AS investments
        FROM transactions
        WHERE type IN ('cd_purchase', 'cd_liquidation', 'investment')`
     )
@@ -141,13 +150,13 @@ function getCooperativeAssetTotals() {
   return {
     cdPurchased: row.cdPurchased || 0,
     cdLiquidated: row.cdLiquidated || 0,
-    investments: row.investments || 0,
+    investments: Math.max(0, row.investments || 0),
     investmentNote:
       investmentDescriptions.length === 0
         ? null
         : investmentDescriptions.length <= 4
           ? investmentDescriptions.join(" · ")
-          : `${investmentDescriptions.length} Investment Accounts`,
+          : `${investmentDescriptions.length} Investment Entries`,
   };
 }
 

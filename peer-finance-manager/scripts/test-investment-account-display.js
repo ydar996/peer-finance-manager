@@ -101,6 +101,43 @@ runWithOrg(ORG, () => {
   // And imports did not spawn new per-narration accounts.
   assert.strictEqual(accounts.length, 1);
   console.log("  narration-spawned accounts pruned; sync ignores bank imports: OK");
+
+  // Card total is net placements minus returns, not absolute turnover.
+  const { getCooperativeBooks } = require("../lib/cooperative-books");
+  let books = getCooperativeBooks();
+  // Rows so far: -2.5M +2.5M +5,000 +19,726.17 -> net +24,726.17 -> clamped to 0.
+  assert.strictEqual(books.investments, 0);
+  console.log("  card clamps net-negative flows to zero: OK");
+
+  insertTx.run(-10000000, "2026-08-28", "OUTWARD TRANSFER TO FSDH CAPITAL", null);
+  books = getCooperativeBooks();
+  // -10M placement less +24,726.17 returns.
+  assert.ok(Math.abs(books.investments - 9975273.83) < 0.01);
+  console.log("  card nets placements against returns: OK");
+
+  // Manual placement/return pairs keep flow semantics; legacy positive
+  // markers keep absolute value.
+  const { recordInvestment } = require("../lib/investment-account-service");
+  recordInvestment({
+    accountId: accounts[0].id,
+    direction: "placement",
+    amount: 6530000,
+    transactionDate: "2026-05-19",
+  });
+  recordInvestment({
+    accountId: accounts[0].id,
+    direction: "return",
+    amount: 530000,
+    transactionDate: "2026-05-20",
+  });
+  db.prepare(
+    `INSERT INTO transactions (member_id, type, amount, transaction_date, description, source)
+     VALUES (NULL, 'investment', 50000, '2026-01-01', 'Caribe Restaurant', 'spreadsheet')`
+  ).run();
+  books = getCooperativeBooks();
+  const expected = 9975273.83 + (6530000 - 530000) + 50000;
+  assert.ok(Math.abs(books.investments - expected) < 0.01);
+  console.log("  manual flows and legacy markers combine correctly: OK");
 });
 
 setTimeout(() => {

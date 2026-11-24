@@ -175,6 +175,23 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Cooperative Investments card now shows net positions, not
+  turnover.** The card previously summed `ABS(amount)` over every `investment`
+  row, so FD rollovers were counted on each cycle and internal transfers between
+  the Cooperative's own accounts were counted twice (once per side). On the
+  Twilight ledger this read ₦89.09M against ~₦42M actually placed. The card now
+  reports net placements minus returns: bank-import and curated-account rows use
+  signed flow semantics (`recordInvestment` placements are negative, returns
+  positive), while legacy unlinked position-marker rows (e.g. the Assurance
+  spreadsheet "Investment in ..." rows) keep absolute value. Negative results
+  clamp to zero. The card note now says "N Investment Entries" when it is
+  counting narrations rather than curated accounts. Verified against the live
+  Twilight backup: net external placements −₦42,035,000 (workbook GL 1220
+  clearing: ₦42,035,006) and the card computes ₦41,801,035.31, i.e. external
+  placements less returned yield (+₦98,816.25 capitalised interest + ₦135,148.44
+  internal-FD residual). Regression coverage added to
+  `scripts/test-investment-account-display.js` (net math, clamp, manual +
+  legacy-marker mixing).
 - **2026-11-24** - **Other Cooperative Income type + workbook-verified ledger
   corrections.** New transaction type `other_income` (non-member cooperative
   income: payment surpluses, refunds, misc credits) wired end to end:

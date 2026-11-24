@@ -221,6 +221,7 @@ Click any card to see a detailed table. Common cards:
 | **Distributions Paid** | Profit/interest paid to members. |
 | **Cooperative Net Income** | Income minus expenses. |
 | **Loans Outstanding** | Principal still owed on active loans. |
+| **Cooperative Investments** | Money currently placed outside the Cooperative's own bank accounts: placements minus returns, so rollovers and internal transfers between your own accounts do not inflate the total. It does not include holdings already inside your own accounts (for example a fixed deposit balance that shows under bank balances). |
 | **CD Account / Expected CD Interest** | Certificate of deposit balance and interest (if used). **Open Record** on either card goes to **Record → CD Account Balance and Term** to update the balance or a new/rolled-over term. |
 | **Active Members/Profiles** | Active members only (profiles on file / member accounts). Resigned, Deceased, Expelled, and Suspended are excluded; the card notes how many former members are not counted. |
 
