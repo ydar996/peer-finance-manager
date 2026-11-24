@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="How Peer Finance Manager protects your Cooperative's money and member data: isolated databases, bank-grade password security, encrypted backups, and a complete audit trail. Security and architecture explained in plain language."
+    />
+    <meta name="theme-color" content="#0c4a6e" />
+    <title>Security and Architecture: Peer Finance Manager</title>
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="canonical" href="https://peerfinancemanager.com/security" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Peer Finance Manager" />
+    <meta property="og:title" content="Security and Architecture: Peer Finance Manager" />
+    <meta property="og:description" content="Isolated databases, bank-grade password security, encrypted backups, and a complete audit trail: explained in plain language." />
+    <meta property="og:url" content="https://peerfinancemanager.com/security" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Security and Architecture: Peer Finance Manager" />
+    <meta name="twitter:description" content="Isolated databases, bank-grade password security, encrypted backups, and a complete audit trail: explained in plain language." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/product.css" />
+  </head>
+  <body>
+    <header class="pf-topbar">
+      <div class="pf-topbar-inner">
+        <a class="pf-brand" href="/product">
+          <span class="pf-brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </span>
+          <span>
+            <strong>Peer Finance Manager</strong>
+            <small>Cooperative Finance, Simplified</small>
+          </span>
+        </a>
+        <nav class="pf-nav" aria-label="Primary">
+          <a href="#isolation">Isolation</a>
+          <a href="#credentials">Credentials</a>
+          <a href="#backups">Backups</a>
+          <a href="#audit">Audit Trail</a>
+          <a href="/features">Features (US)</a>
+          <a href="/featuresng">Features (Nigeria)</a>
+          <a href="/member" class="pf-nav-ghost">Member Sign In</a>
+          <a href="/register" class="pf-nav-cta">Start a Cooperative</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="pf-hero">
+        <div class="pf-hero-grid">
+          <div class="pf-hero-copy">
+            <p class="pf-eyebrow">Security and Architecture</p>
+            <h1>Built Like a Vault, Explained in Plain Language</h1>
+            <p class="pf-lead">
+              Your Cooperative's books hold your members' life savings. Peer Finance Manager is
+              engineered around one principle: a cooperative's data should be as hard to reach as
+              money in a vault, and as easy to audit as a paper ledger. Here is exactly how it is
+              built, and why that architecture makes it the right home for Cooperative finances.
+            </p>
+            <ul class="pf-hero-points">
+              <li>Every Cooperative gets its own private database, not a shared one</li>
+              <li>Passwords are never stored, only their unbreakable fingerprints</li>
+              <li>Backups are encrypted with a passphrase only you know</li>
+              <li>Every change leaves a fingerprint in the audit trail</li>
+            </ul>
+            <div class="pf-hero-actions">
+              <a class="pf-btn pf-btn-primary" href="/featuresng">Nigeria Feature Guide</a>
+              <a class="pf-btn pf-btn-secondary" href="/features">US Feature Guide</a>
+            </div>
+          </div>
+          <div class="pf-hero-visual" aria-hidden="true">
+            <div class="pf-mock-card pf-mock-card-a">
+              <p class="pf-mock-label">Your Cooperative</p>
+              <p class="pf-mock-value">🔒</p>
+              <p class="pf-mock-sub">Its Own Database</p>
+            </div>
+            <div class="pf-mock-card pf-mock-card-c">
+              <p class="pf-mock-label">Another Cooperative</p>
+              <p class="pf-mock-value">🔒</p>
+              <p class="pf-mock-sub">A Different Database</p>
+            </div>
+            <div class="pf-mock-card pf-mock-card-d">
+              <p class="pf-mock-label">Passwords Stored</p>
+              <p class="pf-mock-value">0</p>
+              <p class="pf-mock-sub">Only Fingerprints</p>
+            </div>
+            <div class="pf-mock-card pf-mock-card-e">
+              <p class="pf-mock-label">Backup File</p>
+              <p class="pf-mock-value">AES-256</p>
+              <p class="pf-mock-sub">Your Passphrase Only</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pf-section" id="isolation">
+        <div class="pf-container">
+          <header class="pf-section-head">
+            <p class="pf-eyebrow">Architecture</p>
+            <h2>Your Data Lives in Its Own Room, Not a Shared Hall</h2>
+            <p>
+              Most web services put every customer's records into one giant shared database and rely
+              on software filters to keep them apart: a bug or a bad query can expose the wrong
+              rows. Peer Finance Manager takes the stronger approach: <strong>each Cooperative gets
+              its own completely separate database file.</strong>
+            </p>
+          </header>
+          <div class="pf-feature-grid">
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🚪</div>
+              <h3>Physical Separation</h3>
+              <p>
+                Your Cooperative's members, ledger, loans, and statements live in a dedicated
+                database file. There are no shared tables to leak through: one Cooperative's data
+                cannot appear in another's screen, report, or backup, by construction rather than by
+                filtering.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🔐</div>
+              <h3>Organization Code at the Door</h3>
+              <p>
+                Every sign-in names its Cooperative with an Organization Code. The server opens only
+                that Cooperative's database for that request and no other, so a session can never
+                wander into a neighbor's books.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🧑‍⚖️</div>
+              <h3>Roles with Real Boundaries</h3>
+              <p>
+                Administrators change data; Staff see everything but can change nothing; Members see
+                only their own account. These checks happen on the server on every request, not just
+                hidden buttons on a page.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🖥️</div>
+              <h3>Runs in the Cloud or on Your PC</h3>
+              <p>
+                The same software also runs as a desktop install for Cooperatives that prefer to
+                keep every record inside their own building. Your data, your premises, your rules.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="pf-section pf-section-alt" id="credentials">
+        <div class="pf-container">
+          <header class="pf-section-head">
+            <p class="pf-eyebrow">Credentials</p>
+            <h2>Passwords That Can't Be Stolen, Because They Aren't There</h2>
+            <p>
+              The app never stores a readable password. It stores a one-way scramble using scrypt,
+              the same class of algorithm banks use, tuned to be deliberately slow for attackers
+              even with stolen equipment. Even someone who copied the database could not turn the
+              scramble back into a password.
+            </p>
+          </header>
+          <div class="pf-feature-grid">
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🐢</div>
+              <h3>Guessers Hit a Wall</h3>
+              <p>
+                Repeated sign-in attempts are slowed and then blocked automatically, and those
+                limits persist across restarts so a server reboot never resets an attacker's free
+                tries. Unknown accounts get the same response time as real ones, so probing cannot
+                reveal who is registered.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🔗</div>
+              <h3>Resets by Secure Link</h3>
+              <p>
+                Password resets arrive as a one-use link that expires in 24 hours and is stored only
+                as a fingerprint. No password ever travels through email, where it could sit in an
+                inbox forever.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🍪</div>
+              <h3>Sessions Scripts Can't Read</h3>
+              <p>
+                Sign-in state rides in browser-protected cookies that webpage scripts cannot touch,
+                and any page trying to submit changes from a foreign website is refused. Changing a
+                password immediately ends every other signed-in session, so a stolen login dies with
+                it.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">📱</div>
+              <h3>Authenticator-App MFA</h3>
+              <p>
+                Administrators and staff can require a time-based code from a standard authenticator
+                app at sign-in: something you know plus something you hold.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="pf-section" id="backups">
+        <div class="pf-container">
+          <header class="pf-section-head">
+            <p class="pf-eyebrow">Your Data, In Your Hands</p>
+            <h2>Encrypted Backups Only You Can Open</h2>
+            <p>
+              Your Cooperative can download its entire database at any time; the data is never held
+              hostage. Downloads can be protected with AES-256, the encryption standard used by
+              governments and banks, sealed with a passphrase that never leaves your head.
+            </p>
+          </header>
+          <div class="pf-feature-grid">
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🗝️</div>
+              <h3>Your Passphrase, Not Ours</h3>
+              <p>
+                You choose the passphrase at download time; the app never sees or stores it. A lost
+                backup file is useless to anyone who finds it.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🛟</div>
+              <h3>Restores Can't Destroy</h3>
+              <p>
+                Restoring verifies the file is a genuine, intact database before it touches
+                anything, then saves a copy of the current data first. A bad restore can be undone.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🧹</div>
+              <h3>Nothing Sensitive Lingers</h3>
+              <p>
+                Credential exports overwrite themselves so plaintext passwords do not accumulate on
+                the server. Rate-limit records, sign-in sessions, and reset links all expire and are
+                swept away on a schedule.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">📡</div>
+              <h3>Verified Integrations Only</h3>
+              <p>
+                Payment and forms events from Stripe and FlexxForms arrive with cryptographic
+                signatures that are checked on every call; unsigned or unconfigured webhooks are
+                refused outright.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="pf-section pf-section-alt" id="audit">
+        <div class="pf-container">
+          <header class="pf-section-head">
+            <p class="pf-eyebrow">Accountability</p>
+            <h2>A Ledger That Remembers Its Own History</h2>
+            <p>
+              Trust in a Cooperative is built on being able to answer "who did what, and when."
+              The app keeps that answer permanently.
+            </p>
+          </header>
+          <div class="pf-feature-grid">
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">✏️</div>
+              <h3>Every Edit Explained</h3>
+              <p>
+                Reclassifying or splitting a bank line writes an audit record: who changed it, when,
+                what it used to say, and the new values. The books stay explainable years later.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">✉️</div>
+              <h3>Every Email Accounted</h3>
+              <p>
+                Each automated send, and each one deliberately skipped by the member-email switch,
+                is recorded. You can prove what went out, to whom, and when, or that nothing did.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🧬</div>
+              <h3>Imports Can't Double-Count</h3>
+              <p>
+                Every imported bank line carries a fingerprint. Re-uploading a statement is safe:
+                duplicates are recognized and skipped instead of counted twice.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">📮</div>
+              <h3>Member Email Is Opt-In</h3>
+              <p>
+                All member-facing email sits behind a single master switch that ships off. Your
+                Cooperative chooses deliberately before a single member inbox is touched; admin
+                notices and member-requested resets always work.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="pf-section pf-section-workflow" id="vigilance">
+        <div class="pf-container pf-trust-grid">
+          <div>
+            <p class="pf-eyebrow">Ongoing Vigilance</p>
+            <h2>Security That Doesn't Stand Still</h2>
+            <p>
+              The software's building blocks are scanned on a schedule for newly published
+              vulnerabilities, and updates arrive continuously. Pages are served behind a strict
+              content security policy that refuses injected scripts, and security headers tell
+              modern browsers exactly how tightly to wrap every screen.
+            </p>
+            <div class="pf-hero-actions">
+              <a class="pf-btn pf-btn-primary" href="/featuresng">See the Full Feature Guide</a>
+            </div>
+          </div>
+          <ul class="pf-trust-list">
+            <li class="pf-trust-item pf-trust-item--teal">
+              <span class="pf-trust-item-title">Isolated Database per Cooperative</span>
+              <span class="pf-trust-item-detail">Structural, Not Cosmetic</span>
+            </li>
+            <li class="pf-trust-item pf-trust-item--sky">
+              <span class="pf-trust-item-title">scrypt Password Hashing</span>
+              <span class="pf-trust-item-detail">Industry Standard</span>
+            </li>
+            <li class="pf-trust-item pf-trust-item--amber">
+              <span class="pf-trust-item-title">Persistent Rate Limiting</span>
+              <span class="pf-trust-item-detail">Survives Restarts</span>
+            </li>
+            <li class="pf-trust-item pf-trust-item--violet">
+              <span class="pf-trust-item-title">HttpOnly SameSite Sessions + CSRF Guard</span>
+              <span class="pf-trust-item-detail">Revoked on Password Change</span>
+            </li>
+            <li class="pf-trust-item pf-trust-item--emerald">
+              <span class="pf-trust-item-title">AES-256 Encrypted Backups</span>
+              <span class="pf-trust-item-detail">Passphrase Never Stored</span>
+            </li>
+            <li class="pf-trust-item pf-trust-item--rose">
+              <span class="pf-trust-item-title">Scheduled Dependency Vulnerability Scans</span>
+              <span class="pf-trust-item-detail">Weekly, Automated</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="pf-cta-band">
+        <div class="pf-container pf-cta-inner">
+          <div>
+            <h2>Put Your Cooperative's Books Somewhere Safer Than a Spreadsheet</h2>
+            <p>Registration is free to start: invite members when you're ready.</p>
+          </div>
+          <div class="pf-cta-actions">
+            <a class="pf-btn pf-btn-primary" href="/register">Register a Cooperative</a>
+            <a class="pf-btn pf-btn-secondary" href="/register?country=NG">Register (Nigeria)</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="pf-footer">
+      <div class="pf-container">
+        <div class="pf-powered-by">
+          <a
+            class="pf-powered-link"
+            href="https://www.eworkchop.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              class="pf-powered-logo"
+              src="/workchop-logo.jpg"
+              alt="Work Chop Inc. logo"
+              width="120"
+              height="40"
+            />
+            <span class="pf-powered-text">
+              Powered by Work Chop Inc.
+              <span class="pf-powered-sep" aria-hidden="true">|</span>
+              <span class="pf-powered-url">www.eworkchop.com</span>
+            </span>
+          </a>
+        </div>
+        <div class="pf-footer-inner">
+          <p><strong>Peer Finance Manager</strong>: The ultimate software for member-owned Cooperatives.</p>
+          <nav aria-label="Footer">
+            <a href="/member">Member Portal</a>
+            <a href="/admin">Administrator</a>
+            <a href="/features">Features (US)</a>
+            <a href="/featuresng">Features (Nigeria)</a>
+            <a href="/register">Register</a>
+          </nav>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

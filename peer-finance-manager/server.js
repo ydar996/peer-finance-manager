@@ -367,6 +367,15 @@ app.get("/brochure", (req, res) => {
 app.get("/brochurengn", (req, res) => {
   res.sendFile(path.join(getPublicDir(), "brochurengn.html"));
 });
+app.get("/features", (req, res) => {
+  res.sendFile(path.join(getPublicDir(), "features.html"));
+});
+app.get("/featuresng", (req, res) => {
+  res.sendFile(path.join(getPublicDir(), "featuresng.html"));
+});
+app.get("/security", (req, res) => {
+  res.sendFile(path.join(getPublicDir(), "security.html"));
+});
 for (const portalPath of ["/member", "/staff", "/admin", "/register", "/platform", "/set-password"]) {
   app.get(portalPath, (req, res) => {
     res.sendFile(path.join(getPublicDir(), "index.html"));

@@ -175,6 +175,18 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Published public HTML feature/security guides.**
+  Three new static pages on `peerfinancemanager.com` (PFM design,
+  `product.css`, Powered by Work Chop Inc. footer):
+  `/features` (US feature guide), `/featuresng` (Nigeria feature guide,
+  for NG client outreach), `/security` (security and architecture in
+  layman terms: isolated per-Cooperative databases, scrypt, MFA, HttpOnly
+  sessions, AES-256 backups, audit trail). Sources:
+  `peer-finance-manager/public/features*.html`, `security.html`; routes
+  added in `server.js`, Netlify `_redirects` + cache-bust list in
+  `scripts/netlify-build-config.js`. Markdown sources remain
+  `FEATURES-US.md` / `FEATURES-NG.md`.
+
 - **2026-11-24** - **New docs: FEATURES-US.md and FEATURES-NG.md.**
   Plain-language, layman-readable inventory of every feature in the app,
   one edition per country profile. US edition: USD, MM/DD/YYYY,

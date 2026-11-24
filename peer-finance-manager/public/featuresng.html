@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Complete feature guide to Peer Finance Manager for Nigerian Cooperatives: naira books, bank import, loans, statements, meetings, messaging, and security. Every feature explained in plain language."
+    />
+    <meta name="theme-color" content="#0c4a6e" />
+    <title>Complete Feature Guide: Peer Finance Manager for Nigerian Cooperatives</title>
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="canonical" href="https://peerfinancemanager.com/featuresng" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Peer Finance Manager" />
+    <meta property="og:title" content="Complete Feature Guide: Peer Finance Manager for Nigerian Cooperatives" />
+    <meta property="og:description" content="Every feature explained in plain language: naira books, bank import, loans, statements, meetings, messaging, and bank-grade security." />
+    <meta property="og:url" content="https://peerfinancemanager.com/featuresng" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Complete Feature Guide: Peer Finance Manager for Nigerian Cooperatives" />
+    <meta name="twitter:description" content="Every feature explained in plain language: naira books, bank import, loans, statements, meetings, messaging, and bank-grade security." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/product.css" />
+  </head>
+  <body>
+    <header class="pf-topbar">
+      <div class="pf-topbar-inner">
+        <a class="pf-brand" href="/productngn">
+          <span class="pf-brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </span>
+          <span>
+            <strong>Peer Finance Manager</strong>
+            <small>Cooperative Finance, Simplified</small>
+          </span>
+        </a>
+        <nav class="pf-nav" aria-label="Primary">
+          <a href="#money-model">The Money Model</a>
+          <a href="#features">Features</a>
+          <a href="#roles">Roles</a>
+          <a href="#workflow">A Treasurer's Month</a>
+          <a href="/security">Security</a>
+          <a href="/productngn">Overview</a>
+          <a href="/member" class="pf-nav-ghost">Member Sign In</a>
+          <a href="/register?country=NG" class="pf-nav-cta">Start a Cooperative</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="pf-hero">
+        <div class="pf-hero-grid">
+          <div class="pf-hero-copy">
+            <p class="pf-eyebrow">Complete Feature Guide · Nigeria Edition</p>
+            <h1>Everything Peer Finance Manager Does, Explained Simply</h1>
+            <p class="pf-lead">
+              A bookkeeping and member-management system for member-owned Cooperatives: thrift
+              societies, savings clubs, and Cooperative societies. It replaces the treasurer's
+              spreadsheet, tracks every naira, runs loans and interest, produces the reports your
+              executive committee expects, and gives every member a private portal to see their own
+              money.
+            </p>
+            <ul class="pf-hero-points">
+              <li>Naira (₦) throughout, DD/MM/YYYY dates, Africa/Lagos time</li>
+              <li>Nigerian bank formats recognized on import</li>
+              <li>Each Cooperative's data in its own private, isolated space</li>
+              <li>Bank-grade security, explained in plain language on our <a href="/security">security page</a></li>
+            </ul>
+            <div class="pf-hero-actions">
+              <a class="pf-btn pf-btn-primary" href="/register?country=NG">Register Your Cooperative</a>
+              <a class="pf-btn pf-btn-secondary" href="/security">Read the Security Guide</a>
+            </div>
+          </div>
+          <div class="pf-hero-visual" aria-hidden="true">
+            <div class="pf-mock-card pf-mock-card-a">
+              <p class="pf-mock-label">Members</p>
+              <p class="pf-mock-value">250</p>
+              <p class="pf-mock-sub">Profiles on File</p>
+            </div>
+            <div class="pf-mock-card pf-mock-card-c">
+              <p class="pf-mock-label">Loans Outstanding</p>
+              <p class="pf-mock-value pf-mock-value-ngn">₦38,204,050</p>
+              <p class="pf-mock-sub">3 Active Loans</p>
+            </div>
+            <div class="pf-mock-card pf-mock-card-d">
+              <p class="pf-mock-label">Contributions Accounts</p>
+              <p class="pf-mock-value pf-mock-value-ngn">₦250,774,612</p>
+              <p class="pf-mock-sub">Member Balances</p>
+            </div>
+            <div class="pf-mock-card pf-mock-card-e">
+              <p class="pf-mock-label">FD Balance</p>
+              <p class="pf-mock-value pf-mock-value-ngn">₦67,260,651</p>
+              <p class="pf-mock-sub">Fixed Deposits</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pf-section" id="money-model">
+        <div class="pf-container">
+          <header class="pf-section-head">
+            <p class="pf-eyebrow">The Money Model</p>
+            <h2>One Ledger. Every Naira Labeled. Every Report Automatic.</h2>
+            <p>
+              Everything flows from one list: the Bank Ledger, a line for every deposit, withdrawal,
+              and charge in the Cooperative's real bank accounts. Each line is labeled with what the
+              money actually was. Every report is just these labeled lines added up, so the books
+              always balance and nothing is ever lost.
+            </p>
+          </header>
+          <div class="pf-feature-grid">
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">💰</div>
+              <h3>Member Money In</h3>
+              <p>Contributions and deposits, share capital purchases, and the one-time registration fee that joins a member (default ₦50,000, set per Cooperative).</p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🤝</div>
+              <h3>Loans</h3>
+              <p>Disbursements out to members and repayments back in, each tracked against principal and interest separately.</p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">📈</div>
+              <h3>Income and Investment</h3>
+              <p>Interest earned on loans and bank deposits, fixed deposit placements and maturities, and other Cooperative income.</p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">📤</div>
+              <h3>Money Out</h3>
+              <p>Operating expenses, profit distributions to members, and transfers between the Cooperative's own accounts.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="pf-section pf-section-alt" id="features">
+        <div class="pf-container">
+          <header class="pf-section-head">
+            <p class="pf-eyebrow">Feature by Feature</p>
+            <h2>Every Tool in the Back Office</h2>
+            <p>
+              Organized the way the app is organized: the administrator's tabs. Staff see the same
+              screens read-only; members see only their own portal.
+            </p>
+          </header>
+          <div class="pf-feature-grid">
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">📊</div>
+              <h3>Cooperative Books Dashboard</h3>
+              <p>
+                Live summary cards: deposits this month and year, member contributions, share
+                capital, income, expenses, loans outstanding, expected interest, investments, fixed
+                deposits, bank balances, and net income. Click any card to drill into every
+                transaction behind it, each table ending in a bold total row that always equals the
+                card. Money out is shown in parentheses, the way accountants write it.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🏦</div>
+              <h3>Bank Import and Reconciliation</h3>
+              <p>
+                Export your statement from the bank as CSV or Excel, upload, preview, confirm.
+                Nigerian layouts are recognized automatically: Trans Date or Value Date, Narration,
+                separate Debit and Credit columns, DD/MM/YYYY dates. Duplicates can never
+                double-count, conflicts are flagged, and a Reconcile card keeps a traffic-light
+                check on whether every account still matches the bank.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">✏️</div>
+              <h3>Reclassify and Split</h3>
+              <p>
+                A mislabeled line is fixed in seconds: reclassify the whole entry, or split one
+                transfer into parts (part contribution, part loan payment, part fee). Every change
+                is written to an audit trail so the books stay explainable forever.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🧾</div>
+              <h3>Record: Manual Entries</h3>
+              <p>
+                Cash deposits, transfers confirmed outside a statement, adjustments: type them in
+                directly. Manual entries join the same ledger with the same categories as imported
+                ones.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">👥</div>
+              <h3>Members and Accounts</h3>
+              <p>
+                A full directory: contact details, photo, member number, contributions balance,
+                share capital, and transaction history. Membership status tracks Active, Resigned,
+                Deceased, Expelled, and Suspended. Payment aliases recognize a member's transfer
+                even when it arrives under a spouse's or business name.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">💳</div>
+              <h3>Loans, End to End</h3>
+              <p>
+                Members apply online, guarantors confirm online, administrators approve and set
+                terms. The app builds the repayment schedule, tracks every payment against
+                principal and interest, supports strict or flexible payment policy per loan with
+                optional late fees, and generates a clean PDF loan statement per member per month.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">📄</div>
+              <h3>Member Statements</h3>
+              <p>
+                Monthly PDF statements per member, styled like a bank statement: contributions in
+                and out, running balance. Generate one at a time or for the whole membership at
+                once.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">📋</div>
+              <h3>Monthly Status Report</h3>
+              <p>
+                The executive-committee document: balance sheet (bank, fixed deposits, investments
+                against member deposits and share capital), income statement (income minus expenses
+                equals net income), per-account bank balances, and custom labels for operating
+                expenses. Publish finished reports so members can read them in their portal.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">📅</div>
+              <h3>Meetings</h3>
+              <p>
+                Schedule a meeting once; the app notifies members when it is announced, reminds them
+                before it happens, and tells them if it is cancelled. Notices always reach the
+                member's portal inbox; email delivery is a switch you control.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">💬</div>
+              <h3>Messages</h3>
+              <p>
+                Two-way messaging between the Cooperative and its members, inside the app.
+                Announcements and questions without phone numbers, scattered email threads, or
+                WhatsApp groups.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🌐</div>
+              <h3>Public Pages and Applications</h3>
+              <p>
+                Every Cooperative gets a public website with editable About and Bylaws pages and a
+                membership application form. Prospective members apply with no login; administrators
+                review, approve, or decline, and approval can trigger the welcome flow
+                automatically.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">📝</div>
+              <h3>Forms and Documents</h3>
+              <p>
+                Integrated with FlexxForms, a companion forms product. Build loan application and
+                membership forms there, link them in the app, and submissions arrive with a full
+                review-approve-track workflow under your own branding only.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🔑</div>
+              <h3>Users and Logins</h3>
+              <p>
+                Create admin, staff, and member accounts. Reset any password with one click; resets
+                are delivered as a one-use, 24-hour secure link, never a password typed into an
+                email. Export a credentials sheet once when handing out member logins.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">✉️</div>
+              <h3>Automated Messages and Email</h3>
+              <p>
+                Editable templates for welcomes, deposit confirmations, loan notices, meeting
+                announcements, dues reminders, and report alerts. One master switch, Email Members
+                Automatically, turns all member email on or off; it ships off by default so you opt
+                in deliberately. Annual dues tracking and reminders included.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">💼</div>
+              <h3>Subscription and Billing</h3>
+              <p>
+                Your Cooperative's own plan: ₦40,343 monthly, ₦119,818 quarterly, or ₦464,744
+                annually, with a discount for paying longer. Pay by card online or record a bank
+                transfer. A grace period keeps access running if a payment is late.
+              </p>
+            </article>
+            <article class="pf-feature-card">
+              <div class="pf-feature-icon">🗄️</div>
+              <h3>Maintenance, Backup, Restore</h3>
+              <p>
+                Download the whole database as an encrypted file protected by a passphrase of your
+                choosing, or a plain backup for convenience. Restore accepts either, verifies the
+                file first, and automatically saves the current data before replacing it: a restore
+                can be undone.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="pf-section" id="roles">
+        <div class="pf-container">
+          <header class="pf-section-head">
+            <p class="pf-eyebrow">Roles</p>
+            <h2>The Right View for Every Person in Your Cooperative</h2>
+          </header>
+          <div class="pf-role-grid">
+            <article class="pf-role-card">
+              <h3>Administrator</h3>
+              <p class="pf-role-tag">Treasurer · Secretary · Executive</p>
+              <ul>
+                <li>Full Cooperative books and drill-down detail</li>
+                <li>Record transactions and import bank data</li>
+                <li>Review e-loan applications, approve with guarantors</li>
+                <li>Manage loans, members, and user accounts</li>
+                <li>Generate statements and publish reports</li>
+                <li>Message members and configure public pages</li>
+              </ul>
+            </article>
+            <article class="pf-role-card">
+              <h3>Staff (Read-Only)</h3>
+              <p class="pf-role-tag">Board · Audit · Oversight</p>
+              <ul>
+                <li>View books, members, loans, and statements</li>
+                <li>Cannot change data: safe for auditors</li>
+                <li>Same transparency without accidental edits</li>
+              </ul>
+            </article>
+            <article class="pf-role-card">
+              <h3>Member</h3>
+              <p class="pf-role-tag">My Account Portal</p>
+              <ul>
+                <li>Apply for a loan and track approval online</li>
+                <li>Own contributions and loan balances</li>
+                <li>Download monthly PDF statements</li>
+                <li>Message the Cooperative admin</li>
+                <li>Published reports and meeting notices</li>
+              </ul>
+            </article>
+            <article class="pf-role-card">
+              <h3>Prospective Member</h3>
+              <p class="pf-role-tag">No Login Needed</p>
+              <ul>
+                <li>Public membership application form</li>
+                <li>Editable About and Bylaws pages</li>
+                <li>Approval triggers the welcome flow</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="pf-section pf-section-alt" id="workflow">
+        <div class="pf-container">
+          <header class="pf-section-head">
+            <p class="pf-eyebrow">In Practice</p>
+            <h2>A Treasurer's Month with the App</h2>
+          </header>
+          <div class="pf-role-grid">
+            <article class="pf-role-card">
+              <h3>1 · Import</h3>
+              <p class="pf-role-tag">Bank Statement</p>
+              <ul>
+                <li>Upload the month's bank CSV or Excel file</li>
+                <li>Preview the new transactions</li>
+                <li>Confirm: duplicates are skipped automatically</li>
+              </ul>
+            </article>
+            <article class="pf-role-card">
+              <h3>2 · Tidy</h3>
+              <p class="pf-role-tag">Classify</p>
+              <ul>
+                <li>Reclassify or split any mislabeled lines</li>
+                <li>Dashboard cards update themselves</li>
+                <li>Reconcile card stays green</li>
+              </ul>
+            </article>
+            <article class="pf-role-card">
+              <h3>3 · Lend</h3>
+              <p class="pf-role-tag">Loans</p>
+              <ul>
+                <li>Review applications, approve, disburse</li>
+                <li>Repayments track themselves against the schedule</li>
+              </ul>
+            </article>
+            <article class="pf-role-card">
+              <h3>4 · Report</h3>
+              <p class="pf-role-tag">Publish</p>
+              <ul>
+                <li>Generate member statements</li>
+                <li>Publish the Monthly Status Report</li>
+                <li>Meeting notices go out on their own</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="pf-section pf-section-workflow" id="trust">
+        <div class="pf-container pf-trust-grid">
+          <div>
+            <p class="pf-eyebrow">Why It Is Safe</p>
+            <h2>Your Data Is Yours, and Only Yours</h2>
+            <p>
+              Each Cooperative's records live in their own separate database, protected by
+              bank-grade password scrambling, browser-safe sessions, encrypted backups, and
+              automatic defenses against password guessing. Read the full breakdown on our
+              security and architecture page.
+            </p>
+            <div class="pf-hero-actions">
+              <a class="pf-btn pf-btn-primary" href="/security">Security and Architecture</a>
+            </div>
+          </div>
+          <ul class="pf-trust-list">
+            <li class="pf-trust-item pf-trust-item--teal">
+              <span class="pf-trust-item-title">Each Cooperative Isolated in Its Own Database</span>
+              <span class="pf-trust-item-detail">No Shared Tables</span>
+            </li>
+            <li class="pf-trust-item pf-trust-item--sky">
+              <span class="pf-trust-item-title">Encrypted Backups You Control</span>
+              <span class="pf-trust-item-detail">AES-256, Your Passphrase</span>
+            </li>
+            <li class="pf-trust-item pf-trust-item--amber">
+              <span class="pf-trust-item-title">Secure Password Links, Never Plaintext Emails</span>
+              <span class="pf-trust-item-detail">One-Use, 24-Hour</span>
+            </li>
+            <li class="pf-trust-item pf-trust-item--violet">
+              <span class="pf-trust-item-title">Authenticator-App MFA Available</span>
+              <span class="pf-trust-item-detail">Admin and Staff</span>
+            </li>
+            <li class="pf-trust-item pf-trust-item--emerald">
+              <span class="pf-trust-item-title">Member Email Is Opt-In Only</span>
+              <span class="pf-trust-item-detail">You Hold the Switch</span>
+            </li>
+            <li class="pf-trust-item pf-trust-item--rose">
+              <span class="pf-trust-item-title">Every Send, Import, and Edit Is Audited</span>
+              <span class="pf-trust-item-detail">Full Trail</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="pf-cta-band">
+        <div class="pf-container pf-cta-inner">
+          <div>
+            <h2>See It Running with Your Cooperative's Numbers</h2>
+            <p>Registration is free to start: invite members when you're ready.</p>
+          </div>
+          <div class="pf-cta-actions">
+            <a class="pf-btn pf-btn-primary" href="/register?country=NG">Register a Cooperative</a>
+            <a class="pf-btn pf-btn-secondary" href="/productngn">Back to Overview</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="pf-footer">
+      <div class="pf-container">
+        <div class="pf-powered-by">
+          <a
+            class="pf-powered-link"
+            href="https://www.eworkchop.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              class="pf-powered-logo"
+              src="/workchop-logo.jpg"
+              alt="Work Chop Inc. logo"
+              width="120"
+              height="40"
+            />
+            <span class="pf-powered-text">
+              Powered by Work Chop Inc.
+              <span class="pf-powered-sep" aria-hidden="true">|</span>
+              <span class="pf-powered-url">www.eworkchop.com</span>
+            </span>
+          </a>
+        </div>
+        <div class="pf-footer-inner">
+          <p><strong>Peer Finance Manager</strong>: The ultimate software for member-owned Cooperatives.</p>
+          <nav aria-label="Footer">
+            <a href="/member">Member Portal</a>
+            <a href="/admin">Administrator</a>
+            <a href="/features">US Feature Guide</a>
+            <a href="/register?country=NG">Register</a>
+          </nav>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
