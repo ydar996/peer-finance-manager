@@ -1656,3 +1656,9 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
   swept rows with a subcategory named from the narration signature
   (STAMP DUTY -> Stamp Duty), created under the chosen label. Opt-in:
   choosing Keep leaves rows on the parent label.
+- **2026-11-23** - **Manual subcategory creation for expense labels.** The
+  Operational Expense Labels panel gains an "Under Label" dropdown next to
+  Add Report Label so any label can be created as a subcategory of any
+  top-level label (not only via the auto-classify sweep). Success copy
+  confirms the parent; the parent selector repopulates whenever the label
+  catalog changes.

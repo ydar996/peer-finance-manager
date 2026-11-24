@@ -5069,11 +5069,28 @@ async function createExpenseReportLabel(labelText, parentId = null) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to add report label");
   expenseReportLabelCatalog = data.labels || [];
+  renderExpenseReportLabelParentOptions();
   return data.label;
+}
+
+function renderExpenseReportLabelParentOptions() {
+  const select = $("#newExpenseReportLabelParent");
+  if (!select) return;
+  const previous = select.value;
+  const topLevel = (expenseReportLabelCatalog || []).filter((entry) => !entry.parentId);
+  select.innerHTML =
+    '<option value="">None: Top-Level Label</option>' +
+    topLevel
+      .map((entry) => `<option value="${entry.id}">${escapeHtml(entry.label)}</option>`)
+      .join("");
+  if (previous && topLevel.some((entry) => String(entry.id) === previous)) {
+    select.value = previous;
+  }
 }
 
 async function addExpenseReportLabelFromPanel() {
   const input = $("#newExpenseReportLabelInput");
+  const parentSelect = $("#newExpenseReportLabelParent");
   const statusEl = $("#expenseReportLabelsStatus");
   const label = input?.value?.trim();
   if (!label) {
@@ -5083,13 +5100,20 @@ async function addExpenseReportLabelFromPanel() {
     }
     return;
   }
+  const parentId = parentSelect?.value || null;
+  const parentEntry = parentId
+    ? (expenseReportLabelCatalog || []).find((entry) => String(entry.id) === parentId)
+    : null;
   try {
     const selections = collectExpenseReportLabelSelections();
-    await createExpenseReportLabel(label);
+    await createExpenseReportLabel(label, parentId);
     if (input) input.value = "";
+    if (parentSelect) parentSelect.value = "";
     await loadExpenseReportLabelsPanel(selections);
     if (statusEl) {
-      statusEl.textContent = `Label "${label}" is ready to use in the dropdowns.`;
+      statusEl.textContent = parentEntry
+        ? `Subcategory "${label}" created under ${parentEntry.label}.`
+        : `Label "${label}" is ready to use in the dropdowns.`;
       statusEl.className = "status ok";
     }
   } catch (err) {
@@ -5108,6 +5132,7 @@ async function loadExpenseReportLabelsPanel(preferredSelections = null) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to load expense labels");
     expenseReportLabelCatalog = data.labels || [];
+    renderExpenseReportLabelParentOptions();
     expenseReportLabelLinesCache = data.lines || [];
     renderExpenseReportLabelsTable(data.lines || [], preferredSelections);
   } catch (err) {
