@@ -175,6 +175,13 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Member Share Capital card detail added.** The card
+  previously threw "Unknown book detail" when clicked (slug emitted by
+  the UI but absent from BOOK_DETAIL_SLUGS). getBookDetail now serves a
+  per-transaction view: date, member, Purchase/Redemption, amount
+  (signed), narration, newest first; summary = net purchases minus
+  redemptions. Deploy: git push only.
+
 - **2026-11-24** - **Cooperative Investments detail: Account column
   fixed.** The Account column duplicated the bank narration because
   investment-account-service.js auto-created an investment account per

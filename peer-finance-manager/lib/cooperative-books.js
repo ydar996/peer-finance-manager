@@ -408,6 +408,7 @@ const BOOK_DETAIL_SLUGS = {
   "loan-repayments-due": "Loan Repayments Due",
   "deposit-accounts": "Member Contributions Accounts (Total)",
   "deposits-withdrawals": "Member Contributions & Withdrawals",
+  "share-capital": "Member Share Capital (Total)",
   "registration-income": "Registration Income",
   distributions: "Distributions Paid",
   loans: "Loans Outstanding",
@@ -565,6 +566,41 @@ function getBookDetail(slug) {
         date: row.transaction_date,
         member: row.display_name || row.name,
         type: row.type,
+        amount: row.amount,
+        description: row.description || "",
+        memberId: row.member_id,
+      })),
+    };
+  }
+
+  if (slug === "share-capital") {
+    const rows = db
+      .prepare(
+        `SELECT t.transaction_date, t.type, t.amount, t.description,
+                m.id AS member_id, m.name, mp.display_name
+         FROM transactions t
+         JOIN members m ON m.id = t.member_id
+         LEFT JOIN member_profiles mp ON mp.member_id = m.id
+         WHERE t.type IN ('share_capital', 'share_capital_redemption')
+         ORDER BY t.transaction_date DESC, t.id DESC`
+      )
+      .all();
+    return {
+      slug,
+      title,
+      navigateTab: null,
+      summary: rows.reduce((sum, row) => sum + row.amount, 0),
+      columns: [
+        { key: "date", label: "Date", format: "date" },
+        { key: "member", label: "Member" },
+        { key: "type", label: "Type" },
+        { key: "amount", label: "Amount", format: "money" },
+        { key: "description", label: "Description" },
+      ],
+      rows: rows.map((row) => ({
+        date: row.transaction_date,
+        member: row.display_name || row.name,
+        type: row.type === "share_capital_redemption" ? "Redemption" : "Purchase",
         amount: row.amount,
         description: row.description || "",
         memberId: row.member_id,
