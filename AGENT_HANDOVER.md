@@ -1777,7 +1777,7 @@ Peer Finance Manager / Assurance Cooperative
 | 4h | ~~**Zero WinSCP (complete)**~~ | ✅ **Done** 2026-07-11 — Removed all WinSCP/SFTP/break-glass workflows from docs and UI copy. Replacement: **Admin → Maintenance** (backup/restore) + **Import**; first-time = Register + optional Restore. Automated off-disk backups remain task **4i**. |
 | 4i | **Automated off-disk backups (S3/R2)** | Nightly registry + all `organizations/*`. Complements browser Maintenance backups for SaaS DR. |
 | 4j | **Gate public org registration** | Invite/approval + CAPTCHA + rate limits on `POST /api/auth/register-organization`. |
-| 4k | **Remove hardcoded platform/admin passwords** | `platform-auth-service` defaults; `ensureAssuranceAdminUser` forced password. Env-only secrets. |
+| 4k | ~~**Remove hardcoded platform/admin passwords**~~ | ✅ **Done** 2026-11-24 — `ensurePlatformAdminUser` no longer force-resets the hash on boot; `PLATFORM_ADMIN_PASSWORD` is now an explicit recovery path (rotates only when set AND different; revokes `platform_sessions`). Fresh prod install without env gets a random logged password; dev keeps `12345678`. Org seed honors `ASSURANCE_ADMIN_PASSWORD` with a prod console warning on fallback. **Owner action:** set `PLATFORM_ADMIN_PASSWORD` and `ASSURANCE_ADMIN_PASSWORD` in Render env to rotate off any repo-default credentials and kill stale sessions. |
 | 4l | **Per-tenant email FROM** | Store smtp_from / smtp_from_name on registry org; stop global Assurance branding. |
 | 4m | **Disk headroom + idle DB LRU** | Raise `render.yaml` disk; alert usage; evict idle `dbByOrg` handles. |
 | 4n | **Layman import UX** | Single Import Bank Statement path; onboarding wizard; stop Assurance `SEED_ALIASES` on empty tenants. |
