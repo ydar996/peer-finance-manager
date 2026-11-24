@@ -185,7 +185,11 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
   `peer-finance-manager/public/features*.html`, `security.html`; routes
   added in `server.js`, Netlify `_redirects` + cache-bust list in
   `scripts/netlify-build-config.js`. Markdown sources remain
-  `FEATURES-US.md` / `FEATURES-NG.md`.
+  `FEATURES-US.md` / `FEATURES-NG.md`. Layout fixes after review:
+  hero actions now precede hero-points (designed 28px separation);
+  `.pf-trust-grid .pf-hero-actions` gets margin-top (buttons no longer
+  flush against paragraphs); `.pf-hero-points a` styled accent-deep +
+  underline (inline links were invisible under `a { color: inherit }`).
 
 - **2026-11-24** - **New docs: FEATURES-US.md and FEATURES-NG.md.**
   Plain-language, layman-readable inventory of every feature in the app,

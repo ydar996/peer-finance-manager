@@ -222,6 +222,12 @@ a {
   font-weight: 600;
 }
 
+.pf-hero-points a {
+  color: var(--pf-accent-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .pf-hero-points li::before {
   content: "";
   position: absolute;
@@ -732,6 +738,10 @@ a {
 .pf-trust-grid p {
   margin: 0;
   color: var(--pf-ink-soft);
+}
+
+.pf-trust-grid .pf-hero-actions {
+  margin: 28px 0 0;
 }
 
 .pf-trust-list {
