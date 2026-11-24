@@ -177,9 +177,11 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 - **2026-11-24** - **Status report in-browser PDF preview.** New
   Preview Report button on the Status Report page opens the generated
-  PDF in a new browser tab via GET
-  /api/books/monthly-status-report/download?inline=1 (same endpoint and
-  access rules as Download; sends Content-Disposition: inline).
+  PDF in a new browser tab: it fetches GET
+  /api/books/monthly-status-report/download?inline=1 through the
+  authenticated fetch wrapper (a bare window.open loses the Bearer
+  token and returns "Login required"), then opens the blob URL.
+  The endpoint sends Content-Disposition: inline for ?inline=1.
   Complements Send Preview to Admin Only: the button checks the PDF
   itself, the email preview checks the outgoing announcement.
   Deploy: git push only.

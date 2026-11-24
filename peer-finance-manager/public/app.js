@@ -6678,8 +6678,23 @@ $("#resetCooperativeMeetingForm")?.addEventListener("click", resetCooperativeMee
 $("#refreshCooperativeMeetings")?.addEventListener("click", loadCooperativeMeetingsPanel);
 $("#saveMeetingSettings")?.addEventListener("click", saveMeetingSettings);
 
-$("#previewMonthlyStatusReport")?.addEventListener("click", () => {
-  window.open("/api/books/monthly-status-report/download?inline=1", "_blank", "noopener");
+$("#previewMonthlyStatusReport")?.addEventListener("click", async (e) => {
+  const button = e.currentTarget;
+  setButtonBusy(button, true, "Opening…");
+  try {
+    const res = await fetch("/api/books/monthly-status-report/download?inline=1");
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to open report preview");
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+    window.open(url, "_blank", "noopener");
+  } catch (err) {
+    void appAlert(err.message, { title: "Error", variant: "danger" });
+  } finally {
+    setButtonBusy(button, false);
+  }
 });
 $("#downloadMonthlyStatusReport")?.addEventListener("click", (e) => {
   downloadMonthlyStatusReportFile(e.currentTarget);
