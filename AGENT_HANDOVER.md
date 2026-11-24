@@ -1666,3 +1666,10 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
   EXPENSE_CATEGORIES so it seeds as a top-level report label in every
   Cooperative (salary rows can sit under it; PAYE/bonus can be
   subcategories).
+- **2026-11-23** - **Expense label table: sort + signature aliases.** Rows
+  needing attention (unlabeled or "Other") always sort to the top, with
+  labeled rows grouped alphabetically; the table re-sorts after each
+  autoclassify sweep. Signature collection now stops at connector words
+  and expands abbreviation aliases (VAT -> VALUE ADDED TAX, COMM ->
+  COMMISSION, CHG -> CHARGE, MAINT -> MAINTENANCE, TRF -> TRANSFER) so
+  abbreviation/full-name variants of the same charge sweep together.

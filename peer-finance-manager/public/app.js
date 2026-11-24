@@ -4817,6 +4817,16 @@ function expenseReportLabelOptionsHtml(selectedId) {
   return options.join("");
 }
 
+// Abbreviations banks use interchangeably with the full narration kind, so
+// "VAT 1182945 ..." and "VALUE ADDED TAX ..." group as one signature.
+const EXPENSE_SIGNATURE_TOKEN_EXPANSIONS = {
+  VAT: "VALUE ADDED TAX",
+  COMM: "COMMISSION",
+  CHG: "CHARGE",
+  MAINT: "MAINTENANCE",
+  TRF: "TRANSFER",
+};
+
 // Leading narration signature for an expense line: the alphabetic words at
 // the start of the bank description, before the first token containing a
 // digit. "STAMP DUTY 1628492 FROM STANBIC/..." -> "STAMP DUTY". Groups bank
@@ -4829,10 +4839,16 @@ function expenseNarrationSignature(description) {
     if (/\d/.test(token) || parts.length >= 4) break;
     const word = token.replace(/[^A-Z]/g, "");
     if (!word) continue;
-    parts.push(word);
+    if (EXPENSE_SUBCATEGORY_STOP_WORDS.has(word)) break;
+    const expanded = EXPENSE_SIGNATURE_TOKEN_EXPANSIONS[word];
+    if (expanded) {
+      parts.push(...expanded.split(" "));
+    } else {
+      parts.push(word);
+    }
     if (parts.join(" ").length >= 24) break;
   }
-  return parts.join(" ");
+  return parts.slice(0, 4).join(" ");
 }
 
 // Subcategory name from a narration signature: "STAMP DUTY" -> "Stamp Duty",
@@ -4923,27 +4939,20 @@ async function maybeAutoClassifySimilarExpenses(changedSelect) {
     }
   }
 
+  // Re-render preserving selections: keeps rows grouped with "Other" and
+  // unlabeled rows on top, and materializes any new subcategory option.
+  const selections = collectExpenseReportLabelSelections();
+  selections.set(changedId, targetLabelId);
   for (const select of candidates) {
-    select.value = targetLabelId;
+    selections.set(Number(select.dataset.expenseId), targetLabelId);
   }
-  if (targetLabelId !== changedSelect.value) {
-    // The new subcategory option does not exist in the rendered selects yet:
-    // re-render the table preserving every current selection.
-    const selections = collectExpenseReportLabelSelections();
-    selections.set(changedId, targetLabelId);
-    for (const select of candidates) {
-      selections.set(Number(select.dataset.expenseId), targetLabelId);
-    }
-    const nextLines = (expenseReportLabelLinesCache || []).map((line) => ({
-      ...line,
-      reportLabelId: selections.has(Number(line.id))
-        ? selections.get(Number(line.id)) || null
-        : line.reportLabelId,
-    }));
-    renderExpenseReportLabelsTable(nextLines, selections);
-  } else {
-    changedSelect.value = targetLabelId;
-  }
+  const nextLines = (expenseReportLabelLinesCache || []).map((line) => ({
+    ...line,
+    reportLabelId: selections.has(Number(line.id))
+      ? selections.get(Number(line.id)) || null
+      : line.reportLabelId,
+  }));
+  renderExpenseReportLabelsTable(nextLines, selections);
   const statusEl = $("#expenseReportLabelsStatus");
   if (statusEl) {
     statusEl.textContent = `Applied "${labelText}" to ${candidates.length} similar row${candidates.length === 1 ? "" : "s"}.${subcategoryNote} Save Expense Labels to keep the change.`;
@@ -4964,6 +4973,33 @@ function collectExpenseReportLabelSelections() {
   return map;
 }
 
+// Rows still needing attention (unlabeled or "Other") always sort to the
+// top so the administrator can keep reclassifying without scrolling;
+// labeled rows group alphabetically by their rolled-up label.
+function expenseReportLineSortLabel(line) {
+  const entry = (expenseReportLabelCatalog || []).find(
+    (e) => Number(e.id) === Number(line.reportLabelId)
+  );
+  return entry?.parentLabel || entry?.label || String(line.category || "").trim();
+}
+
+function sortExpenseReportLabelLines(lines) {
+  const sortKey = (line) => {
+    const label = expenseReportLineSortLabel(line);
+    const needsLabel = !label || label.toLowerCase() === "other" ? 0 : 1;
+    return [needsLabel, label.toLowerCase(), String(line.expenseDate || ""), Number(line.id)];
+  };
+  return [...(lines || [])].sort((a, b) => {
+    const ka = sortKey(a);
+    const kb = sortKey(b);
+    for (let i = 0; i < ka.length; i += 1) {
+      if (ka[i] < kb[i]) return -1;
+      if (ka[i] > kb[i]) return 1;
+    }
+    return 0;
+  });
+}
+
 function renderExpenseReportLabelsTable(lines, preferredSelections = null) {
   const body = $("#expenseReportLabelsBody");
   if (!body) return;
@@ -4972,7 +5008,8 @@ function renderExpenseReportLabelsTable(lines, preferredSelections = null) {
     body.innerHTML = "<tr><td colspan=\"4\">No expenses recorded.</td></tr>";
     return;
   }
-  body.innerHTML = lines
+  const orderedLines = sortExpenseReportLabelLines(lines);
+  body.innerHTML = orderedLines
     .map((line) => {
       const preferred = preferredSelections?.get(Number(line.id));
       const selectedId =
