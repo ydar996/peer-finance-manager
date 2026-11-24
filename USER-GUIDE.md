@@ -684,7 +684,11 @@ On **Members & Accounts**, open the member → expand **Contributions Account** 
 
 Every adjustable bank row has a **Category** dropdown and a **Split** button. There is **no Save Changes button on the table**.
 
-**Contributions Account:** Member Deposit, Withdrawal, Distribution, Registration Fee, and cross-classifications (e.g. deposit → Loan Repayment).
+**Contributions Account:** Member Deposit, Withdrawal, Distribution, Registration Fee, Other Cooperative Income, and cross-classifications (e.g. deposit → Loan Repayment).
+
+**Other Cooperative Income** covers credits that belong to the Cooperative but not to any member: payment surpluses, refunds, and misc bank credits. Rows typed Other Cooperative Income count as income on the Total Cooperative Income and Cooperative Net Income cards (with their own drill-down) and on the monthly report income statement, and they do not change any member balance. Member is optional on the line; leave it blank for non-member income.
+
+**Registration Fee / Membership Fee classifications** (including inside a Split) record the member-side credit and the fee leg together, so the member's Contributions balance nets to zero while the fee counts as income: matching the deposit + Membership Fee rows the import template uses for dues receipts.
 
 **Loan Account:** Use **Bank Ledger Rows (Split or Reclassify)** for full bank amounts, or the per-loan repayment table (same **Split** / **Category** controls). Works the same for every Cooperative and every member.
 

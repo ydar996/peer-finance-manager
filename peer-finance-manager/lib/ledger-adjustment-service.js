@@ -23,6 +23,7 @@ const RECLASSIFIABLE_LEDGER_TYPES = [
   "loan_disbursement",
   "distribution",
   "membership_fee",
+  "other_income",
   "expense",
   "cd_purchase",
   "cd_liquidation",
@@ -94,6 +95,8 @@ function loadAdjustmentsMap(db) {
   return map;
 }
 
+const ADJUSTMENT_PRODUCT_REF_PREFIX = "adj:";
+
 function applyAdjustmentsToBankTransactions(bankTxs) {
   const db = getDb();
   const adjustments = loadAdjustmentsMap(db);
@@ -102,6 +105,13 @@ function applyAdjustmentsToBankTransactions(bankTxs) {
   const result = [];
   for (const tx of bankTxs) {
     const key = bankTxLedgerKey(tx);
+    // Rows produced by an earlier application of the adjustment for this same
+    // ledger key are terminal: re-applying would duplicate member-books legs
+    // (e.g. the deposit+fee pair emitted for a membership_fee classification).
+    if (tx.reference === `${ADJUSTMENT_PRODUCT_REF_PREFIX}${key}`) {
+      result.push(tx);
+      continue;
+    }
     const adj = adjustments.get(key);
     if (!adj?.lines?.length) {
       result.push(tx);
@@ -110,27 +120,32 @@ function applyAdjustmentsToBankTransactions(bankTxs) {
 
     if (adj.adjustmentKind === ADJUSTMENT_KIND.RECLASSIFY) {
       const line = adj.lines[0];
-      result.push({
-        ...tx,
-        ledgerType: line.ledgerType,
-        member: line.memberName || tx.member || null,
-        adjustmentKey: key,
-      });
+      result.push(
+        ...expandAdjustmentLine(tx, {
+          ledgerType: line.ledgerType,
+          // other_income is non-member income unless a member is explicitly
+          // chosen on the line; other types inherit the receipt's member.
+          member: line.memberName || (line.ledgerType === "other_income" ? null : tx.member) || null,
+          amount: Number(line.amount),
+          note: "",
+          adjustmentKey: key,
+        })
+      );
       continue;
     }
 
     if (adj.adjustmentKind === ADJUSTMENT_KIND.SPLIT) {
       for (const line of adj.lines) {
-        const note = line.descriptionNote ? String(line.descriptionNote).trim() : "";
-        result.push({
-          ...tx,
-          amount: Number(line.amount),
-          ledgerType: line.ledgerType,
-          member: line.memberName || tx.member || null,
-          description: note ? `${tx.description} (${note})` : tx.description,
-          adjustmentKey: key,
-          splitLineOrder: line.lineOrder,
-        });
+        result.push(
+          ...expandAdjustmentLine(tx, {
+            ledgerType: line.ledgerType,
+            member: line.memberName || (line.ledgerType === "other_income" ? null : tx.member) || null,
+            amount: Number(line.amount),
+            note: line.descriptionNote ? String(line.descriptionNote).trim() : "",
+            adjustmentKey: key,
+            splitLineOrder: line.lineOrder,
+          })
+        );
       }
       continue;
     }
@@ -138,6 +153,49 @@ function applyAdjustmentsToBankTransactions(bankTxs) {
     result.push(tx);
   }
   return result;
+}
+
+// A membership_fee classification means "this money is member dues/fee income".
+// Member books model that as a deposit credit plus a membership_fee contra
+// debit, the same pair the CSV template carries for dues receipts, so the
+// member account nets to zero while the fee counts as cooperative income.
+function expandAdjustmentLine(tx, { ledgerType, member, amount, note, adjustmentKey, splitLineOrder }) {
+  const productRef = `${ADJUSTMENT_PRODUCT_REF_PREFIX}${adjustmentKey}`;
+  if (ledgerType !== "membership_fee") {
+    return [
+      {
+        ...tx,
+        amount,
+        ledgerType,
+        member,
+        description: note ? `${tx.description} (${note})` : tx.description,
+        adjustmentKey,
+        splitLineOrder,
+        reference: productRef,
+      },
+    ];
+  }
+  return [
+    {
+      ...tx,
+      amount,
+      ledgerType: "deposit",
+      member,
+      adjustmentKey,
+      splitLineOrder,
+      reference: productRef,
+    },
+    {
+      ...tx,
+      amount: -amount,
+      ledgerType: "membership_fee",
+      member,
+      description: `Membership Fee${note ? `: ${note}` : ""}`,
+      adjustmentKey,
+      splitLineOrder,
+      reference: productRef,
+    },
+  ];
 }
 
 function resolveMemberName(db, memberId, memberName) {

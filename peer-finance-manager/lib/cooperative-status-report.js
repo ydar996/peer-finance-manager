@@ -195,7 +195,8 @@ function getCooperativeStatusReportData(options = {}) {
   const interestIncomeEarned =
     (loansEnabled ? books.loanInterestIncome || 0 : 0) + (books.cdInterestIncome || 0);
   const registrationIncome = books.registrationIncome || 0;
-  const totalIncome = interestIncomeEarned + registrationIncome;
+  const otherIncome = books.otherIncome || 0;
+  const totalIncome = interestIncomeEarned + registrationIncome + otherIncome;
   const operationalExpenses = books.expenses || 0;
   const netIncome = books.cooperativeNetIncome || 0;
 
@@ -257,6 +258,7 @@ function getCooperativeStatusReportData(options = {}) {
     incomeStatement: {
       interestIncomeEarned,
       registrationIncome,
+      otherIncome,
       totalIncome,
       operationalExpenses,
       netIncome,
@@ -397,6 +399,7 @@ function buildCooperativeStatusReportHtml(data) {
         <tbody>
           <tr><td>Interest Income earned</td><td class="money">${formatMoney(income.interestIncomeEarned)}</td></tr>
           <tr><td>Registration Income</td><td class="money">${formatMoney(income.registrationIncome)}</td></tr>
+          ${income.otherIncome ? `<tr><td>Other Cooperative Income</td><td class="money">${formatMoney(income.otherIncome)}</td></tr>` : ""}
           <tr class="total-row"><td>Total Income</td><td class="money">${formatMoney(income.totalIncome)}</td></tr>
           <tr><td>Operational Expenses*</td><td class="money">${formatMoney(-income.operationalExpenses, { parens: true })}</td></tr>
           <tr class="total-row"><td>Net Income</td><td class="money">${formatMoney(income.netIncome)}</td></tr>

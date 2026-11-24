@@ -24,9 +24,15 @@ const LEDGER_TYPES = [
   TRANSACTION_TYPES.CD_PURCHASE,
   TRANSACTION_TYPES.CD_LIQUIDATION,
   TRANSACTION_TYPES.INVESTMENT,
+  TRANSACTION_TYPES.OTHER_INCOME,
   TRANSACTION_TYPES.SHARE_CAPITAL,
   TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION,
 ];
+
+// Types that live only in the member books (contra legs like membership_fee),
+// not in the bank-cash ledger projection. They must still ride along in the
+// adjustment/rebuild stream or a reclassify/split rebuild would delete them.
+const MEMBER_BOOKS_ONLY_TYPES = [TRANSACTION_TYPES.MEMBERSHIP_FEE];
 
 const TYPE_TO_NARRATIVE = {
   [TRANSACTION_TYPES.DEPOSIT]: "Member Deposit",
@@ -38,6 +44,7 @@ const TYPE_TO_NARRATIVE = {
   [TRANSACTION_TYPES.CD_PURCHASE]: "Purchase of Certificate of Deposit",
   [TRANSACTION_TYPES.CD_LIQUIDATION]: "Liquidation of Certificate of Deposit",
   [TRANSACTION_TYPES.INVESTMENT]: "Investment",
+  [TRANSACTION_TYPES.OTHER_INCOME]: "Other Cooperative Income",
   [TRANSACTION_TYPES.SHARE_CAPITAL]: "Share Capital",
   [TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION]: "Share Capital Redemption",
 };
@@ -105,8 +112,8 @@ function descriptionForCsvExport(row) {
   return `${description} (${name})`;
 }
 
-function loadLedgerRowsFromDb(db) {
-  const placeholders = LEDGER_TYPES.map(() => "?").join(", ");
+function loadLedgerRowsFromDb(db, types = LEDGER_TYPES) {
+  const placeholders = types.map(() => "?").join(", ");
   const sourcePlaceholders = LEDGER_SOURCES.map(() => "?").join(", ");
   return db
     .prepare(
@@ -115,6 +122,7 @@ function loadLedgerRowsFromDb(db) {
               t.amount,
               t.description,
               t.source,
+              t.reference,
               t.bank_account_id,
               m.name AS member_name
        FROM transactions t
@@ -123,11 +131,11 @@ function loadLedgerRowsFromDb(db) {
          AND t.type IN (${placeholders})
        ORDER BY t.transaction_date, t.id`
     )
-    .all(...LEDGER_SOURCES, ...LEDGER_TYPES);
+    .all(...LEDGER_SOURCES, ...types);
 }
 
 function loadBankTransactionsFromDb(db = getDb()) {
-  const rows = loadLedgerRowsFromDb(db);
+  const rows = loadLedgerRowsFromDb(db, [...LEDGER_TYPES, ...MEMBER_BOOKS_ONLY_TYPES]);
   return rows.map((row) => ({
     date: row.transaction_date,
     amount: Number(row.amount),
@@ -135,6 +143,7 @@ function loadBankTransactionsFromDb(db = getDb()) {
     ledgerType: row.type,
     member: row.member_name || null,
     source: row.source || "bank_import",
+    reference: row.reference || "",
   }));
 }
 

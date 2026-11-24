@@ -175,6 +175,43 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Other Cooperative Income type + workbook-verified ledger
+  corrections.** New transaction type `other_income` (non-member cooperative
+  income: payment surpluses, refunds, misc credits) wired end to end:
+  constants.js TRANSACTION_TYPES, transaction-import-types label maps +
+  append/template support, cooperative-bank-ledger-csv LEDGER_TYPES (it is a
+  bank-facing type so it stays in the cash projection and generated reference)
+  + TYPE_TO_NARRATIVE, parse-bank-sources TYPE_MAP + COOPERATIVE_LEDGER_TYPES,
+  insert branches in import-bank-ledger.js and bank-import-append.js
+  (member optional, positive amounts). Books: otherIncome feeds
+  totalCooperativeIncome, cooperativeNet, an "Other Cooperative Income" row
+  in Total Cooperative Income and Cooperative Net Income details (only when
+  nonzero), and a new other-income detail slug listing the credits.
+  cooperative-status-report.js shows an Other Cooperative Income income
+  statement line when nonzero. Client: reclassify dropdown option, split
+  member-optional, formatTxType label.
+  Adjustment engine: `membership_fee` reclassify/split legs now expand to the
+  deposit + membership_fee pair the member books need (member balance nets to
+  zero, fee income recorded, bank cash unchanged). Emitted adjustment product
+  rows carry an `adj:<ledger_key>` marker in transactions.reference so a
+  product never re-matches the adjustment that produced it on the next
+  rebuild (previously a reclassify to membership_fee would have duplicated
+  the pair each rebuild). `loadBankTransactionsFromDb` now also streams
+  MEMBER_BOOKS_ONLY_TYPES (membership_fee) so CSV-imported fee legs survive
+  rebuilds; before this a single UI split/reclassify deleted every
+  membership_fee leg on the account since the rebuild stream only carried
+  LEDGER_TYPES. Verified on a scratch org via
+  scripts/test-other-income-splits.js: Bakare 151,320 split
+  (150,000 Entrance Fee + 1,320 other income), Oluwafemi 75,009.72 split
+  (75,000 Annual Dues + 9.72), Oni 5,000 SIAML refund reclassified to share
+  capital, two Sterling credits (19,726.17/19,726.49) reclassified to other
+  income, Eyinade 37,500 reclassified to membership fee; member balances net
+  to zero, otherIncome = 40,782.38 (matches workbook GL 4200 exactly), bank
+  ledger projection intact. Deploy: git push only. Data note: the same
+  corrections are applied to Downloads/ttfc-ledger-operations.csv for anyone
+  re-running a Full Ledger Refresh from file, but the in-app
+  split/reclassify path is the intended fix on the live org.
+
 - **2026-11-24** - **Loans-off toggle now suppresses loan income lines.**
   Total Cooperative Income and Cooperative Net Income detail rows
   skipped Loan Interest Income only implicitly; they now check
@@ -1536,6 +1573,7 @@ Peer Finance Manager / Assurance Cooperative
 | 4x | ~~Twilight Funds (NG) FlexxForms workspace verification~~ DONE 2026-11-19 | Starter cloning enabled: HOST_APP_PEER_FINANCE_MANAGER_STARTER_TENANT_ID=Assurance tenant on FlexxForms/Netlify + provisioningRole metadata on Assurance forms/docs + FlexxForms redeploy; retry populated twilight form/doc ids. See changelog. |
 | 4y | **Confirm Nigeria membership defaults with client** | NG profile `membershipDefaults` ships at 50,000/50,000 NGN so the new Cooperative is not blocked; admin can change anytime on **Manual Record -> Membership Policy**. Confirm real fee/contribution amounts with Twilight Funds admin and update profile or stored setting. |
 | 4z | **Nigeria bank statement samples for import training** | User note 2026-11-18: need a real statement export from each Nigerian bank used by the first NG Cooperatives to tune auto-detect (Trans Date/Value Date, Narration, Debit/Credit, DD/MM/YYYY). Collect with onboarding; extends task 14b. |
+| 15 | **Apply TTFC workbook corrections on live org** | Reconciliation vs workbook 05 + Providus statement found 6 mistyped import rows (overstates Member Contributions by 268,829.72, understates fee income by 262,500). Fix on live: Contributions Account -> Bank Ledger Rows -> Split Bakare 151,320 (150,000 Membership Fee + 1,320 Other Cooperative Income) and Oluwafemi 75,009.72 (75,000 Membership Fee + 9.72 Other Cooperative Income); reclassify Oni 5,000 SIAML refund -> Share Capital, Eyinade 37,500 -> Membership Fee, both Sterling 19,726.xx credits -> Other Cooperative Income. Downloads/ttfc-ledger-operations.csv already corrected if a file-based Full Ledger Refresh is preferred instead. Note: workbook books Oni SIAML 5,000 to GL Paid-up Share Capital but excludes it from the member-facing 05 sheet, so Share Capital card will read 38,326,843 after the fix. |
 
 ### High — user said they will provide info later
 

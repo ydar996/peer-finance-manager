@@ -2882,6 +2882,7 @@ function formatTxType(type) {
     late_fee: "Late Fee",
     share_capital: "Share Purchase",
     share_capital_redemption: "Share Redemption",
+    other_income: "Other Cooperative Income",
   };
   return labels[type] || String(type || "").replace(/_/g, " ");
 }
@@ -2897,6 +2898,7 @@ const LEDGER_RECLASSIFY_TYPES = [
   { value: "cd_purchase", label: "CD Purchase" },
   { value: "cd_liquidation", label: "CD Liquidation" },
   { value: "investment", label: "Investment" },
+  { value: "other_income", label: "Other Cooperative Income" },
 ];
 
 const LEDGER_RECLASSIFY_SHARE_TYPES = [
@@ -2926,6 +2928,7 @@ const LEDGER_SPLIT_MEMBER_OPTIONAL = new Set([
   "cd_purchase",
   "cd_liquidation",
   "investment",
+  "other_income",
 ]);
 
 function adminCanEditLedgerRows() {

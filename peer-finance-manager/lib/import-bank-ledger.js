@@ -45,6 +45,7 @@ function mapLedgerType(ledgerType) {
     cd_purchase: TRANSACTION_TYPES.CD_PURCHASE,
     cd_liquidation: TRANSACTION_TYPES.CD_LIQUIDATION,
     investment: TRANSACTION_TYPES.INVESTMENT,
+    other_income: TRANSACTION_TYPES.OTHER_INCOME,
     share_capital: TRANSACTION_TYPES.SHARE_CAPITAL,
     share_capital_redemption: TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION,
   };
@@ -91,7 +92,7 @@ function insertBankLedgerTransaction({
   if (!type) return false;
 
   const [year, month] = (tx.date || "").split("-").map(Number);
-  const reference = `${tx.source}:${tx.date}:${tx.amount}`;
+  const reference = tx.reference || `${tx.source}:${tx.date}:${tx.amount}`;
 
   if (type === TRANSACTION_TYPES.EXPENSE) {
     const amount = Math.abs(tx.amount);
@@ -115,10 +116,12 @@ function insertBankLedgerTransaction({
   if (
     type === TRANSACTION_TYPES.CD_PURCHASE ||
     type === TRANSACTION_TYPES.CD_LIQUIDATION ||
-    type === TRANSACTION_TYPES.INVESTMENT
+    type === TRANSACTION_TYPES.INVESTMENT ||
+    type === TRANSACTION_TYPES.OTHER_INCOME
   ) {
+    const memberId = tx.member ? nameToId[tx.member] : null;
     insertTx.run(
-      null,
+      memberId || null,
       type,
       tx.amount,
       tx.date,
@@ -131,6 +134,7 @@ function insertBankLedgerTransaction({
     if (type === TRANSACTION_TYPES.CD_PURCHASE) counts.cdPurchases += 1;
     if (type === TRANSACTION_TYPES.CD_LIQUIDATION) counts.cdLiquidations += 1;
     if (type === TRANSACTION_TYPES.INVESTMENT) counts.investments += 1;
+    if (type === TRANSACTION_TYPES.OTHER_INCOME) counts.otherIncome = (counts.otherIncome || 0) + 1;
     return true;
   }
 

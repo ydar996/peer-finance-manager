@@ -23,6 +23,8 @@ const TYPE_MAP = {
   "Liquidation of Certificate of Deposit": "cd_liquidation",
   "Investment in Caribe Restaurant and Lounge": "investment",
   Investment: "investment",
+  "Other Income": "other_income",
+  "Other Cooperative Income": "other_income",
   "Share Capital": "share_capital",
   "Share Capital Redemption": "share_capital_redemption",
 };
@@ -31,6 +33,7 @@ const COOPERATIVE_LEDGER_TYPES = new Set([
   "cd_purchase",
   "cd_liquidation",
   "investment",
+  "other_income",
   "expense",
 ]);
 

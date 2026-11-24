@@ -305,6 +305,9 @@ function getCooperativeBooks() {
   const distributions = sumByTypes([TRANSACTION_TYPES.DISTRIBUTION]);
   // Membership fees are stored as member-account debits (negative); flip for cooperative income.
   const registrationIncome = -sumByTypes([TRANSACTION_TYPES.MEMBERSHIP_FEE]);
+  // Other cooperative income is non-member income (payment surpluses, refunds,
+  // misc credits); stored positive like other bank receipts.
+  const otherIncome = sumByTypes([TRANSACTION_TYPES.OTHER_INCOME]);
 
   const loanPortfolio = db
     .prepare(
@@ -333,7 +336,7 @@ function getCooperativeBooks() {
   const expectedLoanInterest =
     isLoansEnabled() && hasBankLoanLedgerData ? getExpectedFutureLoanInterest() : 0;
   const totalCooperativeIncome =
-    registrationIncome + cdInterest.cdInterestIncome + loanInterestIncome;
+    registrationIncome + cdInterest.cdInterestIncome + loanInterestIncome + otherIncome;
   const cooperativeNetIncome = totalCooperativeIncome - (expenses.total || 0);
   const cdBalanceSetting = getCooperativeSetting("cd_balance");
   const cdBalanceAsOf = getCooperativeSetting("cd_balance_as_of");
@@ -396,6 +399,7 @@ function getCooperativeBooks() {
     memberDeposits,
     distributions,
     registrationIncome,
+    otherIncome,
     totalMemberDepositAccounts: totalMemberBalances,
     shareCapitalEnabled,
     totalMemberShareCapital: totalShareCapital,
@@ -446,6 +450,7 @@ function getCooperativeBooks() {
     cooperativeNet:
       memberDeposits +
       registrationIncome +
+      otherIncome +
       distributions +
       (hasBankLoanLedgerData ? bankLoanCollected : loanPortfolio.collected || 0) -
       (hasBankLoanLedgerData ? bankLoanPrincipal : loanPortfolio.principal || 0) -
@@ -462,6 +467,7 @@ const BOOK_DETAIL_SLUGS = {
   "deposits-withdrawals": "Member Contributions & Withdrawals",
   "share-capital": "Member Share Capital (Total)",
   "registration-income": "Registration Income",
+  "other-income": "Other Cooperative Income",
   distributions: "Distributions Paid",
   loans: "Loans Outstanding",
   expenses: "Cooperative Expenses",
@@ -687,6 +693,39 @@ function getBookDetail(slug) {
         date: row.transaction_date,
         member: row.display_name || row.name,
         amount: Math.abs(row.amount),
+        description: row.description || "",
+        memberId: row.member_id,
+      })),
+    };
+  }
+
+  if (slug === "other-income") {
+    const rows = db
+      .prepare(
+        `SELECT t.transaction_date, t.amount, t.description,
+                m.id AS member_id, m.name, mp.display_name
+         FROM transactions t
+         LEFT JOIN members m ON m.id = t.member_id
+         LEFT JOIN member_profiles mp ON mp.member_id = m.id
+         WHERE t.type = 'other_income'
+         ORDER BY t.transaction_date DESC, t.id DESC`
+      )
+      .all();
+    return {
+      slug,
+      title,
+      navigateTab: null,
+      summary: rows.reduce((sum, row) => sum + row.amount, 0),
+      columns: [
+        { key: "date", label: "Date", format: "date" },
+        { key: "member", label: "Member" },
+        { key: "amount", label: "Amount", format: "money" },
+        { key: "description", label: "Description" },
+      ],
+      rows: rows.map((row) => ({
+        date: row.transaction_date,
+        member: row.display_name || row.name || "Non-Member",
+        amount: row.amount,
         description: row.description || "",
         memberId: row.member_id,
       })),
@@ -1079,6 +1118,7 @@ function getBookDetail(slug) {
   if (slug === "total-income") {
     const cdInterest = getCdInterestBreakdown();
     const registrationIncome = -sumByTypes([TRANSACTION_TYPES.MEMBERSHIP_FEE]);
+    const otherIncome = sumByTypes([TRANSACTION_TYPES.OTHER_INCOME]);
     const loanInterest = getTotalLoanInterestIncome();
     const rows = [
       {
@@ -1087,6 +1127,16 @@ function getBookDetail(slug) {
         note: "Membership fees collected",
         detailSlug: "registration-income",
       },
+      ...(otherIncome !== 0
+        ? [
+            {
+              source: "Other Cooperative Income",
+              amount: otherIncome,
+              note: "Non-member income and payment surpluses",
+              detailSlug: "other-income",
+            },
+          ]
+        : []),
       ...(isLoansEnabled()
         ? [
             {
@@ -1121,6 +1171,7 @@ function getBookDetail(slug) {
   if (slug === "net-income") {
     const cdInterest = getCdInterestBreakdown();
     const registrationIncome = -sumByTypes([TRANSACTION_TYPES.MEMBERSHIP_FEE]);
+    const otherIncome = sumByTypes([TRANSACTION_TYPES.OTHER_INCOME]);
     const loanInterest = getTotalLoanInterestIncome();
     const expenseTotal = db
       .prepare(`SELECT COALESCE(SUM(amount), 0) AS total FROM expenses`)
@@ -1132,6 +1183,16 @@ function getBookDetail(slug) {
         note: "Membership fees collected",
         detailSlug: "registration-income",
       },
+      ...(otherIncome !== 0
+        ? [
+            {
+              line: "Other Cooperative Income",
+              amount: otherIncome,
+              note: "Non-member income and payment surpluses",
+              detailSlug: "other-income",
+            },
+          ]
+        : []),
       ...(isLoansEnabled()
         ? [
             {
@@ -1155,7 +1216,7 @@ function getBookDetail(slug) {
         detailSlug: "expenses",
       },
     ];
-    const incomeTotal = registrationIncome + loanInterest + cdInterest.cdInterestIncome;
+    const incomeTotal = registrationIncome + otherIncome + loanInterest + cdInterest.cdInterestIncome;
     return {
       slug,
       title,

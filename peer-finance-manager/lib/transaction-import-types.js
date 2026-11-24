@@ -17,6 +17,9 @@ const TYPE_LABEL_TO_LEDGER = {
   "liquidation of certificate of deposit": TRANSACTION_TYPES.CD_LIQUIDATION,
   "cd liquidation": TRANSACTION_TYPES.CD_LIQUIDATION,
   investment: TRANSACTION_TYPES.INVESTMENT,
+  "other income": TRANSACTION_TYPES.OTHER_INCOME,
+  "other cooperative income": TRANSACTION_TYPES.OTHER_INCOME,
+  "cooperative income": TRANSACTION_TYPES.OTHER_INCOME,
   "membership fee": TRANSACTION_TYPES.MEMBERSHIP_FEE,
   "share capital": TRANSACTION_TYPES.SHARE_CAPITAL,
   "share capital purchase": TRANSACTION_TYPES.SHARE_CAPITAL,
@@ -35,6 +38,7 @@ const LEDGER_TO_TYPE_LABEL = {
   [TRANSACTION_TYPES.CD_PURCHASE]: "Purchase of Certificate of Deposit",
   [TRANSACTION_TYPES.CD_LIQUIDATION]: "Liquidation of Certificate of Deposit",
   [TRANSACTION_TYPES.INVESTMENT]: "Investment",
+  [TRANSACTION_TYPES.OTHER_INCOME]: "Other Cooperative Income",
   [TRANSACTION_TYPES.MEMBERSHIP_FEE]: "Membership Fee",
   [TRANSACTION_TYPES.SHARE_CAPITAL]: "Share Capital",
   [TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION]: "Share Capital Redemption",
@@ -60,6 +64,7 @@ const APPEND_SUPPORTED_TYPES = new Set([
   TRANSACTION_TYPES.CD_PURCHASE,
   TRANSACTION_TYPES.CD_LIQUIDATION,
   TRANSACTION_TYPES.INVESTMENT,
+  TRANSACTION_TYPES.OTHER_INCOME,
   TRANSACTION_TYPES.SHARE_CAPITAL,
   TRANSACTION_TYPES.SHARE_CAPITAL_REDEMPTION,
 ]);
@@ -100,6 +105,7 @@ function listTemplateTypeLabels() {
     "Purchase of Certificate of Deposit",
     "Liquidation of Certificate of Deposit",
     "Investment",
+    "Other Cooperative Income",
   ];
 }
 

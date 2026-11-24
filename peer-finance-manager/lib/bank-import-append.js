@@ -497,10 +497,12 @@ function insertAppendTransaction({
   if (
     type === TRANSACTION_TYPES.CD_PURCHASE ||
     type === TRANSACTION_TYPES.CD_LIQUIDATION ||
-    type === TRANSACTION_TYPES.INVESTMENT
+    type === TRANSACTION_TYPES.INVESTMENT ||
+    type === TRANSACTION_TYPES.OTHER_INCOME
   ) {
+    const memberId = tx.member ? nameToId[tx.member] : null;
     insertTx.run(
-      null,
+      memberId || null,
       type,
       tx.amount,
       tx.date,
@@ -516,6 +518,7 @@ function insertAppendTransaction({
     if (type === TRANSACTION_TYPES.CD_PURCHASE) counts.cdPurchases += 1;
     if (type === TRANSACTION_TYPES.CD_LIQUIDATION) counts.cdLiquidations += 1;
     if (type === TRANSACTION_TYPES.INVESTMENT) counts.investments += 1;
+    if (type === TRANSACTION_TYPES.OTHER_INCOME) counts.otherIncome = (counts.otherIncome || 0) + 1;
     return { inserted: true, type };
   }
 
