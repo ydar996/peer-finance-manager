@@ -1074,6 +1074,8 @@ body.cooperative-report-viewer-open {
 }
 .detail-member-row { cursor: pointer; }
 .detail-member-row:hover { background: #eaf6ee; }
+.detail-drill-row { cursor: pointer; }
+.detail-drill-row:hover { background: #eaf6ee; }
 .detail-expand-row td:first-child {
   display: flex;
   align-items: center;

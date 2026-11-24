@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Income lines drill down to their detail views.**
+  Rows in the Total Cooperative Income and Cooperative Net Income
+  details now carry detailSlug (registration-income,
+  loan-interest-income, cd-interest-income, expenses). Clicking a row
+  opens that card's full detail via openBookDetail. Client renders
+  rows with detailSlug as .detail-drill-row (pointer + hover, bound by
+  bindBookDetailDrillRows) alongside the existing member-row pattern.
+  Deploy: git push only.
+
 - **2026-11-24** - **Configurable interest-income keywords.** New
   "Interest Income Keywords (Comma-Separated)" field in Organization &
   Report Settings on the Status Report page. Stored in

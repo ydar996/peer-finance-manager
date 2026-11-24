@@ -1992,7 +1992,9 @@ function renderBookDetailTable(view, slug) {
     .map((row) => {
       const memberAttr = row.memberId
         ? ` class="detail-member-row" data-member-id="${row.memberId}"`
-        : "";
+        : row.detailSlug
+          ? ` class="detail-drill-row" data-detail-slug="${escapeHtml(row.detailSlug)}"`
+          : "";
       const cells = view.columns
         .map((col) => {
           const format = resolveDetailCellFormat(row, col);
@@ -2004,6 +2006,16 @@ function renderBookDetailTable(view, slug) {
     })
     .join("");
   bindBookDetailMemberRows(slug);
+  bindBookDetailDrillRows();
+}
+
+function bindBookDetailDrillRows() {
+  $("#booksDetailBody")?.querySelectorAll(".detail-drill-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      const target = row.dataset.detailSlug;
+      if (target) void openBookDetail(target);
+    });
+  });
 }
 
 function renderBookDetailView(viewId) {

@@ -1078,16 +1078,19 @@ function getBookDetail(slug) {
         source: "Registration Income",
         amount: registrationIncome,
         note: "Membership fees collected",
+        detailSlug: "registration-income",
       },
       {
         source: "Loan Interest Income",
         amount: loanInterest,
         note: "Interest earned on repayments, including active loans",
+        detailSlug: "loan-interest-income",
       },
       {
         source: `${depositInstrumentLabel()} Interest Income`,
         amount: cdInterest.cdInterestIncome,
         note: `Realized ${cdInterest.cdInterestRealized.toFixed(2)} · Accrued ${cdInterest.cdInterestAccrued.toFixed(2)}`,
+        detailSlug: "cd-interest-income",
       },
     ];
     return {
@@ -1116,21 +1119,25 @@ function getBookDetail(slug) {
         line: "Registration Income",
         amount: registrationIncome,
         note: "Membership fees collected",
+        detailSlug: "registration-income",
       },
       {
         line: "Loan Interest Income",
         amount: loanInterest,
         note: "Interest earned to date on loan repayments",
+        detailSlug: "loan-interest-income",
       },
       {
         line: `${depositInstrumentLabel()} Interest Income`,
         amount: cdInterest.cdInterestIncome,
         note: `Realized ${cdInterest.cdInterestRealized.toFixed(2)} · Accrued ${cdInterest.cdInterestAccrued.toFixed(2)}`,
+        detailSlug: "cd-interest-income",
       },
       {
         line: "Cooperative Expenses",
         amount: -(expenseTotal || 0),
         note: "Operating expenses recorded",
+        detailSlug: "expenses",
       },
     ];
     const incomeTotal = registrationIncome + loanInterest + cdInterest.cdInterestIncome;
