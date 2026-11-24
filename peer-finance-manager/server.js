@@ -1674,8 +1674,22 @@ app.post("/api/books/monthly-status-report/publish", requireAdmin, async (req, r
         await generateMonthlyStatusReport({ asOfToday: true });
       }
     }
-    const status = publishMonthlyStatusReport(periodSlug);
+    const status = publishMonthlyStatusReport(periodSlug, {
+      allowWithoutPreview: Boolean(req.body?.confirmedNoPreview),
+    });
     res.json({ success: true, status });
+  } catch (err) {
+    res.status(400).json({ error: err.message, code: err.code || null });
+  }
+});
+
+app.post("/api/books/monthly-status-report/test-send", requireAdmin, async (req, res) => {
+  try {
+    const { sendCooperativeReportPreviewEmail } = require("./lib/report-notification-service");
+    const { defaultReportAsOfToday } = require("./lib/cooperative-status-report");
+    const periodSlug = req.body?.periodSlug || defaultReportAsOfToday().slug;
+    const result = await sendCooperativeReportPreviewEmail(periodSlug, req.user);
+    res.json({ success: true, ...result });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

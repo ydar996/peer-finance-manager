@@ -620,13 +620,14 @@
                 <span>Organization website (optional, shown on report cover)</span>
                 <input type="url" id="monthlyStatusOrgWebsite" placeholder="https://example.org/" />
               </label>
-              <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the Cooperative report is built as at that calendar month-end date and published to members. <strong>Generate Report</strong> and <strong>Publish to Members</strong> use today's date (the day you run them), not month-end. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
+              <p class="hint">Month-end auto-generate and auto-publish are <strong>on by default</strong> (scheduler runs every 6 hours on the server). On the last day of each month the Cooperative report is built as at that calendar month-end date and published to members. <strong>Generate Report</strong> and <strong>Publish to Members</strong> use today's date (the day you run them), not month-end. <strong>Send Preview to Admin Only</strong> emails the report announcement to your administrator account only, so you can check it before members receive it. Publishing asks for confirmation if no preview was sent. Email setup: <strong>EMAIL-NOTIFICATIONS-SETUP.md</strong>.</p>
               <button type="button" class="btn" id="saveMonthlyStatusSettings">Save Organization Settings</button>
             </div>
           </details>
           <div class="panel-head-actions monthly-status-report-actions">
             <button type="button" class="btn admin-only-report-settings hidden month-end-auto-publish-toggle" id="toggleMonthEndAutoPublish" title="When on, the report is generated and published to members on the last day of each month.">Month-end auto-publish: …</button>
             <button type="button" class="btn primary admin-only-report-settings hidden" id="generateMonthlyStatusReport">Generate Report</button>
+            <button type="button" class="btn admin-only-report-settings hidden" id="testSendMonthlyStatusReport">Send Preview to Admin Only</button>
             <button type="button" class="btn admin-only-report-settings hidden" id="publishMonthlyStatusReport">Publish to Members</button>
             <button type="button" class="btn admin-only-report-settings hidden" id="unpublishMonthlyStatusReport">Unpublish from Members</button>
             <button type="button" class="btn" id="downloadMonthlyStatusReport">Download PDF</button>

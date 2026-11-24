@@ -5346,6 +5346,7 @@ async function loadMonthlyStatusReportPanel() {
   const statusEl = $("#monthlyStatusReportStatus");
   const downloadBtn = $("#downloadMonthlyStatusReport");
   const publishBtn = $("#publishMonthlyStatusReport");
+  const testSendBtn = $("#testSendMonthlyStatusReport");
   const unpublishBtn = $("#unpublishMonthlyStatusReport");
   const generateBtn = $("#generateMonthlyStatusReport");
   try {
@@ -5377,6 +5378,7 @@ async function loadMonthlyStatusReportPanel() {
     }
 
     if (downloadBtn) downloadBtn.disabled = !status.generated;
+    if (testSendBtn) testSendBtn.disabled = !status.generated;
     if (publishBtn) publishBtn.disabled = !status.generated || status.published;
     if (unpublishBtn) unpublishBtn.disabled = !status.published;
 
@@ -5415,6 +5417,11 @@ async function loadMonthlyStatusReportPanel() {
         parts.push(`published ${publishedLabel}`);
       } else if (currentUser?.role === "admin") {
         parts.push("not yet published to members");
+        if (status.previewSentTo) {
+          parts.push(`preview sent to ${status.previewSentTo}`);
+        } else {
+          parts.push("preview not sent");
+        }
       }
       statusEl.textContent = parts.join(" · ");
       statusEl.className = "status ok";
@@ -5502,9 +5509,38 @@ async function publishMonthlyStatusReportNow(button) {
   setButtonBusy(button, true, "Publishing…");
   const statusEl = $("#monthlyStatusReportStatus");
   try {
-    const res = await fetch("/api/books/monthly-status-report/publish", { method: "POST" });
+    const body = {};
+    const res = await fetch("/api/books/monthly-status-report/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to publish report");
+    if (!res.ok && data.code === "preview_not_sent") {
+      const proceed = await appConfirm(
+        "No preview has been sent for this report yet. It is recommended to send the preview to your administrator account and check it first. Publish to all members anyway?",
+        { title: "Publish Without Preview", variant: "warning", confirmLabel: "Publish to Members" }
+      );
+      if (!proceed) {
+        if (statusEl) {
+          statusEl.textContent =
+            "Publish cancelled. Use Send Preview to Admin Only to check the report first.";
+          statusEl.className = "status";
+        }
+        return;
+      }
+      body.confirmedNoPreview = true;
+      const retry = await fetch("/api/books/monthly-status-report/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const retryData = await retry.json();
+      if (!retry.ok) throw new Error(retryData.error || "Failed to publish report");
+      Object.assign(data, retryData);
+    } else if (!res.ok) {
+      throw new Error(data.error || "Failed to publish report");
+    }
     if (statusEl) {
       const asAt = data.status?.period?.labelUs;
       statusEl.textContent = asAt
@@ -5513,6 +5549,29 @@ async function publishMonthlyStatusReportNow(button) {
       statusEl.className = "status ok";
     }
     await loadMonthlyStatusReportPanel();
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = err.message;
+      statusEl.className = "status err";
+    } else {
+      void appAlert(err.message, { title: "Error", variant: "danger" });
+    }
+  } finally {
+    setButtonBusy(button, false);
+  }
+}
+
+async function testSendMonthlyStatusReportNow(button) {
+  setButtonBusy(button, true, "Sending…");
+  const statusEl = $("#monthlyStatusReportStatus");
+  try {
+    const res = await fetch("/api/books/monthly-status-report/test-send", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to send preview");
+    if (statusEl) {
+      statusEl.textContent = `Preview sent to ${data.to}. Check the email, then Publish to Members when ready.`;
+      statusEl.className = "status ok";
+    }
   } catch (err) {
     if (statusEl) {
       statusEl.textContent = err.message;
@@ -6622,6 +6681,9 @@ $("#downloadMonthlyStatusReport")?.addEventListener("click", (e) => {
 });
 $("#generateMonthlyStatusReport")?.addEventListener("click", (e) => {
   generateMonthlyStatusReportNow(e.currentTarget);
+});
+$("#testSendMonthlyStatusReport")?.addEventListener("click", (e) => {
+  testSendMonthlyStatusReportNow(e.currentTarget);
 });
 $("#publishMonthlyStatusReport")?.addEventListener("click", (e) => {
   publishMonthlyStatusReportNow(e.currentTarget);

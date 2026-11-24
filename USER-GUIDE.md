@@ -464,7 +464,8 @@ Cooperative-wide performance PDF for members.
 | Action | What it does |
 |--------|--------------|
 | **Generate Report** | Build PDF from current ledger **as at today**. |
-| **Publish to Members** | Makes this month's report visible on member portals, dated **today**. If the draft was stamped as month-end (or another day), it is rebuilt as at today before publishing. |
+| **Send Preview to Admin Only** | Emails the report announcement to your administrator account only: check rendering and figures before members see anything. The panel shows when a preview was sent and to whom. |
+| **Publish to Members** | Makes this month's report visible on member portals, dated **today**. If the draft was stamped as month-end (or another day), it is rebuilt as at today before publishing. If no admin preview was sent for the current draft, you are asked to confirm first; regenerating the report resets the preview so a fresh check is required. Scheduled month-end auto-publish is unaffected. |
 | **Download PDF** | Save a copy locally. |
 | **Unpublish** | Remove from member view. |
 

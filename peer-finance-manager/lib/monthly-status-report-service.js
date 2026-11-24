@@ -46,6 +46,12 @@ function ensureReportsTable(db) {
   try {
     db.exec(`ALTER TABLE cooperative_status_reports ADD COLUMN performance_overview TEXT`);
   } catch (_) {}
+  try {
+    db.exec(`ALTER TABLE cooperative_status_reports ADD COLUMN preview_sent_at TEXT`);
+  } catch (_) {}
+  try {
+    db.exec(`ALTER TABLE cooperative_status_reports ADD COLUMN preview_sent_to TEXT`);
+  } catch (_) {}
 }
 
 function canonicalReportAsOfDate(periodSlug, storedAsOfDate) {
@@ -176,15 +182,18 @@ function saveReportRecord({ period, fileName, outputPath, performanceOverview })
   const asOfDate = parseAsOfDate(period.dateIso).dateIso;
   db.prepare(
     `INSERT INTO cooperative_status_reports (
-       period_slug, as_of_date, file_name, generated_at, published_at, is_published, performance_overview
-     ) VALUES (?, ?, ?, ?, NULL, 0, ?)
+       period_slug, as_of_date, file_name, generated_at, published_at, is_published, performance_overview,
+       preview_sent_at, preview_sent_to
+     ) VALUES (?, ?, ?, ?, NULL, 0, ?, NULL, NULL)
      ON CONFLICT(period_slug) DO UPDATE SET
        as_of_date = excluded.as_of_date,
        file_name = excluded.file_name,
        generated_at = excluded.generated_at,
        published_at = NULL,
        is_published = 0,
-       performance_overview = excluded.performance_overview`
+       performance_overview = excluded.performance_overview,
+       preview_sent_at = NULL,
+       preview_sent_to = NULL`
   ).run(period.slug, asOfDate, fileName, generatedAt, performanceOverview || null);
   return getReportRecord(period.slug);
 }
@@ -218,6 +227,9 @@ function getMonthlyStatusReportStatus(options = {}) {
     publishedAt: record?.published_at || null,
     generatedAtLabel: formatInstantAsCooperativeDate(record?.generated_at),
     publishedAtLabel: formatInstantAsCooperativeDate(record?.published_at),
+    previewSentAt: record?.preview_sent_at || null,
+    previewSentTo: record?.preview_sent_to || null,
+    previewSentAtLabel: formatInstantAsCooperativeDate(record?.preview_sent_at),
     fileName: record?.file_name || null,
   };
 }
@@ -245,7 +257,7 @@ async function generateMonthlyStatusReport(options = {}) {
   const settings = getMonthlyStatusReportSettings();
   let published = false;
   if (settings.autoPublish) {
-    publishMonthlyStatusReport(period.slug);
+    publishMonthlyStatusReport(period.slug, { allowWithoutPreview: true });
     published = true;
   }
 
@@ -256,13 +268,20 @@ async function generateMonthlyStatusReport(options = {}) {
   };
 }
 
-function publishMonthlyStatusReport(periodSlug) {
+function publishMonthlyStatusReport(periodSlug, { allowWithoutPreview = false } = {}) {
   const db = getDb();
   ensureReportsTable(db);
   const record = getReportRecord(periodSlug);
   if (!record) throw new Error("Generate the report before publishing");
   if (!resolveReportFilePath(record)) {
     throw new Error("Report file is missing on disk. Generate the report again.");
+  }
+  if (!allowWithoutPreview && !record.preview_sent_at) {
+    const err = new Error(
+      "Send the report preview to your administrator account first so you can verify it before members receive it."
+    );
+    err.code = "preview_not_sent";
+    throw err;
   }
   db.prepare(
     `UPDATE cooperative_status_reports
@@ -338,7 +357,7 @@ async function maybeAutoGenerateAndPublishMonthlyStatusReport() {
     } else if (settings.autoPublish) {
       const existing = getReportRecord(period.slug);
       if (existing && !existing.is_published && resolveReportFilePath(existing)) {
-        publishMonthlyStatusReport(period.slug);
+        publishMonthlyStatusReport(period.slug, { allowWithoutPreview: true });
         results.push({ periodSlug: period.slug, published: true });
       }
     }
@@ -358,7 +377,7 @@ async function maybeAutoGenerateAndPublishMonthlyStatusReport() {
           })
         );
       } else if (settings.autoPublish && !existing.is_published && resolveReportFilePath(existing)) {
-        publishMonthlyStatusReport(period.slug);
+        publishMonthlyStatusReport(period.slug, { allowWithoutPreview: true });
         results.push({ periodSlug: period.slug, published: true });
       }
     }

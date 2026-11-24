@@ -175,6 +175,24 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Monthly status report: admin preview before publish.**
+  Administrators can now send the report announcement email to their own
+  account first (Send Preview to Admin Only button, new
+  POST /api/books/monthly-status-report/test-send endpoint, subject
+  prefixed "Preview:") to verify rendering before members are notified.
+  cooperative_status_reports gained preview_sent_at / preview_sent_to
+  columns (guarded ALTERs in monthly-status-report-service.js and
+  report-notification-service.js). Manual publish now refuses with
+  code preview_not_sent until a preview is recorded for the current
+  draft; the UI shows a warning confirmation and retries with
+  confirmedNoPreview when the admin explicitly proceeds. Regenerating
+  a report clears the preview stamp so a stale preview cannot authorize
+  a changed report. Scheduled month-end auto-publish passes
+  allowWithoutPreview and is unaffected. Panel status line shows
+  "preview sent to …" or "preview not sent". Covered by
+  scripts/test-report-preview-gate.js (5 cases, all passing).
+  Deploy: git push only.
+
 - **2026-11-23** - **Import dedupe hardened app-wide.** Re-uploading a
   statement (same or different format) can no longer create duplicates.
   lib/import-fingerprint.js now emits multiple candidate keys per row:

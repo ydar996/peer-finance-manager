@@ -9,7 +9,7 @@ const {
   parseAsOfDate,
   defaultReportAsOfToday,
 } = require("./cooperative-status-report");
-const { isMonthEndDay } = require("./cooperative-time");
+const { isMonthEndDay, nowUtcIso } = require("./cooperative-time");
 
 const SETTING_ORG_WEBSITE = "organization_website";
 
@@ -26,6 +26,12 @@ function getReportRecord(periodSlug) {
       is_published INTEGER NOT NULL DEFAULT 0
     );
   `);
+  try {
+    db.exec(`ALTER TABLE cooperative_status_reports ADD COLUMN preview_sent_at TEXT`);
+  } catch (_) {}
+  try {
+    db.exec(`ALTER TABLE cooperative_status_reports ADD COLUMN preview_sent_to TEXT`);
+  } catch (_) {}
   return db
     .prepare(`SELECT * FROM cooperative_status_reports WHERE period_slug = ?`)
     .get(periodSlug);
@@ -230,6 +236,46 @@ async function sendCooperativeReportPublishedEmails(periodSlug) {
   });
 }
 
+/**
+ * Sends the publish-announcement email to a single administrator so the
+ * report can be checked before it goes to all members. Does not publish.
+ */
+async function sendCooperativeReportPreviewEmail(periodSlug, adminUser) {
+  const record = getReportRecord(periodSlug);
+  if (!record) throw new Error("Generate the report before sending a preview");
+  if (!isEmailConfigured()) throw new Error("Email is not configured");
+
+  const email = String(adminUser?.email || "").trim().toLowerCase();
+  if (!email) throw new Error("Your administrator account has no email address on file");
+
+  const period = parseAsOfDate(record.as_of_date);
+  const { renderAutomatedEmail } = require("./automated-message-service");
+  const branding = getOrganizationBrandingForReport();
+  const portalUrl = getMemberPortalUrl();
+  const rendered = renderAutomatedEmail("report_published", {
+    orgName: branding.organizationName,
+    portalUrl,
+    periodLabel: period.periodLabel,
+    asOfDate: period.labelUs,
+    memberName: adminUser?.displayName || adminUser?.name || "Administrator",
+  });
+
+  await sendEmail({
+    to: email,
+    subject: `Preview: ${rendered.subject}`,
+    text: rendered.text,
+    html: rendered.html,
+  });
+  const db = getDb();
+  db.prepare(
+    `UPDATE cooperative_status_reports
+     SET preview_sent_at = ?, preview_sent_to = ?
+     WHERE period_slug = ?`
+  ).run(nowUtcIso(), email, periodSlug);
+  trace.info("Report preview email sent to administrator", { periodSlug, to: email });
+  return { sent: true, to: email };
+}
+
 async function sendMonthEndReportReminderEmails(date = new Date()) {
   if (!isMonthEndDay(date)) return { skipped: true, reason: "not_month_end" };
 
@@ -283,6 +329,7 @@ module.exports = {
   getMemberPortalUrl,
   listMemberNotificationRecipients,
   sendCooperativeReportPublishedEmails,
+  sendCooperativeReportPreviewEmail,
   sendMonthEndReportReminderEmails,
   queueCooperativeReportPublishedEmails,
 };
