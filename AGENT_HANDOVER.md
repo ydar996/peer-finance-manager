@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Status report in-browser PDF preview.** New
+  Preview Report button on the Status Report page opens the generated
+  PDF in a new browser tab via GET
+  /api/books/monthly-status-report/download?inline=1 (same endpoint and
+  access rules as Download; sends Content-Disposition: inline).
+  Complements Send Preview to Admin Only: the button checks the PDF
+  itself, the email preview checks the outgoing announcement.
+  Deploy: git push only.
+
 - **2026-11-24** - **Monthly status report: admin preview before publish.**
   Administrators can now send the report announcement email to their own
   account first (Send Preview to Admin Only button, new

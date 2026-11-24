@@ -5347,6 +5347,7 @@ async function loadMonthlyStatusReportPanel() {
   const downloadBtn = $("#downloadMonthlyStatusReport");
   const publishBtn = $("#publishMonthlyStatusReport");
   const testSendBtn = $("#testSendMonthlyStatusReport");
+  const previewBtn = $("#previewMonthlyStatusReport");
   const unpublishBtn = $("#unpublishMonthlyStatusReport");
   const generateBtn = $("#generateMonthlyStatusReport");
   try {
@@ -5378,6 +5379,7 @@ async function loadMonthlyStatusReportPanel() {
     }
 
     if (downloadBtn) downloadBtn.disabled = !status.generated;
+    if (previewBtn) previewBtn.disabled = !status.generated;
     if (testSendBtn) testSendBtn.disabled = !status.generated;
     if (publishBtn) publishBtn.disabled = !status.generated || status.published;
     if (unpublishBtn) unpublishBtn.disabled = !status.published;
@@ -6676,6 +6678,9 @@ $("#resetCooperativeMeetingForm")?.addEventListener("click", resetCooperativeMee
 $("#refreshCooperativeMeetings")?.addEventListener("click", loadCooperativeMeetingsPanel);
 $("#saveMeetingSettings")?.addEventListener("click", saveMeetingSettings);
 
+$("#previewMonthlyStatusReport")?.addEventListener("click", () => {
+  window.open("/api/books/monthly-status-report/download?inline=1", "_blank", "noopener");
+});
 $("#downloadMonthlyStatusReport")?.addEventListener("click", (e) => {
   downloadMonthlyStatusReportFile(e.currentTarget);
 });

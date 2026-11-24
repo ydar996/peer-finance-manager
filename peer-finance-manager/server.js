@@ -1713,6 +1713,11 @@ app.get("/api/books/monthly-status-report/download", requireCooperativeView, (re
     const { defaultReportAsOfToday } = require("./lib/cooperative-status-report");
     const periodSlug = req.query.periodSlug || defaultReportAsOfToday().slug;
     const file = getReportDownloadPath(periodSlug, { requirePublished: false });
+    if (req.query.inline === "1") {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `inline; filename="${file.fileName}"`);
+      return res.sendFile(file.filePath);
+    }
     res.download(file.filePath, file.fileName);
   } catch (err) {
     res.status(err.message.includes("not found") ? 404 : 500).json({ error: err.message });
