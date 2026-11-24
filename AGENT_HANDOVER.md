@@ -175,6 +175,16 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **New docs: FEATURES-US.md and FEATURES-NG.md.**
+  Plain-language, layman-readable inventory of every feature in the app,
+  one edition per country profile. US edition: USD, MM/DD/YYYY,
+  "Zelle/Bank" rails, US bank catalog, USD pricing ($29.99/$89.07/$345.48).
+  Nigeria edition: NGN, DD/MM/YYYY, "Bank Transfer" rails, "LGA" district
+  label, NG bank catalog, NGN pricing (₦40,343/₦119,818/₦464,744) and
+  ₦50,000 membership defaults. Content is identical in structure; only
+  country-specific details differ. Update both together when features
+  change; USER-GUIDE.md remains the how-to companion.
+
 - **2026-11-24** - **Security pass round 2: forced-reset fix, session
   revocation, seed credentials, CSV injection, rate-limit pruning.**
   - **Platform admin password no longer force-reset on boot**
