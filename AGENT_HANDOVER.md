@@ -175,6 +175,29 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Canary demo DB sanitizer scripts.**
+  `peer-finance-manager/scripts/make-canary-demo.js` builds a fully
+  sanitized demo Cooperative DB from a real backup:
+  `node scripts/make-canary-demo.js <source.db> <output.db>`.
+  Every money figure scales x1.75; member ids remap to a shuffled 1000+
+  range with CAN-xxx member numbers; all names, emails, phones,
+  addresses, next-of-kin and member notes are regenerated as fictitious
+  Nigerian identities whose words share NO token with real data (every
+  template pool is filtered against real tokens). All free-text is
+  regenerated synthetically - transaction narrations, references,
+  expense/loan/meeting text, ledger keys, import filenames - because
+  real bank text names non-members and vendors. All bank account
+  numbers randomized; settings enums preserved (scrub dictionary covers
+  identity words only); PII-bearing tables wiped; demo users seeded:
+  `admin@canarycoop.ng` / `CanaryDemo2026!` and `demo.member` /
+  `CanaryMember2026!`. `scripts/verify-canary.js` then sweeps every
+  text column: word-level blacklist of 360+ real identifier tokens
+  (0 hits) plus a whitelist check that every narration word comes from
+  the synthetic vocabulary (0 hits). Output used for the Canary demo
+  org: `C:/Users/ydara/Downloads/canary-demo-2026-11-24.db` built from
+  `peerfinance-corrected-2026-11-24.db`. To deploy: register the canary
+  org on prod, then Admin -> Maintenance -> restore this .db.
+
 - **2026-11-24** - **Published public HTML feature/security guides.**
   Three new static pages on `peerfinancemanager.com` (PFM design,
   `product.css`, Powered by Work Chop Inc. footer):
