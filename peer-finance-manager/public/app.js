@@ -4877,9 +4877,27 @@ async function maybeAutoClassifySimilarExpenses(changedSelect) {
     (line) => Number(line.id) === changedId
   );
   const signature = expenseNarrationSignature(changedLine?.description);
-  if (signature.length < 4) return;
 
   const body = $("#expenseReportLabelsBody");
+  const labelText =
+    changedSelect.options[changedSelect.selectedIndex]?.text || "the selected label";
+  const matchText = await appPrompt(
+    `Apply "${labelText}" to other expenses whose description contains the text below. Narrow the text to match fewer rows, or choose "Only This Row" to change just this expense.`,
+    {
+      title: "Apply Label to Similar Expenses",
+      label: "Description Must Contain",
+      defaultValue: signature,
+      confirmLabel: "Apply to Matching Rows",
+      cancelLabel: "Only This Row",
+    }
+  );
+  if (matchText == null) return;
+  const needle = String(matchText).trim().toUpperCase();
+  if (!needle) return;
+
+  // Match on the administrator's chosen must-contain text rather than the
+  // fixed signature, so e.g. outward transfers mentioning SALARY can sweep
+  // without touching other outward transfers.
   const candidates = [];
   for (const row of body?.querySelectorAll("tr[data-expense-id]") || []) {
     const expenseId = Number(row.dataset.expenseId);
@@ -4887,27 +4905,22 @@ async function maybeAutoClassifySimilarExpenses(changedSelect) {
     const line = (expenseReportLabelLinesCache || []).find(
       (entry) => Number(entry.id) === expenseId
     );
-    if (expenseNarrationSignature(line?.description) !== signature) continue;
+    if (!String(line?.description || "").toUpperCase().includes(needle)) continue;
     const select = row.querySelector(".expense-report-label-select");
     if (select && select.value !== "__other__" && select.value !== changedSelect.value) {
       candidates.push(select);
     }
   }
-  if (!candidates.length) return;
-
-  const labelText =
-    changedSelect.options[changedSelect.selectedIndex]?.text || "the selected label";
-  const apply = await appConfirm(
-    `Apply "${labelText}" to ${candidates.length} other expense${candidates.length === 1 ? "" : "s"} that also start${candidates.length === 1 ? "s" : ""} with "${signature}"? Choose Cancel to change only this row.`,
-    {
-      title: "Apply Label to Similar Expenses",
-      confirmLabel: `Apply to ${candidates.length} Row${candidates.length === 1 ? "" : "s"}`,
-      cancelLabel: "Only This Row",
+  if (!candidates.length) {
+    const statusEl = $("#expenseReportLabelsStatus");
+    if (statusEl) {
+      statusEl.textContent = `No other expenses contain "${matchText.trim()}". Only this row was changed.`;
+      statusEl.className = "status ok";
     }
-  );
-  if (!apply) return;
+    return;
+  }
 
-  // Offer a subcategory named after the narration kind (e.g. "Stamp Duty"
+  // Offer a subcategory named after the match text (e.g. "Stamp Duty"
   // under "Bank Fees") so the group keeps one consolidated parent total.
   const selectedEntry = (expenseReportLabelCatalog || []).find(
     (entry) => String(entry.id) === String(changedSelect.value)
@@ -4915,10 +4928,10 @@ async function maybeAutoClassifySimilarExpenses(changedSelect) {
   let targetLabelId = changedSelect.value;
   let subcategoryNote = "";
   if (selectedEntry && !selectedEntry.parentId) {
-    const subName = expenseSubcategoryNameFromSignature(signature);
+    const subName = expenseSubcategoryNameFromSignature(needle);
     if (subName && subName.toLowerCase() !== selectedEntry.label.toLowerCase()) {
       const useSub = await appConfirm(
-        `Tag ${candidates.length + 1} "${signature}" expense${candidates.length === 0 ? "" : "s"} as "${subName}" under "${selectedEntry.label}"? Subcategories still roll up to the ${selectedEntry.label} total on the report.`,
+        `Tag ${candidates.length + 1} expense${candidates.length === 0 ? "" : "s"} containing "${needle}" as "${subName}" under "${selectedEntry.label}"? Subcategories still roll up to the ${selectedEntry.label} total on the report.`,
         {
           title: "Add Subcategory",
           confirmLabel: `Use ${subName}`,
@@ -5112,16 +5125,32 @@ async function createExpenseReportLabel(labelText, parentId = null) {
 
 function renderExpenseReportLabelParentOptions() {
   const select = $("#newExpenseReportLabelParent");
-  if (!select) return;
-  const previous = select.value;
   const topLevel = (expenseReportLabelCatalog || []).filter((entry) => !entry.parentId);
-  select.innerHTML =
-    '<option value="">None: Top-Level Label</option>' +
-    topLevel
-      .map((entry) => `<option value="${entry.id}">${escapeHtml(entry.label)}</option>`)
-      .join("");
-  if (previous && topLevel.some((entry) => String(entry.id) === previous)) {
-    select.value = previous;
+  if (select) {
+    const previous = select.value;
+    select.innerHTML =
+      '<option value="">None: Top-Level Label</option>' +
+      topLevel
+        .map((entry) => `<option value="${entry.id}">${escapeHtml(entry.label)}</option>`)
+        .join("");
+    if (previous && topLevel.some((entry) => String(entry.id) === previous)) {
+      select.value = previous;
+    }
+  }
+  const bulkSelect = $("#bulkExpenseLabelSelect");
+  if (bulkSelect) {
+    const previous = bulkSelect.value;
+    bulkSelect.innerHTML =
+      '<option value="">Choose Label…</option>' +
+      (expenseReportLabelCatalog || [])
+        .map((entry) => {
+          const display = entry.parentLabel ? `${entry.parentLabel}: ${entry.label}` : entry.label;
+          return `<option value="${entry.id}">${escapeHtml(display)}</option>`;
+        })
+        .join("");
+    if (previous && (expenseReportLabelCatalog || []).some((entry) => String(entry.id) === previous)) {
+      bulkSelect.value = previous;
+    }
   }
 }
 
@@ -5158,6 +5187,78 @@ async function addExpenseReportLabelFromPanel() {
       statusEl.textContent = err.message;
       statusEl.className = "status err";
     }
+  }
+}
+
+// Bulk-assign a label to every row whose bank description contains the
+// administrator-typed text (case-insensitive substring match).
+async function applyBulkExpenseLabel() {
+  const textEl = $("#bulkExpenseLabelText");
+  const labelEl = $("#bulkExpenseLabelSelect");
+  const statusEl = $("#expenseReportLabelsStatus");
+  const needle = String(textEl?.value || "").trim().toUpperCase();
+  const labelId = labelEl?.value;
+  const labelEntry = (expenseReportLabelCatalog || []).find(
+    (entry) => String(entry.id) === String(labelId)
+  );
+  if (!needle) {
+    if (statusEl) {
+      statusEl.textContent = "Enter the description text to match.";
+      statusEl.className = "status err";
+    }
+    return;
+  }
+  if (!labelEntry) {
+    if (statusEl) {
+      statusEl.textContent = "Choose a label to apply.";
+      statusEl.className = "status err";
+    }
+    return;
+  }
+  const display = labelEntry.parentLabel
+    ? `${labelEntry.parentLabel}: ${labelEntry.label}`
+    : labelEntry.label;
+  const matches = [];
+  for (const row of $("#expenseReportLabelsBody")?.querySelectorAll("tr[data-expense-id]") || []) {
+    const expenseId = Number(row.dataset.expenseId);
+    const line = (expenseReportLabelLinesCache || []).find(
+      (entry) => Number(entry.id) === expenseId
+    );
+    if (!String(line?.description || "").toUpperCase().includes(needle)) continue;
+    const select = row.querySelector(".expense-report-label-select");
+    if (select && select.value !== "__other__" && String(select.value) !== String(labelId)) {
+      matches.push({ expenseId });
+    }
+  }
+  if (!matches.length) {
+    if (statusEl) {
+      statusEl.textContent = `No rows containing "${needle}" need a different label.`;
+      statusEl.className = "status ok";
+    }
+    return;
+  }
+  const ok = await appConfirm(
+    `Apply "${display}" to ${matches.length} expense${matches.length === 1 ? "" : "s"} containing "${needle}"?`,
+    {
+      title: "Bulk Apply Label",
+      confirmLabel: `Apply to ${matches.length} Row${matches.length === 1 ? "" : "s"}`,
+    }
+  );
+  if (!ok) return;
+  const selections = collectExpenseReportLabelSelections();
+  for (const match of matches) {
+    selections.set(match.expenseId, String(labelId));
+  }
+  const nextLines = (expenseReportLabelLinesCache || []).map((line) => ({
+    ...line,
+    reportLabelId: selections.has(Number(line.id))
+      ? selections.get(Number(line.id)) || null
+      : line.reportLabelId,
+  }));
+  renderExpenseReportLabelsTable(nextLines, selections);
+  if (statusEl) {
+    statusEl.textContent = `Applied "${display}" to ${matches.length} matching row${matches.length === 1 ? "" : "s"}. Save Expense Labels to keep the change.`;
+    statusEl.className = "status ok";
   }
 }
 
@@ -6533,6 +6634,7 @@ $("#toggleMonthEndAutoPublish")?.addEventListener("click", (e) => {
 });
 $("#saveExpenseReportLabels")?.addEventListener("click", saveExpenseReportLabels);
 $("#addExpenseReportLabelBtn")?.addEventListener("click", addExpenseReportLabelFromPanel);
+$("#bulkExpenseLabelApply")?.addEventListener("click", applyBulkExpenseLabel);
 $("#newExpenseReportLabelInput")?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();

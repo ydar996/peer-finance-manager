@@ -1673,3 +1673,12 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
   and expands abbreviation aliases (VAT -> VALUE ADDED TAX, COMM ->
   COMMISSION, CHG -> CHARGE, MAINT -> MAINTENANCE, TRF -> TRANSFER) so
   abbreviation/full-name variants of the same charge sweep together.
+- **2026-11-23** - **Bulk expense labeling by must-contain text.** Two
+  paths: (a) the autoclassify prompt after relabeling a row is now an
+  editable "Description Must Contain" input (prefilled with the narration
+  signature) so a sweep can be narrowed, e.g. outward transfers
+  containing SALARY only; (b) a "Bulk Label Rows Containing" row in the
+  Operational Expense Labels panel applies any label to all rows whose
+  description contains the typed text, with a confirmation count. Both
+  match case-insensitive substring on the bank description, skip rows
+  already on the chosen label, and re-sort the table after applying.
