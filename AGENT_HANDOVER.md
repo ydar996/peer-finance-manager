@@ -175,6 +175,22 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Cooperative Investments detail: Account column
+  fixed.** The Account column duplicated the bank narration because
+  investment-account-service.js auto-created an investment account per
+  distinct description (syncAccountsFromTransactions) and imported
+  rows got linked to those narration-named accounts. Now: the detail
+  card joins bank_accounts and shows the curated investment account
+  when assigned, else the ledger bank account label (NULL
+  bank_account_id resolves to the primary account). Sync skips
+  source='bank_import' rows, and pruneAutoCreatedAccounts removes
+  previously spawned narration accounts (no institution, no notes, all
+  linked rows are imports whose description equals the name) while
+  preserving curated accounts. Runs inside getBookDetail so the card
+  self-heals on next view; also runs in the investment accounts/entries
+  listers. Covered by scripts/test-investment-account-display.js.
+  Deploy: git push only.
+
 - **2026-11-24** - **Status report in-browser PDF preview.** New
   Preview Report button on the Status Report page opens the generated
   PDF in a new browser tab: it fetches GET

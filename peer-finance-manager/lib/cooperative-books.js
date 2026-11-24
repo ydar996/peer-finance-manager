@@ -1108,12 +1108,25 @@ function getBookDetail(slug) {
   if (slug === "investments") {
     let rows;
     try {
+      const {
+        ensureInvestmentAccountSchema,
+        pruneAutoCreatedAccounts,
+      } = require("./investment-account-service");
+      const { ensureBankAccountSchema } = require("./bank-account-service");
+      ensureInvestmentAccountSchema(db);
+      ensureBankAccountSchema(db);
+      pruneAutoCreatedAccounts(db);
       rows = db
         .prepare(
           `SELECT t.transaction_date, t.amount, t.description,
-                  ia.name AS accountName
+                  COALESCE(ia.name, ba.account_label) AS accountName
            FROM transactions t
            LEFT JOIN investment_accounts ia ON ia.id = t.investment_account_id
+           LEFT JOIN bank_accounts ba
+             ON ba.id = COALESCE(
+               t.bank_account_id,
+               (SELECT id FROM bank_accounts WHERE is_primary = 1 LIMIT 1)
+             )
            WHERE t.type = 'investment'
            ORDER BY t.transaction_date`
         )

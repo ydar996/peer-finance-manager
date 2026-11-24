@@ -30,13 +30,20 @@ function ensureInvestmentAccountSchema(db) {
   `);
 }
 
-/** Creates an account per distinct imported description and links unassigned rows. Idempotent. */
+/**
+ * Creates an account per distinct description and links unassigned rows.
+ * Bank-imported rows are skipped: their narration is transaction text,
+ * not an account name. For those rows the ledger bank account is the
+ * account of record until the administrator assigns a curated account.
+ * Idempotent.
+ */
 function syncAccountsFromTransactions(db) {
   const rows = db
     .prepare(
       `SELECT DISTINCT TRIM(COALESCE(description, '')) AS label
        FROM transactions
-       WHERE type = ? AND investment_account_id IS NULL`
+       WHERE type = ? AND investment_account_id IS NULL
+         AND COALESCE(source, '') != 'bank_import'`
     )
     .all(TRANSACTION_TYPES.INVESTMENT);
   const findStmt = db.prepare(`SELECT id FROM investment_accounts WHERE LOWER(name) = LOWER(?)`);
@@ -44,6 +51,7 @@ function syncAccountsFromTransactions(db) {
   const assignStmt = db.prepare(
     `UPDATE transactions SET investment_account_id = ?
      WHERE type = ? AND investment_account_id IS NULL
+       AND COALESCE(source, '') != 'bank_import'
        AND TRIM(COALESCE(description, '')) = ?`
   );
   for (const row of rows) {
@@ -54,6 +62,43 @@ function syncAccountsFromTransactions(db) {
     }
     assignStmt.run(account.id, TRANSACTION_TYPES.INVESTMENT, row.label);
   }
+}
+
+/**
+ * Removes accounts the auto-sync created from imported narrations: no
+ * institution/notes and every linked row is a bank import whose
+ * description equals the account name. Curated accounts survive.
+ */
+function pruneAutoCreatedAccounts(db) {
+  const stale = db
+    .prepare(
+      `SELECT ia.id
+       FROM investment_accounts ia
+       WHERE TRIM(COALESCE(ia.institution_name, '')) = ''
+         AND TRIM(COALESCE(ia.notes, '')) = ''
+         AND EXISTS (
+           SELECT 1 FROM transactions t
+           WHERE t.investment_account_id = ia.id
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM transactions t
+           WHERE t.investment_account_id = ia.id
+             AND (COALESCE(t.source, '') != 'bank_import'
+                  OR TRIM(COALESCE(t.description, '')) != ia.name)
+         )`
+    )
+    .all();
+  if (!stale.length) return;
+  const unlink = db.prepare(
+    `UPDATE transactions SET investment_account_id = NULL WHERE investment_account_id = ?`
+  );
+  const drop = db.prepare(`DELETE FROM investment_accounts WHERE id = ?`);
+  db.transaction(() => {
+    for (const row of stale) {
+      unlink.run(row.id);
+      drop.run(row.id);
+    }
+  })();
 }
 
 function mapAccountRow(row) {
@@ -76,6 +121,7 @@ function listInvestmentAccounts() {
   const db = getDb();
   ensureInvestmentAccountSchema(db);
   syncAccountsFromTransactions(db);
+  pruneAutoCreatedAccounts(db);
   return db
     .prepare(
       `SELECT ia.*,
@@ -189,6 +235,7 @@ function listInvestmentEntries() {
   const db = getDb();
   ensureInvestmentAccountSchema(db);
   syncAccountsFromTransactions(db);
+  pruneAutoCreatedAccounts(db);
   return db
     .prepare(
       `SELECT id, transaction_date AS transactionDate, amount, description,
@@ -273,6 +320,7 @@ function recordInvestment({
 module.exports = {
   ensureInvestmentAccountSchema,
   syncAccountsFromTransactions,
+  pruneAutoCreatedAccounts,
   listInvestmentAccounts,
   getInvestmentAccount,
   createInvestmentAccount,
