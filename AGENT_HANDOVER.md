@@ -175,6 +175,19 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Fixed/term deposit interest now counted in income.**
+  getCdInterestBreakdown only tracked cd_purchase/cd_liquidation lots,
+  so imported INTEREST CAPITALISED rows (typed investment) showed as
+  zero. Investment credits whose narration contains INTEREST or
+  CAPITALIS now count as realized interest income and appear in the
+  interest-income detail as "Received" rows. Country-aware naming:
+  depositInstrumentLabel() returns "Fixed Deposit" for NG and "CD" for
+  US, applied to card labels, detail titles (via replaceAll on
+  BOOK_DETAIL_SLUGS titles), income line items, and lot descriptions;
+  US output unchanged. For Twilight the three FD interest credits
+  total 98,816.25 and flow into Total Cooperative Income and Net
+  Income. Deploy: git push only.
+
 - **2026-11-24** - **Member Share Capital card detail added.** The card
   previously threw "Unknown book detail" when clicked (slug emitted by
   the UI but absent from BOOK_DETAIL_SLUGS). getBookDetail now serves a

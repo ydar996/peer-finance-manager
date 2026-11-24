@@ -2170,7 +2170,7 @@ async function loadBooks() {
       }),
       (books.cdInterestIncome || 0) > 0
         ? bookCardHtml("cd-interest-income", {
-            label: "CD Interest Income",
+            label: `${depositInstrumentLabel()} Interest Income`,
             amount: books.cdInterestIncome,
             note: `Realized ${fmt.format(books.cdInterestRealized || 0)} · Accrued ${fmt.format(books.cdInterestAccrued || 0)}`,
           })
@@ -2187,8 +2187,8 @@ async function loadBooks() {
         label: "Total Cooperative Income",
         amount: books.totalCooperativeIncome || 0,
         note: loansUiEnabled()
-          ? `${membershipFeeLabel()} + Loan Interest + CD Interest`
-          : `${membershipFeeLabel()} + CD Interest`,
+          ? `${membershipFeeLabel()} + Loan Interest + ${depositInstrumentLabel()} Interest`
+          : `${membershipFeeLabel()} + ${depositInstrumentLabel()} Interest`,
       }),
       bookCardHtml("expenses", {
         label: "Cooperative Expenses",
@@ -2263,16 +2263,18 @@ async function loadBooks() {
         : "",
       books.cdBalance != null
         ? bookCardHtml("cd-balance", {
-            label: "CD Account Balance",
+            label: `${depositInstrumentLabel()} Account Balance`,
             amount: books.cdBalance,
             note: books.cdBalanceAsOf
               ? `As of ${books.cdBalanceAsOf} · Term start ${fmt.format(books.cdTermStartBalance ?? (books.cdBalance - (books.cdTermInterestEarned || 0)))} · Earned ${fmt.format(books.cdTermInterestEarned ?? books.cdInterestAccrued ?? 0)}`
-              : "Certificate of Deposit",
+              : countryProfile.code === "NG"
+                ? "Fixed Deposit Account"
+                : "Certificate of Deposit",
           })
         : "",
       books.cdBalance != null && books.expectedCdInterest != null
         ? bookCardHtml("expected-cd-interest", {
-            label: "Expected CD Interest",
+            label: `Expected ${depositInstrumentLabel()} Interest`,
             amount: books.expectedCdInterest,
             note: books.cdMaturityDate
               ? `To maturity ${books.cdMaturityDate} · ${(books.cdAnnualRate * 100).toFixed(2)}% rate · ${books.cdTermDaysRemaining ?? ":"} days left`
@@ -4157,6 +4159,10 @@ function applyLoansUi() {
 
 function membershipFeeLabel() {
   return isAnnualFeeModel() ? "Annual Membership Fee" : "Registration Fee";
+}
+
+function depositInstrumentLabel() {
+  return countryProfile.code === "NG" ? "Fixed Deposit" : "CD";
 }
 
 function groupAmountDigits(raw) {

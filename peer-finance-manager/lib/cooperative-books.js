@@ -152,8 +152,18 @@ function getCooperativeAssetTotals() {
 }
 
 /** Realized + accrued interest on cooperative CDs (liquidations + current balance − purchases). */
+function depositInstrumentLabel() {
+  try {
+    const { getCountryProfile } = require("./country-profile");
+    return getCountryProfile().code === "NG" ? "Fixed Deposit" : "CD";
+  } catch (_) {
+    return "CD";
+  }
+}
+
 function getCdInterestBreakdown() {
   const db = getDb();
+  const instrument = depositInstrumentLabel();
   const events = db
     .prepare(
       `SELECT transaction_date, type, amount, description
@@ -163,7 +173,18 @@ function getCdInterestBreakdown() {
     )
     .all();
 
-  if (!events.length) {
+  const interestRows = db
+    .prepare(
+      `SELECT transaction_date, amount, description
+       FROM transactions
+       WHERE type = 'investment' AND amount > 0
+         AND (UPPER(COALESCE(description, '')) LIKE '%INTEREST%'
+              OR UPPER(COALESCE(description, '')) LIKE '%CAPITALIS%')
+       ORDER BY transaction_date, id`
+    )
+    .all();
+
+  if (!events.length && !interestRows.length) {
     return { cdInterestIncome: 0, cdInterestRealized: 0, cdInterestAccrued: 0, rows: [] };
   }
 
@@ -206,7 +227,19 @@ function getCdInterestBreakdown() {
       principal: lot.principal,
       balanceOrProceeds: proceeds,
       interest,
-      description: ev.description || `CD purchased ${lot.purchaseDate}`,
+      description: ev.description || `${instrument} purchased ${lot.purchaseDate}`,
+    });
+  }
+
+  for (const row of interestRows) {
+    realized += row.amount;
+    rows.push({
+      date: row.transaction_date,
+      status: "Received",
+      principal: null,
+      balanceOrProceeds: row.amount,
+      interest: row.amount,
+      description: row.description || `${instrument} interest`,
     });
   }
 
@@ -229,7 +262,7 @@ function getCdInterestBreakdown() {
         principal: lot.principal,
         balanceOrProceeds: openLots.length === 1 ? balance : lot.principal + lotInterest,
         interest: lotInterest,
-        description: `CD purchased ${lot.purchaseDate}`,
+        description: `${instrument} purchased ${lot.purchaseDate}`,
       });
     }
   }
@@ -432,7 +465,7 @@ function getBookDetail(slug) {
   }
 
   const db = getDb();
-  const title = BOOK_DETAIL_SLUGS[slug];
+  const title = String(BOOK_DETAIL_SLUGS[slug]).replaceAll("CD", depositInstrumentLabel());
 
   if (slug === "deposits-this-month") {
     const detail = getDepositsThisMonthDetail();
@@ -1040,7 +1073,7 @@ function getBookDetail(slug) {
         note: "Interest earned on repayments, including active loans",
       },
       {
-        source: "CD Interest Income",
+        source: `${depositInstrumentLabel()} Interest Income`,
         amount: cdInterest.cdInterestIncome,
         note: `Realized ${cdInterest.cdInterestRealized.toFixed(2)} · Accrued ${cdInterest.cdInterestAccrued.toFixed(2)}`,
       },
@@ -1078,7 +1111,7 @@ function getBookDetail(slug) {
         note: "Interest earned to date on loan repayments",
       },
       {
-        line: "CD Interest Income",
+        line: `${depositInstrumentLabel()} Interest Income`,
         amount: cdInterest.cdInterestIncome,
         note: `Realized ${cdInterest.cdInterestRealized.toFixed(2)} · Accrued ${cdInterest.cdInterestAccrued.toFixed(2)}`,
       },
