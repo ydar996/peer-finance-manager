@@ -1639,3 +1639,11 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
   bank_import rows: appended ledgers on other accounts survive a refresh.
   Verified: second-account appends keep the anchor reconciled; backdated
   primary-account rows still flag Out of Sync.
+- **2026-11-23** - **Expense label auto-classify sweep.** On the Status
+  Report expense-labeling table, changing a row's Report Label now offers
+  to apply the same label to every other row whose bank description shares
+  the leading narration signature (e.g. STAMP DUTY, COMMISSION, VAT,
+  ACCOUNT MAINTENANCE FEE). A confirmation popup ("Apply Label to Similar
+  Expenses") asks before sweeping: Apply to N Rows or Only This Row.
+  Unlabeled rows are included; rows already on the same label are skipped.
+  Change applies on Save Expense Labels as before.

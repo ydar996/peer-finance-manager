@@ -4816,6 +4816,71 @@ function expenseReportLabelOptionsHtml(selectedId) {
   return options.join("");
 }
 
+// Leading narration signature for an expense line: the alphabetic words at
+// the start of the bank description, before the first token containing a
+// digit. "STAMP DUTY 1628492 FROM STANBIC/..." -> "STAMP DUTY". Groups bank
+// charges, transfers, and levies that share one narration kind.
+function expenseNarrationSignature(description) {
+  const text = String(description || "").trim().toUpperCase();
+  if (!text) return "";
+  const parts = [];
+  for (const token of text.split(/\s+/)) {
+    if (/\d/.test(token) || parts.length >= 4) break;
+    const word = token.replace(/[^A-Z]/g, "");
+    if (!word) continue;
+    parts.push(word);
+    if (parts.join(" ").length >= 24) break;
+  }
+  return parts.join(" ");
+}
+
+// When the administrator relabels one expense, offer to apply the same label
+// to every other row whose bank description shares its narration signature.
+async function maybeAutoClassifySimilarExpenses(changedSelect) {
+  const changedId = Number(changedSelect.dataset.expenseId);
+  const changedLine = (expenseReportLabelLinesCache || []).find(
+    (line) => Number(line.id) === changedId
+  );
+  const signature = expenseNarrationSignature(changedLine?.description);
+  if (signature.length < 4) return;
+
+  const body = $("#expenseReportLabelsBody");
+  const candidates = [];
+  for (const row of body?.querySelectorAll("tr[data-expense-id]") || []) {
+    const expenseId = Number(row.dataset.expenseId);
+    if (expenseId === changedId) continue;
+    const line = (expenseReportLabelLinesCache || []).find(
+      (entry) => Number(entry.id) === expenseId
+    );
+    if (expenseNarrationSignature(line?.description) !== signature) continue;
+    const select = row.querySelector(".expense-report-label-select");
+    if (select && select.value !== "__other__" && select.value !== changedSelect.value) {
+      candidates.push(select);
+    }
+  }
+  if (!candidates.length) return;
+
+  const labelText =
+    changedSelect.options[changedSelect.selectedIndex]?.text || "the selected label";
+  const apply = await appConfirm(
+    `Apply "${labelText}" to ${candidates.length} other expense${candidates.length === 1 ? "" : "s"} that also start${candidates.length === 1 ? "s" : ""} with "${signature}"? Choose Cancel to change only this row.`,
+    {
+      title: "Apply Label to Similar Expenses",
+      confirmLabel: `Apply to ${candidates.length} Row${candidates.length === 1 ? "" : "s"}`,
+      cancelLabel: "Only This Row",
+    }
+  );
+  if (!apply) return;
+  for (const select of candidates) {
+    select.value = changedSelect.value;
+  }
+  const statusEl = $("#expenseReportLabelsStatus");
+  if (statusEl) {
+    statusEl.textContent = `Applied "${labelText}" to ${candidates.length} similar row${candidates.length === 1 ? "" : "s"}. Save Expense Labels to keep the change.`;
+    statusEl.className = "status ok";
+  }
+}
+
 function collectExpenseReportLabelSelections() {
   const map = new Map();
   const rows = $("#expenseReportLabelsBody")?.querySelectorAll("tr[data-expense-id]");
@@ -4862,15 +4927,19 @@ function renderExpenseReportLabelsTable(lines, preferredSelections = null) {
     .join("");
 
   body.querySelectorAll(".expense-report-label-select").forEach((select) => {
-    select.addEventListener("change", () => {
+    select.addEventListener("change", async () => {
       const otherInput = select.parentElement?.querySelector(".other-label-input");
-      if (!otherInput) return;
-      if (select.value === "__other__") {
-        otherInput.classList.remove("hidden");
-        otherInput.focus();
-      } else {
-        otherInput.classList.add("hidden");
-        otherInput.value = "";
+      if (otherInput) {
+        if (select.value === "__other__") {
+          otherInput.classList.remove("hidden");
+          otherInput.focus();
+        } else {
+          otherInput.classList.add("hidden");
+          otherInput.value = "";
+        }
+      }
+      if (select.value && select.value !== "__other__") {
+        await maybeAutoClassifySimilarExpenses(select);
       }
     });
   });
