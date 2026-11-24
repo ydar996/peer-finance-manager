@@ -152,6 +152,14 @@ function getCooperativeAssetTotals() {
 }
 
 /** Realized + accrued interest on cooperative CDs (liquidations + current balance − purchases). */
+function isLoansEnabled() {
+  try {
+    return require("./loan-feature-service").isLoansEnabled();
+  } catch (_) {
+    return true;
+  }
+}
+
 function getInterestIncomeKeywords() {
   const custom = String(getCooperativeSetting("interest_income_keywords") || "")
     .split(/[,;\n]+/)
@@ -320,8 +328,10 @@ function getCooperativeBooks() {
 
   const assets = getCooperativeAssetTotals();
   const cdInterest = getCdInterestBreakdown();
-  const loanInterestIncome = hasBankLoanLedgerData ? getTotalLoanInterestIncome() : 0;
-  const expectedLoanInterest = hasBankLoanLedgerData ? getExpectedFutureLoanInterest() : 0;
+  const loanInterestIncome =
+    isLoansEnabled() && hasBankLoanLedgerData ? getTotalLoanInterestIncome() : 0;
+  const expectedLoanInterest =
+    isLoansEnabled() && hasBankLoanLedgerData ? getExpectedFutureLoanInterest() : 0;
   const totalCooperativeIncome =
     registrationIncome + cdInterest.cdInterestIncome + loanInterestIncome;
   const cooperativeNetIncome = totalCooperativeIncome - (expenses.total || 0);
@@ -377,10 +387,7 @@ function getCooperativeBooks() {
   } = require("./share-capital-service");
   const shareCapitalEnabled = isShareCapitalEnabled();
   const totalShareCapital = shareCapitalEnabled ? getTotalShareCapital() : 0;
-  let loansEnabled = true;
-  try {
-    loansEnabled = require("./loan-feature-service").isLoansEnabled();
-  } catch (_) {}
+  const loansEnabled = isLoansEnabled();
 
   return {
     memberCount,
@@ -1080,12 +1087,16 @@ function getBookDetail(slug) {
         note: "Membership fees collected",
         detailSlug: "registration-income",
       },
-      {
-        source: "Loan Interest Income",
-        amount: loanInterest,
-        note: "Interest earned on repayments, including active loans",
-        detailSlug: "loan-interest-income",
-      },
+      ...(isLoansEnabled()
+        ? [
+            {
+              source: "Loan Interest Income",
+              amount: loanInterest,
+              note: "Interest earned on repayments, including active loans",
+              detailSlug: "loan-interest-income",
+            },
+          ]
+        : []),
       {
         source: `${depositInstrumentLabel()} Interest Income`,
         amount: cdInterest.cdInterestIncome,
@@ -1121,12 +1132,16 @@ function getBookDetail(slug) {
         note: "Membership fees collected",
         detailSlug: "registration-income",
       },
-      {
-        line: "Loan Interest Income",
-        amount: loanInterest,
-        note: "Interest earned to date on loan repayments",
-        detailSlug: "loan-interest-income",
-      },
+      ...(isLoansEnabled()
+        ? [
+            {
+              line: "Loan Interest Income",
+              amount: loanInterest,
+              note: "Interest earned to date on loan repayments",
+              detailSlug: "loan-interest-income",
+            },
+          ]
+        : []),
       {
         line: `${depositInstrumentLabel()} Interest Income`,
         amount: cdInterest.cdInterestIncome,

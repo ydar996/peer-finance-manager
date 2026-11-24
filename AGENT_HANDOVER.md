@@ -175,6 +175,17 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Loans-off toggle now suppresses loan income lines.**
+  Total Cooperative Income and Cooperative Net Income detail rows
+  skipped Loan Interest Income only implicitly; they now check
+  loan-feature-service.isLoansEnabled() (new shared isLoansEnabled()
+  helper in cooperative-books.js, replacing the inline try/catch in
+  getCooperativeBooks) and omit the row entirely when loans are
+  disabled. loanInterestIncome and expectedLoanInterest in
+  getCooperativeBooks are also gated so totals cannot be inflated by
+  leftover loan ledger data in a loans-off Cooperative. Deploy:
+  git push only.
+
 - **2026-11-24** - **Income lines drill down to their detail views.**
   Rows in the Total Cooperative Income and Cooperative Net Income
   details now carry detailSlug (registration-income,
