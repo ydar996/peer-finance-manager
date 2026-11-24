@@ -1862,18 +1862,14 @@ function dashboardCardHtml(slug, { accent, label, amount, note = "" }) {
     </button>`;
 }
 
-function formatPctChangeLabel(value) {
-  if (value == null) return "new";
-  if (value === 0) return "0%";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value}%`;
-}
-
 function dashboardCardsHtml(dashboard) {
   if (!dashboard) return "";
   const month = dashboard.depositsThisMonth;
   const ytd = dashboard.depositsYtd;
   const due = dashboard.loanRepaymentsDue;
+  const priorYearNotes = [ytd.lastYear, ytd.twoYearsAgo]
+    .filter((entry) => entry && entry.total > 0)
+    .map((entry) => `${entry.year} Total ${fmt.format(entry.total)}`);
   return [
     dashboardCardHtml("deposits-this-month", {
       accent: true,
@@ -1884,7 +1880,9 @@ function dashboardCardsHtml(dashboard) {
     dashboardCardHtml("deposits-ytd", {
       label: `Deposits This Year (${ytd.year} YTD)`,
       amount: ytd.total,
-      note: `vs ${ytd.lastYear.year} ${fmt.format(ytd.lastYear.total)} (${formatPctChangeLabel(ytd.lastYear.pctChange)}) · vs ${ytd.twoYearsAgo.year} ${fmt.format(ytd.twoYearsAgo.total)} (${formatPctChangeLabel(ytd.twoYearsAgo.pctChange)})`,
+      note: priorYearNotes.length
+        ? `vs ${priorYearNotes.join(" · ")}`
+        : `No member contributions recorded before ${ytd.year}`,
     }),
     loansUiEnabled()
       ? dashboardCardHtml("loan-repayments-due", {

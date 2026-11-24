@@ -41,14 +41,6 @@ function sumDepositsBetween(startDate, endDate) {
   return round2(row.total || 0);
 }
 
-function pctChange(current, prior) {
-  if (!prior || prior <= 0) {
-    if (current > 0) return null;
-    return 0;
-  }
-  return round2(((current - prior) / prior) * 100);
-}
-
 function formatPctChange(value) {
   if (value == null) return "new";
   if (value === 0) return "0%";
@@ -363,11 +355,16 @@ function getDashboardMetrics(asOf = new Date()) {
   const ytd = ytdBounds(year, month, day);
   const depositsYtd = sumDepositsBetween(ytd.start, ytd.end);
 
-  const lastYearYtd = ytdBounds(year - 1, month, day);
-  const depositsYtdLastYear = sumDepositsBetween(lastYearYtd.start, lastYearYtd.end);
-
-  const twoYearsYtd = ytdBounds(year - 2, month, day);
-  const depositsYtdTwoYearsAgo = sumDepositsBetween(twoYearsYtd.start, twoYearsYtd.end);
+  // Compare against full prior-year totals: a same-period YTD cutoff reads
+  // "₦0" for a year whose deposits simply started later in the year.
+  const depositsYtdLastYear = sumDepositsBetween(
+    `${year - 1}-01-01`,
+    `${year - 1}-12-31`
+  );
+  const depositsYtdTwoYearsAgo = sumDepositsBetween(
+    `${year - 2}-01-01`,
+    `${year - 2}-12-31`
+  );
 
   const loanRepaymentsDue = getOutstandingLoanRepaymentsDueInMonth(asOf);
 
@@ -386,12 +383,12 @@ function getDashboardMetrics(asOf = new Date()) {
       lastYear: {
         year: year - 1,
         total: depositsYtdLastYear,
-        pctChange: pctChange(depositsYtd, depositsYtdLastYear),
+        totalIsFullYear: true,
       },
       twoYearsAgo: {
         year: year - 2,
         total: depositsYtdTwoYearsAgo,
-        pctChange: pctChange(depositsYtd, depositsYtdTwoYearsAgo),
+        totalIsFullYear: true,
       },
     },
     loanRepaymentsDue,

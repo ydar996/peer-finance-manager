@@ -175,6 +175,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Deposits YTD card note uses full-year totals, drops
+  empty years.** The note compared against same-period YTD of prior years,
+  so Twilight's 2025 deposits (all made Nov 25+, after the Nov-24 cutoff)
+  read "vs 2025 ₦0.00 (new)" and an empty 2024 was also listed. The card
+  now compares full prior-year totals (member-scoped) and only names years
+  that actually have deposits: "vs 2025 Total ₦2,900,000" — or "No member
+  contributions recorded before YYYY" when none exist. `pctChange` /
+  `formatPctChangeLabel` removed (dead code).
 - **2026-11-24** - **Coherence audit: every detail column foots to its
   total.** Ran a column-vs-footer check across all 23 book detail views on
   the Twilight DB and fixed the three that could not foot: (1) Investments
