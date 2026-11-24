@@ -6,6 +6,7 @@ const {
   getCdTermMetrics,
 } = require("./cd-balance-service");
 const { getCheckingBalanceSnapshot } = require("./checking-balance-service");
+const { getLedgerEndingBalance } = require("./cooperative-bank-ledger-csv");
 const { getBankReconcileStatus, getBankReconcileStatusAll } = require("./bank-reconcile-service");
 const { getCooperativeSetting } = require("./cooperative-settings");
 const {
@@ -481,7 +482,7 @@ const BOOK_DETAIL_SLUGS = {
   loans: "Loans Outstanding",
   expenses: "Cooperative Expenses",
   "cd-balance": "CD Account",
-  "checking-balance": "Checking Account",
+  "checking-balance": "Bank Accounts",
   "bank-reconcile": "Bank Reconcile Status",
   "expected-cd-interest": "Expected CD Interest",
   "cd-interest-income": "CD Interest Income",
@@ -918,17 +919,31 @@ function getBookDetail(slug) {
 
   if (slug === "checking-balance") {
     const snapshot = getCheckingBalanceSnapshot();
+    // The ledger figure spans every bank account's imported ledger. Break it
+    // down per account so the total is self-explanatory.
+    const { listBankAccounts } = require("./bank-account-service");
+    const accountEnds = (listBankAccounts() || [])
+      .map((a) => ({
+        label: `${a.accountLabel} · ${a.institutionName}`,
+        end: getLedgerEndingBalance(null, a.id),
+      }))
+      .filter((a) => a.end && a.end.balance != null);
+    const accountRows = accountEnds.map((a) => ({
+      date: a.end.asOf,
+      type: "Ledger Balance",
+      amount: a.end.balance,
+      description: a.label,
+    }));
+    if (accountEnds.length > 1) {
+      accountRows.push({
+        date: snapshot.ledgerAsOf,
+        type: "All Accounts",
+        amount: snapshot.ledgerBalance,
+        description: "Combined balance across imported bank ledgers",
+      });
+    }
     const rows = [
-      ...(snapshot.ledgerBalance != null
-        ? [
-            {
-              date: snapshot.ledgerAsOf,
-              type: "Ledger Balance",
-              amount: snapshot.ledgerBalance,
-              description: "Computed from imported bank ledger",
-            },
-          ]
-        : []),
+      ...accountRows,
       ...snapshot.history.map((row) => ({
         date: row.as_of_date,
         type: "Statement Update",

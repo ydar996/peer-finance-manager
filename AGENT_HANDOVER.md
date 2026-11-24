@@ -175,6 +175,17 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Bank Accounts card: per-account breakdown, honest label.**
+  The card formerly titled "Checking Account" showed the combined ending
+  balance of *every* imported bank ledger (Providus Operations + Share
+  Capital + Savings + Fixed Deposit for Twilight: ₦6,230,405.01), which read
+  as a checking-only figure and confused owners. The card is now titled
+  "Bank Accounts" and its detail lists a Ledger Balance row per account
+  (label + institution) plus an "All Accounts" combined row, so the total is
+  self-documenting. Accounts with no ledger rows (e.g. Twilight's GTBank
+  Operating) are omitted. The figure is intentionally all-bank cash: the
+  status report uses the same number as "Checking Account" in Total Assets
+  (`resolveCheckingBalanceForReport`), which remains unchanged.
 - **2026-11-24** - **Bank Ledger Rows view + three latent adjustment-rebuild
   bugs fixed.** New **Bank Ledger Rows** button on Cooperative Books opens a
   full ledger of every bank transaction (member and non-member rows) with
