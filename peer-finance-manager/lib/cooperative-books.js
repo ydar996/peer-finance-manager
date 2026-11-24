@@ -1282,7 +1282,7 @@ function getBookDetail(slug) {
     const expenseTotal = db
       .prepare(`SELECT COALESCE(SUM(amount), 0) AS total FROM expenses`)
       .get().total;
-    const rows = [
+    const incomeRows = [
       {
         line: "Registration Income",
         amount: registrationIncome,
@@ -1315,13 +1315,13 @@ function getBookDetail(slug) {
         note: `Realized ${cdInterest.cdInterestRealized.toFixed(2)} · Accrued ${cdInterest.cdInterestAccrued.toFixed(2)}`,
         detailSlug: "cd-interest-income",
       },
-      {
-        line: "Cooperative Expenses",
-        amount: -(expenseTotal || 0),
-        note: "Operating expenses recorded",
-        detailSlug: "expenses",
-      },
     ];
+    const expenseRow = {
+      line: "Less: Cooperative Expenses",
+      amount: -(expenseTotal || 0),
+      note: "Operating expenses recorded",
+      detailSlug: "expenses",
+    };
     const incomeTotal = registrationIncome + otherIncome + loanInterest + cdInterest.cdInterestIncome;
     return {
       slug,
@@ -1333,7 +1333,16 @@ function getBookDetail(slug) {
         { key: "amount", label: "Amount", format: "money" },
         { key: "note", label: "Detail" },
       ],
-      rows,
+      rows: [
+        ...incomeRows,
+        {
+          line: "Total Income",
+          amount: Math.round(incomeTotal * 100) / 100,
+          note: "All income sources",
+          emphasize: true,
+        },
+        expenseRow,
+      ],
       footer: {
         line: "Net Income",
         amount: Math.round((incomeTotal - (expenseTotal || 0)) * 100) / 100,

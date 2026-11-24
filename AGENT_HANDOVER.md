@@ -175,6 +175,17 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Net Income detail reads as an income statement; flat
+  views no longer drop fields.** `openBookDetail` built the table view as
+  `{columns, rows, emptyMessage}` only, silently discarding `footer` (the
+  new Total rows) and `hasControls` (the Category/Split controls) for every
+  flat detail view; it now spreads the whole detail object. Net Income rows
+  are now structured as an income statement: income lines, a bold "Total
+  Income" subtotal (`row.emphasize` renders a `detail-subtotal` row), then
+  "Less: Cooperative Expenses", with the Net Income footer beneath. All
+  negative money cells in detail tables now render in accounting
+  parentheses — `(₦2,639,568.24)` instead of a faint minus — via
+  `formatDetailCell`.
 - **2026-11-24** - **Status report: capped investment label, "Bank Accounts"
   line.** `investmentSectionLabel` joined every investment row's raw bank
   narration into the balance-sheet label — a page-long blob for the 45-row

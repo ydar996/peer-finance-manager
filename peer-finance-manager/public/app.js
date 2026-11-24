@@ -1803,7 +1803,11 @@ function navigateToMemberFromBooks(memberId, accountPanel = "deposit") {
 }
 
 function formatDetailCell(value, format) {
-  if (format === "money") return fmt.format(Number(value) || 0);
+  if (format === "money") {
+    const num = Number(value) || 0;
+    // Accounting convention: negatives in parentheses so sign is unmistakable.
+    return num < 0 ? `(${fmt.format(Math.abs(num))})` : fmt.format(num);
+  }
   if (format === "date") return formatDate(value);
   return escapeHtml(value ?? "");
 }
@@ -2009,11 +2013,17 @@ function renderBookDetailTable(view, slug) {
 
   body.innerHTML = view.rows
     .map((row) => {
-      const memberAttr = row.memberId
-        ? ` class="detail-member-row" data-member-id="${row.memberId}"`
-        : row.detailSlug
-          ? ` class="detail-drill-row" data-detail-slug="${escapeHtml(row.detailSlug)}"`
-          : "";
+      const rowClasses = [];
+      if (row.memberId) rowClasses.push("detail-member-row");
+      else if (row.detailSlug) rowClasses.push("detail-drill-row");
+      if (row.emphasize) rowClasses.push("detail-subtotal");
+      const rowAttr =
+        (rowClasses.length ? ` class="${rowClasses.join(" ")}"` : "") +
+        (row.memberId
+          ? ` data-member-id="${row.memberId}"`
+          : row.detailSlug
+            ? ` data-detail-slug="${escapeHtml(row.detailSlug)}"`
+            : "");
       const cells = view.columns
         .map((col) => {
           const format = resolveDetailCellFormat(row, col);
@@ -2026,7 +2036,7 @@ function renderBookDetailTable(view, slug) {
           ? ledgerTxControlCellHtml(row.controlsTx, row.memberId)
           : '<td class="subtle">:</td>'
         : "";
-      return `<tr${memberAttr}>${cells}${controlsCell}</tr>`;
+      return `<tr${rowAttr}>${cells}${controlsCell}</tr>`;
     })
     .join("");
   bindBookDetailMemberRows(slug);
@@ -2126,9 +2136,9 @@ function renderBookDetail(detail, slug) {
   viewTabs?.classList.add("hidden");
   renderBookDetailTable(
     {
-      columns: detail.columns,
+      ...detail,
       rows: detail.rows || [],
-      emptyMessage: "No Records",
+      emptyMessage: detail.emptyMessage || "No Records",
     },
     slug
   );
