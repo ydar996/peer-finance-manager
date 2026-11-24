@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Status report: capped investment label, "Bank Accounts"
+  line.** `investmentSectionLabel` joined every investment row's raw bank
+  narration into the balance-sheet label — a page-long blob for the 45-row
+  Twilight ledger. Labels now dedupe; orgs with up to four distinct
+  investment names keep the joined label, larger ledgers read
+  "Investments (N Entries)". The report's cash line is relabeled
+  "Bank Accounts" (it is all imported bank ledgers, same as the renamed
+  books card) in the balance sheet, bank-balances table, and render
+  fallbacks.
 - **2026-11-24** - **Total rows on every book detail + topbar brand pill
   removed.** All book detail tables now render a `<tfoot>` Total row driven
   by a per-view `footer` object (per-column sums where meaningful: loans

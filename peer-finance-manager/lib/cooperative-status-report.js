@@ -126,13 +126,21 @@ const INVESTMENT_DESCRIPTION_LABELS = {
 
 function investmentSectionLabel(investmentRows) {
   if (!investmentRows.length) return "Investments";
-  const labels = investmentRows.map((row) => {
-    const desc = String(row.description || "").trim();
-    return INVESTMENT_DESCRIPTION_LABELS[desc] || desc || "Investment";
-  });
+  const labels = [
+    ...new Set(
+      investmentRows
+        .map((row) => {
+          const desc = String(row.description || "").trim();
+          return INVESTMENT_DESCRIPTION_LABELS[desc] || desc || "Investment";
+        })
+        .filter(Boolean)
+    ),
+  ];
   if (investmentRows.length === 1) return labels[0];
-  const joined = labels.filter(Boolean).join("; ");
-  return joined || "Investments";
+  // A handful of named investments reads well as a line item; a full ledger of
+  // raw bank narrations does not. Fall back to a count instead of a blob.
+  if (labels.length <= 4) return labels.join("; ");
+  return `Investments (${investmentRows.length} Entries)`;
 }
 
 function buildPerformanceOverview(data, books) {
@@ -250,7 +258,7 @@ function getCooperativeStatusReportData(options = {}) {
       checkingBalance,
       checkingAsOf: checking.asOf,
       checkingSource: checking.source,
-      checkingLabel: "Checking Account",
+      checkingLabel: "Bank Accounts",
       cdBalance,
       cdLabel,
       total: checkingBalance + cdBalance,
@@ -266,7 +274,7 @@ function getCooperativeStatusReportData(options = {}) {
     balanceSheet: {
       loansOutstanding,
       checkingBalance,
-      checkingLabel: "Checking Account",
+      checkingLabel: "Bank Accounts",
       cdBalance,
       cdLabel,
       investments,
@@ -414,7 +422,7 @@ function buildCooperativeStatusReportHtml(data) {
       <table class="report-table">
         <tbody>
           ${data.loansEnabled !== false ? `<tr><td>Loans to Members</td><td class="money">${formatMoney(sheet.loansOutstanding)}</td></tr>` : ""}
-          <tr><td>${escapeHtml(sheet.checkingLabel || "Checking Account")}</td><td class="money">${formatMoney(sheet.checkingBalance)}</td></tr>
+          <tr><td>${escapeHtml(sheet.checkingLabel || "Bank Accounts")}</td><td class="money">${formatMoney(sheet.checkingBalance)}</td></tr>
           <tr><td>${escapeHtml(sheet.cdLabel)}</td><td class="money">${formatMoney(sheet.cdBalance)}</td></tr>
           <tr><td>${escapeHtml(sheet.investmentLabel)}</td><td class="money">${formatMoney(sheet.investments)}</td></tr>
           <tr class="total-row"><td>Total Assets</td><td class="money">${formatMoney(sheet.totalAssets)}</td></tr>
@@ -480,7 +488,7 @@ function buildCooperativeStatusReportHtml(data) {
 
   <div class="report-grid-two">
     ${reportTable("Bank Balances", [
-      [bank.checkingLabel || "Checking Account", formatMoney(bank.checkingBalance)],
+      [bank.checkingLabel || "Bank Accounts", formatMoney(bank.checkingBalance)],
       [bank.cdLabel, formatMoney(bank.cdBalance)],
       ["Total", formatMoney(bank.total), true],
     ])}
