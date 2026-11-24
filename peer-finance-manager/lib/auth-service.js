@@ -457,6 +457,7 @@ async function emailMemberTempPassword({
   organizationName,
   organizationSlug,
   purpose = "reset",
+  userId = null,
 }) {
   const { sendEmail, isEmailConfigured } = require("./email-service");
   if (!isEmailConfigured()) {
@@ -474,6 +475,17 @@ async function emailMemberTempPassword({
   const portalUrl = getMemberPortalLoginUrl(organizationSlug);
   const orgLabel = organizationName || "Your Cooperative";
   const isWelcome = purpose === "welcome";
+  let setupUrl = null;
+  if (userId) {
+    const {
+      createPasswordSetupToken,
+      buildPasswordSetupUrl,
+    } = require("./password-setup-service");
+    setupUrl = buildPasswordSetupUrl(
+      createPasswordSetupToken(userId),
+      organizationSlug
+    );
+  }
   const message = renderAutomatedEmail(
     isWelcome ? "member_welcome_login" : "member_password_reset",
     {
@@ -481,7 +493,7 @@ async function emailMemberTempPassword({
       orgName: orgLabel,
       organizationCode: organizationSlug,
       username,
-      tempPassword,
+      setupUrl,
       portalUrl,
     }
   );
@@ -593,6 +605,7 @@ async function resetMemberPortalPassword({
   let username;
   let loginEmail;
   let wasReset = false;
+  let portalUserId = null;
 
   if (existing) {
     username = existing.username || generateUsername(member.name, member.id, db);
@@ -604,10 +617,11 @@ async function resetMemberPortalPassword({
        WHERE id = ?`
     ).run(loginEmail, username, hashPassword(tempPassword), displayName, existing.id);
     wasReset = true;
+    portalUserId = existing.id;
   } else {
     username = generateUsername(member.name, member.id, db);
     loginEmail = memberLoginEmail(username, member.email, db, orgSlug);
-    createUser({
+    const created = createUser({
       email: loginEmail,
       username,
       password: tempPassword,
@@ -616,6 +630,7 @@ async function resetMemberPortalPassword({
       displayName,
       mustChangePassword: true,
     });
+    portalUserId = created?.id || null;
   }
 
   const notifyEmail = resolveMemberNotifyEmail(member.email, loginEmail);
@@ -631,6 +646,7 @@ async function resetMemberPortalPassword({
         organizationName: organization?.name,
         organizationSlug: orgSlug,
         purpose: emailPurpose === "welcome" ? "welcome" : "reset",
+        userId: portalUserId,
       });
     } catch (err) {
       emailResult = {
@@ -840,6 +856,30 @@ function canViewCooperative(user) {
   return user?.role === ROLES.ADMIN || user?.role === ROLES.STAFF;
 }
 
+function setPasswordFromSetupToken({ token, password, organizationSlug }) {
+  const slug = normalizeSlug(organizationSlug);
+  const org = slug ? getOrganization(slug) : null;
+  if (!org) throw new Error("Organization not found.");
+  if (!password || String(password).length < 8) {
+    throw new Error("Password must be at least 8 characters.");
+  }
+  return runWithOrg(org.slug, () => {
+    const { consumePasswordSetupToken } = require("./password-setup-service");
+    const userId = consumePasswordSetupToken(token);
+    if (!userId) {
+      throw new Error(
+        "This password link is invalid or has expired. Ask your Cooperative administrator for a new one."
+      );
+    }
+    getDb()
+      .prepare(
+        `UPDATE users SET password_hash = ?, must_change_password = 0, active = 1 WHERE id = ?`
+      )
+      .run(hashPassword(password), userId);
+    return { userId, organizationSlug: org.slug };
+  });
+}
+
 module.exports = {
   ROLES,
   PORTALS,
@@ -849,6 +889,7 @@ module.exports = {
   LOGIN_INVALID_CREDENTIALS,
   normalizeEmail,
   ensureAssuranceAdminUser,
+  setPasswordFromSetupToken,
   registerOrganizationWithAdmin,
   login,
   logout,

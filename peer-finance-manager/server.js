@@ -147,32 +147,78 @@ app.use((req, res, next) => {
   next();
 });
 
+// CSRF guard for cookie-authenticated requests. Bearer/header-token clients
+// are immune to CSRF by construction (no ambient credentials), so only check
+// mutating requests that carry a session cookie: a cross-site Origin on such
+// a request means a hostile page is trying to ride the user's session.
+// SameSite=Lax already blocks the cookie on real cross-site POSTs; this is
+// defense-in-depth for legacy/edge clients.
+app.use((req, res, next) => {
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
+  const cookieHeader = String(req.headers.cookie || "");
+  if (!cookieHeader.includes("pfm_session=") && !cookieHeader.includes("pfm_platform=")) {
+    return next();
+  }
+  if (req.headers.authorization || req.headers["x-session-token"] || req.headers["x-platform-token"]) {
+    return next();
+  }
+  const origin = String(req.headers.origin || "");
+  if (!origin) return next();
+  let originHost = null;
+  try {
+    originHost = new URL(origin).host;
+  } catch (_) {
+    return res.status(403).json({ error: "Cross-origin request blocked." });
+  }
+  if (originHost === req.headers.host) return next();
+  const allowed = String(process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  try {
+    if (allowed.some((o) => o === "*" || new URL(o).host === originHost)) return next();
+  } catch (_) {}
+  return res.status(403).json({ error: "Cross-origin request blocked." });
+});
+
 // Abuse throttles on the unauthenticated attack surface.
 const loginRateLimit = rateLimit("login", {
   windowMs: 15 * 60 * 1000,
   max: 30,
+  persist: true,
   message: "Too many sign-in attempts. Try again in a few minutes.",
 });
 const registerOrgRateLimit = rateLimit("register-org", {
   windowMs: 60 * 60 * 1000,
   max: 10,
+  persist: true,
   message: "Too many registration attempts. Try again later.",
 });
 const orgLookupRateLimit = rateLimit("org-lookup", {
   windowMs: 60 * 1000,
   max: 30,
+  persist: true,
   message: "Too many lookups. Try again shortly.",
 });
 
 const mfaVerifyRateLimit = rateLimit("mfa-verify", {
   windowMs: 10 * 60 * 1000,
   max: 20,
+  persist: true,
   message: "Too many code attempts. Log in again.",
+});
+
+const passwordSetupRateLimit = rateLimit("password-setup", {
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  persist: true,
+  message: "Too many attempts. Try again later.",
 });
 
 app.use("/api/auth/login", loginRateLimit);
 app.use("/api/platform/auth/login", loginRateLimit);
 app.use("/api/auth/mfa-verify", mfaVerifyRateLimit);
+app.use("/api/auth/set-password", passwordSetupRateLimit);
 app.use("/api/auth/register-organization", registerOrgRateLimit);
 app.use("/api/organizations/lookup", orgLookupRateLimit);
 
@@ -321,7 +367,7 @@ app.get("/brochure", (req, res) => {
 app.get("/brochurengn", (req, res) => {
   res.sendFile(path.join(getPublicDir(), "brochurengn.html"));
 });
-for (const portalPath of ["/member", "/staff", "/admin", "/register", "/platform"]) {
+for (const portalPath of ["/member", "/staff", "/admin", "/register", "/platform", "/set-password"]) {
   app.get(portalPath, (req, res) => {
     res.sendFile(path.join(getPublicDir(), "index.html"));
   });

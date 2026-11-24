@@ -175,6 +175,46 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Security pass: session cookies, encrypted backups,
+  persistent rate limits, set-password links, dependency audit.**
+  - **Sessions:** `pfm_session` / `pfm_platform` HttpOnly SameSite=Lax
+    cookies (Secure on HTTPS, 7-day Max-Age) set on login/mfa-verify/platform
+    login and cleared on logout (`lib/session-cookie.js`). Browser JS no
+    longer persists tokens: `sessionToken`/`platformToken` are in-memory
+    Bearer fallbacks only; `/api/auth/me` is always probed on boot so
+    cookie sessions survive restarts. Bearer / `x-session-token` /
+    `x-platform-token` headers remain supported for programmatic clients.
+    New CSRF guard in `server.js`: mutating requests carrying a session
+    cookie from a foreign Origin get 403 (Bearer-authed requests unaffected).
+  - **Encrypted backups:** `POST /api/admin/data-backup/encrypted`
+    `{passphrase}` returns `*.db.enc` (PFMENC1 | salt | iv | tag | AES-256-GCM,
+    key = scrypt(passphrase); `lib/backup-crypto.js`). Restore + preview
+    accept a `passphrase` form field and auto-detect encrypted uploads;
+    plain `.db` restores unchanged (`resolveUploadForRestore` in
+    `admin-data-service.js`). Maintenance tab: primary button downloads
+    encrypted, "Download Unencrypted" kept as secondary.
+  - **Rate limits:** `rateLimit(scope, {persist: true})` writes hits to
+    `rate_limit_hits` in the registry DB, so login/register-org/org-lookup/
+    mfa-verify/password-setup throttles survive restarts; falls back to
+    in-memory if the store is unavailable. `api-flood` stays memory-only.
+  - **Set-password links:** member welcome/reset emails no longer carry
+    plaintext temp passwords. `password_setup_tokens` (SHA-256 at rest,
+    single-use, 24h) in `lib/password-setup-service.js`; public
+    `POST /api/auth/set-password` (rate-limited) and `/set-password` SPA
+    screen (index.html, app.js, server + netlify redirect). Templates
+    `member_welcome_login`/`member_password_reset` now use `{{setupUrl}}`;
+    `renderAutomatedEmail` aliases legacy `{{tempPassword}}` slots in saved
+    overrides to `{{setupUrl}}`. `resetMemberPortalPassword` still returns
+    `tempPassword`/`copyText` for manual handoff (unchanged).
+  - **Dependencies:** `npm audit` 18 vulns → 1. Upgraded nodemailer 9→10
+    (cross-tenant SMTP credential disclosure fix), puppeteer 24→25
+    (extract-zip/proxy-agent/zod chain; PDF output verified), xlsx →
+    SheetJS CDN 0.20.3 (npm registry version is frozen at vulnerable
+    0.18.5; tarball dep noted — a cdn.sheetjs.com outage would fail a
+    build, not the running app), `qs` forced to ^6.16.2 via package.json
+    `overrides`. Residual: `pkg` devDep moderate (no fix exists).
+    Added `.github/dependabot.yml` + `.github/workflows/npm-audit.yml`
+    (weekly + on dep changes, `--omit=dev --audit-level=high`).
 - **2026-11-24** - **Master member-email switch (default OFF), after 37
   member emails fired at Twilight.** `member_email_delivery_log` showed two
   `deposit_credit_alert` batches (15 + 22 members, Nov 23 23:47/23:52)

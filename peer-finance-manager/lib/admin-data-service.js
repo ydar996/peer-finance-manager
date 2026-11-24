@@ -71,6 +71,18 @@ function assertValidSqliteUpload(filePath) {
   }
 }
 
+function resolveUploadForRestore(uploadPath, passphrase) {
+  const raw = fs.readFileSync(uploadPath);
+  const { isEncryptedBackup, decryptBackup } = require("./backup-crypto");
+  if (!isEncryptedBackup(raw)) {
+    return { dbPath: uploadPath, tempPath: null };
+  }
+  const plaintext = decryptBackup(raw, passphrase);
+  const tempPath = `${uploadPath}.dec-${Date.now()}.db`;
+  fs.writeFileSync(tempPath, plaintext, { mode: 0o600 });
+  return { dbPath: tempPath, tempPath };
+}
+
 function buildBackupFilename(orgSlug) {
   const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
   return `${orgSlug}-peerfinance-${stamp}.db`;
@@ -92,7 +104,20 @@ function prepareDatabaseBackup(orgSlug) {
   };
 }
 
-function restoreDatabaseFromUpload(orgSlug, uploadPath) {
+function restoreDatabaseFromUpload(orgSlug, uploadPath, { passphrase } = {}) {
+  const resolved = resolveUploadForRestore(uploadPath, passphrase);
+  try {
+    return restoreResolvedDatabase(orgSlug, resolved.dbPath);
+  } finally {
+    if (resolved.tempPath) {
+      try {
+        fs.unlinkSync(resolved.tempPath);
+      } catch (_) {}
+    }
+  }
+}
+
+function restoreResolvedDatabase(orgSlug, uploadPath) {
   assertValidSqliteUpload(uploadPath);
   const uploadStats = readDatabaseStats(uploadPath);
   if (!uploadStats.integrityOk) {
@@ -126,6 +151,7 @@ module.exports = {
   getOrgDatabasePath,
   prepareDatabaseBackup,
   restoreDatabaseFromUpload,
+  resolveUploadForRestore,
   readDatabaseStats,
   buildBackupFilename,
 };

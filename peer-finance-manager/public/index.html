@@ -342,6 +342,38 @@
       </div>
     </div>
 
+    <div id="setPasswordScreen" class="login-screen hidden">
+      <div class="login-layout">
+      <aside class="login-brand-panel" aria-hidden="true">
+        <div class="login-brand-top">
+          <span class="pv-logo-tile"></span>
+          <p class="login-brand-wordmark">Peer Finance Manager</p>
+        </div>
+        <div class="login-brand-copy">
+          <p class="login-brand-heading">Create Your Password</p>
+          <p class="login-brand-sub">One-Time Link: Choose the Password for Your Member Portal Account</p>
+        </div>
+      </aside>
+      <div class="login-card">
+        <p class="brand org-brand">Peer Finance Manager</p>
+        <span class="tag-outline">Password</span>
+        <h1>Create Your Password</h1>
+        <p class="subtle">This Link Works Once and Expires in 24 Hours.</p>
+        <form id="setPasswordForm" class="entry-form">
+          <label>New Password
+            <input type="password" name="password" minlength="8" required autocomplete="new-password" />
+          </label>
+          <label>Confirm Password
+            <input type="password" name="confirmPassword" minlength="8" required autocomplete="new-password" />
+          </label>
+          <button type="submit" class="btn primary">Set Password</button>
+        </form>
+        <p id="setPasswordStatus" class="status"></p>
+        <p class="login-foot subtle"><a id="setPasswordSignInLink" href="/member" class="hidden">Go to Member Sign In</a></p>
+      </div>
+      </div>
+    </div>
+
     <div id="platformShell" class="app hidden platform-shell">
       <header class="topbar">
         <div class="topbar-titles">
@@ -2483,9 +2515,14 @@
         <div class="record-grid">
           <div class="card accent">
             <h3>Database Backup</h3>
-            <p class="subtle">Download a copy of <code>peerfinance.db</code> for this Cooperative. Use before major changes or for off-site archive.</p>
+            <p class="subtle">Download a copy of <code>peerfinance.db</code> for this Cooperative. Use before major changes or for off-site archive. The encrypted download needs a passphrase (8+ characters): keep it somewhere safe, it is required to restore.</p>
+            <div class="field-row">
+              <span>Encryption Passphrase (optional)</span>
+              <input type="password" id="dataBackupPassphrase" autocomplete="new-password" placeholder="Only for encrypted download" />
+            </div>
             <div class="panel-head-actions">
-              <button type="button" class="btn primary" id="downloadDataBackupBtn">Download Database Backup</button>
+              <button type="button" class="btn primary" id="downloadDataBackupBtn">Download Encrypted Backup</button>
+              <button type="button" class="btn" id="downloadDataBackupPlainBtn">Download Unencrypted</button>
             </div>
             <p id="dataBackupStatus" class="status"></p>
           </div>
@@ -2497,9 +2534,13 @@
                 <span>Backup File (.db)</span>
                 <div class="file-dropzone">
                   <label class="btn" for="dataRestoreFile">Choose File</label>
-                  <input type="file" id="dataRestoreFile" name="database" class="visually-hidden-file" accept=".db,application/octet-stream" required />
+                  <input type="file" id="dataRestoreFile" name="database" class="visually-hidden-file" accept=".db,.enc,application/octet-stream" required />
                   <span class="file-name" id="dataRestoreFileName"></span>
                 </div>
+              </div>
+              <div class="field-row">
+                <span>Passphrase (if encrypted)</span>
+                <input type="password" name="passphrase" autocomplete="off" placeholder="Required for .enc backups" />
               </div>
               <label class="toggle-row">
                 <input type="checkbox" name="confirmRestore" />

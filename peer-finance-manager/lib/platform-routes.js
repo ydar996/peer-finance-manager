@@ -26,7 +26,9 @@ const {
 function getPlatformToken(req) {
   const auth = req.headers.authorization || "";
   if (auth.startsWith("Bearer ")) return auth.slice(7).trim();
-  return req.headers["x-platform-token"] || null;
+  if (req.headers["x-platform-token"]) return req.headers["x-platform-token"];
+  const { parseCookies, PLATFORM_COOKIE } = require("./session-cookie");
+  return parseCookies(req)[PLATFORM_COOKIE] || null;
 }
 
 function attachPlatformUser(req, res, next) {
@@ -47,6 +49,8 @@ function registerPlatformRoutes(app) {
     try {
       const { email, password } = req.body || {};
       const result = platformLogin(email, password);
+      const { setAuthCookie, PLATFORM_COOKIE } = require("./session-cookie");
+      setAuthCookie(res, req, result.token, PLATFORM_COOKIE);
       res.json(result);
     } catch (err) {
       res.status(401).json({ error: err.message });
@@ -55,6 +59,8 @@ function registerPlatformRoutes(app) {
 
   app.post("/api/platform/auth/logout", attachPlatformUser, (req, res) => {
     platformLogout(req.platformToken);
+    const { clearAuthCookie, PLATFORM_COOKIE } = require("./session-cookie");
+    clearAuthCookie(res, req, PLATFORM_COOKIE);
     res.json({ success: true });
   });
 

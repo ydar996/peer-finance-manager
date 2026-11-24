@@ -23,6 +23,25 @@ function registerAdminDataRoutes(app, { requireAdmin, restoreOrgContext, upload 
     }
   });
 
+  app.post("/api/admin/data-backup/encrypted", requireAdmin, (req, res) => {
+    try {
+      const passphrase = String(req.body?.passphrase || "");
+      if (passphrase.length < 8) {
+        return res.status(400).json({ error: "Encryption passphrase must be at least 8 characters." });
+      }
+      const slug = req.user.organizationSlug;
+      const { dbPath, filename } = prepareDatabaseBackup(slug);
+      const { encryptBackup } = require("./backup-crypto");
+      const encrypted = encryptBackup(fs.readFileSync(dbPath), passphrase);
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}.enc"`);
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("Content-Length", String(encrypted.length));
+      res.end(encrypted);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   app.get("/api/admin/data-status", requireAdmin, (req, res) => {
     try {
       const slug = req.user.organizationSlug;
@@ -61,7 +80,9 @@ function registerAdminDataRoutes(app, { requireAdmin, restoreOrgContext, upload 
         }
 
         const slug = req.user.organizationSlug;
-        const result = restoreDatabaseFromUpload(slug, req.file.path);
+        const result = restoreDatabaseFromUpload(slug, req.file.path, {
+          passphrase: req.body?.passphrase,
+        });
 
         try {
           fs.unlinkSync(req.file.path);
@@ -100,7 +121,22 @@ function registerAdminDataRoutes(app, { requireAdmin, restoreOrgContext, upload 
         if (!req.file) {
           return res.status(400).json({ error: "Upload a peerfinance.db backup file." });
         }
-        const uploadStats = readDatabaseStats(req.file.path);
+        const { resolveUploadForRestore } = require("./admin-data-service");
+        let resolved;
+        try {
+          resolved = resolveUploadForRestore(req.file.path, req.body?.passphrase);
+        } catch (err) {
+          try {
+            fs.unlinkSync(req.file.path);
+          } catch (_) {}
+          return res.status(400).json({ error: err.message });
+        }
+        const uploadStats = readDatabaseStats(resolved.dbPath);
+        if (resolved.tempPath) {
+          try {
+            fs.unlinkSync(resolved.tempPath);
+          } catch (_) {}
+        }
         const slug = req.user.organizationSlug;
         const { getOrgDatabasePath } = require("./admin-data-service");
         const livePath = getOrgDatabasePath(slug);

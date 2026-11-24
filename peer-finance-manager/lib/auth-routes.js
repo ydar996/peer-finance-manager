@@ -165,6 +165,8 @@ function registerAuthRoutes(app, deps = {}) {
             cooperativeTimezone: getCooperativeTimezone(),
             countryProfile: getPublicCountryProfile(),
           };
+      const { setAuthCookie } = require("./session-cookie");
+      setAuthCookie(res, req, result.token);
       res.json({
         success: true,
         ...result,
@@ -187,6 +189,8 @@ function registerAuthRoutes(app, deps = {}) {
         cooperativeTimezone: getCooperativeTimezone(),
         countryProfile: getPublicCountryProfile(),
       }));
+      const { setAuthCookie } = require("./session-cookie");
+      setAuthCookie(res, req, result.token);
       res.json({ success: true, ...result, ...localeInfo });
     } catch (err) {
       res.status(401).json({ error: err.message });
@@ -244,8 +248,21 @@ function registerAuthRoutes(app, deps = {}) {
     }
   });
 
+  app.post("/api/auth/set-password", (req, res) => {
+    try {
+      const { setPasswordFromSetupToken } = require("./auth-service");
+      const { token, password, organizationSlug } = req.body || {};
+      const result = setPasswordFromSetupToken({ token, password, organizationSlug });
+      res.json({ success: true, organizationSlug: result.organizationSlug });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   app.post("/api/auth/logout", requireAuth, (req, res) => {
     logout(getToken(req));
+    const { clearAuthCookie } = require("./session-cookie");
+    clearAuthCookie(res, req);
     res.json({ success: true });
   });
 

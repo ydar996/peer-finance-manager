@@ -11,7 +11,8 @@ function getToken(req) {
   const auth = req.headers.authorization || "";
   if (auth.startsWith("Bearer ")) return auth.slice(7).trim();
   if (req.headers["x-session-token"]) return String(req.headers["x-session-token"]);
-  return null;
+  const { parseCookies, SESSION_COOKIE } = require("./session-cookie");
+  return parseCookies(req)[SESSION_COOKIE] || null;
 }
 
 function attachUser(req, res, next) {

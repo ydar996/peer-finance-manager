@@ -348,7 +348,7 @@ const CATALOG = [
       { token: "orgName", meaning: "Cooperative name" },
       { token: "organizationCode", meaning: "Organization code for sign-in" },
       { token: "username", meaning: "Member username" },
-      { token: "tempPassword", meaning: "Temporary password" },
+      { token: "setupUrl", meaning: "One-time set-password link (24 hours)" },
       { token: "portalUrl", meaning: "Member portal sign-in link" },
     ],
     defaultSubject: "{{orgName}}: Your Member Portal Login",
@@ -357,44 +357,42 @@ const CATALOG = [
       "Welcome to {{orgName}}. Your membership has been accepted. Here are your Peer Finance Manager member portal login details.\n\n" +
       "Organization code: {{organizationCode}}\n" +
       "Sign-in page: {{portalUrl}}\n" +
-      "Username: {{username}}\n" +
-      "Temporary password: {{tempPassword}}\n\n" +
-      "You must change this password after you sign in.\n\n" +
+      "Username: {{username}}\n\n" +
+      "Set your password with this one-time link (expires in 24 hours):\n{{setupUrl}}\n\n" +
       "If you did not expect this email, contact your Cooperative administrator.",
     sample: {
       memberName: "Ada Okeke",
       organizationCode: "assurance",
       username: "ada.okeke",
-      tempPassword: "TemporaryPassword123",
+      setupUrl: "https://peerfinancemanager.com/set-password?token=example&org=assurance",
     },
   },
   {
     id: "member_password_reset",
-    title: "Temporary Member Portal Password",
+    title: "Member Portal Password Reset",
     description: "Sent when an administrator resets a member portal password.",
     placeholders: [
       { token: "memberName", meaning: "Member name" },
       { token: "orgName", meaning: "Cooperative name" },
       { token: "organizationCode", meaning: "Organization code for sign-in" },
       { token: "username", meaning: "Member username" },
-      { token: "tempPassword", meaning: "Temporary password" },
+      { token: "setupUrl", meaning: "One-time set-password link (24 hours)" },
       { token: "portalUrl", meaning: "Member portal sign-in link" },
     ],
-    defaultSubject: "{{orgName}}: Temporary Member Portal Password",
+    defaultSubject: "{{orgName}}: Member Portal Password Reset",
     defaultBody:
       "Hello {{memberName}},\n\n" +
       "An administrator reset your Peer Finance Manager member portal password.\n\n" +
       "Organization code: {{organizationCode}}\n" +
       "Sign-in page: {{portalUrl}}\n" +
-      "Username: {{username}}\n" +
-      "Temporary password: {{tempPassword}}\n\n" +
-      "You must change this password after you sign in.\n\n" +
+      "Username: {{username}}\n\n" +
+      "Set a new password with this one-time link (expires in 24 hours):\n{{setupUrl}}\n\n" +
       "If you did not expect this email, contact your Cooperative administrator.",
     sample: {
       memberName: "Ada Okeke",
       organizationCode: "assurance",
       username: "ada.okeke",
-      tempPassword: "TemporaryPassword123",
+      setupUrl: "https://peerfinancemanager.com/set-password?token=example&org=assurance",
     },
   },
   {
@@ -684,7 +682,14 @@ function resetAutomatedMessage(id) {
 
 function renderAutomatedEmail(id, vars = {}) {
   const entry = getCatalogEntry(id);
-  const copy = effectiveCopy(entry);
+  let copy = effectiveCopy(entry);
+  if (vars.setupUrl) {
+    // Member credentials are never emailed. Overrides saved before the
+    // set-password link existed may still hold {{tempPassword}}: point that
+    // slot at the one-time link rather than emit a literal placeholder.
+    const swap = (s) => String(s || "").replace(/\{\{\s*tempPassword\s*\}\}/g, "{{setupUrl}}");
+    copy = { ...copy, subject: swap(copy.subject), body: swap(copy.body) };
+  }
   const merged = {
     orgName: vars.orgName || organizationName(),
     portalUrl: vars.portalUrl || portalUrl(),

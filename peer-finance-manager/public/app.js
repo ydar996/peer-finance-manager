@@ -8,8 +8,14 @@ const SESSION_KEY = "pfm_session";
 const PLATFORM_SESSION_KEY = "pfm_platform_session";
 const ORG_SLUG_KEY = "pfm_org_slug";
 const DEFAULT_ORG_SLUG = "";
-let sessionToken = localStorage.getItem(SESSION_KEY) || "";
-let platformToken = localStorage.getItem(PLATFORM_SESSION_KEY) || "";
+// Session rides on the HttpOnly pfm_session cookie. sessionToken/platformToken
+// stay in memory as a Bearer fallback for contexts where the cookie cannot be
+// set; they are never persisted to storage (localStorage tokens were an
+// XSS-readable session store).
+let sessionToken = "";
+let platformToken = "";
+localStorage.removeItem(SESSION_KEY);
+localStorage.removeItem(PLATFORM_SESSION_KEY);
 let currentUser = null;
 let platformUser = null;
 let cooperativeTimezone = "America/Los_Angeles";
@@ -475,6 +481,7 @@ function getPortalFromPath() {
   const path = window.location.pathname.replace(/\/$/, "") || "/";
   if (path === "/register") return "register";
   if (path === "/platform") return "platform";
+  if (path === "/set-password") return "set-password";
   if (path === "/admin") return "admin";
   if (path === "/staff") return "staff";
   return "member";
@@ -624,6 +631,7 @@ function hideAllScreens() {
   $("#loginScreenPlatform")?.classList.add("hidden");
   $("#registerScreen")?.classList.add("hidden");
   $("#changePasswordScreen")?.classList.add("hidden");
+  $("#setPasswordScreen")?.classList.add("hidden");
   $("#membershipApplyScreen")?.classList.add("hidden");
   $("#appShell")?.classList.add("hidden");
   $("#platformShell")?.classList.add("hidden");
@@ -631,6 +639,23 @@ function hideAllScreens() {
 }
 
 function showLoginForPortal(portal = getPortalFromPath(), message = "") {
+  if (portal === "set-password") {
+    hideAllScreens();
+    $("#setPasswordScreen")?.classList.remove("hidden");
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get("token")) {
+      const status = $("#setPasswordStatus");
+      if (status) {
+        setFormStatus(
+          status,
+          "This link is missing its token. Open the full link from your email, or ask your Cooperative administrator for a new one.",
+          false
+        );
+      }
+      $("#setPasswordForm")?.classList.add("hidden");
+    }
+    return;
+  }
   if (portal === "register") {
     hideAllScreens();
     $("#registerScreen")?.classList.remove("hidden");
@@ -739,14 +764,12 @@ function applyRoleUi() {
 
 async function restoreSession() {
   const portal = getPortalFromPath();
-  if (portal === "register") {
-    showLoginForPortal("register");
-    return false;
-  }
-  if (!sessionToken) {
+  if (portal === "register" || portal === "set-password") {
     showLoginForPortal(portal);
     return false;
   }
+  // Always probe: the HttpOnly cookie may hold a live session even when no
+  // in-memory token exists yet.
   try {
     const res = await fetch("/api/auth/me");
     const data = await res.json();
@@ -893,13 +916,9 @@ function showPlatformApp() {
 }
 
 async function restorePlatformSession() {
-  if (!platformToken) {
-    showLoginForPortal("platform");
-    return false;
-  }
   try {
     const res = await nativeFetch("/api/platform/auth/me", {
-      headers: { Authorization: `Bearer ${platformToken}` },
+      headers: platformToken ? { Authorization: `Bearer ${platformToken}` } : {},
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Session expired");
@@ -9862,7 +9881,6 @@ async function handleLoginSubmit(e) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
       platformToken = data.token;
-      localStorage.setItem(PLATFORM_SESSION_KEY, platformToken);
       platformUser = data.user;
       showPlatformApp();
       await loadPlatformOrganizations();
@@ -9918,7 +9936,6 @@ async function handleLoginSubmit(e) {
       if (!verified) throw new Error("Verification failed");
     }
     sessionToken = data.token;
-    localStorage.setItem(SESSION_KEY, sessionToken);
     currentUser = data.user;
     applyCooperativeTimezone(data.cooperativeTimezone);
     applyCountryProfile(data.countryProfile);
@@ -10191,6 +10208,38 @@ $("#changePasswordForm")?.addEventListener("submit", async (e) => {
   }
 });
 
+$("#setPasswordForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#setPasswordStatus");
+  const payload = Object.fromEntries(new FormData(e.target).entries());
+  if (payload.password !== payload.confirmPassword) {
+    setFormStatus(status, "Passwords do not match.", false);
+    return;
+  }
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token") || "";
+  const org = params.get("org") || "";
+  setFormStatus(status, "Saving…", true);
+  try {
+    const res = await fetch("/api/auth/set-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password: payload.password, organizationSlug: org }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not set password");
+    setFormStatus(status, "Password saved. You can now sign in.", true);
+    const link = $("#setPasswordSignInLink");
+    if (link) {
+      link.href = `/member${data.organizationSlug ? `?org=${encodeURIComponent(data.organizationSlug)}` : ""}`;
+      link.classList.remove("hidden");
+    }
+    e.target.reset();
+  } catch (err) {
+    setFormStatus(status, err.message, false);
+  }
+});
+
 $("#logoutBtn")?.addEventListener("click", async () => {
   try {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -10425,28 +10474,53 @@ $("#mfaDisableBtn")?.addEventListener("click", async () => {
   }
 });
 
-$("#downloadDataBackupBtn")?.addEventListener("click", async () => {
+async function downloadDataBackup(encrypted) {
   const status = $("#dataBackupStatus");
-  const btn = $("#downloadDataBackupBtn");
+  const passphrase = $("#dataBackupPassphrase")?.value || "";
+  const btn = encrypted ? $("#downloadDataBackupBtn") : $("#downloadDataBackupPlainBtn");
+  if (encrypted && passphrase.length < 8) {
+    if (status) setFormStatus(status, "Enter a passphrase of at least 8 characters for the encrypted backup.", false);
+    return;
+  }
   setButtonBusy(btn, true, "Preparing…");
   if (status) setFormStatus(status, "Preparing backup…", true);
   try {
-    const res = await fetch("/api/admin/data-backup");
+    const res = encrypted
+      ? await fetch("/api/admin/data-backup/encrypted", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ passphrase }),
+        })
+      : await fetch("/api/admin/data-backup");
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || "Backup failed");
     }
     const blob = await res.blob();
-    const filename = parseAttachmentFilename(res, "peerfinance-backup.db");
+    const filename = parseAttachmentFilename(
+      res,
+      encrypted ? "peerfinance-backup.db.enc" : "peerfinance-backup.db"
+    );
     await saveDownloadBlob(blob, filename);
-    if (status) setFormStatus(status, `Downloaded ${filename}`, true);
+    if (status) {
+      setFormStatus(
+        status,
+        encrypted
+          ? `Downloaded ${filename} — keep the passphrase safe, it is required to restore.`
+          : `Downloaded ${filename}`,
+        true
+      );
+    }
   } catch (err) {
     if (status) setFormStatus(status, err.message, false);
     else void appAlert(err.message, { title: "Error", variant: "danger" });
   } finally {
     setButtonBusy(btn, false);
   }
-});
+}
+
+$("#downloadDataBackupBtn")?.addEventListener("click", () => downloadDataBackup(true));
+$("#downloadDataBackupPlainBtn")?.addEventListener("click", () => downloadDataBackup(false));
 
 async function previewDataRestore() {
   const form = $("#dataRestoreForm");
@@ -10463,6 +10537,8 @@ async function previewDataRestore() {
   try {
     const fd = new FormData();
     fd.append("database", file);
+    const passphrase = form?.passphrase?.value || "";
+    if (passphrase) fd.append("passphrase", passphrase);
     const res = await fetch("/api/admin/data-restore/preview", { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Preview failed");

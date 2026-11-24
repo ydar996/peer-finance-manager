@@ -580,7 +580,7 @@ Completed submissions appear under **Loan Applications** on the same tab. They a
 4. Click **Accept Member**. That:
    - Adds them to the active membership list
    - Creates their portal login
-   - Emails a welcome message with the temporary password when email is configured
+   - Emails a welcome message with a one-time set-password link (24 hours) when email is configured
    - Clears the Forms & Documents (1) badge
 5. After Accept, import the bank statement (or Record the deposit). PFM attaches the payment to the new member even when the Zelle name is not identical to the ledger name, as long as the first name is unique. The agreed membership fee ($100) is deducted from that first deposit into membership fee income; the contributions account keeps the extra. **Verify Deposits** is still available if you need to record the fee/contribution when no deposit is on the books yet. When the fee has been taken from a deposit, PFM emails the member and posts a portal notice: the agreed membership application fee was deducted from the initial deposit, and the remaining amount was credited to the contributions account as the first deposit.
 
@@ -604,9 +604,9 @@ Members sign in with **username** (not always email). Staff and admins use **ema
 ### Reset password (one click)
 
 1. Confirm the reset.
-2. PFM creates a new temporary password.
-3. If email is configured and the member has a real email on file, PFM **emails** them the username, temp password, and sign-in link.
-4. The admin screen shows the temp password with **Copy Temporary Password** and **Copy Full Login Details** so you can also send it yourself (text/WhatsApp/etc.).
+2. PFM creates a new temporary password and a one-time set-password link.
+3. If email is configured and the member has a real email on file, PFM **emails** them the username, sign-in link, and a **set-password link**: the member opens it, chooses their own password, and signs in. The link works once and expires in 24 hours; plaintext passwords are never emailed.
+4. The admin screen still shows the temp password with **Copy Temporary Password** and **Copy Full Login Details** so you can also send it yourself (text/WhatsApp/etc.).
 
 Temporary passwords must be changed on first member sign-in. Former members cannot receive a password reset (register a new membership instead).
 
@@ -755,8 +755,8 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 
 | Section | Purpose |
 |---------|---------|
-| **Database Backup** | Download `peerfinance.db` for this Cooperative (archive or before risky changes). On a wide screen this sits beside **Database Restore**. |
-| **Database Restore** | **Choose File** to select a `.db` backup, preview row counts, then restore. Replaces live data; no Manual Deploy required. |
+| **Database Backup** | Download a copy of `peerfinance.db` for this Cooperative (archive or before risky changes). **Download Encrypted Backup** (recommended) asks for a passphrase (8+ characters) and produces a `.db.enc` file that stays protected on disk; **Download Unencrypted** produces a plain `.db`. On a wide screen this sits beside **Database Restore**. |
+| **Database Restore** | **Choose File** to select a `.db` or `.db.enc` backup (enter the passphrase for an encrypted file), preview row counts, then restore. Replaces live data; no Manual Deploy required. |
 | **Normalize Profiles (Title Case)** | Preview and apply formatting to member profiles and ledger names on production. |
 
 **When to use restore:** disaster recovery or copying a known-good backup onto production. For bank ledger corrections, prefer **Import → Full Ledger Refresh** + **Import New Bank Activity** so reconcile anchor stays correct.
