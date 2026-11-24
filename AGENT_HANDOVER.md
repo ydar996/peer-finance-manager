@@ -175,6 +175,28 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Total rows on every book detail + topbar brand pill
+  removed.** All book detail tables now render a `<tfoot>` Total row driven
+  by a per-view `footer` object (per-column sums where meaningful: loans
+  totals principal/repaid/interest/outstanding; reconcile totals only the
+  account balances, not drift rows; bank-ledger "Net Total" excludes
+  membership_fee legs which are member-account legs, not bank cash; the
+  checking/CD balance views show "Current Balance"/"All imported bank
+  ledgers" rather than a meaningless column sum). Removed the duplicated
+  "Peer Finance Manager" brand pill from the in-app topbar (sidebar already
+  carries the brand); login/portal `.org-brand` instances untouched.
+  Also fixed: the Investments detail `summary` still used the pre-fix
+  ABS-sum (₦89M) while the card used net math; it now uses the same
+  signed net-position math (`summary` = net, footer labeled "Net
+  Position"). Found while auditing card-vs-detail consistency: the Oct-7
+  ₦4,052,707.18 "MATURED TIME DEPOSIT" credit was typed `deposit`
+  (keyword fall-through — every other FD settle row is `investment`),
+  inflating "Deposits This Year" by ₦4.05M vs the member-joined detail.
+  Reclassified to `investment` in the corrected Twilight DB (8th
+  adjustment): Deposits YTD card = detail = ₦7,850,676, Investments
+  ₦40,248,328.13. NOTE: the live org needs the same one-row reclassify
+  in-app (Bank Ledger Rows → Oct-7 ₦4,052,707.18 → Category: Investment)
+  or a re-upload of the refreshed `peerfinance-corrected-2026-11-24.db`.
 - **2026-11-24** - **Bank Accounts card: per-account breakdown, honest label.**
   The card formerly titled "Checking Account" showed the combined ending
   balance of *every* imported bank ledger (Providus Operations + Share

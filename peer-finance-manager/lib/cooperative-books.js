@@ -495,6 +495,16 @@ const BOOK_DETAIL_SLUGS = {
   "members-profiles": "Active Members/Profiles",
 };
 
+// Sum a numeric field across detail rows, rounded to cents. Used for the
+// footer ("Total") row every book detail table renders.
+function moneySum(rows, key) {
+  return (
+    Math.round(
+      rows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0) * 100
+    ) / 100
+  );
+}
+
 function getBookDetail(slug) {
   if (!BOOK_DETAIL_SLUGS[slug]) {
     throw new Error("Unknown book detail");
@@ -517,6 +527,7 @@ function getBookDetail(slug) {
         { key: "description", label: "Description" },
       ],
       rows: detail.rows,
+      footer: { member: "Total", amount: moneySum(detail.rows, "amount") },
     };
   }
 
@@ -540,6 +551,7 @@ function getBookDetail(slug) {
           emptyMessage: `No member contributions recorded in ${detail.year} yet.`,
           columns: depositColumns,
           rows: detail.rows,
+          footer: { member: "Total", amount: moneySum(detail.rows, "amount") },
         },
         {
           id: "by-member",
@@ -558,6 +570,11 @@ function getBookDetail(slug) {
             { key: "description", label: "Description" },
           ],
           rows: detail.memberRows,
+          footer: {
+            member: "Total",
+            depositCount: moneySum(detail.memberRows, "depositCount"),
+            total: moneySum(detail.memberRows, "total"),
+          },
         },
       ],
     };
@@ -577,6 +594,12 @@ function getBookDetail(slug) {
         { key: "stillDue", label: "Still Due", format: "money" },
       ],
       rows: detail.rows,
+      footer: {
+        member: "Total",
+        expected: moneySum(detail.rows, "expected"),
+        received: moneySum(detail.rows, "received"),
+        stillDue: moneySum(detail.rows, "stillDue"),
+      },
     };
   }
 
@@ -604,6 +627,7 @@ function getBookDetail(slug) {
         { key: "balance", label: "Contributions Account Balance", format: "money" },
       ],
       rows: detailRows,
+      footer: { member: "Total", balance: moneySum(detailRows, "balance") },
     };
   }
 
@@ -639,6 +663,7 @@ function getBookDetail(slug) {
         description: row.description || "",
         memberId: row.member_id,
       })),
+      footer: { member: "Total", amount: moneySum(rows, "amount") },
     };
   }
 
@@ -674,6 +699,7 @@ function getBookDetail(slug) {
         description: row.description || "",
         memberId: row.member_id,
       })),
+      footer: { member: "Total", amount: moneySum(rows, "amount") },
     };
   }
 
@@ -689,11 +715,12 @@ function getBookDetail(slug) {
          ORDER BY t.transaction_date DESC, t.id DESC`
       )
       .all();
+    const totalFees = rows.reduce((sum, row) => sum + Math.abs(row.amount), 0);
     return {
       slug,
       title,
       navigateTab: null,
-      summary: rows.reduce((sum, row) => sum + Math.abs(row.amount), 0),
+      summary: totalFees,
       columns: [
         { key: "date", label: "Date", format: "date" },
         { key: "member", label: "Member" },
@@ -707,6 +734,7 @@ function getBookDetail(slug) {
         description: row.description || "",
         memberId: row.member_id,
       })),
+      footer: { member: "Total", amount: totalFees },
     };
   }
 
@@ -747,6 +775,7 @@ function getBookDetail(slug) {
           description: row.description || "",
         },
       })),
+      footer: { member: "Total", amount: moneySum(rows, "amount") },
     };
   }
 
@@ -780,6 +809,7 @@ function getBookDetail(slug) {
         description: row.description || "",
         memberId: row.member_id,
       })),
+      footer: { member: "Total", amount: moneySum(rows, "amount") },
     };
   }
 
@@ -813,6 +843,13 @@ function getBookDetail(slug) {
           memberId: row.borrowerId,
           loanKey: row.loanKey,
         })),
+        footer: {
+          borrower: "Total",
+          disbursed: moneySum(bankRows, "disbursed"),
+          collected: moneySum(bankRows, "collected"),
+          interestIncome: moneySum(bankRows, "interestIncome"),
+          outstanding: moneySum(bankRows, "outstanding"),
+        },
       };
     }
     const rows = db
@@ -853,6 +890,17 @@ function getBookDetail(slug) {
         outstanding: Math.max(0, (row.scheduled || row.principal) - (row.collected || 0)),
         status: row.status,
       })),
+      footer: {
+        borrower: "Total",
+        principal: moneySum(rows, "principal"),
+        collected: moneySum(rows, "collected"),
+        outstanding: rows.reduce(
+          (sum, row) =>
+            sum +
+            Math.max(0, (row.scheduled || row.principal) - (row.collected || 0)),
+          0
+        ),
+      },
     };
   }
 
@@ -868,7 +916,12 @@ function getBookDetail(slug) {
     const accountLabel = (a) =>
       `${a?.accountLabel || "Bank Account"}${a?.institutionName ? ` (${a.institutionName})` : ""}`;
 
+    let accountTotal = 0;
     for (const result of reconcile.accounts || []) {
+      const acctBalance = result.anchor
+        ? result.anchor.balance
+        : (result.live?.balanceLatest ?? null);
+      accountTotal += Number(acctBalance) || 0;
       if (result.anchor) {
         rows.push({
           date: result.anchor.asOf,
@@ -914,6 +967,11 @@ function getBookDetail(slug) {
         { key: "description", label: "Description" },
       ],
       rows,
+      footer: {
+        type: "Total",
+        amount: Math.round(accountTotal * 100) / 100,
+        description: "All bank accounts",
+      },
     };
   }
 
@@ -934,14 +992,6 @@ function getBookDetail(slug) {
       amount: a.end.balance,
       description: a.label,
     }));
-    if (accountEnds.length > 1) {
-      accountRows.push({
-        date: snapshot.ledgerAsOf,
-        type: "All Accounts",
-        amount: snapshot.ledgerBalance,
-        description: "Combined balance across imported bank ledgers",
-      });
-    }
     const rows = [
       ...accountRows,
       ...snapshot.history.map((row) => ({
@@ -963,6 +1013,14 @@ function getBookDetail(slug) {
         { key: "description", label: "Description" },
       ],
       rows,
+      footer:
+        snapshot.ledgerBalance != null
+          ? {
+              type: "Total",
+              amount: snapshot.ledgerBalance,
+              description: "All imported bank ledgers",
+            }
+          : null,
     };
   }
 
@@ -1016,6 +1074,10 @@ function getBookDetail(slug) {
             ]
           : []),
       ],
+      footer:
+        balance != null
+          ? { type: "Current Balance", amount: Number(balance) }
+          : null,
     };
   }
 
@@ -1115,6 +1177,11 @@ function getBookDetail(slug) {
         { key: "description", label: "Description" },
       ],
       rows: breakdown.rows,
+      footer: {
+        status: "Total",
+        principal: moneySum(breakdown.rows, "principal"),
+        interest: moneySum(breakdown.rows, "interest"),
+      },
     };
   }
 
@@ -1144,6 +1211,12 @@ function getBookDetail(slug) {
         status: row.status === "paid" ? "Paid" : "Active",
         memberId: row.borrowerId,
       })),
+      footer: {
+        borrower: "Total",
+        disbursed: moneySum(bankRows, "disbursed"),
+        collected: moneySum(bankRows, "collected"),
+        interestIncome: moneySum(bankRows, "interestIncome"),
+      },
     };
   }
 
@@ -1197,6 +1270,7 @@ function getBookDetail(slug) {
         { key: "note", label: "Detail" },
       ],
       rows,
+      footer: { source: "Total", amount: moneySum(rows, "amount") },
     };
   }
 
@@ -1260,6 +1334,10 @@ function getBookDetail(slug) {
         { key: "note", label: "Detail" },
       ],
       rows,
+      footer: {
+        line: "Net Income",
+        amount: Math.round((incomeTotal - (expenseTotal || 0)) * 100) / 100,
+      },
     };
   }
 
@@ -1298,6 +1376,13 @@ function getBookDetail(slug) {
         { key: "outstanding", label: "Principal Outstanding", format: "money" },
       ],
       rows,
+      footer: {
+        borrower: "Total",
+        scheduledInterest: moneySum(rows, "scheduledInterest"),
+        interestEarned: moneySum(rows, "interestEarned"),
+        futureInterest: moneySum(rows, "futureInterest"),
+        outstanding: moneySum(rows, "outstanding"),
+      },
     };
   }
 
@@ -1315,6 +1400,7 @@ function getBookDetail(slug) {
       rows = db
         .prepare(
           `SELECT t.transaction_date, t.amount, t.description, t.member_id,
+                  t.source, t.investment_account_id,
                   COALESCE(ia.name, ba.account_label) AS accountName
            FROM transactions t
            LEFT JOIN investment_accounts ia ON ia.id = t.investment_account_id
@@ -1336,12 +1422,26 @@ function getBookDetail(slug) {
         )
         .all();
     }
+    // Net position, same math as the Cooperative Investments card: bank-flow
+    // rows (bank_import source or a linked investment account) net placements
+    // minus returns; legacy unlinked position markers keep absolute value.
+    const netPosition = Math.max(
+      0,
+      rows.reduce(
+        (sum, row) =>
+          sum +
+          (row.source === "bank_import" || row.investment_account_id != null
+            ? -row.amount
+            : Math.abs(row.amount)),
+        0
+      )
+    );
     return {
       slug,
       title,
       navigateTab: null,
       hasControls: true,
-      summary: rows.reduce((sum, row) => sum + Math.abs(row.amount), 0),
+      summary: netPosition,
       columns: [
         { key: "date", label: "Date", format: "date" },
         { key: "amount", label: "Amount", format: "money" },
@@ -1361,6 +1461,7 @@ function getBookDetail(slug) {
           description: row.description || "",
         },
       })),
+      footer: { account: "Net Position", amount: netPosition },
     };
   }
 
@@ -1412,6 +1513,14 @@ function getBookDetail(slug) {
           description: row.description || "",
         },
       })),
+      footer: {
+        type: "Net Total",
+        amount: moneySum(
+          rows.filter((row) => row.type !== TRANSACTION_TYPES.MEMBERSHIP_FEE),
+          "amount"
+        ),
+        description: "Combined bank ledger balance (member fee legs excluded)",
+      },
     };
   }
 
@@ -1457,6 +1566,7 @@ function getBookDetail(slug) {
             }
           : null,
       })),
+      footer: { category: "Total", amount: moneySum(rows, "amount") },
     };
   }
 

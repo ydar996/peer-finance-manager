@@ -225,7 +225,7 @@ Click any card to see a detailed table. Common cards:
 | **CD Account / Expected CD Interest** | Certificate of deposit balance and interest (if used). **Open Record** on either card goes to **Record → CD Account Balance and Term** to update the balance or a new/rolled-over term. |
 | **Active Members/Profiles** | Active members only (profiles on file / member accounts). Resigned, Deceased, Expelled, and Suspended are excluded; the card notes how many former members are not counted. |
 
-Click **Refresh** to reload after imports or manual entries. **Bank Ledger Rows** (button at the top of the tab) opens the full imported bank ledger, including rows with no member attached; admins can **reclassify a row's Category or Split it** there, and the Cooperative Investments, Cooperative Expenses, and Other Cooperative Income detail views have the same controls.
+Click **Refresh** to reload after imports or manual entries. **Bank Ledger Rows** (button at the top of the tab) opens the full imported bank ledger, including rows with no member attached; admins can **reclassify a row's Category or Split it** there, and the Cooperative Investments, Cooperative Expenses, and Other Cooperative Income detail views have the same controls. Every card detail table ends with a **Total** row (net position for Investments, per-column totals where a view shows several money columns).
 
 ---
 

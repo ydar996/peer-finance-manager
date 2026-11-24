@@ -389,6 +389,7 @@ h4,
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #f1f5f9; }
 th { background: #f8fafc; font-weight: 600; }
+tfoot td { font-weight: 700; border-top: 2px solid #cbd5e1; border-bottom: 0; background: #f8fafc; }
 .btn {
   border: 1px solid #cbd5e1;
   background: #fff;

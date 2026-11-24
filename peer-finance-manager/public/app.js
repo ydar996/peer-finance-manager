@@ -1929,6 +1929,22 @@ function bindBookDetailExpandRows() {
   });
 }
 
+function renderBookDetailFooter(view, showControls) {
+  const table = $("#booksDetailBody")?.closest("table");
+  if (!table) return;
+  table.querySelector("tfoot")?.remove();
+  if (!view.footer || !view.rows?.length) return;
+  const foot = document.createElement("tfoot");
+  foot.innerHTML = `<tr>${view.columns
+    .map((col) => {
+      const value = view.footer[col.key];
+      const cls = col.format === "money" ? ' class="money"' : "";
+      return `<td${cls}>${value == null || value === "" ? "" : formatDetailCell(value, col.format)}</td>`;
+    })
+    .join("")}${showControls ? "<td></td>" : ""}</tr>`;
+  table.appendChild(foot);
+}
+
 function renderBookDetailTable(view, slug) {
   const head = $("#booksDetailHead");
   const body = $("#booksDetailBody");
@@ -1939,6 +1955,7 @@ function renderBookDetailTable(view, slug) {
 
   if (!view.rows.length) {
     body.innerHTML = `<tr><td colspan="${view.columns.length}">${escapeHtml(view.emptyMessage || "No Records")}</td></tr>`;
+    renderBookDetailFooter(view, showControls);
     return;
   }
 
@@ -1986,6 +2003,7 @@ function renderBookDetailTable(view, slug) {
       .join("");
     bindBookDetailExpandRows();
     bindBookDetailMemberRows(slug);
+    renderBookDetailFooter(view, showControls);
     return;
   }
 
@@ -2013,6 +2031,7 @@ function renderBookDetailTable(view, slug) {
     .join("");
   bindBookDetailMemberRows(slug);
   bindBookDetailDrillRows();
+  renderBookDetailFooter(view, showControls);
 }
 
 function bindBookDetailDrillRows() {
