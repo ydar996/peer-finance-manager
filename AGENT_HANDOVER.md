@@ -175,6 +175,29 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Resend for notifications suppressed while member
+  email was toggled off.** New admin endpoint
+  `POST /api/notifications/resend-missed` (org-scoped,
+  `requireAdmin` + `restoreOrgContext`) with a "Resend Missed
+  Notifications" card on the Automated Messages panel
+  (`resendMissedNotificationsBtn`, `resendLoanDueDates` input).
+  Body: `{ resendImport: true | importId }` clears
+  `deposit_credit_alert_log` rows for that import's transactions
+  (suppressed sends were marked 'sent' when the portal notice posted,
+  which blocked the 72h `notify-latest` backfill; also `notify-latest`
+  only matches `append:` filenames) and re-sends deposit/loan repayment/
+  share capital alerts EMAIL-ONLY (`emailOnly` flag on
+  `notifyImportedMemberDeposits` skips `postMemberNoticeFromAutomatedEmail`
+  so no duplicate portal notices). `{ loanDueDates: ["YYYY-MM-DD"] }`
+  deletes `member_report_email_log` dedupe rows (`loan_due:%:date`) and
+  re-sends via `sendLoanDueNoticesForToday(date, { emailOnly: true })`;
+  date passed as noon UTC so `todayIso` lands correctly in any org
+  timezone. Files: `lib/deposit-credit-alert.js`, `lib/loan-due-notice.js`,
+  `server.js`, `public/index.html`, `public/app.js`. Note: annual dues
+  reminders early-return when the gate is off (no dedupe written) so
+  they self-heal; meeting/report/application notifies record dedupe on
+  skip the same way if a resend is ever needed for them.
+
 - **2026-11-24** - **Canary demo DB sanitizer scripts.**
   `peer-finance-manager/scripts/make-canary-demo.js` builds a fully
   sanitized demo Cooperative DB from a real backup:

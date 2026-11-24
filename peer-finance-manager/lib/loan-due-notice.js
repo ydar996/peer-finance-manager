@@ -354,7 +354,7 @@ function buildLoanDueNoticeEmail({ memberName, dueDate, loans, branding }) {
   });
 }
 
-async function sendLoanDueNoticesForToday(date = new Date()) {
+async function sendLoanDueNoticesForToday(date = new Date(), { emailOnly = false } = {}) {
   const { memberEmailNotificationsEnabled } = require("./member-email-gate");
   const memberEmailOn = memberEmailNotificationsEnabled();
   const dueDate = todayIso(date);
@@ -387,10 +387,12 @@ async function sendLoanDueNoticesForToday(date = new Date()) {
       branding,
     });
     const { postMemberNoticeFromAutomatedEmail } = require("./messaging-service");
-    const portal = postMemberNoticeFromAutomatedEmail({
-      memberId: recipient.memberId,
-      message,
-    });
+    const portal = emailOnly
+      ? null
+      : postMemberNoticeFromAutomatedEmail({
+          memberId: recipient.memberId,
+          message,
+        });
     const deliveryBase = {
       memberId: recipient.memberId,
       memberName: recipient.memberName,
@@ -484,6 +486,27 @@ async function sendLoanDueNoticesForToday(date = new Date()) {
   };
 }
 
+// Resend support: skipped sends still write a dedupe row, which blocks
+// retries for that due date. Remove the dedupe rows for a given date so
+// sendLoanDueNoticesForToday can re-send (emailOnly avoids duplicate
+// portal notices).
+function resetLoanDueDedupe(dateIso) {
+  const db = getDb();
+  ensureEmailAuditTables(db);
+  const iso = String(dateIso).slice(0, 10);
+  const info = db
+    .prepare(`DELETE FROM member_report_email_log WHERE dedupe_key LIKE 'loan_due:%:' || ?`)
+    .run(iso);
+  return info.changes;
+}
+
+async function resendLoanDueNoticesForDate(dateIso) {
+  const reset = resetLoanDueDedupe(dateIso);
+  // noon UTC so todayIso() lands on the requested date in any org timezone
+  const result = await sendLoanDueNoticesForToday(new Date(`${String(dateIso).slice(0, 10)}T12:00:00Z`), { emailOnly: true });
+  return { ...result, reset };
+}
+
 async function runScheduledLoanDueNoticesForAllOrganizations() {
   const { listOrganizations } = require("./organization-service");
   const { runWithOrg } = require("./org-context");
@@ -512,5 +535,7 @@ module.exports = {
   listDueLoanNotices,
   buildLoanDueNoticeEmail,
   sendLoanDueNoticesForToday,
+  resetLoanDueDedupe,
+  resendLoanDueNoticesForDate,
   runScheduledLoanDueNoticesForAllOrganizations,
 };

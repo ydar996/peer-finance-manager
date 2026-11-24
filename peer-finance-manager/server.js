@@ -1497,6 +1497,58 @@ app.post(
   }
 );
 
+// Resend notifications suppressed while member email was toggled off.
+// importId: resend deposit/loan repayment credit alerts for that bank
+// import (defaults to the latest applied import, any filename).
+// loanDueDates: re-send loan due notices for those dates (dedupe rows
+// written for skipped sends are cleared first). Email-only resend: no
+// duplicate portal notices.
+app.post(
+  "/api/notifications/resend-missed",
+  requireAdmin,
+  restoreOrgContext,
+  async (req, res) => {
+    try {
+      const out = {};
+      const wantImport = req.body?.importId !== undefined || req.body?.resendImport;
+      if (wantImport) {
+        const {
+          resendDepositsForBankImport,
+          findLatestAppliedImport,
+        } = require("./lib/deposit-credit-alert");
+        const importId = Number(req.body?.importId);
+        const target =
+          Number.isInteger(importId) && importId > 0
+            ? { id: importId }
+            : findLatestAppliedImport();
+        if (!target) {
+          out.depositAlerts = { error: "No applied bank import found." };
+        } else {
+          out.depositAlerts = await resendDepositsForBankImport(target.id);
+        }
+      }
+      const dates = Array.isArray(req.body?.loanDueDates) ? req.body.loanDueDates : [];
+      if (dates.length) {
+        const { resendLoanDueNoticesForDate } = require("./lib/loan-due-notice");
+        out.loanDueNotices = [];
+        for (const d of dates.slice(0, 14)) {
+          const iso = String(d).slice(0, 10);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) continue;
+          out.loanDueNotices.push(await resendLoanDueNoticesForDate(iso));
+        }
+      }
+      if (!Object.keys(out).length) {
+        return res.status(400).json({
+          error: "Pass importId (or resendImport:true for the latest import) and/or loanDueDates: ['YYYY-MM-DD'].",
+        });
+      }
+      res.json({ success: true, result: out });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
 app.post(
   "/api/bank-ledger/reference/sort-upload",
   requireAdmin,

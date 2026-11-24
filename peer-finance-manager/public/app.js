@@ -6733,6 +6733,49 @@ $("#memberEmailNotificationsToggle")?.addEventListener("change", async (e) => {
   }
 });
 
+$("#resendMissedNotificationsBtn")?.addEventListener("click", async (e) => {
+  const btn = e.target;
+  const status = $("#resendMissedNotificationsStatus");
+  const dates = ($("#resendLoanDueDates")?.value || "")
+    .split(",")
+    .map((d) => d.trim())
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+  btn.disabled = true;
+  if (status) {
+    status.textContent = "Resending…";
+    status.className = "status";
+  }
+  try {
+    const res = await fetch("/api/notifications/resend-missed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resendImport: true, loanDueDates: dates }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Resend failed");
+    const parts = [];
+    const da = data.result?.depositAlerts;
+    if (da) {
+      if (da.error) parts.push(`Import alerts: ${da.error}`);
+      else parts.push(`Import alerts: ${da.sent} emailed, ${da.skipped} skipped (no email on file), ${da.failed} failed`);
+    }
+    for (const ln of data.result?.loanDueNotices || []) {
+      parts.push(`Loan dues ${ln.dueDate}: ${ln.sent} emailed, ${ln.skipped} skipped, ${ln.failed} failed`);
+    }
+    if (status) {
+      status.textContent = parts.join(" | ") || "Nothing to resend.";
+      status.className = "status ok";
+    }
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message;
+      status.className = "status err";
+    }
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 async function loadAutomatedMessagesPanel() {
   const list = $("#automatedMessagesList");
   const status = $("#automatedMessagesStatus");

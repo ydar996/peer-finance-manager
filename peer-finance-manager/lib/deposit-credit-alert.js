@@ -275,7 +275,7 @@ function importAgeHours(importedAt) {
   return (Date.now() - ts) / (1000 * 60 * 60);
 }
 
-async function notifyImportedMemberDeposits(insertedRows = []) {
+async function notifyImportedMemberDeposits(insertedRows = [], { emailOnly = false } = {}) {
   const { memberEmailNotificationsEnabled } = require("./member-email-gate");
   const memberEmailOn = memberEmailNotificationsEnabled();
   const grouped = groupMemberDepositAlerts(insertedRows);
@@ -305,7 +305,9 @@ async function notifyImportedMemberDeposits(insertedRows = []) {
       branding,
     });
     const { postMemberNoticeFromAutomatedEmail } = require("./messaging-service");
-    const portal = postMemberNoticeFromAutomatedEmail({ memberId, message });
+    const portal = emailOnly
+      ? null
+      : postMemberNoticeFromAutomatedEmail({ memberId, message });
     const portalNote = portal?.created
       ? "portal"
       : portal?.reason === "no_portal_login"
@@ -433,6 +435,45 @@ async function notifyDepositsForBankImport(importId) {
   return { ...result, importId: Number(importId) || null };
 }
 
+function findLatestAppliedImport() {
+  const db = getDb();
+  return (
+    db
+      .prepare(
+        `SELECT id, filename, imported_at AS importedAt, status
+         FROM bank_imports
+         WHERE status = 'applied'
+         ORDER BY id DESC
+         LIMIT 1`
+      )
+      .get() || null
+  );
+}
+
+// Resend path for alerts suppressed while member email was toggled off:
+// transactions were logged 'sent' (portal-only) so the normal dedupe
+// skips them. Reset the log rows for this import, then email only -
+// no duplicate portal notices.
+function resetAlertsForImport(importId) {
+  const rows = listDepositsForBankImport(importId);
+  const ids = rows.map((r) => r.transactionId);
+  if (!ids.length) return 0;
+  const db = getDb();
+  ensureDepositAlertLog(db);
+  const placeholders = ids.map(() => "?").join(", ");
+  const info = db
+    .prepare(`DELETE FROM deposit_credit_alert_log WHERE transaction_id IN (${placeholders})`)
+    .run(...ids);
+  return info.changes;
+}
+
+async function resendDepositsForBankImport(importId) {
+  const rows = listDepositsForBankImport(importId);
+  const reset = resetAlertsForImport(importId);
+  const result = await notifyImportedMemberDeposits(rows, { emailOnly: true });
+  return { ...result, importId: Number(importId) || null, reset };
+}
+
 async function notifyLatestImportedDeposits({ maxAgeHours = DEFAULT_BACKFILL_HOURS } = {}) {
   const latest = findLatestAppendImport();
   if (!latest) {
@@ -489,5 +530,8 @@ module.exports = {
   notifyImportedMemberDeposits,
   notifyDepositsForBankImport,
   notifyLatestImportedDeposits,
+  resendDepositsForBankImport,
+  resetAlertsForImport,
   findLatestAppendImport,
+  findLatestAppliedImport,
 };
