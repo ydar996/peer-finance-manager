@@ -29,12 +29,13 @@ function sumDepositsBetween(startDate, endDate) {
   const db = getDb();
   const row = db
     .prepare(
-      `SELECT COALESCE(SUM(amount), 0) AS total
-       FROM transactions
-       WHERE type = ?
-         AND amount > 0
-         AND transaction_date >= ?
-         AND transaction_date <= ?`
+      `SELECT COALESCE(SUM(t.amount), 0) AS total
+       FROM transactions t
+       JOIN members m ON m.id = t.member_id
+       WHERE t.type = ?
+         AND t.amount > 0
+         AND t.transaction_date >= ?
+         AND t.transaction_date <= ?`
     )
     .get(TRANSACTION_TYPES.DEPOSIT, startDate, endDate);
   return round2(row.total || 0);

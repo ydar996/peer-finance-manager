@@ -175,6 +175,20 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Coherence audit: every detail column foots to its
+  total.** Ran a column-vs-footer check across all 23 book detail views on
+  the Twilight DB and fixed the three that could not foot: (1) Investments
+  rows now display signed "position contribution" (placements positive,
+  returns in parentheses) so the column sums exactly to Net Position —
+  previously all rows showed ABS while the footer was net. (2) Bank Ledger
+  Rows no longer lists `membership_fee` legs — they are member-account
+  entries (visible/editable on member profiles), not bank cash — so the
+  displayed column sums to the Combined Bank Ledger Balance. (3)
+  `sumDepositsBetween` (Deposits This Month/YTD cards) now joins `members`
+  like the detail does, so non-member `deposit`-typed rows can no longer
+  inflate the card above its own detail. All views verified footing to
+  footer; net-income's mid-table "Total Income" subtotal is a presentation
+  row (not an addend) and is the only non-footing row by design.
 - **2026-11-24** - **Net Income detail reads as an income statement; flat
   views no longer drop fields.** `openBookDetail` built the table view as
   `{columns, rows, emptyMessage}` only, silently discarding `footer` (the

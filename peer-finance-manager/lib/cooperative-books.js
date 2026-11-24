@@ -1457,19 +1457,27 @@ function getBookDetail(slug) {
         { key: "account", label: "Account" },
         { key: "description", label: "Description" },
       ],
-      rows: rows.map((row) => ({
-        date: row.transaction_date,
-        amount: Math.abs(row.amount),
-        account: row.accountName || "",
-        description: row.description || "",
-        memberId: row.member_id || null,
-        controlsTx: {
-          type: "investment",
-          transaction_date: row.transaction_date,
-          amount: row.amount,
+      rows: rows.map((row) => {
+        // Display "position contribution" so the column foots to Net Position:
+        // money placed is positive, money returned renders in parentheses.
+        const contribution =
+          row.source === "bank_import" || row.investment_account_id != null
+            ? -row.amount
+            : Math.abs(row.amount);
+        return {
+          date: row.transaction_date,
+          amount: contribution,
+          account: row.accountName || "",
           description: row.description || "",
-        },
-      })),
+          memberId: row.member_id || null,
+          controlsTx: {
+            type: "investment",
+            transaction_date: row.transaction_date,
+            amount: row.amount,
+            description: row.description || "",
+          },
+        };
+      }),
       footer: { account: "Net Position", amount: netPosition },
     };
   }
@@ -1482,10 +1490,10 @@ function getBookDetail(slug) {
     } = require("./cooperative-bank-ledger-csv");
     const { ensureBankAccountSchema } = require("./bank-account-service");
     ensureBankAccountSchema(db);
-    const rows = loadLedgerRowsFromDb(db, [
-      ...LEDGER_TYPES,
-      TRANSACTION_TYPES.MEMBERSHIP_FEE,
-    ]);
+    // Bank-ledger rows only: membership_fee legs are member-account entries
+    // (editable on member profiles), not bank cash, so they stay out of the
+    // bank ledger view and its Net Total.
+    const rows = loadLedgerRowsFromDb(db, LEDGER_TYPES);
     const accountLabel = (id) =>
       id == null
         ? (db.prepare(`SELECT account_label FROM bank_accounts WHERE is_primary = 1`).get()
@@ -1524,11 +1532,8 @@ function getBookDetail(slug) {
       })),
       footer: {
         type: "Net Total",
-        amount: moneySum(
-          rows.filter((row) => row.type !== TRANSACTION_TYPES.MEMBERSHIP_FEE),
-          "amount"
-        ),
-        description: "Combined bank ledger balance (member fee legs excluded)",
+        amount: moneySum(rows, "amount"),
+        description: "Combined bank ledger balance",
       },
     };
   }
