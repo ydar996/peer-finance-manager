@@ -195,7 +195,16 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
   were stored against the raw description; `bankTxLedgerKey` now keys on the
   stored description (`originalDescription`) carried through the stream, and
   emitted reclassify legs preserve the parent's cash-direction sign instead
-  of storing absolute values (a reclassified debit stays a debit).
+  of storing absolute values (a reclassified debit stays a debit). A fourth
+  related fix: the rebuild stream carried export-normalized descriptions, so
+  rows were permanently re-written on every rebuild (`ACCOUNT TRANSFERS MOB:`
+  prefixes stripped, expense categories re-derived). The stream now carries
+  stored descriptions verbatim, expense inserts honor an existing
+  "Category: " prefix instead of re-deriving it, and adjustment keys stay
+  stable across rebuilds. Verified end-to-end on a copy of the live
+  Twilight backup: all seven corrections produce the workbook-exact figures
+  (contributions 3,900,608; fees 6,850,068; other income 40,782.38; share
+  capital 38,326,843; expenses 2,639,568.24; investments 44,301,035.31).
 - **2026-11-24** - **Cooperative Investments card now shows net positions, not
   turnover.** The card previously summed `ABS(amount)` over every `investment`
   row, so FD rollovers were counted on each cycle and internal transfers between

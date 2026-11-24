@@ -96,8 +96,16 @@ function insertBankLedgerTransaction({
 
   if (type === TRANSACTION_TYPES.EXPENSE) {
     const amount = Math.abs(tx.amount);
-    const category = expenseCategory(tx.description);
-    insertExpense.run(tx.description, amount, tx.date, category);
+    // Rows arriving from a prior rebuild already carry a "Category: " prefix;
+    // honor it instead of re-categorizing or double-prefixing.
+    const prefixMatch = /^([A-Za-z /]+): /.exec(tx.description || "");
+    const category = prefixMatch
+      ? prefixMatch[1].trim()
+      : expenseCategory(tx.description);
+    const rawDesc = prefixMatch
+      ? tx.description.slice(prefixMatch[0].length)
+      : tx.description;
+    insertExpense.run(rawDesc, amount, tx.date, category);
     insertTx.run(
       null,
       type,
@@ -105,7 +113,7 @@ function insertBankLedgerTransaction({
       tx.date,
       year || null,
       month || null,
-      `${category}: ${tx.description}`,
+      `${category}: ${rawDesc}`,
       reference,
       importId,
       tx.bankAccountId ?? null,

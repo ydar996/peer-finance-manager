@@ -141,7 +141,11 @@ function loadBankTransactionsFromDb(db = getDb()) {
   return rows.map((row) => ({
     date: row.transaction_date,
     amount: Number(row.amount),
-    description: descriptionForCsvExport(row),
+    // Carry the stored description verbatim: rebuilds must round-trip rows
+    // without rewriting text, or adjustment keys (which are computed from the
+    // stored description) and narrations like "ACCOUNT TRANSFERS MOB: ..."
+    // would be permanently mangled by the export prefix strip.
+    description: row.description || "",
     originalDescription: row.description || "",
     ledgerType: row.type,
     member: row.member_name || null,
