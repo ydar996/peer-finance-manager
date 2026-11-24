@@ -1662,3 +1662,7 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
   top-level label (not only via the auto-classify sweep). Success copy
   confirms the parent; the parent selector repopulates whenever the label
   catalog changes.
+- **2026-11-23** - **"Wages and Salaries" default expense label.** Added to
+  EXPENSE_CATEGORIES so it seeds as a top-level report label in every
+  Cooperative (salary rows can sit under it; PAYE/bonus can be
+  subcategories).

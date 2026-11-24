@@ -19,6 +19,7 @@ const EXPENSE_CATEGORIES = [
   "Meeting/Event",
   "Professional Services",
   "Insurance",
+  "Wages and Salaries",
   "Other",
 ];
 
