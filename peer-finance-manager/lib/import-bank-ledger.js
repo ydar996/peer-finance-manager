@@ -107,7 +107,9 @@ function insertBankLedgerTransaction({
       month || null,
       `${category}: ${tx.description}`,
       reference,
-      importId
+      importId,
+      tx.bankAccountId ?? null,
+      tx.investmentAccountId ?? null
     );
     counts.expenses += 1;
     return true;
@@ -129,7 +131,9 @@ function insertBankLedgerTransaction({
       month || null,
       tx.description,
       reference,
-      importId
+      importId,
+      tx.bankAccountId ?? null,
+      tx.investmentAccountId ?? null
     );
     if (type === TRANSACTION_TYPES.CD_PURCHASE) counts.cdPurchases += 1;
     if (type === TRANSACTION_TYPES.CD_LIQUIDATION) counts.cdLiquidations += 1;
@@ -152,7 +156,9 @@ function insertBankLedgerTransaction({
         month || null,
         tx.description,
         reference,
-        importId
+        importId,
+        tx.bankAccountId ?? null,
+        tx.investmentAccountId ?? null
       );
       counts.deposits += 1;
       counts.unassignedDeposits = (counts.unassignedDeposits || 0) + 1;
@@ -181,7 +187,9 @@ function insertBankLedgerTransaction({
     month || null,
     tx.description,
     reference,
-    importId
+    importId,
+    tx.bankAccountId ?? null,
+    tx.investmentAccountId ?? null
   );
   if (type === TRANSACTION_TYPES.LOAN_DISBURSEMENT) {
     try {
@@ -211,6 +219,7 @@ function importBankLedgerCore({
   cdBalance,
   replaceSpreadsheetDeposits = true,
   captureReconcileAnchor = true,
+  deleteScope = "primary",
 }) {
   const db = getDb();
   ensureSettingsTable(db);
@@ -223,8 +232,8 @@ function importBankLedgerCore({
   const insertTx = db.prepare(
     `INSERT INTO transactions
       (member_id, type, amount, transaction_date, period_year, period_month,
-       description, reference, bank_import_id, source)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'bank_import')`
+       description, reference, bank_import_id, source, bank_account_id, investment_account_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'bank_import', ?, ?)`
   );
   const insertExpense = db.prepare(
     `INSERT INTO expenses (description, amount, expense_date, category)
@@ -257,16 +266,18 @@ function importBankLedgerCore({
     // Full refresh rebuilds the primary account's ledger. Bank-imported rows
     // on other accounts (e.g. appended share-capital/savings ledgers) are
     // out of scope and must survive; rows with no account id are primary.
+    // The adjustment-rebuild stream already carries every account's rows, so
+    // it must clear them all or each rebuild would duplicate non-primary rows.
     const primaryAccountId =
       db.prepare(`SELECT id FROM bank_accounts WHERE is_primary = 1`).get()?.id ?? null;
-    if (primaryAccountId != null) {
+    if (deleteScope === "all" || primaryAccountId == null) {
+      db.prepare(`DELETE FROM transactions WHERE source = 'bank_import'`).run();
+    } else {
       db.prepare(
         `DELETE FROM transactions
          WHERE source = 'bank_import'
            AND (bank_account_id IS NULL OR bank_account_id = ?)`
       ).run(primaryAccountId);
-    } else {
-      db.prepare(`DELETE FROM transactions WHERE source = 'bank_import'`).run();
     }
     const manualPlaceholders = LEDGER_TYPES.map(() => "?").join(", ");
     db.prepare(
@@ -497,6 +508,7 @@ function importBankLedgerFromTransactions({
     cdBalance,
     replaceSpreadsheetDeposits,
     captureReconcileAnchor,
+    deleteScope: "all",
   });
 }
 

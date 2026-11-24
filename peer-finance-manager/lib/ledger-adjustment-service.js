@@ -63,7 +63,15 @@ function ensureLedgerAdjustmentSchema(database) {
 }
 
 function bankTxLedgerKey(tx) {
-  return ledgerTransactionKey(tx.date, tx.amount, tx.description);
+  // Adjustment keys are saved with the row's stored description (what the UI
+  // sees), while the rebuild stream carries the export-normalized description
+  // (expense "Category: " prefixes stripped). Key on the stored form so
+  // adjustments match the rows the user acted on.
+  return ledgerTransactionKey(
+    tx.date || tx.transaction_date,
+    tx.amount,
+    tx.originalDescription || tx.description
+  );
 }
 
 function dbTxLedgerKey(tx) {
@@ -161,11 +169,15 @@ function applyAdjustmentsToBankTransactions(bankTxs) {
 // member account nets to zero while the fee counts as cooperative income.
 function expandAdjustmentLine(tx, { ledgerType, member, amount, note, adjustmentKey, splitLineOrder }) {
   const productRef = `${ADJUSTMENT_PRODUCT_REF_PREFIX}${adjustmentKey}`;
+  // Line amounts are stored as magnitudes; legs keep the parent's cash
+  // direction (a reclassified debit stays a debit for sign-sensitive types
+  // like investment, where placements are negative and returns positive).
+  const signedAmount = Math.sign(Number(tx.amount) || 1) * Math.abs(Number(amount) || 0);
   if (ledgerType !== "membership_fee") {
     return [
       {
         ...tx,
-        amount,
+        amount: signedAmount,
         ledgerType,
         member,
         description: note ? `${tx.description} (${note})` : tx.description,

@@ -124,6 +124,8 @@ function loadLedgerRowsFromDb(db, types = LEDGER_TYPES) {
               t.source,
               t.reference,
               t.bank_account_id,
+              t.member_id,
+              t.investment_account_id,
               m.name AS member_name
        FROM transactions t
        LEFT JOIN members m ON m.id = t.member_id
@@ -140,10 +142,14 @@ function loadBankTransactionsFromDb(db = getDb()) {
     date: row.transaction_date,
     amount: Number(row.amount),
     description: descriptionForCsvExport(row),
+    originalDescription: row.description || "",
     ledgerType: row.type,
     member: row.member_name || null,
     source: row.source || "bank_import",
     reference: row.reference || "",
+    bankAccountId: row.bank_account_id ?? null,
+    investmentAccountId: row.investment_account_id ?? null,
+    memberId: row.member_id ?? null,
   }));
 }
 

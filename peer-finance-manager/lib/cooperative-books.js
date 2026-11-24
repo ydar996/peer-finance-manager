@@ -490,6 +490,7 @@ const BOOK_DETAIL_SLUGS = {
   "total-income": "Total Cooperative Income",
   "net-income": "Cooperative Net Income",
   investments: "Cooperative Investments",
+  "bank-ledger": "Bank Ledger",
   "members-profiles": "Active Members/Profiles",
 };
 
@@ -724,6 +725,7 @@ function getBookDetail(slug) {
       slug,
       title,
       navigateTab: null,
+      hasControls: true,
       summary: rows.reduce((sum, row) => sum + row.amount, 0),
       columns: [
         { key: "date", label: "Date", format: "date" },
@@ -737,6 +739,12 @@ function getBookDetail(slug) {
         amount: row.amount,
         description: row.description || "",
         memberId: row.member_id,
+        controlsTx: {
+          type: "other_income",
+          transaction_date: row.transaction_date,
+          amount: row.amount,
+          description: row.description || "",
+        },
       })),
     };
   }
@@ -1291,7 +1299,7 @@ function getBookDetail(slug) {
       pruneAutoCreatedAccounts(db);
       rows = db
         .prepare(
-          `SELECT t.transaction_date, t.amount, t.description,
+          `SELECT t.transaction_date, t.amount, t.description, t.member_id,
                   COALESCE(ia.name, ba.account_label) AS accountName
            FROM transactions t
            LEFT JOIN investment_accounts ia ON ia.id = t.investment_account_id
@@ -1307,7 +1315,7 @@ function getBookDetail(slug) {
     } catch (_) {
       rows = db
         .prepare(
-          `SELECT transaction_date, amount, description, NULL AS accountName
+          `SELECT transaction_date, amount, description, member_id, NULL AS accountName
            FROM transactions WHERE type = 'investment'
            ORDER BY transaction_date`
         )
@@ -1317,6 +1325,7 @@ function getBookDetail(slug) {
       slug,
       title,
       navigateTab: null,
+      hasControls: true,
       summary: rows.reduce((sum, row) => sum + Math.abs(row.amount), 0),
       columns: [
         { key: "date", label: "Date", format: "date" },
@@ -1329,6 +1338,64 @@ function getBookDetail(slug) {
         amount: Math.abs(row.amount),
         account: row.accountName || "",
         description: row.description || "",
+        memberId: row.member_id || null,
+        controlsTx: {
+          type: "investment",
+          transaction_date: row.transaction_date,
+          amount: row.amount,
+          description: row.description || "",
+        },
+      })),
+    };
+  }
+
+  if (slug === "bank-ledger") {
+    const {
+      LEDGER_TYPES,
+      TYPE_TO_NARRATIVE,
+      loadLedgerRowsFromDb,
+    } = require("./cooperative-bank-ledger-csv");
+    const { ensureBankAccountSchema } = require("./bank-account-service");
+    ensureBankAccountSchema(db);
+    const rows = loadLedgerRowsFromDb(db, [
+      ...LEDGER_TYPES,
+      TRANSACTION_TYPES.MEMBERSHIP_FEE,
+    ]);
+    const accountLabel = (id) =>
+      id == null
+        ? (db.prepare(`SELECT account_label FROM bank_accounts WHERE is_primary = 1`).get()
+            ?.account_label || "")
+        : (db.prepare(`SELECT account_label FROM bank_accounts WHERE id = ?`).get(id)
+            ?.account_label || "");
+    return {
+      slug,
+      title,
+      navigateTab: null,
+      hasControls: true,
+      summary: null,
+      summaryText: `${rows.length} bank ledger rows. Admins can reclassify or split any row; the ledger rebuilds after each change.`,
+      columns: [
+        { key: "date", label: "Date", format: "date" },
+        { key: "type", label: "Type" },
+        { key: "amount", label: "Amount", format: "money" },
+        { key: "member", label: "Member" },
+        { key: "account", label: "Account" },
+        { key: "description", label: "Description" },
+      ],
+      rows: rows.map((row) => ({
+        date: row.transaction_date,
+        type: TYPE_TO_NARRATIVE[row.type] || row.type,
+        amount: row.amount,
+        member: row.member_name || "",
+        account: accountLabel(row.bank_account_id),
+        description: row.description || "",
+        memberId: row.member_id || null,
+        controlsTx: {
+          type: row.type,
+          transaction_date: row.transaction_date,
+          amount: row.amount,
+          description: row.description || "",
+        },
       })),
     };
   }
@@ -1336,15 +1403,23 @@ function getBookDetail(slug) {
   if (slug === "expenses") {
     const rows = db
       .prepare(
-        `SELECT expense_date, category, description, amount
-         FROM expenses
-         ORDER BY expense_date DESC, id DESC`
+        `SELECT e.expense_date, e.category, e.description, e.amount,
+                t.transaction_date AS tx_date, t.amount AS tx_amount,
+                t.description AS tx_description, t.member_id AS tx_member_id
+         FROM expenses e
+         LEFT JOIN transactions t
+           ON t.type = 'expense'
+          AND t.transaction_date = e.expense_date
+          AND ABS(t.amount) = e.amount
+          AND t.description = e.category || ': ' || e.description
+         ORDER BY e.expense_date DESC, e.id DESC`
       )
       .all();
     return {
       slug,
       title,
       navigateTab: "record",
+      hasControls: true,
       summary: rows.reduce((sum, row) => sum + row.amount, 0),
       columns: [
         { key: "date", label: "Date", format: "date" },
@@ -1357,6 +1432,15 @@ function getBookDetail(slug) {
         category: row.category,
         description: row.description,
         amount: row.amount,
+        memberId: row.tx_member_id || null,
+        controlsTx: row.tx_date
+          ? {
+              type: "expense",
+              transaction_date: row.tx_date,
+              amount: row.tx_amount,
+              description: row.tx_description || "",
+            }
+          : null,
       })),
     };
   }

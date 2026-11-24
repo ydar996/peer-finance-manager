@@ -1934,7 +1934,8 @@ function renderBookDetailTable(view, slug) {
   const body = $("#booksDetailBody");
   if (!head || !body) return;
 
-  head.innerHTML = `<tr>${view.columns.map((col) => `<th>${escapeHtml(col.label)}</th>`).join("")}</tr>`;
+  const showControls = Boolean(view.hasControls) && adminCanEditLedgerRows();
+  head.innerHTML = `<tr>${view.columns.map((col) => `<th>${escapeHtml(col.label)}</th>`).join("")}${showControls ? "<th>Category</th>" : ""}</tr>`;
 
   if (!view.rows.length) {
     body.innerHTML = `<tr><td colspan="${view.columns.length}">${escapeHtml(view.emptyMessage || "No Records")}</td></tr>`;
@@ -2002,7 +2003,12 @@ function renderBookDetailTable(view, slug) {
           return `<td${cls}>${formatDetailCell(row[col.key], format)}</td>`;
         })
         .join("");
-      return `<tr${memberAttr}>${cells}</tr>`;
+      const controlsCell = showControls
+        ? row.controlsTx
+          ? ledgerTxControlCellHtml(row.controlsTx, row.memberId)
+          : '<td class="subtle">:</td>'
+        : "";
+      return `<tr${memberAttr}>${cells}${controlsCell}</tr>`;
     })
     .join("");
   bindBookDetailMemberRows(slug);
@@ -2049,9 +2055,10 @@ function renderBookDetail(detail, slug) {
   activeBookDetailSlug = slug;
 
   const summaryLine =
-    typeof detail.summary === "number"
+    detail.summaryText ||
+    (typeof detail.summary === "number"
       ? `Total: ${fmt.format(detail.summary)}`
-      : `Count: ${detail.summary}`;
+      : `Count: ${detail.summary}`);
   $("#booksDetailSummary").textContent = summaryLine;
 
   const tabLink = $("#booksDetailTabLink");
@@ -4703,6 +4710,9 @@ $("#goRegisterMemberBtn")?.addEventListener("click", () => {
   openRecordSection("recordSectionRegisterMember");
 });
 $("#refreshBooks")?.addEventListener("click", loadBooks);
+$("#openBankLedgerBtn")?.addEventListener("click", () => {
+  void openBookDetail("bank-ledger");
+});
 
 function collapseMonthlyStatusReportSettings() {
   const panel = $("#monthlyStatusReportSettingsPanel");

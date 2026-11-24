@@ -175,6 +175,27 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Bank Ledger Rows view + three latent adjustment-rebuild
+  bugs fixed.** New **Bank Ledger Rows** button on Cooperative Books opens a
+  full ledger of every bank transaction (member and non-member rows) with
+  Category reclassify and Split controls, so non-member rows (e.g. the
+  Sterling credits, the ₦2.5M UBA NOM placement) are editable for the first
+  time; member rows were already editable on member profiles. Category
+  controls also added to the Cooperative Investments, Cooperative Expenses,
+  and Other Cooperative Income detail views. Bugs found by replaying a
+  reclassify on the live Twilight backup: (1) the rebuild deleted only
+  primary-account rows while reloading all accounts' rows, so every
+  reclassify/split would have duplicated every Share Capital, Savings, and
+  Fixed Deposit row; rebuild now clears all `bank_import` rows via
+  `deleteScope: 'all'` while statement imports keep the primary-only delete.
+  (2) The rebuild stream dropped `bank_account_id`, `investment_account_id`,
+  and `member_id`; reinserted rows now preserve account attribution and
+  curated investment-account links. (3) Expense reclassifies never matched
+  because the stream strips the "Category: " description prefix while keys
+  were stored against the raw description; `bankTxLedgerKey` now keys on the
+  stored description (`originalDescription`) carried through the stream, and
+  emitted reclassify legs preserve the parent's cash-direction sign instead
+  of storing absolute values (a reclassified debit stays a debit).
 - **2026-11-24** - **Cooperative Investments card now shows net positions, not
   turnover.** The card previously summed `ABS(amount)` over every `investment`
   row, so FD rollovers were counted on each cycle and internal transfers between
