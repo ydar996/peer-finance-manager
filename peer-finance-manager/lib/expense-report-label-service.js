@@ -9,6 +9,12 @@ function ensureExpenseReportLabelSchema(db) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+  const labelColumns = db.prepare(`PRAGMA table_info(expense_report_labels)`).all();
+  if (!labelColumns.some((column) => column.name === "parent_id")) {
+    db.exec(
+      `ALTER TABLE expense_report_labels ADD COLUMN parent_id INTEGER REFERENCES expense_report_labels(id)`
+    );
+  }
   const columns = db.prepare(`PRAGMA table_info(expenses)`).all();
   if (!columns.some((column) => column.name === "report_label_id")) {
     db.exec(
@@ -37,22 +43,51 @@ function listExpenseReportLabels() {
   const db = getDb();
   ensureExpenseReportLabelSchema(db);
   return db
-    .prepare(`SELECT id, label FROM expense_report_labels ORDER BY label COLLATE NOCASE ASC`)
+    .prepare(
+      `SELECT l.id, l.label, l.parent_id, p.label AS parent_label
+       FROM expense_report_labels l
+       LEFT JOIN expense_report_labels p ON p.id = l.parent_id
+       ORDER BY COALESCE(p.label, l.label) COLLATE NOCASE ASC,
+                l.parent_id IS NOT NULL ASC,
+                l.label COLLATE NOCASE ASC`
+    )
     .all()
-    .map((row) => ({ id: row.id, label: row.label }));
+    .map((row) => ({
+      id: row.id,
+      label: row.label,
+      parentId: row.parent_id ?? null,
+      parentLabel: row.parent_label || null,
+    }));
 }
 
-function findOrCreateExpenseReportLabel(labelText) {
+function findOrCreateExpenseReportLabel(labelText, parentId = null) {
   const label = normalizeLabelText(labelText);
   if (!label) throw new Error("Report label is required");
   const db = getDb();
   ensureExpenseReportLabelSchema(db);
+  let parent = null;
+  if (parentId != null && parentId !== "") {
+    parent = db
+      .prepare(`SELECT id, label FROM expense_report_labels WHERE id = ?`)
+      .get(Number(parentId));
+    if (!parent) throw new Error("Parent report label not found");
+  }
   const existing = db
-    .prepare(`SELECT id, label FROM expense_report_labels WHERE label = ? COLLATE NOCASE`)
+    .prepare(`SELECT id, label, parent_id FROM expense_report_labels WHERE label = ? COLLATE NOCASE`)
     .get(label);
-  if (existing) return { id: existing.id, label: existing.label };
-  const result = db.prepare(`INSERT INTO expense_report_labels (label) VALUES (?)`).run(label);
-  return { id: Number(result.lastInsertRowid), label };
+  if (existing) {
+    if (parent && existing.parent_id == null) {
+      db.prepare(`UPDATE expense_report_labels SET parent_id = ? WHERE id = ?`).run(
+        parent.id,
+        existing.id
+      );
+    }
+    return { id: existing.id, label: existing.label, parentId: parent?.id ?? existing.parent_id ?? null };
+  }
+  const result = db
+    .prepare(`INSERT INTO expense_report_labels (label, parent_id) VALUES (?, ?)`)
+    .run(label, parent?.id ?? null);
+  return { id: Number(result.lastInsertRowid), label, parentId: parent?.id ?? null };
 }
 
 function effectiveReportLabel(line) {
@@ -70,9 +105,10 @@ function listExpenseReportLines() {
   const rows = db
     .prepare(
       `SELECT e.id, e.description, e.amount, e.expense_date, e.category, e.report_label_id,
-              l.label AS report_label
+              l.label AS report_label, pl.label AS parent_label
        FROM expenses e
        LEFT JOIN expense_report_labels l ON l.id = e.report_label_id
+       LEFT JOIN expense_report_labels pl ON pl.id = l.parent_id
        ORDER BY e.expense_date ASC, e.id ASC`
     )
     .all();
@@ -92,7 +128,9 @@ function listExpenseReportLines() {
       category,
       reportLabelId,
       reportLabel,
-      effectiveLabel: reportLabel || normalizeLabelText(category) || null,
+      // Child labels (e.g. "Stamp Duty" under "Bank Fees") roll up to their
+      // parent for consolidated report totals.
+      effectiveLabel: row.parent_label || reportLabel || normalizeLabelText(category) || null,
     };
   });
 }

@@ -4810,7 +4810,8 @@ function expenseReportLabelOptionsHtml(selectedId) {
   const options = ['<option value="">Select Label…</option>'];
   for (const entry of expenseReportLabelCatalog) {
     const selected = Number(selectedId) === Number(entry.id) ? " selected" : "";
-    options.push(`<option value="${entry.id}"${selected}>${escapeHtml(entry.label)}</option>`);
+    const display = entry.parentLabel ? `${entry.parentLabel}: ${entry.label}` : entry.label;
+    options.push(`<option value="${entry.id}"${selected}>${escapeHtml(display)}</option>`);
   }
   options.push('<option value="__other__">Add New Label…</option>');
   return options.join("");
@@ -4832,6 +4833,24 @@ function expenseNarrationSignature(description) {
     if (parts.join(" ").length >= 24) break;
   }
   return parts.join(" ");
+}
+
+// Subcategory name from a narration signature: "STAMP DUTY" -> "Stamp Duty",
+// "WITHHOLDING TAX FROM CORPORATE" -> "Withholding Tax". Connector words and
+// single letters end the name; short acronyms (VAT, SMS, WHT) stay uppercase.
+const EXPENSE_SUBCATEGORY_STOP_WORDS = new Set([
+  "FROM", "TO", "FOR", "OF", "AND", "THE", "AT", "IN", "ON", "BY", "A", "AN",
+]);
+const EXPENSE_SUBCATEGORY_ACRONYMS = new Set([
+  "VAT", "SMS", "WHT", "PAYE", "NIP", "USSD", "FSDH", "NIBSS", "ATM", "POS",
+]);
+function expenseSubcategoryNameFromSignature(signature) {
+  const words = [];
+  for (const token of String(signature || "").trim().split(/\s+/)) {
+    if (!token || EXPENSE_SUBCATEGORY_STOP_WORDS.has(token) || token.length === 1 || words.length >= 4) break;
+    words.push(EXPENSE_SUBCATEGORY_ACRONYMS.has(token) ? token : token[0] + token.slice(1).toLowerCase());
+  }
+  return words.join(" ");
 }
 
 // When the administrator relabels one expense, offer to apply the same label
@@ -4871,12 +4890,63 @@ async function maybeAutoClassifySimilarExpenses(changedSelect) {
     }
   );
   if (!apply) return;
+
+  // Offer a subcategory named after the narration kind (e.g. "Stamp Duty"
+  // under "Bank Fees") so the group keeps one consolidated parent total.
+  const selectedEntry = (expenseReportLabelCatalog || []).find(
+    (entry) => String(entry.id) === String(changedSelect.value)
+  );
+  let targetLabelId = changedSelect.value;
+  let subcategoryNote = "";
+  if (selectedEntry && !selectedEntry.parentId) {
+    const subName = expenseSubcategoryNameFromSignature(signature);
+    if (subName && subName.toLowerCase() !== selectedEntry.label.toLowerCase()) {
+      const useSub = await appConfirm(
+        `Tag ${candidates.length + 1} "${signature}" expense${candidates.length === 0 ? "" : "s"} as "${subName}" under "${selectedEntry.label}"? Subcategories still roll up to the ${selectedEntry.label} total on the report.`,
+        {
+          title: "Add Subcategory",
+          confirmLabel: `Use ${subName}`,
+          cancelLabel: `Keep ${selectedEntry.label}`,
+        }
+      );
+      if (useSub) {
+        try {
+          const created = await createExpenseReportLabel(subName, selectedEntry.id);
+          if (created?.id) {
+            targetLabelId = String(created.id);
+            subcategoryNote = ` Subcategory "${subName}" applied under ${selectedEntry.label}.`;
+          }
+        } catch (_) {
+          /* subcategory creation is best-effort; main label still applies */
+        }
+      }
+    }
+  }
+
   for (const select of candidates) {
-    select.value = changedSelect.value;
+    select.value = targetLabelId;
+  }
+  if (targetLabelId !== changedSelect.value) {
+    // The new subcategory option does not exist in the rendered selects yet:
+    // re-render the table preserving every current selection.
+    const selections = collectExpenseReportLabelSelections();
+    selections.set(changedId, targetLabelId);
+    for (const select of candidates) {
+      selections.set(Number(select.dataset.expenseId), targetLabelId);
+    }
+    const nextLines = (expenseReportLabelLinesCache || []).map((line) => ({
+      ...line,
+      reportLabelId: selections.has(Number(line.id))
+        ? selections.get(Number(line.id)) || null
+        : line.reportLabelId,
+    }));
+    renderExpenseReportLabelsTable(nextLines, selections);
+  } else {
+    changedSelect.value = targetLabelId;
   }
   const statusEl = $("#expenseReportLabelsStatus");
   if (statusEl) {
-    statusEl.textContent = `Applied "${labelText}" to ${candidates.length} similar row${candidates.length === 1 ? "" : "s"}. Save Expense Labels to keep the change.`;
+    statusEl.textContent = `Applied "${labelText}" to ${candidates.length} similar row${candidates.length === 1 ? "" : "s"}.${subcategoryNote} Save Expense Labels to keep the change.`;
     statusEl.className = "status ok";
   }
 }
@@ -4990,11 +5060,11 @@ function renderExpenseReportLabelsTable(lines, preferredSelections = null) {
   });
 }
 
-async function createExpenseReportLabel(labelText) {
+async function createExpenseReportLabel(labelText, parentId = null) {
   const res = await fetch("/api/books/expense-report-labels", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ label: labelText }),
+    body: JSON.stringify({ label: labelText, parentId }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to add report label");

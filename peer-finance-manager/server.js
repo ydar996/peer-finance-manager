@@ -1896,7 +1896,7 @@ app.post("/api/books/expense-report-labels", requireAdmin, (req, res) => {
       findOrCreateExpenseReportLabel,
       listExpenseReportLabels,
     } = require("./lib/expense-report-label-service");
-    const label = findOrCreateExpenseReportLabel(req.body?.label);
+    const label = findOrCreateExpenseReportLabel(req.body?.label, req.body?.parentId ?? null);
     res.json({ success: true, label, labels: listExpenseReportLabels() });
   } catch (err) {
     res.status(400).json({ error: err.message });

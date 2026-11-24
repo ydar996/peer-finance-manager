@@ -1647,3 +1647,12 @@ Documented in `.cursor/rules/ui-copy-standards.mdc`. Apply to all new or edited 
   Expenses") asks before sweeping: Apply to N Rows or Only This Row.
   Unlabeled rows are included; rows already on the same label are skipped.
   Change applies on Save Expense Labels as before.
+- **2026-11-23** - **Expense report label subcategories.** Labels now
+  support a parent (e.g. Stamp Duty, Commission, VAT, SMS Charges,
+  Withholding Tax under Bank Fees). expense_report_labels gains parent_id
+  (idempotent migration); children roll up to the parent total in the
+  status report, and dropdowns show "Parent: Child". After the
+  autoclassify sweep popup approves, a second popup offers to tag the
+  swept rows with a subcategory named from the narration signature
+  (STAMP DUTY -> Stamp Duty), created under the chosen label. Opt-in:
+  choosing Keep leaves rows on the parent label.
