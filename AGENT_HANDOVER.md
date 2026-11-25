@@ -175,6 +175,21 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Demo bank statement generator**
+  (scripts/make-demo-statement.js). Reads the canary DB for the
+  primary bank account, member names, and the reconcile anchor, then
+  writes a UBA-style xlsx (summary block + Tran Date/Value
+  Date/Narration/Debit/Credit/Balance) whose rows all parse cleanly:
+  deposit narrations carry real member names, debits hit the expense
+  keywords, opening balance = stored anchor so ending balance
+  reconciles exactly. Verified end-to-end against
+  parseStatementFileWithFormat + validateParsedRow: 13/13 rows, 0
+  issues, opening+net == ending. Share-capital rows were dropped from
+  the plan because that ledger type needs a member and the
+  non-deposit resolver only understands Zelle-style payer patterns.
+  Output used for the demo: Downloads/canary-statement-2026-11-25.xlsx
+  (period 11-11 to 11-25, UBA Current 8019939044).
+
 - **2026-11-25** - **Canary labels no longer get numeric suffixes.**
   make-canary-demo.js renamed every expense_report_labels row to
   'EXPENSE ITEM n' (e.g. 'AUDIT FEE 9'). Now: the 8 seeded default
