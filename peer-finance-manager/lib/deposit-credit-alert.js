@@ -450,20 +450,45 @@ function findLatestAppliedImport() {
   );
 }
 
-// Resend path for alerts suppressed while member email was toggled off:
-// transactions were logged 'sent' (portal-only) so the normal dedupe
-// skips them. Reset the log rows for this import, then email only -
-// no duplicate portal notices.
+// Resend path for alerts suppressed while member messaging was toggled
+// off: transactions were logged 'sent' (portal-only) so the normal dedupe
+// skips them. Reset only the rows whose delivery shows no real email was
+// sent - members who genuinely received email keep their 'sent' mark and
+// are not emailed twice.
+function missedEmailMemberIds() {
+  const db = getDb();
+  const { ensureEmailAuditTables } = require("./email-audit-service");
+  ensureEmailAuditTables(db);
+  return new Set(
+    db
+      .prepare(
+        `SELECT DISTINCT member_id AS id
+         FROM member_email_delivery_log
+         WHERE trigger_type = ?
+           AND (status = 'skipped'
+                OR error_message LIKE 'portal_only:%'
+                OR (status = 'sent' AND (email IS NULL OR email = '' OR email = 'none')))`
+      )
+      .all(TRIGGER_TYPE)
+      .map((r) => Number(r.id))
+  );
+}
+
 function resetAlertsForImport(importId) {
   const rows = listDepositsForBankImport(importId);
   const ids = rows.map((r) => r.transactionId);
   if (!ids.length) return 0;
   const db = getDb();
   ensureDepositAlertLog(db);
-  const placeholders = ids.map(() => "?").join(", ");
+  const missed = [...missedEmailMemberIds()];
+  const missedPh = missed.length ? missed.map(() => "?").join(", ") : "NULL";
   const info = db
-    .prepare(`DELETE FROM deposit_credit_alert_log WHERE transaction_id IN (${placeholders})`)
-    .run(...ids);
+    .prepare(
+      `DELETE FROM deposit_credit_alert_log
+       WHERE transaction_id IN (${ids.map(() => "?").join(", ")})
+         AND (status IN ('skipped', 'failed') OR member_id IN (${missedPh}))`
+    )
+    .run(...ids, ...missed);
   return info.changes;
 }
 

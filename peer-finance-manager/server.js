@@ -1530,18 +1530,28 @@ app.post(
         }
       }
       const dates = Array.isArray(req.body?.loanDueDates) ? req.body.loanDueDates : [];
-      if (dates.length) {
-        const { resendLoanDueNoticesForDate } = require("./lib/loan-due-notice");
-        out.loanDueNotices = [];
-        for (const d of dates.slice(0, 14)) {
-          const iso = String(d).slice(0, 10);
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) continue;
-          out.loanDueNotices.push(await resendLoanDueNoticesForDate(iso, { emailOnly }));
+      if (dates.length || req.body?.resendLoanDues) {
+        const {
+          resendMissedLoanDueNotices,
+          resendLoanDueNoticesForDate,
+        } = require("./lib/loan-due-notice");
+        if (dates.length) {
+          out.loanDueNotices = [];
+          for (const d of dates.slice(0, 14)) {
+            const iso = String(d).slice(0, 10);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) continue;
+            out.loanDueNotices.push(await resendLoanDueNoticesForDate(iso, { emailOnly }));
+          }
+        } else {
+          // auto-discover every due date whose notices were held
+          const res = await resendMissedLoanDueNotices({ emailOnly });
+          out.loanDueNotices = res.results;
+          out.loanDueReset = res.reset;
         }
       }
       if (!Object.keys(out).length) {
         return res.status(400).json({
-          error: "Pass importId (or resendImport:true for the latest import) and/or loanDueDates: ['YYYY-MM-DD'].",
+          error: "Pass resendImport:true (or importId) and/or resendLoanDues:true.",
         });
       }
       res.json({ success: true, result: out });

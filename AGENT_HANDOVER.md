@@ -189,6 +189,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
   copy now says emails AND portal notices are held. Verified live:
   gate off + resend -> 0 portal posts, all 'skipped'; gate on +
   includePortal -> 28 portal notices posted, 428 marked 'sent'.
+  **Auto-discovery resend:** loan-due missed dates are discovered from
+  member_email_delivery_log (skipped / portal_only / no-email rows) via
+  resendMissedLoanDueNotices() - no manual date entry; precise dedupe
+  reset deletes only the affected dedupe_keys so genuinely-emailed
+  members are never duplicated. Deposit-alert reset is also precise:
+  clears 'skipped'/'failed' rows plus members whose delivery shows no
+  real email (portal_only). Resend card is now one row: checkbox +
+  button; click sends resendImport+resendLoanDues+includePortal.
 
 - **2026-11-24** - **Resend for notifications suppressed while member
   email was toggled off.** New admin endpoint

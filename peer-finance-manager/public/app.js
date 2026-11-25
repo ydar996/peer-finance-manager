@@ -6736,10 +6736,6 @@ $("#memberEmailNotificationsToggle")?.addEventListener("change", async (e) => {
 $("#resendMissedNotificationsBtn")?.addEventListener("click", async (e) => {
   const btn = e.target;
   const status = $("#resendMissedNotificationsStatus");
-  const dates = ($("#resendLoanDueDates")?.value || "")
-    .split(",")
-    .map((d) => d.trim())
-    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
   btn.disabled = true;
   if (status) {
     status.textContent = "Resending…";
@@ -6751,7 +6747,7 @@ $("#resendMissedNotificationsBtn")?.addEventListener("click", async (e) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         resendImport: true,
-        loanDueDates: dates,
+        resendLoanDues: true,
         includePortal: $("#resendIncludePortal")?.checked === true,
       }),
     });
