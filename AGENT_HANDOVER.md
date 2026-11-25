@@ -175,6 +175,24 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **CD card: localized labels, no leaked defaults,
+  schedule-aware fee prefill, sections collapse on re-entry.**
+  cd-balance-service CD_TERM_DEFAULTS (a real CD's terms: 7176.28 @
+  2.96%, 90-day, Jul-2025 dates) prefilled the form for every org with
+  no saved settings and leaked into projections; removed so fields are
+  blank and getCdTermMetrics returns null until the org enters real
+  terms (Assurance values inlined into scripts/update-cd-balance.js,
+  the one-off seed script they came from). Record tab card/nav/hint/
+  status strings now use depositInstrumentLabel() via new
+  applyDepositInstrumentLabelToUi() (NG orgs see 'Fixed Deposit'),
+  matching the books labels. Annual Membership Fee card now prefills
+  the CURRENT YEAR's dues requirement (annual_dues_schedule aware,
+  mirrors duesRequirementForYear) instead of the flat
+  annual_dues_amount default. switchTab('record') collapses all
+  details.record-section on re-entry so a previously opened card no
+  longer stays expanded (skipRecordLoad navigation still opens the
+  target section).
+
 - **2026-11-25** - **Category select on merged fee+deposit rows now shows
   the real bank classification.** mergeFeeDepositPairs bound the
   reclassify select to the deposit leg (type 'deposit' -> "Member

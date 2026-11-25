@@ -15,16 +15,6 @@ const CD_TERM_SETTING_KEYS = [
   "cd_opened_date",
 ];
 
-const CD_TERM_DEFAULTS = {
-  cd_term_start_balance: "7176.28",
-  cd_renewal_date: "2026-04-15",
-  cd_maturity_date: "2026-07-14",
-  cd_annual_rate: "0.0296",
-  cd_apy: "0.03",
-  cd_term_days: "90",
-  cd_opened_date: "2025-07-19",
-};
-
 function daysBetweenIso(startIso, endIso) {
   const start = new Date(`${startIso}T12:00:00Z`);
   const end = new Date(`${endIso}T12:00:00Z`);
@@ -36,7 +26,7 @@ function getCdTermSettings(db) {
   const settings = {};
   for (const key of CD_TERM_SETTING_KEYS) {
     const row = db.prepare(`SELECT value FROM cooperative_settings WHERE key = ?`).get(key);
-    settings[key] = row ? row.value : CD_TERM_DEFAULTS[key] || null;
+    settings[key] = row ? row.value : null;
   }
   return settings;
 }
@@ -119,9 +109,9 @@ function getCdTermMetrics({ balance, asOf, termSettings }) {
   if (balance == null || !asOf) return null;
 
   const termStartBalance = Number(termSettings.cd_term_start_balance);
-  const annualRate = Number(termSettings.cd_annual_rate || "0.0296");
-  const apy = Number(termSettings.cd_apy || "0.03");
-  const termDays = Number(termSettings.cd_term_days || "90");
+  const annualRate = Number(termSettings.cd_annual_rate || 0);
+  const apy = Number(termSettings.cd_apy || 0);
+  const termDays = Number(termSettings.cd_term_days || 0);
   const maturityDate = termSettings.cd_maturity_date;
   const renewalDate = termSettings.cd_renewal_date;
   const openedDate = termSettings.cd_opened_date;
@@ -224,7 +214,12 @@ function getCdBalanceSnapshot() {
 function updateCdBalance({ balance, asOfDate, note, termSettings }) {
   const amount = Number(balance);
   if (!Number.isFinite(amount) || amount < 0) {
-    throw new Error("CD balance must be a non-negative number");
+    let instrument = "CD";
+    try {
+      const { getCountryProfile } = require("./country-profile");
+      instrument = getCountryProfile().code === "NG" ? "Fixed Deposit" : "CD";
+    } catch (_) {}
+    throw new Error(`${instrument} balance must be a non-negative number`);
   }
 
   const asOf = String(asOfDate || "").trim();
@@ -276,5 +271,4 @@ module.exports = {
   getOpenCdPrincipal,
   getCdTermMetrics,
   parseCdTermPayload,
-  CD_TERM_DEFAULTS,
 };

@@ -304,7 +304,7 @@ Each form is collapsed until you expand it.
 | **Update Member Profile** | Change phone, email, address, gender, emergency contact, etc. **State** is the same searchable list. You can still type a custom value. |
 | **Registration Fee** | Post the one-time $100 fee for an existing member. |
 | **Current Bank Balance** | Update checking balance from a bank statement (reference point). |
-| **CD Account Balance and Term** | Update CD balance from a bank statement, and enter term details when a CD is new or rolls over (beginning balance, annual rate, APY, renewal date, maturity date, term length). From Cooperative Books, **Expected CD Interest** → **Open Record** opens this form. |
+| **CD Account Balance and Term** | Update CD balance from a bank statement, and enter term details when a CD is new or rolls over (beginning balance, annual rate, APY, renewal date, maturity date, term length). Nigeria-based Cooperatives see this card as **Fixed Deposit Account Balance and Term**. From Cooperative Books, **Expected CD Interest** → **Open Record** opens this form. |
 | **Member Contributions Account** | Post a **Contribution** or **Withdrawal** for one member. |
 | **Member Share Capital Account** | Post a **Share Purchase** or **Share Redemption** for one member. Shown only when Share Capital is enabled in Membership Policy. |
 | **Cooperative Investment** | Record an investment **Placement** (money out) or **Return/Income** (money in) against a named investment account. Pick an existing account or choose **+ New Investment Account** to create one inline. |

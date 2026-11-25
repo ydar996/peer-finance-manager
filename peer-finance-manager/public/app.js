@@ -81,7 +81,32 @@ function applyCountryProfile(profile) {
   }
   populateCountrySelect($("#cooperativeCountry"), profile.code);
   applyPaymentRailLabels(profile);
+  applyDepositInstrumentLabelToUi();
   initSuggestPickers();
+}
+
+function applyDepositInstrumentLabelToUi() {
+  const instrument = depositInstrumentLabel();
+  const navLink = document.querySelector('a[href="#recordSectionCdBalance"]');
+  if (navLink) navLink.textContent = `${instrument} Account`;
+  const summary = document.querySelector("#recordSectionCdBalance > summary");
+  if (summary) summary.textContent = `${instrument} Account Balance and Term`;
+  const hint = document.querySelector(
+    "#recordSectionCdBalance .profile-disclosure-body > .subtle"
+  );
+  if (hint) {
+    hint.textContent = `When a ${instrument} is new or rolls over, enter the beginning balance, annual rate, APY, renewal date, and maturity date for the new term. Set Beginning Balance (This Term) to the principal on the renewal date.`;
+  }
+  const current = $("#cdBalanceCurrent");
+  if (current && current.textContent.startsWith("Loading")) {
+    current.textContent = `Loading Current ${instrument} Balance…`;
+  }
+  const button = document.querySelector("#cdBalanceForm button[type='submit']");
+  if (button) button.textContent = `Save ${instrument} Balance and Term`;
+  const recordHint = document.querySelector("#panel-record .hint .hint-line:first-child");
+  if (recordHint) {
+    recordHint.textContent = `Register Members, Record Contributions, Withdrawals, Distributions, Membership Fees, Loans, Loan Repayments, ${instrument} Balance Updates, and Expenses: All Without Excel.`;
+  }
 }
 
 function paymentRailHeading() {
@@ -1732,7 +1757,12 @@ function switchTab(name, options = {}) {
   });
 
   if (name === "members") resetMemberProfileView();
-  if (name === "record" && !sameTab && !options.skipRecordLoad) loadRecordTabData();
+  if (name === "record" && !sameTab && !options.skipRecordLoad) {
+    document.querySelectorAll("details.record-section").forEach((el) => {
+      el.open = false;
+    });
+    loadRecordTabData();
+  }
   if (name === "users" && currentUser?.role === "admin" && !sameTab) {
     initMemberPickers();
     loadUsers();
@@ -4267,7 +4297,21 @@ async function loadLoans() {
   }
 }
 
-let membershipPolicy = { feeModel: "one_time", membershipFee: 100, initialContribution: 100, annualDuesAmount: 0, shareCapitalEnabled: false, loansEnabled: true };
+let membershipPolicy = { feeModel: "one_time", membershipFee: 100, initialContribution: 100, annualDuesAmount: 0, annualDuesSchedule: [], shareCapitalEnabled: false, loansEnabled: true };
+
+function currentAnnualDuesAmount() {
+  const y = new Date().getUTCFullYear();
+  const schedule = Array.isArray(membershipPolicy.annualDuesSchedule)
+    ? membershipPolicy.annualDuesSchedule
+    : [];
+  const exact = schedule.find((e) => Number(e.year) === y);
+  if (exact) return Number(exact.amount) || membershipPolicy.annualDuesAmount;
+  const prior = [...schedule]
+    .sort((a, b) => Number(b.year) - Number(a.year))
+    .find((e) => Number(e.year) <= y);
+  if (prior) return Number(prior.amount) || membershipPolicy.annualDuesAmount;
+  return membershipPolicy.annualDuesAmount;
+}
 let shareCapitalEnabledFromMembers = false;
 let feeModelFromMembers = null;
 let loansEnabledFromMembers = null;
@@ -4478,12 +4522,12 @@ function applyMembershipPolicyToUi() {
   const feeLabel = $("#recordMembershipFeeLabel");
   if (feeLabel) {
     feeLabel.textContent = annual
-      ? `Record Annual Membership Fee Payment (${fmt.format(membershipPolicy.annualDuesAmount)})`
+      ? `Record Annual Membership Fee Payment (${fmt.format(currentAnnualDuesAmount())})`
       : `Record Registration Fee (${fmt.format(membershipPolicy.membershipFee)})`;
   }
   const feeAmountInput = document.querySelector("#membershipFeeForm [name='amount']");
   if (feeAmountInput) {
-    feeAmountInput.value = annual ? membershipPolicy.annualDuesAmount : membershipPolicy.membershipFee;
+    feeAmountInput.value = annual ? currentAnnualDuesAmount() : membershipPolicy.membershipFee;
     feeAmountInput.dataset.autoFee = "1";
   }
   refreshAmountPreviews();
@@ -4513,6 +4557,7 @@ async function loadMembershipPolicyPanel() {
       membershipFee: Number(data.membershipFee) || membershipPolicy.membershipFee,
       initialContribution: data.initialContribution != null ? Number(data.initialContribution) : membershipPolicy.initialContribution,
       annualDuesAmount: Number(data.annualDuesAmount) || membershipPolicy.annualDuesAmount,
+      annualDuesSchedule: Array.isArray(data.annualDuesSchedule) ? data.annualDuesSchedule : [],
       shareCapitalEnabled: Boolean(data.shareCapitalEnabled),
       loansEnabled: data.loansEnabled !== false,
     };
@@ -4580,6 +4625,7 @@ async function saveMembershipPolicy() {
       membershipFee: data.membershipFee != null ? Number(data.membershipFee) : membershipPolicy.membershipFee,
       initialContribution: data.initialContribution != null ? Number(data.initialContribution) : membershipPolicy.initialContribution,
       annualDuesAmount: data.annualDuesAmount != null ? Number(data.annualDuesAmount) : membershipPolicy.annualDuesAmount,
+      annualDuesSchedule,
       shareCapitalEnabled: Boolean(data.shareCapitalEnabled),
       loansEnabled: data.loansEnabled !== false,
     };
@@ -8630,7 +8676,7 @@ async function runBankImport(form, { acknowledgeManualLoss = false } = {}) {
         `${r.loanRepayments || 0} loan repayments`,
         `${r.expenses || 0} expenses`,
         r.skippedNoMember ? `${r.skippedNoMember} skipped (member not matched)` : null,
-        r.cdBalance != null ? `CD balance set to ${Number(r.cdBalance).toFixed(2)}` : null,
+        r.cdBalance != null ? `${depositInstrumentLabel()} balance set to ${Number(r.cdBalance).toFixed(2)}` : null,
         warningCount
           ? `${warningCount} ledger warning(s) listed below: fix the file and run Full Ledger Refresh again before relying on member balances.`
           : null,
@@ -9087,7 +9133,7 @@ async function loadCdBalanceForm() {
   try {
     const res = await fetch("/api/settings/cd-balance");
     const { cdBalance } = await res.json();
-    if (!res.ok) throw new Error(cdBalance?.error || "Failed to load CD balance");
+    if (!res.ok) throw new Error(cdBalance?.error || `Failed to load ${depositInstrumentLabel()} balance`);
 
     const settings = cdBalance.termSettings || {};
     const setNamed = (name, value) => {
@@ -9111,7 +9157,7 @@ async function loadCdBalanceForm() {
     if (summaryEl) {
       if (cdBalance.balance == null) {
         summaryEl.textContent =
-          "No CD balance on file yet. Enter the balance from your bank statement and the term details.";
+          `No ${depositInstrumentLabel()} balance on file yet. Enter the balance from your bank statement and the term details.`;
       } else {
         const maturity = cdBalance.termMetrics?.maturityDate || settings.cd_maturity_date;
         summaryEl.textContent = [
@@ -9137,7 +9183,7 @@ async function loadCdBalanceForm() {
 async function loadRecordTabData() {
   const requestId = ++recordTabRequestId;
   const summaryEl = $("#cdBalanceCurrent");
-  if (summaryEl) summaryEl.textContent = "Loading current CD balance…";
+  if (summaryEl) summaryEl.textContent = `Loading current ${depositInstrumentLabel()} balance…`;
   try {
     const [membersRes, categoriesRes, loansRes] = await Promise.all([
       fetch("/api/members?profiles=true"),
@@ -9768,7 +9814,7 @@ $("#cdBalanceForm")?.addEventListener("submit", async (e) => {
     const maturity = saved.termMetrics?.maturityDate;
     setFormStatus(
       status,
-      `CD balance and term saved: ${fmt.format(saved.balance)} as of ${formatDate(saved.asOf)}${
+      `${depositInstrumentLabel()} balance and term saved: ${fmt.format(saved.balance)} as of ${formatDate(saved.asOf)}${
         maturity ? ` · matures ${formatDate(maturity)}` : ""
       } · accrued interest ${fmt.format(saved.accruedInterest)}.`,
       true
