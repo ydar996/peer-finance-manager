@@ -821,6 +821,33 @@ app.post("/api/distributions/import", upload.single("file"), (req, res) => {
   }
 });
 
+app.post(
+  "/api/loan-reference/workbook",
+  requireAdmin,
+  restoreOrgContext,
+  upload.single("file"),
+  (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+      const ext = path.extname(req.file.originalname || "").toLowerCase();
+      if (ext !== ".xlsx" && ext !== ".xls") {
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ error: "Only .xlsx or .xls files allowed" });
+      }
+      const slug = req.user?.organizationSlug || req.organization?.slug;
+      const dir = path.join(getOrgDataDir(slug), "workbooks");
+      fs.mkdirSync(dir, { recursive: true });
+      const target = path.join(dir, "loan details and interest.xlsx");
+      fs.renameSync(req.file.path, target);
+      const { clearLoanDetailsCache } = require("./lib/loan-details-reference");
+      clearLoanDetailsCache();
+      res.json({ success: true, path: target });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
 app.get("/api/distributions/recent", requireCooperativeView, (req, res) => {
   try {
     const limit = Number(req.query.limit) || 50;

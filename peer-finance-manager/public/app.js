@@ -320,7 +320,6 @@ let loanDetailRequestId = 0;
 let myAccountRequestId = 0;
 let recordTabRequestId = 0;
 let profileFormRequestId = 0;
-let statementInspectRequestId = 0;
 
 function applyCooperativeTimezone(timeZone) {
   cooperativeTimezone = timeZone || "America/Los_Angeles";
@@ -1282,7 +1281,6 @@ async function bootstrapApp() {
   loadBooks();
   loadMembers();
   loadLoans();
-  loadStatementFiles();
   if (role === "admin") {
     loadLoanPaymentPolicyPanel();
     loadMembershipPolicyPanel();
@@ -3593,9 +3591,21 @@ function depositTxTableRows(transactions, memberId) {
 function depositActivityPanelHtml(p, memberId) {
   const txCount = mergeFeeDepositPairs(p.deposit_transactions || []).length;
   const adminCols = adminCanEditLedgerRows();
+  const stmtMonths = statementMonthsFromDates(
+    (p.deposit_transactions || []).map((t) => t.transaction_date)
+  );
+  const stmtOptions =
+    '<option value="">Full History</option>' +
+    stmtMonths
+      .map((m) => `<option value="${m.year}-${m.month}">${escapeHtml(m.label)}</option>`)
+      .join("");
   return `
     <h4 class="section-title">Contributions Account Activity</h4>
     <p class="subtle">Balance ${fmt.format(p.deposit_account_balance || 0)} · ${txCount} transaction${txCount === 1 ? "" : "s"} on record</p>
+    <div class="field-row">
+      <select class="statement-select" id="memberDepositStatementMonth" aria-label="Statement month">${stmtOptions}</select>
+      <button type="button" class="btn small" id="downloadMemberDepositStatement" data-member-id="${memberId}">Download Statement (PDF)</button>
+    </div>
     <div class="table-wrap compact">
       <table>
         <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Description</th>${adminCols ? "<th>Category</th>" : ""}</tr></thead>
@@ -3676,6 +3686,62 @@ function bindMemberAccountCards(root, memberId, initialPanel = "deposit") {
   selectMemberAccountPanel(root, initialPanel);
   bindLoanStatementButtons(root);
   bindRepaymentPlanButtons(root);
+  const stmtBtn = root.querySelector("#downloadMemberDepositStatement");
+  stmtBtn?.addEventListener("click", () => {
+    const sel = root.querySelector("#memberDepositStatementMonth");
+    const [year, month] = (sel?.value || "").split("-").map(Number);
+    downloadMemberDepositStatement(stmtBtn.dataset.memberId, stmtBtn, { year, month }).catch(
+      (err) => void appAlert(err.message, { title: "Error", variant: "danger" })
+    );
+  });
+}
+
+async function downloadMemberDepositStatement(memberId, button, { year, month } = {}) {
+  const params = new URLSearchParams();
+  if (year && month) {
+    params.set("year", String(year));
+    params.set("month", String(month));
+  }
+  const query = params.toString();
+  const url = `/api/members/${memberId}/deposit-statement${query ? `?${query}` : ""}`;
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Generating…";
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      let message = "Failed to generate statement";
+      try {
+        const data = await res.json();
+        message = data.error || message;
+      } catch (_) {}
+      throw new Error(message);
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const fileName = match?.[1] || `Member ${memberId} Statement.pdf`;
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    const message =
+      err.name === "AbortError"
+        ? "Statement generation timed out. Please try again."
+        : err.message || "Failed to generate statement";
+    throw new Error(message);
+  } finally {
+    clearTimeout(timeout);
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Download Statement (PDF)";
+    }
+  }
 }
 
 async function downloadLoanStatement(memberId, loanNumber, button, options = {}) {
@@ -8604,171 +8670,6 @@ $("#bankImportForm")?.addEventListener("submit", async (e) => {
   await runBankImport(e.target);
 });
 
-let selectedStatementFile = null;
-let selectedStatementSheet = null;
-
-async function loadStatementFiles() {
-  const list = $("#statementFileList");
-  const distSelect = $("#statementDistSelect");
-  try {
-    const res = await fetch("/api/statements/files");
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-
-    list.innerHTML = "";
-    if (!data.files?.length) {
-      list.innerHTML =
-        '<li class="empty-item">No Excel Workbooks Found. Place Assurance Status .xlsx Files in the Cooperative Folder.</li>';
-      return;
-    }
-
-    data.files.forEach((f) => {
-      const li = document.createElement("li");
-      li.dataset.file = f;
-      li.innerHTML = `<span class="file-list-icon" aria-hidden="true"></span><span class="badge">Excel</span><span class="file-list-name">${escapeHtml(f)}</span><span class="file-list-go" aria-hidden="true">↗</span>`;
-      li.addEventListener("click", () => selectStatementFile(f));
-      list.appendChild(li);
-    });
-
-    distSelect.innerHTML =
-      '<option value="">None: Use Distribution Column in Workbook Only</option>';
-    (data.distributionFiles || []).forEach((rel) => {
-      const opt = document.createElement("option");
-      opt.value = rel;
-      opt.textContent = rel.split(/[/\\]/).pop();
-      distSelect.appendChild(opt);
-    });
-  } catch (err) {
-    list.innerHTML = `<li class="empty-item">Error: ${escapeHtml(err.message)}</li>`;
-  }
-}
-
-async function selectStatementFile(filename) {
-  const requestId = ++statementInspectRequestId;
-  selectedStatementFile = filename;
-  selectedStatementSheet = null;
-  $("#statementFileList").querySelectorAll("li").forEach((li) => {
-    li.classList.toggle("selected", li.dataset.file === filename);
-  });
-
-  const info = $("#statementSelectedInfo");
-  info.classList.remove("hidden");
-  info.textContent = "Inspecting Workbook…";
-
-  try {
-    const res = await fetch("/api/statements/inspect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename }),
-    });
-    if (requestId !== statementInspectRequestId) return;
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    selectedStatementSheet = data.suggestedSheet;
-    info.innerHTML = `<strong>${escapeHtml(filename)}</strong><br />Sheet: ${escapeHtml(selectedStatementSheet)} · ${data.memberCount || 0} Members`;
-    $("#generateStatementsBtn").disabled = !selectedStatementSheet;
-  } catch (err) {
-    if (requestId !== statementInspectRequestId) return;
-    info.textContent = err.message;
-    $("#generateStatementsBtn").disabled = true;
-  }
-}
-
-$("#refreshStatementFiles")?.addEventListener("click", loadStatementFiles);
-
-$("#statementDistSelect")?.addEventListener("change", () => {
-  if ($("#statementDistSelect").value) {
-    $("#statementDistFile").value = "";
-    $("#statementDistFileName").textContent = "";
-  }
-});
-
-$("#statementDistFile")?.addEventListener("change", () => {
-  const input = $("#statementDistFile");
-  if (input.files.length) {
-    $("#statementDistFileName").textContent = input.files[0].name;
-    $("#statementDistSelect").value = "";
-  } else {
-    $("#statementDistFileName").textContent = "";
-  }
-});
-
-$("#generateStatementsBtn")?.addEventListener("click", async () => {
-  if (!selectedStatementFile || !selectedStatementSheet) return;
-
-  const btn = $("#generateStatementsBtn");
-  const status = $("#statementStatus");
-  const wrap = $("#statementProgressWrap");
-  const fill = $("#statementProgressFill");
-  const text = $("#statementProgressText");
-  const member = $("#statementProgressMember");
-
-  btn.disabled = true;
-  status.textContent = "";
-  status.className = "status";
-  wrap.classList.remove("hidden");
-  fill.style.width = "0%";
-  text.textContent = "Starting…";
-  member.textContent = "";
-
-  try {
-    let distributionFilename = "";
-    const distFile = $("#statementDistFile");
-    if (distFile.files.length) {
-      const fd = new FormData();
-      fd.append("file", distFile.files[0]);
-      const up = await fetch("/api/statements/upload-distribution", { method: "POST", body: fd });
-      const upData = await up.json();
-      if (!up.ok) throw new Error(upData.error);
-      distributionFilename = upData.path;
-    } else {
-      distributionFilename = $("#statementDistSelect").value || "";
-    }
-
-    const res = await fetch("/api/statements/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filename: selectedStatementFile,
-        sheetName: selectedStatementSheet,
-        distributionFilename,
-      }),
-    });
-    const { jobId } = await res.json();
-    if (!res.ok || !jobId) throw new Error("Failed to start generation");
-
-    const poll = async () => {
-      const s = await fetch(`/api/statements/generate/status/${jobId}`);
-      const data = await s.json();
-      if (data.done) {
-        wrap.classList.add("hidden");
-        if (data.success) {
-          status.textContent = `Done: ${data.count} PDFs saved to ${data.outputDir}`;
-          status.className = "status ok";
-        } else {
-          status.textContent = data.error || "Generation failed";
-          status.className = "status err";
-        }
-        btn.disabled = false;
-        return;
-      }
-      const pct = data.total ? Math.round((data.current / data.total) * 100) : 0;
-      fill.style.width = `${pct}%`;
-      text.textContent = data.total
-        ? `${pct}% (${data.current} of ${data.total})`
-        : "Starting…";
-      member.textContent = data.member || "";
-      setTimeout(poll, 400);
-    };
-    poll();
-  } catch (err) {
-    wrap.classList.add("hidden");
-    status.textContent = err.message;
-    status.className = "status err";
-    btn.disabled = false;
-  }
-});
-
 function todayIso() {
   return new Date().toLocaleDateString("en-CA", { timeZone: cooperativeTimezone });
 }
@@ -10713,6 +10614,39 @@ $("#applyNormalizeProfilesBtn")?.addEventListener("click", async () => {
     if (status) setFormStatus(status, data.message || "Profiles updated.", true);
     $("#normalizeProfilesPreview")?.classList.add("hidden");
     loadMembers();
+  } catch (err) {
+    if (status) setFormStatus(status, err.message, false);
+  } finally {
+    setButtonBusy(btn, false);
+  }
+});
+
+$("#loanReferenceFile")?.addEventListener("change", (e) => {
+  const name = e.target.files?.[0]?.name || "";
+  const el = $("#loanReferenceFileName");
+  if (el) el.textContent = name;
+});
+
+$("#uploadLoanReferenceBtn")?.addEventListener("click", async () => {
+  const status = $("#loanReferenceStatus");
+  const input = $("#loanReferenceFile");
+  const btn = $("#uploadLoanReferenceBtn");
+  if (!input?.files?.length) {
+    if (status) setFormStatus(status, "Choose a workbook file first.", false);
+    return;
+  }
+  setButtonBusy(btn, true, "Uploading…");
+  if (status) setFormStatus(status, "Uploading…", true);
+  try {
+    const fd = new FormData();
+    fd.append("file", input.files[0]);
+    const res = await fetch("/api/loan-reference/workbook", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+    if (status) setFormStatus(status, "Reference workbook saved for this Cooperative.", true);
+    input.value = "";
+    const nameEl = $("#loanReferenceFileName");
+    if (nameEl) nameEl.textContent = "";
   } catch (err) {
     if (status) setFormStatus(status, err.message, false);
   } finally {

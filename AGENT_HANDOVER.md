@@ -175,6 +175,36 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Statements tab retired; workbook files moved out of
+  the repo.** The legacy "Periodic Statements (PDF)" panel listed every
+  `.xlsx` in the shared `getCoopRoot()` (repo root in dev), which showed
+  Assurance's workbooks to every Cooperative AND those files (member
+  PII) were committed in git. Owner chose to retire the panel: members
+  self-serve monthly PDFs in My Account; the old workbook->batch-PDF
+  flow is dormant (statement-routes.js still registered but unreachable
+  from the UI). Changes:
+  - index.html: removed `data-tab="statements"` tab + `panel-statements`
+    section; app.js: removed file-list/inspect/generate JS.
+  - NEW admin/staff download: member profile -> Contributions Account
+    panel now has a month select (Full History default) + "Download
+    Statement (PDF)" calling existing `/api/members/:id/deposit-statement`
+    (works for former members too).
+  - `loan-details-reference.js` `getWorkbookPath` now checks the org's
+    `data/organizations/{slug}/workbooks/` then org dir, then legacy
+    coopRoot - the reference workbook is per-org (was shared-root).
+  - NEW `POST /api/loan-reference/workbook` (admin) saves an uploaded
+    `.xlsx` as `orgDir/workbooks/loan details and interest.xlsx` and
+    clears the cached reference; Maintenance tab has a "Loan Reference
+    Workbook" card for it. NOTE: on prod the reference file is no
+    longer deployed with the code - if Assurance's loan collection
+    targets matter, upload the workbook once via Admin -> Maintenance.
+  - git: `git rm --cached` all committed workbooks (6 root `.xlsx`,
+    `Distributions/*.xlsx`, `temp/*.xlsx`); `.gitignore` now has
+    `*.xlsx`, `*.xls`, `temp/`, `Distributions/`. Local files moved to
+    `data/organizations/assurance/workbooks/` (+ `Distributions/`).
+    `/api/statements/files` verified returning empty since files no
+    longer sit in the shared root.
+
 - **2026-11-24** - **Toggle now holds portal notices too + resend channel
   choice.** `postMemberNoticeFromAutomatedEmail` (messaging-service.js)
   returns `{created:false, reason:'member_email_disabled'}` when the

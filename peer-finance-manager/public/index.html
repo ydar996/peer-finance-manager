@@ -497,7 +497,6 @@
           <p class="nav-group-label">Finance</p>
         <button type="button" class="tab active" data-tab="books" data-roles="admin,staff">Cooperative Books</button>
         <button type="button" class="tab" data-tab="members" data-roles="admin,staff">Members &amp; Accounts</button>
-        <button type="button" class="tab" data-tab="statements" data-roles="admin,staff">Statements</button>
         <button type="button" class="tab loans-col" data-tab="loans" data-roles="admin,staff">Loans</button>
         <button type="button" class="tab" data-tab="record" data-roles="admin">Record</button>
         <button type="button" class="tab" data-tab="import" data-roles="admin">Import</button>
@@ -1309,43 +1308,6 @@
             </div>
           </div>
         </div>
-      </section>
-
-      <section id="panel-statements" class="panel">
-        <div class="panel-head">
-          <h2>Periodic Statements (PDF)</h2>
-          <button type="button" class="btn" id="refreshStatementFiles">Refresh Files</button>
-        </div>
-        <p class="hint">Generate Monthly PDF Contributions Account Statements for All Members (<code>statements/YYYY-MM/</code>). For Loan Account Statements, Use <strong>Statement</strong> on the Loans Tab or Member Profile: One PDF per Loan, Saved to <code>statements/loan-accounts/</code>.</p>
-
-        <div class="card">
-          <h3>Monthly Workbook</h3>
-          <ul class="file-list" id="statementFileList">
-            <li class="empty-item">Loading…</li>
-          </ul>
-          <div id="statementSelectedInfo" class="statement-selected hidden"></div>
-        </div>
-
-        <div class="card">
-          <h3>Distribution/Interest (Optional)</h3>
-          <select id="statementDistSelect" class="statement-select">
-            <option value="">None: Use Distribution Column in Workbook Only</option>
-          </select>
-          <div class="statement-browse file-dropzone">
-            <span class="browse-label">Or Upload:</span>
-            <label class="btn" for="statementDistFile">Choose File</label>
-            <input type="file" id="statementDistFile" class="visually-hidden-file" accept=".xlsx,.xls" />
-            <span class="file-name" id="statementDistFileName"></span>
-          </div>
-        </div>
-
-        <button type="button" class="btn primary" id="generateStatementsBtn" disabled>Generate PDF Statements</button>
-        <div class="progress-wrapper hidden" id="statementProgressWrap">
-          <div class="progress-bar"><div class="progress-bar-fill" id="statementProgressFill"></div></div>
-          <div class="progress-text" id="statementProgressText"></div>
-          <div class="progress-member" id="statementProgressMember"></div>
-        </div>
-        <p id="statementStatus" class="status"></p>
       </section>
 
       <section id="panel-loans" class="panel">
@@ -2576,6 +2538,19 @@
             </div>
             <p id="normalizeProfilesStatus" class="status"></p>
             <pre id="normalizeProfilesPreview" class="subtle hidden"></pre>
+          </div>
+          <div class="card">
+            <h3>Loan Reference Workbook</h3>
+            <p class="subtle">Upload <code>loan details and interest.xlsx</code> when loan collection targets come from a reference workbook instead of principal alone. Applies to this Cooperative only.</p>
+            <div class="field-row">
+              <div class="file-dropzone">
+                <label class="btn" for="loanReferenceFile">Choose File</label>
+                <input type="file" id="loanReferenceFile" class="visually-hidden-file" accept=".xlsx,.xls" />
+                <span class="file-name" id="loanReferenceFileName"></span>
+              </div>
+              <button type="button" class="btn primary" id="uploadLoanReferenceBtn">Upload Workbook</button>
+            </div>
+            <p id="loanReferenceStatus" class="status"></p>
           </div>
         </div>
       </section>

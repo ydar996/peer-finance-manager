@@ -2,6 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const XLSX = require("xlsx");
 const { getCoopRoot } = require("./paths");
+const { getOrgSlugOrNull } = require("./org-context");
+const { getOrgDataDir } = require("./organization-service");
 
 const DEFAULT_WORKBOOK = "loan details and interest.xlsx";
 
@@ -279,6 +281,13 @@ function parseWorkbookRows(rows) {
 
 function getWorkbookPath(customPath) {
   if (customPath && fs.existsSync(customPath)) return customPath;
+  const slug = getOrgSlugOrNull();
+  if (slug) {
+    for (const dir of [path.join(getOrgDataDir(slug), "workbooks"), getOrgDataDir(slug)]) {
+      const candidate = path.join(dir, DEFAULT_WORKBOOK);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
   const coopRoot = getCoopRoot();
   const candidate = path.join(coopRoot, DEFAULT_WORKBOOK);
   if (fs.existsSync(candidate)) return candidate;

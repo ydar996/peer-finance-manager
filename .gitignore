@@ -19,3 +19,7 @@ npm-debug.log*
 Thumbs.db
 *.log
 terminals/
+*.xlsx
+*.xls
+temp/
+Distributions/

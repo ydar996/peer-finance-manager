@@ -36,7 +36,7 @@ Login placeholders use a sample code (`acme`), not a live Cooperative. The app u
 8. [Members & Accounts Tab](#8-members--accounts-tab)
 9. [Record Tab — Enter Transactions by Hand](#9-record-tab--enter-transactions-by-hand)
 10. [Import Tab — Bank Statements and Bulk Data](#10-import-tab--bank-statements-and-bulk-data)
-11. [Statements Tab — Member PDFs](#11-statements-tab--member-pdfs)
+11. [Member Statements (PDF)](#11-member-statements-pdf)
 12. [Loans Tab](#12-loans-tab)
 13. [Monthly Status Report Tab](#13-monthly-status-report-tab)
 14. [Meetings Tab](#14-meetings-tab)
@@ -183,7 +183,6 @@ The top-right shows your **role** (Administrator, Staff, or Member) and your nam
 |-----|------------|
 | **Cooperative Books** | Dashboard: income, expenses, bank balance, member totals. Click any card for detail. |
 | **Members & Accounts** | Member list, profiles, balances, photos, reclassify/split transactions. |
-| **Statements** | Generate monthly PDF statements for all members. |
 | **Loans** | Loan portfolio, repayments, loan PDFs, loan agreements. |
 | **Record** | Register members, post contributions, fees, loans, expenses by hand. |
 | **Import** | Bank statements, bulk spreadsheets, Full Ledger Refresh (advanced). |
@@ -195,9 +194,11 @@ The top-right shows your **role** (Administrator, Staff, or Member) and your nam
 | **Subscription** | PFM platform billing (Stripe or check). |
 | **Users** | Member logins, staff accounts, download credentials. |
 | **Automated Messages** | View and edit the wording of emails members receive automatically. |
-| **Maintenance** | Download/restore database backup; normalize profiles. |
+| **Maintenance** | Download/restore database backup; normalize profiles; upload loan reference workbook. |
 
 Most sections use **expandable panels** (click the header to open). You only open what you need.
+
+*The old **Statements** tab was retired: members self-serve statement PDFs in **My Account**, and admins download per-member PDFs from the member profile's **Contributions Account** panel.*
 
 ---
 
@@ -410,15 +411,13 @@ No special scripts required: both steps are in the admin UI.
 
 ---
 
-## 11. Statements Tab — Member PDFs
+## 11. Member Statements (PDF)
 
-Generate monthly **Contributions Account** PDF statements for all members.
+Members generate their own statements on demand: no workbook or admin step needed.
 
-1. Open **Statements**.
-2. Under **Monthly Workbook**, select your Assurance Status-style workbook (`.xlsx`).
-3. Optional: choose or upload a **Distribution/Interest** file for the period.
-4. Click **Generate PDF Statements**.
-5. PDFs save under `statements/YYYY-MM/` on the server.
+**Members:** on **My Account**, pick a month under **Monthly statement PDF** and download the Contributions Account statement. Each loan on **Loan Account** also offers a per-loan **Download Monthly Statement**.
+
+**Admin/staff:** open the member's profile on **Members & Accounts**, expand the **Contributions Account** card, pick a month (or **Full History**), and click **Download Statement (PDF)**. Works for former members too, for the books.
 
 **Loan statements:** use **Statement** on the **Loans** tab or on the member's **Loan Account** profile (one PDF per loan). That PDF is activity (disbursements and repayments), not the repayment plan.
 
@@ -664,7 +663,7 @@ Pay by direct bank transfer: pick a plan to see the transfer details, send the a
 3. Click **Add New Transactions**. Members with new deposits or loan repayments are emailed automatically.
 4. Open **Cooperative Books** → confirm **Ledger Checking Balance** matches your bank.
 5. Spot-check a few members on **Members & Accounts**.
-6. **Generate PDF Statements** (Statements tab).
+6. Members can now download their own monthly statement PDFs in **My Account** (no admin action needed).
 7. **Generate** and **Publish** Monthly Status Report (optional: auto-publish is on by default).
 8. Announce next **Meeting** if needed.
 
@@ -758,6 +757,7 @@ A green **Ledger Updated** banner offers **Download Xlsx Ledger** / **Download C
 | **Database Backup** | Download a copy of `peerfinance.db` for this Cooperative (archive or before risky changes). **Download Encrypted Backup** (recommended) asks for a passphrase (8+ characters) and produces a `.db.enc` file that stays protected on disk; **Download Unencrypted** produces a plain `.db`. On a wide screen this sits beside **Database Restore**. |
 | **Database Restore** | **Choose File** to select a `.db` or `.db.enc` backup (enter the passphrase for an encrypted file), preview row counts, then restore. Replaces live data; no Manual Deploy required. |
 | **Normalize Profiles (Title Case)** | Preview and apply formatting to member profiles and ledger names on production. |
+| **Loan Reference Workbook** | Upload `loan details and interest.xlsx` when this Cooperative's loan collection targets come from a reference workbook. Saved per Cooperative. |
 
 **When to use restore:** disaster recovery or copying a known-good backup onto production. For bank ledger corrections, prefer **Import → Full Ledger Refresh** + **Import New Bank Activity** so reconcile anchor stays correct.
 
