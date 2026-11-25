@@ -717,6 +717,12 @@ function postMemberSystemNotice({ memberId, subject, body } = {}) {
 
 function postMemberNoticeFromAutomatedEmail({ memberId, message } = {}) {
   if (!message?.subject) return { created: false, reason: "missing_message" };
+  // automated member portal notices are held while member messaging is off;
+  // callers record 'skipped' so the resend endpoint can deliver them later
+  const { memberEmailNotificationsEnabled } = require("./member-email-gate");
+  if (!memberEmailNotificationsEnabled()) {
+    return { created: false, reason: "member_email_disabled" };
+  }
   try {
     return (
       postMemberSystemNotice({

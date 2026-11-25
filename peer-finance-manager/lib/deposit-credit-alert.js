@@ -467,10 +467,10 @@ function resetAlertsForImport(importId) {
   return info.changes;
 }
 
-async function resendDepositsForBankImport(importId) {
+async function resendDepositsForBankImport(importId, { emailOnly = true } = {}) {
   const rows = listDepositsForBankImport(importId);
   const reset = resetAlertsForImport(importId);
-  const result = await notifyImportedMemberDeposits(rows, { emailOnly: true });
+  const result = await notifyImportedMemberDeposits(rows, { emailOnly });
   return { ...result, importId: Number(importId) || null, reset };
 }
 

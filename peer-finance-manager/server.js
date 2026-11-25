@@ -1497,12 +1497,13 @@ app.post(
   }
 );
 
-// Resend notifications suppressed while member email was toggled off.
+// Resend notifications suppressed while member messaging was toggled off.
 // importId: resend deposit/loan repayment credit alerts for that bank
 // import (defaults to the latest applied import, any filename).
 // loanDueDates: re-send loan due notices for those dates (dedupe rows
-// written for skipped sends are cleared first). Email-only resend: no
-// duplicate portal notices.
+// written for skipped sends are cleared first).
+// includePortal: also post portal notices (use when alerts were fully
+// held - members who already got a portal notice will see a duplicate).
 app.post(
   "/api/notifications/resend-missed",
   requireAdmin,
@@ -1510,6 +1511,7 @@ app.post(
   async (req, res) => {
     try {
       const out = {};
+      const emailOnly = !req.body?.includePortal;
       const wantImport = req.body?.importId !== undefined || req.body?.resendImport;
       if (wantImport) {
         const {
@@ -1524,7 +1526,7 @@ app.post(
         if (!target) {
           out.depositAlerts = { error: "No applied bank import found." };
         } else {
-          out.depositAlerts = await resendDepositsForBankImport(target.id);
+          out.depositAlerts = await resendDepositsForBankImport(target.id, { emailOnly });
         }
       }
       const dates = Array.isArray(req.body?.loanDueDates) ? req.body.loanDueDates : [];
@@ -1534,7 +1536,7 @@ app.post(
         for (const d of dates.slice(0, 14)) {
           const iso = String(d).slice(0, 10);
           if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) continue;
-          out.loanDueNotices.push(await resendLoanDueNoticesForDate(iso));
+          out.loanDueNotices.push(await resendLoanDueNoticesForDate(iso, { emailOnly }));
         }
       }
       if (!Object.keys(out).length) {

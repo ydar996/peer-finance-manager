@@ -500,10 +500,10 @@ function resetLoanDueDedupe(dateIso) {
   return info.changes;
 }
 
-async function resendLoanDueNoticesForDate(dateIso) {
+async function resendLoanDueNoticesForDate(dateIso, { emailOnly = true } = {}) {
   const reset = resetLoanDueDedupe(dateIso);
   // noon UTC so todayIso() lands on the requested date in any org timezone
-  const result = await sendLoanDueNoticesForToday(new Date(`${String(dateIso).slice(0, 10)}T12:00:00Z`), { emailOnly: true });
+  const result = await sendLoanDueNoticesForToday(new Date(`${String(dateIso).slice(0, 10)}T12:00:00Z`), { emailOnly });
   return { ...result, reset };
 }
 

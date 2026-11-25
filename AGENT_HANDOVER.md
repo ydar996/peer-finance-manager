@@ -175,6 +175,21 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-24** - **Toggle now holds portal notices too + resend channel
+  choice.** `postMemberNoticeFromAutomatedEmail` (messaging-service.js)
+  returns `{created:false, reason:'member_email_disabled'}` when the
+  member-messaging toggle is off, so automated portal notices (deposit
+  alerts, loan due notices, loan application notifies) are held, not
+  posted; callers mark them 'skipped' = retriable. Admin-facing notices
+  are unaffected. Resend endpoint accepts `includePortal: true`:
+  `emailOnly=false` delivers BOTH channels (use when comms were fully
+  held); default email-only avoids duplicate portal notices (use for
+  the pre-change Assurance import where portal notices already posted).
+  UI: "Also Post Portal Notices" checkbox on the Resend card; toggle
+  copy now says emails AND portal notices are held. Verified live:
+  gate off + resend -> 0 portal posts, all 'skipped'; gate on +
+  includePortal -> 28 portal notices posted, 428 marked 'sent'.
+
 - **2026-11-24** - **Resend for notifications suppressed while member
   email was toggled off.** New admin endpoint
   `POST /api/notifications/resend-missed` (org-scoped,

@@ -6689,8 +6689,8 @@ async function loadMemberEmailNotificationsToggle() {
     toggle.checked = data.enabled === true;
     if (status) {
       status.textContent = toggle.checked
-        ? "On: members receive automated email notifications."
-        : "Off: no automated email is sent to members.";
+        ? "On: members receive automated email and portal notifications."
+        : "Off: automated member emails and portal notices are held for later resend.";
       status.className = toggle.checked ? "status ok" : "status";
     }
   } catch (err) {
@@ -6718,8 +6718,8 @@ $("#memberEmailNotificationsToggle")?.addEventListener("change", async (e) => {
     toggle.checked = data.enabled === true;
     if (status) {
       status.textContent = toggle.checked
-        ? "On: members receive automated email notifications."
-        : "Off: no automated email is sent to members.";
+        ? "On: members receive automated email and portal notifications."
+        : "Off: automated member emails and portal notices are held for later resend.";
       status.className = toggle.checked ? "status ok" : "status";
     }
   } catch (err) {
@@ -6749,7 +6749,11 @@ $("#resendMissedNotificationsBtn")?.addEventListener("click", async (e) => {
     const res = await fetch("/api/notifications/resend-missed", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resendImport: true, loanDueDates: dates }),
+      body: JSON.stringify({
+        resendImport: true,
+        loanDueDates: dates,
+        includePortal: $("#resendIncludePortal")?.checked === true,
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Resend failed");

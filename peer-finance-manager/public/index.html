@@ -2498,16 +2498,21 @@
             <input type="checkbox" id="memberEmailNotificationsToggle" />
             Email Members Automatically
           </label>
-          <p class="subtle">When off, no automated email is sent to members: deposit alerts, dues reminders, loan and meeting notices, and report announcements are skipped. Member-requested password resets still send.</p>
+          <p class="subtle">When off, no automated email or portal notice reaches members: deposit alerts, dues reminders, loan and meeting notices, and report announcements are held for later resend. Member-requested password resets still send.</p>
           <p id="memberEmailNotificationsStatus" class="status"></p>
         </div>
         <div class="card">
           <h3>Resend Missed Notifications</h3>
-          <p class="subtle">Emails skipped while the toggle was off do not retry on their own. Resend deposit/loan repayment alerts for the latest bank import, and loan due notices for specific dates. Portal messages are not duplicated.</p>
+          <p class="subtle">Notifications held while the toggle was off do not retry on their own. Resend deposit/loan repayment alerts for the latest bank import, and loan due notices for specific dates.</p>
           <div class="field-row">
             <span>Loan Due Dates (optional)</span>
             <input type="text" id="resendLoanDueDates" placeholder="YYYY-MM-DD, comma separated" />
           </div>
+          <label class="check">
+            <input type="checkbox" id="resendIncludePortal" />
+            Also Post Portal Notices
+          </label>
+          <p class="subtle">Check this when notifications were fully held (toggle off). Leave unchecked if members already saw portal notices to avoid duplicates.</p>
           <div class="panel-head-actions">
             <button type="button" class="btn" id="resendMissedNotificationsBtn">Resend Notifications</button>
           </div>
