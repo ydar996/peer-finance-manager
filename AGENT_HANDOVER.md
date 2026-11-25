@@ -175,6 +175,17 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Canary reconcile anchor recompute.** make-canary-demo
+  previously scaled `bank_reconcile_balance*` settings by 1.75 like other
+  monetary keys, but the live balance at the anchor date is a cumulative
+  sum of individually-rounded rows, so the stored anchor drifted ~5 kobo
+  and the demo org showed "Out of Sync". Now every
+  `bank_reconcile_balance[_acct_N]` key is recomputed from the scaled
+  ledger at its `bank_reconcile_as_of` date (same rule as
+  getLedgerEndingBalance: ledger types, bank_import/manual sources,
+  per-account). Regenerated DB verified: stored anchor == live balance,
+  bank_import row counts match. Owner re-uploaded to the canary org.
+
 - **2026-11-25** - **Statements tab retired; workbook files moved out of
   the repo.** The legacy "Periodic Statements (PDF)" panel listed every
   `.xlsx` in the shared `getCoopRoot()` (repo root in dev), which showed

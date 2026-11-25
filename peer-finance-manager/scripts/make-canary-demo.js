@@ -474,13 +474,48 @@ const tx = db.transaction(() => {
   }
 
   // settings: org identity + scale monetary keys + scrub name in JSON logs
-  const moneyKeys = ["membership_fee_amount", "annual_dues_amount", "initial_contribution_amount",
-    "bank_reconcile_balance", "bank_reconcile_balance_acct_2"];
+  const moneyKeys = ["membership_fee_amount", "annual_dues_amount", "initial_contribution_amount"];
   for (const k of moneyKeys) {
     const r = db.prepare("SELECT value FROM cooperative_settings WHERE key=?").get(k);
     if (r && !isNaN(Number(r.value))) {
       db.prepare("UPDATE cooperative_settings SET value=? WHERE key=?").run(String(scale(Number(r.value))), k);
     }
+  }
+
+  // reconcile anchors: the live balance at an anchor date is the cumulative
+  // sum of scaled ledger rows; scaling the stored value itself drifts by
+  // per-row rounding (Out of Sync). Recompute every anchor from the scaled
+  // ledger the same way getLedgerEndingBalance does.
+  const RECONCILE_LEDGER_TYPES = ["deposit", "withdrawal", "distribution",
+    "loan_disbursement", "loan_repayment", "expense", "cd_purchase",
+    "cd_liquidation", "investment", "other_income", "share_capital",
+    "share_capital_redemption"];
+  const primaryAcctId =
+    db.prepare("SELECT id FROM bank_accounts WHERE is_primary=1").get()?.id ?? null;
+  const getSetting = db.prepare("SELECT value FROM cooperative_settings WHERE key=?");
+  const balAtAnchor = db.prepare(
+    `SELECT ROUND(COALESCE(SUM(amount),0),2) AS bal FROM transactions
+     WHERE source IN ('bank_import','manual')
+       AND type IN (${RECONCILE_LEDGER_TYPES.map(() => "?").join(",")})
+       AND transaction_date <= ?
+       AND (bank_account_id = ? OR (bank_account_id IS NULL AND ? = 1))`
+  );
+  const recomputedAnchorKeys = new Set();
+  const setAnchor = db.prepare("UPDATE cooperative_settings SET value=? WHERE key=?");
+  for (const { key } of db
+    .prepare("SELECT key FROM cooperative_settings WHERE key LIKE 'bank_reconcile_balance%'")
+    .all()) {
+    const m = /^bank_reconcile_balance_acct_(\d+)$/.exec(key);
+    const acctId = m ? Number(m[1]) : primaryAcctId;
+    if (acctId == null) continue;
+    const asOf = getSetting.get(
+      m ? `bank_reconcile_as_of_acct_${m[1]}` : "bank_reconcile_as_of"
+    )?.value;
+    if (!asOf) continue;
+    const isPrimary = primaryAcctId == null || acctId === primaryAcctId ? 1 : 0;
+    const { bal } = balAtAnchor.get(...RECONCILE_LEDGER_TYPES, asOf, acctId, isPrimary);
+    setAnchor.run(String(bal), key);
+    recomputedAnchorKeys.add(key);
   }
   for (const k of ["annual_dues_schedule", "annual_dues_change_log"]) {
     const r = db.prepare("SELECT value FROM cooperative_settings WHERE key=?").get(k);
@@ -496,7 +531,8 @@ const tx = db.transaction(() => {
     if (r) db.prepare("UPDATE cooperative_settings SET value=? WHERE key=?").run(ORG_NAME, k);
   }
   // scrub every remaining settings value (emails, names, phones in JSON/text)
-  const handledKeys = new Set([...moneyKeys, "annual_dues_schedule", "annual_dues_change_log",
+  const handledKeys = new Set([...moneyKeys, ...recomputedAnchorKeys,
+    "annual_dues_schedule", "annual_dues_change_log",
     "cooperative_name", "org_name", "organization_name"]);
   const upSetting = db.prepare("UPDATE cooperative_settings SET value=? WHERE key=?");
   for (const r of db.prepare("SELECT key, value FROM cooperative_settings").all()) {
