@@ -744,6 +744,24 @@ a {
   margin: 28px 0 0;
 }
 
+/* heading + CTA button on one line inside a grid column */
+.pf-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.pf-side-head h2 {
+  margin: 0;
+}
+
+.pf-side-head .pf-eyebrow {
+  margin-bottom: 6px;
+}
+
 .pf-trust-list {
   margin: 0;
   padding: 0;

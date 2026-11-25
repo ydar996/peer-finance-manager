@@ -197,6 +197,9 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
   clears 'skipped'/'failed' rows plus members whose delivery shows no
   real email (portal_only). Resend card is now one row: checkbox +
   button; click sends resendImport+resendLoanDues+includePortal.
+  **Layout:** `.pf-side-head` (product.css) puts heading block + CTA
+  button on one line; applied to the trust-grid sections on
+  features/featuresng/security pages.
 
 - **2026-11-24** - **Resend for notifications suppressed while member
   email was toggled off.** New admin endpoint
