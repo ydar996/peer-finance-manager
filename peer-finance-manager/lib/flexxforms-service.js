@@ -369,7 +369,12 @@ async function provisionFlexxFormsForOrganization(org, adminEmail, { fullName, o
   });
 
   applyEnsureResponse(org.slug, data, email);
-  return getFlexxFormsAdminView(org.slug, { consumeTempPassword: false });
+  const view = getFlexxFormsAdminView(org.slug, { consumeTempPassword: false });
+  // Fresh one-time sign-in link issued on every ensure call; surfaced in the
+  // retry response only (never persisted), for admins who never saw the
+  // initial temporary password.
+  if (data?.magicLinkUrl) view.magicLinkUrl = data.magicLinkUrl;
+  return view;
 }
 
 async function provisionOrganization(slug, { email, fullName, organizationName, sessionUser } = {}) {

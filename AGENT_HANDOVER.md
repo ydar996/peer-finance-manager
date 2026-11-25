@@ -175,6 +175,16 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **FlexxForms sign-in recovery via magic link.** No
+  passcode email exists: the temporary password is only shown once in
+  the Forms & Documents panel at provisioning, so admins who missed it
+  had no way in. FlexxForms /platform/workspaces/ensure issues a fresh
+  magicLinkUrl on every call (including existing workspaces), but PFM
+  dropped it. provisionFlexxFormsForOrganization now returns it in the
+  admin view (never persisted), and the Retry FlexxForms Setup handler
+  shows a 'One-Time FlexxForms Sign-In Link' after success. Panel copy
+  that wrongly referenced a 'registration email' corrected.
+
 - **2026-11-25** - **Demo bank statement generator**
   (scripts/make-demo-statement.js). Reads the canary DB for the
   primary bank account, member names, and the reconcile anchor, then

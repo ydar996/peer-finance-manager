@@ -11380,7 +11380,7 @@ async function loadFlexxFormsSettings() {
       } else {
         tempLine.classList.add("hidden");
         tempLine.textContent = s.provisioned
-          ? "Use the password from your FlexxForms registration email, or reset it in FlexxForms."
+          ? "Sign in with the temporary password shown once when setup ran. Lost it? Click Retry FlexxForms Setup: it issues a fresh one-time sign-in link."
           : "";
         if (s.provisioned) tempLine.classList.remove("hidden");
       }
@@ -12320,6 +12320,13 @@ $("#retryFlexxFormsProvision")?.addEventListener("click", async () => {
     if (!res.ok) throw new Error(data.error || "Retry failed");
     setFormStatus(status, "FlexxForms workspace is ready.", true);
     await loadFlexxFormsSettings();
+    if (data.magicLinkUrl) {
+      const tempLine = $("#flexxformsTempPasswordLine");
+      if (tempLine) {
+        tempLine.innerHTML = `One-Time FlexxForms Sign-In Link (expires soon, open it now): <a href="${escapeHtml(data.magicLinkUrl)}" target="_blank" rel="noopener">Sign In to FlexxForms</a>`;
+        tempLine.classList.remove("hidden");
+      }
+    }
   } catch (err) {
     setFormStatus(status, err.message, false);
     await loadFlexxFormsSettings();
