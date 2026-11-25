@@ -10553,10 +10553,15 @@ $("#dataRestoreForm")?.addEventListener("submit", async (e) => {
     const res = await fetch("/api/admin/data-restore", { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Restore failed");
-    if (status) setFormStatus(status, data.message || "Database restored.", true);
+    if (status)
+      setFormStatus(
+        status,
+        (data.message || "Database restored.") + " Reloading…",
+        true
+      );
     form.reset();
     $("#dataRestorePreview")?.classList.add("hidden");
-    loadBooks();
+    setTimeout(() => window.location.reload(), 1500);
   } catch (err) {
     if (status) setFormStatus(status, err.message, false);
   } finally {

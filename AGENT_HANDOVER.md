@@ -175,6 +175,13 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Reload UI after Database Restore.** Restore handler
+  only called loadBooks(), so cached member lists stayed on the
+  pre-restore ids; clicking a stale row opened a different member in
+  the new DB (surfaced on the canary org after re-uploading a
+  regenerated DB). Now reloads the page ~1.5s after a successful
+  restore so every panel refetches.
+
 - **2026-11-25** - **Canary reconcile anchor recompute.** make-canary-demo
   previously scaled `bank_reconcile_balance*` settings by 1.75 like other
   monetary keys, but the live balance at the anchor date is a cumulative
