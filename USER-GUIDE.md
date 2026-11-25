@@ -478,7 +478,7 @@ Cooperative-wide performance PDF for members.
 - Manual **Generate Report** / **Publish to Members** are dated **the day you run them**.
 - Optional organization website on the cover.
 
-**Operational Expense Labels:** assign report labels to expense lines so the PDF groups them cleanly. Dropdown defaults: Bank Fees, Administrative, Technology, Meeting/Event, Professional Services, Insurance, Other. Use **Add Report Label** or **Add New Label…** in a row to create another label; new labels stay available for every expense.
+**Operational Expense Labels:** assign report labels to expense lines so the PDF groups them cleanly. Rows without a label count as **Other** automatically. Dropdown defaults: Bank Fees, Administrative, Technology, Meeting/Event, Professional Services, Insurance, Wages and Salaries, Other. Use **Add Report Label** or **Add New Label…** in a row to create another label; new labels stay available for every expense.
 
 ---
 

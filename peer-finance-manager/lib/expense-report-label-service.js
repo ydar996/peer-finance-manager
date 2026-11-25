@@ -99,9 +99,12 @@ function effectiveReportLabel(line) {
 function listExpenseReportLines() {
   const db = getDb();
   ensureExpenseReportLabelSchema(db);
+  const labels = listExpenseReportLabels();
+  const labelsById = new Map(labels.map((entry) => [entry.id, entry]));
   const labelsByName = new Map(
-    listExpenseReportLabels().map((entry) => [entry.label.toLowerCase(), entry])
+    labels.map((entry) => [entry.label.toLowerCase(), entry])
   );
+  const otherLabel = labelsByName.get("other") || null;
   const rows = db
     .prepare(
       `SELECT e.id, e.description, e.amount, e.expense_date, e.category, e.report_label_id,
@@ -113,13 +116,16 @@ function listExpenseReportLines() {
     )
     .all();
   return rows.map((row) => {
-    const reportLabel = row.report_label || null;
     const category = row.category || null;
-    let reportLabelId = row.report_label_id;
-    if (reportLabelId == null && category) {
-      const match = labelsByName.get(normalizeLabelText(category).toLowerCase());
-      if (match) reportLabelId = match.id;
+    let labelEntry =
+      row.report_label_id != null ? labelsById.get(row.report_label_id) : null;
+    if (!labelEntry && category) {
+      labelEntry = labelsByName.get(normalizeLabelText(category).toLowerCase()) || null;
     }
+    if (!labelEntry) labelEntry = otherLabel;
+    const reportLabelId = labelEntry?.id ?? row.report_label_id;
+    const reportLabel = labelEntry?.label || row.report_label || null;
+    const parentLabel = labelEntry?.parentLabel || row.parent_label || null;
     return {
       id: row.id,
       description: row.description,
@@ -130,7 +136,7 @@ function listExpenseReportLines() {
       reportLabel,
       // Child labels (e.g. "Stamp Duty" under "Bank Fees") roll up to their
       // parent for consolidated report totals.
-      effectiveLabel: row.parent_label || reportLabel || normalizeLabelText(category) || null,
+      effectiveLabel: parentLabel || reportLabel || normalizeLabelText(category) || null,
     };
   });
 }

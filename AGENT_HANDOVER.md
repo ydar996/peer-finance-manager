@@ -175,6 +175,17 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Expense amounts right-aligned + unlabeled expenses
+  default to Other.** theme.css adds a summary::after chevron as a
+  third flex child, so space-between parked expense amounts in the
+  middle (staggered by label length); margin-left:auto on the
+  money/badge pins them flush before the chevron in one column.
+  listExpenseReportLines now resolves NULL report_label_id to the
+  seeded 'Other' label (after the existing category-name match), so
+  the labels table shows 'Other' instead of 'Select Label…', the
+  summary consolidates them under Other, and allLabeled is true so the
+  PDF always shows consolidated totals. Panel hint rewritten shorter.
+
 - **2026-11-25** - **CD card: localized labels, no leaked defaults,
   schedule-aware fee prefill, sections collapse on re-entry.**
   cd-balance-service CD_TERM_DEFAULTS (a real CD's terms: 7176.28 @
