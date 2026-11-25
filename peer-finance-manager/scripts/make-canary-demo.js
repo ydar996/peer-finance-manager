@@ -459,11 +459,24 @@ const tx = db.transaction(() => {
   db.prepare("UPDATE checking_balance_updates SET note='Import reconciliation' WHERE note IS NOT NULL").run();
   db.prepare("UPDATE cd_balance_updates SET note='Import reconciliation' WHERE note IS NOT NULL").run();
   {
-    let i = 0;
-    for (const r of db.prepare("SELECT id FROM expense_report_labels").all()) {
-      db.prepare("UPDATE expense_report_labels SET label=? WHERE id=?")
-        .run(`${EXPENSE_ITEMS[i++ % EXPENSE_ITEMS.length]} ${i}`, r.id);
-    }
+    const defaultLabels = new Set([
+      "BANK FEES", "ADMINISTRATIVE", "TECHNOLOGY", "MEETING/EVENT",
+      "PROFESSIONAL SERVICES", "INSURANCE", "WAGES AND SALARIES", "OTHER",
+    ]);
+    const rows = db
+      .prepare("SELECT id, label FROM expense_report_labels")
+      .all()
+      .filter((r) => !defaultLabels.has(String(r.label || "").toUpperCase()));
+    const rename = db.prepare("UPDATE expense_report_labels SET label=? WHERE id=?");
+    for (const r of rows) rename.run(`__pfm_tmp_${r.id}`, r.id);
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    rows.forEach((r, k) => {
+      const label =
+        k < EXPENSE_ITEMS.length
+          ? EXPENSE_ITEMS[k]
+          : `MISCELLANEOUS ${letters[(k - EXPENSE_ITEMS.length) % letters.length]}`;
+      rename.run(label, r.id);
+    });
   }
 
   // bank accounts: new account numbers, synthetic institution + labels

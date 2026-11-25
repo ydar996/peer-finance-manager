@@ -175,6 +175,17 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Canary labels no longer get numeric suffixes.**
+  make-canary-demo.js renamed every expense_report_labels row to
+  'EXPENSE ITEM n' (e.g. 'AUDIT FEE 9'). Now: the 8 seeded default
+  labels keep their names, custom labels get unique names from
+  EXPENSE_ITEMS (two-pass rename avoids NOCASE UNIQUE collisions when
+  a source label equals a pool item), fallback is 'MISCELLANEOUS A/B'
+  if a source ever exceeds the pool. Regenerated canary file has clean
+  labels; verifier flags one benign generic word ('services' from the
+  preserved default 'Professional Services'), scale/integrity clean.
+  Prod canary org needs a re-restore of the new file to see this.
+
 - **2026-11-25** - **Expense amounts right-aligned + unlabeled expenses
   default to Other.** theme.css adds a summary::after chevron as a
   third flex child, so space-between parked expense amounts in the
