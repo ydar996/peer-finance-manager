@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Public pages plain-text parser: bullets no longer
+  glued.** repairOcrWordSplits' hyphen fix (\w)\s+-\s*(\w) matched
+  across newlines, so any '- ' bullet following a line ending in a word
+  character was merged into the previous text (headings swallowed their
+  lists). Restricted to same-line whitespace. Verified with demo
+  About/Bylaws text: 11/40 list items now emit correctly. Paste-ready
+  demo content for Twilight Coop saved to ~/Downloads/twilight-about-us.txt
+  and ~/Downloads/twilight-bylaws.txt (publish via Admin > Public Pages).
+
 - **2026-11-25** - **FlexxForms sign-in recovery via magic link.** No
   passcode email exists: the temporary password is only shown once in
   the Forms & Documents panel at provisioning, so admins who missed it

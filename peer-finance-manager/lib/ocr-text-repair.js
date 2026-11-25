@@ -7,7 +7,7 @@ function repairOcrWordSplits(input) {
   let text = String(input || "");
 
   text = text.replace(/\b(19|20)\s+(\d{2})\b/g, "$1$2");
-  text = text.replace(/(\w)\s+-\s*(\w)/g, "$1-$2");
+  text = text.replace(/(\w)[^\S\n]+-[ \t]*(\w)/g, "$1-$2");
   text = text.replace(/[^\S\n]+/g, " ");
 
   // High-confidence OCR phrase fixes (order matters for longer phrases first).
