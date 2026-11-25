@@ -175,6 +175,17 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Category select on merged fee+deposit rows now shows
+  the real bank classification.** mergeFeeDepositPairs bound the
+  reclassify select to the deposit leg (type 'deposit' -> "Member
+  Deposit") while the Type column showed the fee label ("Annual
+  Membership Fee"), so the two columns contradicted each other.
+  controlsTx now carries the bank row's true classification
+  (membership_fee) with the deposit leg's identity fields, so the
+  select shows the correct category, the reclassify confirm reads the
+  right source type, and reclassifying still keys the bank row by
+  date/amount/description (un-pairs correctly when changed).
+
 - **2026-11-25** - **Reload UI after Database Restore.** Restore handler
   only called loadBooks(), so cached member lists stayed on the
   pre-restore ids; clicking a stale row opened a different member in

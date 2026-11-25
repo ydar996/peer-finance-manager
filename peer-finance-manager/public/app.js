@@ -3557,7 +3557,9 @@ function mergeFeeDepositPairs(transactions) {
         amount: pair.dep.amount,
         balance_after: later.balance_after,
         description: pair.dep.description || pair.fee.description,
-        controlsTx: pair.dep,
+        // The merged line is one bank row classified as a fee: the select
+        // must show the bank classification, not the deposit leg's type.
+        controlsTx: { ...pair.dep, type: "membership_fee" },
       });
       i++;
     } else {
