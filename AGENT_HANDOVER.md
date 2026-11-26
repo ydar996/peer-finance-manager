@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-26** - **Owner checklist Part A corrected — DPAs are mostly
+  automatic.** Verified each vendor: Netlify, Stripe, and Supabase
+  incorporate their DPA into the terms accepted at sign-up (nothing to
+  click; Supabase removed its separate signing flow Aug 2026). Only
+  Render needs action: GDPR DPA downloads from the Document Center via
+  the dashboard's ? help icon (or trust.render.com). Checklist now tells
+  owner to save copies for records instead of hunting for nonexistent
+  Accept buttons.
+
 - **2026-11-26** - **Owner checklist Part B simplified to Namecheap only.**
   Owner rejected third-party send paths (Gmail send-as, SMTP relays).
   Part B now offers two Namecheap-native options: free forwarding
