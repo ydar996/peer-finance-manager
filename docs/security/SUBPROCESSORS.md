@@ -12,7 +12,8 @@ with each provider (their standard terms or a signed DPA).
 | Netlify | Frontend static hosting | Public pages, static assets (no member data beyond public content) | Netlify DPA available |
 | Stripe | Subscription payments | Billing email, payment method tokens, transaction records | Stripe DPA standard; SAQ A scope |
 | FlexxForms | Membership/loan forms (separate product, same owner) | Application form submissions, member identity data | Internal product; same controller/processor terms apply |
-| Bluehost (SMTP) | Outbound email | Recipient emails, names, message content | Standard email terms; no DPA needed at current volume, review if enterprise |
+| Bluehost (SMTP relay) | Outbound email relay for system notifications (via eworkchop.com relay script) | Recipient emails, names, message content | Standard email terms; no DPA needed at current volume, review if enterprise |
+| Namecheap | Domain registration + email forwarding/Private Email for peerfinancemanager.com | Inbound contact addresses (security@/privacy@/legal@), domain WHOIS privacy | Namecheap standard terms; low data volume |
 | Supabase (FlexxForms backend) | FlexxForms database | FlexxForms workspace data | Supabase DPA available; accept in FlexxForms project settings |
 | Uptime monitor (TBD) | Health checks | URL only, no user data | Free tier sufficient |
 | Error webhook (optional) | Alert forwarding | Error metadata only | n/a |
