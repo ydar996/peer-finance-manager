@@ -22,18 +22,27 @@ of an angry customer. Auditors also like seeing uptime evidence.
    `peerfinancemanager.com/api/health` in **Website to monitor**, then
    your email under **Create your account**, and click **Register**
    (or sign up with the Google button).
-3. Confirm the verification email, then log in.
-4. Open the monitor that was just created (click it, or **Edit**) and
+3. UptimeRobot may show a "Here is what we found for you" screen listing
+   auto-detected pages (e.g. /admin, /register, or an onrender.com
+   address). **Uncheck all of them** — you only want one monitor on the
+   health endpoint; the auto-detected pages cause false "down" alerts.
+   Click **Create monitors** or **Skip onboarding**.
+4. Confirm the verification email, then log in.
+5. Open the monitor that was created (click it, or **Edit**) and
    check/fill in:
    - **Monitor Type:** HTTP(s)
    - **Friendly Name:** `Peer Finance Manager API`
    - **URL:** `https://peerfinancemanager.com/api/health`
    - **Monitoring Interval:** 5 minutes (free tier default)
-5. If no monitor was created during signup, click **+ Add New Monitor**
+   If it auto-created a monitor on a different address (like
+   peer-finance-manager.onrender.com), edit that monitor and change the
+   URL to the one above — do not leave extra monitors running.
+6. If no monitor was created during signup, click **+ Add New Monitor**
    and fill in the same fields, then **Create Monitor**.
-6. Click your account name (top right) > **Alert Contacts** > **Add Alert
-   Contact** > choose **Email** (or SMS if offered on free tier) and save.
-7. Done. You will now get an email within minutes if the health endpoint
+7. Click your account name (top right) > **Alert Contacts** > **Add Alert
+   Contact** > choose **Email** (or SMS if offered on free tier) and save
+   — or skip this if "Email alerts" was already enabled during signup.
+8. Done. You will now get an email within minutes if the health endpoint
    stops answering.
 
 **Optional second monitor:** add another monitor for
