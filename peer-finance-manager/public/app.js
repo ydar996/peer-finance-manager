@@ -10865,22 +10865,26 @@ function renderPublicPagesAdmin(data) {
       bylawsStatus.textContent = "Optional PDF: not uploaded yet.";
     }
   }
-  if (imagesList) {
-    if (!data.images?.length) {
-      imagesList.innerHTML = '<li class="subtle">No images uploaded yet.</li>';
-    } else {
-      imagesList.innerHTML = data.images
-        .map(
-          (img) => `<li>
-            <img src="${escapeHtml(img.url)}" alt="" class="public-admin-thumb" />
-            <span>${escapeHtml(img.filename)}</span>
-            <button type="button" class="btn btn-small" data-delete-public-image="${escapeHtml(img.filename)}">Remove</button>
-          </li>`
-        )
-        .join("");
-    }
-  }
+  if (imagesList) renderAboutImagesList(data, imagesList);
   syncPublicPagesExternalFields();
+}
+
+function renderAboutImagesList(data, imagesList) {
+  if (!imagesList) imagesList = $("#publicAboutImagesList");
+  if (!imagesList) return;
+  if (!data.images?.length) {
+    imagesList.innerHTML = '<li class="subtle">No images uploaded yet.</li>';
+    return;
+  }
+  imagesList.innerHTML = data.images
+    .map(
+      (img) => `<li>
+        <img src="${escapeHtml(img.url)}" alt="" class="public-admin-thumb" />
+        <span>${escapeHtml(img.filename)}</span>
+        <button type="button" class="btn btn-small" data-delete-public-image="${escapeHtml(img.filename)}">Remove</button>
+      </li>`
+    )
+    .join("");
 }
 
 async function loadPublicPagesPanel() {
@@ -10967,7 +10971,7 @@ async function uploadPublicAboutImage(file) {
     const res = await fetch("/api/books/public-pages/about/images", { method: "POST", body: form });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Upload failed");
-    renderPublicPagesAdmin(data);
+    renderAboutImagesList(data);
     if (statusEl) setFormStatus(statusEl, "Image uploaded.", true);
   } catch (err) {
     if (statusEl) setFormStatus(statusEl, err.message, false);
@@ -10983,7 +10987,7 @@ async function deletePublicAboutImage(filename) {
     );
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Delete failed");
-    renderPublicPagesAdmin(data);
+    renderAboutImagesList(data);
     if (statusEl) setFormStatus(statusEl, "Image removed.", true);
   } catch (err) {
     if (statusEl) setFormStatus(statusEl, err.message, false);

@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Public Pages: image upload no longer wipes form
+  state.** Uploading/removing an About image re-rendered the whole
+  panel via renderPublicPagesAdmin, which reset the Publish checkbox
+  to the server value and could wipe unsaved textarea text — admins
+  had to check Publish and Save twice. Extracted
+  renderAboutImagesList(data); upload/delete now refresh only the
+  image list. renderPublicPagesAdmin still syncs form state on load
+  and after saves.
+
 - **2026-11-25** - **About page images work via plain text as documented.**
   The admin hint promised `about/your-image.png` on its own line embeds
   an uploaded image, but plainTextToPublicHtml never implemented it —
