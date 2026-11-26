@@ -421,9 +421,18 @@ function registerFlexxFormsRoutes(app) {
     }
   });
 
-  app.get("/api/loans/:id/flexxforms-documents", requireAuth, (req, res) => {
+  app.get("/api/loans/:id/flexxforms-documents", requireAuth, async (req, res) => {
     try {
-      const docs = getLoanDocuments(req.params.id);
+      const slug = requestOrgSlug(req);
+      if (slug) {
+        try {
+          const { refreshLoanDocumentStatuses } = require("./flexxforms-service");
+          await refreshLoanDocumentStatuses(slug, req.params.id);
+        } catch (_) {
+          /* refresh is best-effort */
+        }
+      }
+      const docs = getLoanDocuments(req.params.id, slug);
       if (!docs) return res.status(404).json({ error: "Loan not found" });
       res.json({ documents: docs });
     } catch (err) {
@@ -439,7 +448,11 @@ function registerFlexxFormsRoutes(app) {
       try {
         const slug = requestOrgSlug(req);
         const purpose = req.body?.purpose;
-        const documents = await createLoanAgreementDocument(slug, req.params.id, purpose);
+        const documents = await createLoanAgreementDocument(slug, req.params.id, purpose, {
+          sessionUser: req.user,
+          guarantorMemberId: req.body?.guarantorMemberId ?? null,
+          applicationId: req.body?.applicationId ?? null,
+        });
         res.json({ success: true, documents });
       } catch (err) {
         res.status(400).json({ error: err.message });

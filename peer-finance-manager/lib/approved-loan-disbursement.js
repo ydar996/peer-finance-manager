@@ -60,11 +60,22 @@ function listPendingApprovedLoans() {
   } catch (_) {
     return [];
   }
+  let slug = null;
+  try {
+    slug = require("./org-context").getOrgSlugOrNull();
+  } catch (_) {}
   return rows
     .map((row) => {
       const terms = parseTerms(row.termsJson);
       const principal = Number(terms?.principal);
       if (!(principal > 0.005)) return null;
+      let signing = null;
+      if (slug && row.loanId) {
+        try {
+          const { computeLoanSigningState } = require("./flexxforms-service");
+          signing = computeLoanSigningState(slug, row.loanId);
+        } catch (_) {}
+      }
       return {
         applicationId: Number(row.applicationId),
         memberId: Number(row.memberId),
@@ -73,6 +84,9 @@ function listPendingApprovedLoans() {
         principal: round2(principal),
         terms,
         approvedAt: row.approvedAt,
+        signingRequired: signing?.documentsRequired === true,
+        signingComplete: signing?.allSigned === true,
+        signingStage: signing?.stage || null,
       };
     })
     .filter(Boolean);
@@ -136,6 +150,28 @@ function applyApprovedLoanDisbursementMatches(previewRows, memberNames = []) {
     row.typeLabel = typeLabelForLedger(TRANSACTION_TYPES.LOAN_DISBURSEMENT);
     row.member = match.memberName;
     row.approvedApplicationId = match.applicationId;
+    if (match.signingRequired && !match.signingComplete) {
+      row.matchNote =
+        "Approved loan amount: signature documents incomplete, disbursement blocked";
+      const issues = validateParsedRow(
+        {
+          date: row.date,
+          description: row.description,
+          amount: row.amount,
+          ledgerType: row.ledgerType,
+          member: row.member,
+          typeSource: "explicit",
+          reference: row.reference,
+        },
+        memberNames
+      );
+      row.issues = [
+        ...issues,
+        `Approved loan application #${match.applicationId}: agreement/guaranty signatures are incomplete. Disbursement is blocked until all FlexxForms documents are signed.`,
+      ];
+      row.bucket = "needsReview";
+      continue;
+    }
     row.matchNote = "Approved loan amount: will open the member loan account";
     if (!row.userOverride) row.typeSource = "approved_loan";
     const issues = validateParsedRow(

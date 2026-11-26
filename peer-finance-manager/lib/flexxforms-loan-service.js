@@ -410,6 +410,15 @@ function listLoanApplications() {
         .get(row.memberId);
       memberName = m?.name || null;
     }
+    let signing = null;
+    if (row.loanId && row.status === "approved") {
+      try {
+        const { getOrgSlugOrNull } = require("./org-context");
+        const { computeLoanSigningState } = require("./flexxforms-service");
+        const slug = getOrgSlugOrNull();
+        if (slug) signing = computeLoanSigningState(slug, row.loanId);
+      } catch (_) {}
+    }
     return {
       id: row.id,
       kind: row.kind,
@@ -421,6 +430,7 @@ function listLoanApplications() {
       loanId: row.loanId,
       disbursementTxId: row.disbursementTxId || null,
       awaitingBankDisbursement: row.status === "approved" && !row.disbursementTxId,
+      signing,
       applicantName: row.applicantName || parsed.applicantName || null,
       applicantEmail: row.applicantEmail || parsed.email || null,
       processingError: row.processingError,
@@ -847,6 +857,28 @@ async function approveLoanApplication(applicationId, approvedByUserId, overrides
     notice = { portalPosted: false, emailStatus: "failed", error: err.message };
   }
 
+  let signing = { issued: false };
+  try {
+    const { getOrgSlugOrNull } = require("./org-context");
+    const slug = getOrgSlugOrNull();
+    if (slug) {
+      const { maybeAutoIssueLoanDocuments } = require("./flexxforms-service");
+      const sessionUser = approvedByUserId
+        ? db
+            .prepare(
+              `SELECT id, email, username, display_name AS displayName, role FROM users WHERE id = ?`
+            )
+            .get(approvedByUserId)
+        : null;
+      signing = await maybeAutoIssueLoanDocuments(slug, loanId, {
+        sessionUser,
+        applicationId,
+      });
+    }
+  } catch (_) {
+    /* auto-issue is best-effort; approval already recorded */
+  }
+
   return {
     applicationId: Number(applicationId),
     loanId,
@@ -858,6 +890,7 @@ async function approveLoanApplication(applicationId, approvedByUserId, overrides
     guarantor2Id: terms.coveredByDeposits ? null : guarantor2Id,
     maxAmount: validation.maxAmount,
     notice,
+    signing,
   };
 }
 

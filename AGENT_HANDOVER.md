@@ -175,6 +175,41 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Loan signing pipeline: agreement + per-guarantor
+  guaranty documents gate disbursement.** New `loan_documents` table
+  (one row per issued document: borrower agreement + one Personal Loan
+  Guaranty per named guarantor, each countersigned by a Cooperative
+  exco via a second signer role). `createLoanAgreementDocument` now
+  accepts purpose `all` and `guarantorMemberId`, sends `signers` to
+  FlexxForms so each signer gets a personal tokenized signing URL, and
+  stores per-signer URLs in `signers_json`. `computeLoanSigningState`
+  derives the stage: awaiting_documents / awaiting_signatures /
+  ready_for_disbursement (documents_not_required when the org has no
+  master doc ids configured, so non-FlexxForms-docs orgs keep the old
+  flow). Webhook `handleDocumentCompleted` now matches
+  `loan_documents.flexxforms_document_id` first and keeps the legacy
+  `loans.*_doc_*` columns synced (`syncLoanDocumentLegacyColumns`,
+  guarantor column = completed only when ALL guarantor docs are done).
+  `GET /api/loans/:id/flexxforms-documents` lazily refreshes signing
+  status from FlexxForms (`refreshLoanDocumentStatuses`) so
+  partially_signed shows without waiting for the completed webhook.
+  Auto-issue: `organizations.loan_docs_auto_issue` flag + checkbox
+  "Auto-Issue Agreement Documents on Approval" in Manage Forms &
+  Documents (default off); when on, `approveLoanApplication` calls
+  `maybeAutoIssueLoanDocuments` best-effort (never fails approval).
+  Disbursement gating: `listPendingApprovedLoans` annotates each app
+  with signingRequired/signingComplete; `applyApprovedLoanDisbursementMatches`
+  still marks the matched outflow as loan_disbursement but forces
+  `needsReview` with a blocking issue ("signatures are incomplete") so
+  unsigned loans are never silently booked. Member portal: approved
+  loan cards show "Signing Progress: stage (n/m Documents Signed)"
+  plus a per-member "Sign Loan Agreement / Sign Guaranty" button
+  resolved from `signers[].memberId` -> `signingUrl` (memberId merged
+  back by signer index since FlexxForms only stores id/label/email).
+  Admin Loan Agreements panel shows the stage + per-document
+  checklist + per-signer signing links and a new "Issue All Agreement
+  Documents" button. All Cooperative types, not just Nigeria.
+
 - **2026-11-25** - **Public links are now real buttons.** About/Bylaws/
   Apply links render as outlined buttons (.btn.public-page-link) with an
   external-link arrow (&#8599;) signaling new-tab behavior, inside the

@@ -1214,6 +1214,10 @@
             <label>Borrower Master Document Id
               <input type="text" id="ffBorrowerMasterDocId" placeholder="UUID from FlexxForms" />
             </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="ffAutoIssueLoanDocs" />
+              Auto-Issue Agreement Documents on Approval: when a loan application is approved, automatically create the Personal Loan Agreement and one Personal Loan Guaranty per named guarantor, each countersigned by the approving administrator. Disbursement stays blocked until every document is fully signed.
+            </label>
             <button type="submit" class="btn primary">Save Form &amp; Document Ids</button>
           </form>
           <p class="subtle" style="margin-top: 12px;">Membership Applications</p>
@@ -1367,8 +1371,9 @@
           <h3>Loan Agreements</h3>
           <p class="subtle" id="loanAgreementsMeta"></p>
           <div class="panel-head-actions" style="margin-bottom: 10px;">
-            <button type="button" class="btn primary admin-only-report-settings hidden" id="createGuarantorAgreementBtn">Create Guarantor Agreement</button>
+            <button type="button" class="btn primary admin-only-report-settings hidden" id="createGuarantorAgreementBtn">Create Guarantor Agreements</button>
             <button type="button" class="btn primary admin-only-report-settings hidden" id="createBorrowerAgreementBtn">Create Borrower Agreement</button>
+            <button type="button" class="btn primary admin-only-report-settings hidden" id="createAllAgreementsBtn">Issue All Agreement Documents</button>
           </div>
           <p id="loanAgreementsStatus" class="status"></p>
           <div id="loanAgreementsEmbeds"></div>
