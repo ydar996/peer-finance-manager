@@ -102,6 +102,44 @@ Replies will come from that inbox's address, which is fine at this stage.
    privacy@peerfinancemanager.com and confirm it arrives (allow up to an
    hour for DNS).
 
+#### Sending AS @peerfinancemanager.com for Free (Gmail "Send mail as")
+
+Forwarding only *receives*. To *reply from* privacy@/security@/legal@
+peerfinancemanager.com without paying for mailboxes, add them as send-as
+aliases in Gmail. This is free and is almost certainly how other small
+apps handle it.
+
+1. Go to **https://mail.google.com** > gear icon > **See all settings** >
+   **Accounts and Import** tab.
+2. In **Send mail as**, click **Add another email address**.
+3. Enter the address (e.g. `privacy@peerfinancemanager.com`), uncheck
+   "Treat as an alias" is NOT what you want — leave defaults, click
+   **Next Step**.
+4. For SMTP server, enter `smtp.gmail.com`, port `587`, username = your
+   Gmail address, password = a Gmail **App Password**
+   (myaccount.google.com > Security > 2-Step Verification > App
+   passwords — you need 2FA on your Google account first).
+5. Gmail sends a verification email to `privacy@peerfinancemanager.com` —
+   it arrives via your Namecheap forwarding in the same Gmail inbox.
+   Click the confirmation link/code.
+6. Repeat for `security@` and `legal@` (you can reuse the same app
+   password).
+7. To send as one: compose a new email > click the **From** dropdown >
+   pick the @peerfinancemanager.com address.
+
+**Caveat:** occasional replies may land in the recipient's spam folder
+because the domain is not fully authenticated for Google sending. For
+low-volume contact addresses this is acceptable; if deliverability ever
+matters (e.g. a privacy request), Private Email below is the fix.
+
+**If an app (not a human) needs to send as the domain:** use a free SMTP
+relay instead — Brevo (300 emails/day free) or SMTP2GO (1,000/month
+free). Sign up, verify `peerfinancemanager.com` by adding the DNS records
+they provide in Namecheap **Advanced DNS**, then send via their SMTP
+credentials with `From: privacy@peerfinancemanager.com`. The Peer Finance
+Manager app itself does not need this — its system emails already send
+through the existing relay.
+
 #### Option B — Namecheap Private Email (real mailboxes, ~$42/year, 30-day free trial)
 
 This is Namecheap's own mailbox product — everything stays inside your
