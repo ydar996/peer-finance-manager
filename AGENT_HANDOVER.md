@@ -175,6 +175,12 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-26** - **Owner checklist simplified to Namecheap-only
+  email.** Owner chose to keep everything at Namecheap: Part B is now
+  just the free email-forwarding steps for security@/privacy@/legal@
+  (paid Zoho/Private Email paths removed; noted as future upgrades).
+  SUBPROCESSORS.md reflects Namecheap forwarding only.
+
 - **2026-11-26** - **Owner checklist: free email path added.** Part B
   now offers three options: Namecheap free forwarding ($0,
   receive-only), Zoho Mail Forever Free plan ($0, up to 5 real
