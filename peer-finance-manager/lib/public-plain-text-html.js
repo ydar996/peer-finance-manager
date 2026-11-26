@@ -1,3 +1,4 @@
+const path = require("path");
 const { repairOcrWordSplits } = require("./ocr-text-repair");
 
 function escapeHtml(value) {
@@ -107,6 +108,18 @@ function plainTextToPublicHtml(text) {
     if (!usedTitle) {
       out.push(`<h1>${escapeHtml(line)}</h1>`);
       usedTitle = true;
+      continue;
+    }
+
+    const imageMatch = line.match(/^about\/([\w.-]+\.(?:png|jpe?g|gif|webp))$/i);
+    if (imageMatch && imageMatch[1] === path.basename(imageMatch[1])) {
+      const alt = imageMatch[1]
+        .replace(/\.[^.]+$/, "")
+        .replace(/[-_]+/g, " ")
+        .trim();
+      out.push(
+        `<figure class="cp-figure"><img src="about/${escapeHtml(imageMatch[1])}" alt="${escapeHtml(alt)}" loading="lazy" /></figure>`
+      );
       continue;
     }
 

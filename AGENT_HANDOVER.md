@@ -175,6 +175,16 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **About page images work via plain text as documented.**
+  The admin hint promised `about/your-image.png` on its own line embeds
+  an uploaded image, but plainTextToPublicHtml never implemented it —
+  the line rendered as literal text (images only worked via seed HTML).
+  Converter now emits `<figure class="cp-figure"><img src="about/...">`
+  for `about/filename.(png|jpg|jpeg|gif|webp)` lines; existing
+  rewriteAboutImageUrls maps them to the public image endpoint.
+  Generated canary About (with 3 Unsplash image refs) + Bylaws text
+  files in Downloads for the demo.
+
 - **2026-11-25** - **Render DPA PDF filed in repo.** Downloaded copy
   moved to docs/security/vendor-dpas/Render-GDPR-DPA-2026-11-25.pdf;
   SUBPROCESSORS.md references it and documents the vendor-dpas/
