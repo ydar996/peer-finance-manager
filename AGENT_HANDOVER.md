@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-26** - **Owner checklist Part B simplified to Namecheap only.**
+  Owner rejected third-party send paths (Gmail send-as, SMTP relays).
+  Part B now offers two Namecheap-native options: free forwarding
+  (receive only) or Private Email Launch at $14.88/year — one mailbox
+  plus 10 aliases that send AND receive, covering security@/privacy@/
+  legal@ with a single login. Corrected earlier $42 figure (that was
+  the 3-mailbox Expand plan; Launch + aliases is the right fit).
+  Gmail/Brevo sections removed.
+
 - **2026-11-26** - **Owner checklist: free send-as path documented.**
   Clarified receive-vs-send: Namecheap forwarding receives; Gmail
   "Send mail as" aliases (with app password) or a free SMTP relay
