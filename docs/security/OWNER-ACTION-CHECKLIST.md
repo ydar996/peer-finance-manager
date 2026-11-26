@@ -18,14 +18,19 @@ of an angry customer. Auditors also like seeing uptime evidence.
 **What you need:** a free UptimeRobot account and 5 minutes.
 
 1. Go to **https://uptimerobot.com** and click **Register for FREE**.
-2. Sign up with your email, confirm the verification email.
-3. In the dashboard, click **+ Add New Monitor**.
-4. Fill in:
+2. The signup form asks for the website first — enter
+   `peerfinancemanager.com/api/health` in **Website to monitor**, then
+   your email under **Create your account**, and click **Register**
+   (or sign up with the Google button).
+3. Confirm the verification email, then log in.
+4. Open the monitor that was just created (click it, or **Edit**) and
+   check/fill in:
    - **Monitor Type:** HTTP(s)
    - **Friendly Name:** `Peer Finance Manager API`
    - **URL:** `https://peerfinancemanager.com/api/health`
    - **Monitoring Interval:** 5 minutes (free tier default)
-5. Click **Create Monitor**.
+5. If no monitor was created during signup, click **+ Add New Monitor**
+   and fill in the same fields, then **Create Monitor**.
 6. Click your account name (top right) > **Alert Contacts** > **Add Alert
    Contact** > choose **Email** (or SMS if offered on free tier) and save.
 7. Done. You will now get an email within minutes if the health endpoint

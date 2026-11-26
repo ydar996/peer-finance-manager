@@ -175,6 +175,12 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-26** - **Owner checklist: UptimeRobot steps updated for new
+  signup flow.** Signup now asks for the monitored website on the
+  registration form itself (peerfinancemanager.com/api/health —
+  verified 200 OK, checks DNS+SSL+app end to end). Steps tell owner to
+  enter URL during signup, then verify monitor fields after login.
+
 - **2026-11-26** - **Owner checklist Part A corrected — DPAs are mostly
   automatic.** Verified each vendor: Netlify, Stripe, and Supabase
   incorporate their DPA into the terms accepted at sign-up (nothing to
