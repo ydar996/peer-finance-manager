@@ -631,15 +631,6 @@ function computeLoanSigningState(slug, loanId) {
   const loan = getLoanRowForDocs(loanId);
   if (!loan) return null;
   const { required, issued } = loanDocRequirements(slug, loan);
-  const docFor = (req) =>
-    required
-      .filter((r) => r.kind === req.kind && (r.guarantorMemberId == null || r.guarantorMemberId === req.guarantorMemberId))
-      .map((r) => ({
-        ...r,
-        document: issued.find(
-          (d) => d.kind === r.kind && (r.kind === "borrower" || Number(d.guarantorMemberId) === Number(r.guarantorMemberId))
-        ) || null,
-      }));
   const checklist = required.map((req) => {
     const doc = issued.find(
       (d) => d.kind === req.kind && (req.kind === "borrower" || Number(d.guarantorMemberId) === Number(req.guarantorMemberId))
