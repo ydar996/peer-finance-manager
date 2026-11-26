@@ -175,6 +175,12 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-26** - **Owner action checklist.** docs/security/
+  OWNER-ACTION-CHECKLIST.md: layman step-by-step for the five owner-only
+  items (uptime monitor signup, vendor DPAs + security/privacy/legal
+  mailboxes, second operator grants, SECURITY_ALERT_WEBHOOK_URL setup,
+  pentest -> SOC 2 -> ISO 27001 path with cost expectations).
+
 - **2026-11-26** - **Security hardening program (Phases A-C of
   SECURITY-COMPLIANCE-ROADMAP.md).** New `lib/security-events.js`:
   append-only `security_events` table in registry.db recording auth,

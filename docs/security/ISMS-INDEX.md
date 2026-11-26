@@ -34,6 +34,12 @@ documented in SECURITY-OPS.md and verified in code.
 - ACCESS-REVIEWS.md — quarterly access review log
 - TABLETOP-EXERCISE-2026-11-26.md — simulated incident minutes
 
+## Owner Actions
+
+- OWNER-ACTION-CHECKLIST.md — layman step-by-step for the five items only
+  the owner can do (uptime monitor, DPAs + mailboxes, second operator,
+  alert webhook, certification path)
+
 ## Related Repo Documents
 
 - SECURITY.md (repo root) — vulnerability disclosure policy
