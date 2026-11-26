@@ -80,56 +80,98 @@ four:
 **Record what you did:** open `docs/security/SUBPROCESSORS.md` and update
 the "DPA Status" column with today's date for each vendor you completed.
 
-### Part B: Create the Three Email Addresses (Namecheap)
+### Part B: Set Up the Three Email Addresses (Namecheap, Free)
 
-Your domain `peerfinancemanager.com` is registered at **Namecheap**. Its mail
-currently only has free email *forwarding* (incoming mail can be forwarded to
-an existing inbox like Gmail). There are two ways to make the three contact
-addresses work — pick one:
+Your domain peerfinancemanager.com is at Namecheap, which includes free
+email forwarding: mail sent to security@, privacy@, and legal@
+peerfinancemanager.com lands in an inbox you already use (e.g. Gmail).
+Replies will come from that inbox's address, which is fine at this stage.
 
-#### Option A — Free Email Forwarding (recommended to start, 10 minutes)
+1. Go to https://www.namecheap.com and log in.
+2. Click Domain List (left menu) > find peerfinancemanager.com >
+   click Manage.
+3. Find Email Forwarding (under Advanced DNS, or Private Email >
+   Forwarding).
+4. For each of the three addresses, click Add Forward:
+   - security  -> your main email (e.g. you@gmail.com)
+   - privacy   -> same destination
+   - legal     -> same destination
+5. Namecheap emails a verification link to the destination; click it for
+   each of the three.
+6. Test: send an email from another account to
+   privacy@peerfinancemanager.com and confirm it arrives (allow up to an
+   hour for DNS).
 
-Mail to `security@`, `privacy@`, and `legal@peerfinancemanager.com` lands in
-an inbox you already check (e.g. your Gmail). Replies will come from that
-inbox's address, which is fine for a small operation.
+#### Option B — Namecheap Private Email (real mailboxes, ~$42/year, 30-day free trial)
 
-1. Go to **https://www.namecheap.com** and log in.
-2. Click **Domain List** (left menu) > find **peerfinancemanager.com** >
-   click **Manage**.
-3. In the domain management page, find **Email Forwarding** (sometimes under
-   the **Advanced DNS** tab > **Email Forwarding** section, or **Private
-   Email** > **Forwarding**).
-4. For each of the three addresses, click **Add Forward** and enter:
-   - `security` → forward to your main email (e.g. `you@gmail.com`)
-   - `privacy` → same destination
-   - `legal` → same destination
-5. Namecheap sends a verification email to the destination — click the
-   confirm link in each.
-6. Test: send an email from another account to `privacy@peerfinancemanager.com`
-   and confirm it arrives in your inbox (allow up to an hour for DNS).
+This is Namecheap's own mailbox product — everything stays inside your
+existing Namecheap account, no third party. You get three real
+@peerfinancemanager.com mailboxes you can log into at privateemail.com
+and reply from. There is a 30-day free trial, so you can test it before
+paying anything.
 
-#### Option B — Real Mailboxes (Namecheap Private Email, ~$1/month each)
+**Cost:** Expand plan = 3 mailboxes included, $41.88/year (~$3.49/month).
+Launch plan = 1 mailbox + aliases, $14.88/year (all three addresses can
+be aliases of the one mailbox if you want the cheapest real-mailbox
+option). Scale = 5 mailboxes, $71.88/year (more than you need).
 
-Use this if you want to send replies *from* `@peerfinancemanager.com`
-addresses (more professional for legal/privacy correspondence).
+**Step-by-step:**
 
-1. In Namecheap: **Domain List** > `peerfinancemanager.com` > **Manage** >
-   **Private Email** (or **Get Private Email**).
-2. Choose the cheapest plan that includes at least 3 mailboxes (their
-   "Private Email"Starter/Pro plans cover this).
-3. During setup, set the domain's MX records when prompted — Namecheap
-   configures this automatically; say yes.
-4. Create the three mailboxes: `security@`, `privacy@`, `legal@`, each with
-   a strong password stored in your password manager.
-5. You can then also point the app's `SMTP_FROM` at one of these mailboxes
-   later if you want system emails to come from the domain (optional —
-   current sending already works).
+1. Go to https://www.namecheap.com and log in.
+2. In the top menu click **Email** > **Private Email** (direct link:
+   https://www.namecheap.com/hosting/email/private-email/).
+3. Click **Get Private Email** (or **Order Now**) and choose the
+   **Expand** plan — it includes exactly 3 mailboxes. If a promo code is
+   pre-filled, leave it; the first-year price will be lower than the
+   renewal price shown.
+4. When asked for the domain, select **"Use a domain I own with
+   Namecheap"** and pick **peerfinancemanager.com** from the list.
+   Because the domain is registered with Namecheap, DNS setup is
+   automatic — no manual MX record work needed.
+5. Continue to checkout. The 30-day free trial means you can start using
+   it immediately; billing kicks in after the trial unless you cancel.
+6. **Remove the old forwarding first** so the two do not conflict:
+   go to **Domain List** > peerfinancemanager.com > **Manage** >
+   **Advanced DNS** tab and delete any **Email Forwarding** entries you
+   created in Option A (or that already exist). Private Email manages
+   its own MX records.
+7. Wait for activation — usually a few minutes, up to 4 hours. You will
+   see the subscription status change to Active under **Email** >
+   **Private Email** in the left menu.
+8. Click **Manage** next to peerfinancemanager.com to open the Private
+   Email dashboard.
+9. Click **Create Mailbox** and create each of the three:
+   - Mailbox name: `security` (enter just this — the domain is appended
+     automatically, so it becomes security@peerfinancemanager.com)
+   - Password: a strong unique one, stored in your password manager
+   - Storage: keep the default
+   - Click **Save changes**. Repeat for `privacy` and `legal`.
+   You will see "Success! Mailbox ... has been set up" for each.
+10. **Add the DKIM record** (required so your outgoing mail does not
+    land in spam): in the Private Email dashboard, look for **DNS
+    Records** / **Email Deliverability** / **DKIM** and copy the TXT
+    value shown. Then go to **Domain List** > peerfinancemanager.com >
+    **Manage** > **Advanced DNS** > **Add New Record**: Type `TXT`,
+    Host `privateemail._domainkey`, Value = the copied string, Save.
+    If Namecheap already added it automatically during activation,
+    skip this step — check Advanced DNS first.
+11. **Log in to webmail:** click the **Login** button next to any
+    mailbox in the Private Email dashboard, or go to
+    https://privateemail.com and sign in with the full address
+    (security@peerfinancemanager.com) + password. The Namecheap Mail
+    mobile app also works with these credentials.
+12. **Test both directions:** send an email from another account to
+    privacy@peerfinancemanager.com (should arrive in webmail within
+    minutes), then reply from webmail to confirm outgoing works and
+    check it does not land in spam at the destination.
 
-**Either way, record what you chose** in `docs/security/SUBPROCESSORS.md`
-under a note that domain email is handled by Namecheap (forwarding or
-Private Email).
+**Optional later — system emails from the domain:** the app currently
+sends notifications through its existing relay. To make dues
+reminders/welcome emails come *from* @peerfinancemanager.com instead,
+update SMTP_HOST/SMTP_USER/SMTP_PASS/SMTP_FROM in Render env vars using
+the IMAP/SMTP settings shown in the Private Email dashboard. Not
+required now.
 
----
 
 ## Item 3: Designate A Second Trusted Operator
 
