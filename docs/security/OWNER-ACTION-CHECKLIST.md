@@ -39,38 +39,50 @@ failures too.
 
 ## Item 2: Accept DPAs And Create Security Mailboxes
 
-### Part A: Accept Data Processing Agreements (DPAs)
+### Part A: Data Processing Agreements (DPAs)
 
 A DPA is a standard legal document each vendor offers saying "we protect
-your data properly." Accepting it takes about 2 minutes per vendor. Do all
-four:
+your data properly." Good news first: **Netlify, Stripe, and Supabase all
+include their DPA automatically inside the terms you accepted at
+sign-up** — there is no button to click for those three. Only Render
+needs a small action (download their DPA once). Total time: about 5
+minutes.
 
-**Render (hosts the app and database)**
+**Render (hosts the app and database) — action needed**
 1. Go to **https://dashboard.render.com** and log in.
-2. Click your avatar (top right) > **Account Settings**.
-3. Look for **Data Processing Agreement** or **Compliance** in the left
-   menu. If present, click **Accept** / **Sign**.
-4. If you cannot find it, email Render support: "Please enable the Data
-   Processing Agreement on our account." They will turn it on.
+2. Click the **?** (help/question mark) icon in the top-right corner of
+   the dashboard — it is next to the Upgrade button.
+3. Choose **Compliance and Documents** (Document Center).
+4. Find **GDPR DPA** in the list — every workspace can download this
+   (paid documents like the SOC 2 report are optional; the DPA is free).
+   Download it and save a copy with your records (e.g. a "Legal" folder
+   on your computer).
+5. If the DPA is not listed there, request it at
+   **https://trust.render.com** or email **support@render.com**:
+   "Please send us the Data Processing Addendum for our workspace."
 
-**Netlify (hosts the website)**
-1. Go to **https://app.netlify.com** and log in.
-2. Click **Team settings** (or your avatar > **User settings** > your team).
-3. Look for **Privacy** or **Data Processing** and accept the DPA.
-4. If not visible, open a support ticket asking them to execute the DPA.
+**Netlify (hosts the website) — automatic, just save a copy**
+1. Netlify's DPA is already part of the subscription agreement you
+   accepted at sign-up — it applies automatically, nothing to click.
+2. For your records, download the PDF at
+   **https://www.netlify.com/pdf/netlify-dpa.pdf** (also available on
+   Netlify's Trust Center page at https://www.netlify.com/trust-center/).
 
-**Stripe (payments)**
-1. Go to **https://dashboard.stripe.com** and log in.
-2. Click **Settings** (gear icon, bottom left) > **Privacy** or
-   **Data Processing**.
-3. Accept the DPA if offered. Stripe's standard terms already cover most
-   cases; accepting the DPA just formalizes it.
+**Stripe (payments) — automatic, just save a copy**
+1. Stripe's DPA is already incorporated into the Stripe Services
+   Agreement you accepted at sign-up — nothing to click.
+2. For your records, view/download it at
+   **https://stripe.com/legal/dpa** (click "Need a copy of this Data
+   Processing Agreement? Click here" on that page).
 
-**Supabase (FlexxForms database)**
-1. Go to **https://supabase.com/dashboard** and log in.
-2. Open the FlexxForms project.
-3. Go to **Project Settings** (gear icon) > **Privacy** or
-   **Data Processing** and accept the DPA.
+**Supabase (FlexxForms database) — automatic, just save a copy**
+1. Supabase's Data Processing Addendum is part of their Terms of Service
+   (since August 2026) — it applies automatically, nothing to click.
+   Supabase removed the old separate signing step.
+2. For your records, view it at
+   **https://supabase.com/legal/customer-resources/data-processing-addendum**
+   — or in the dashboard, open your organization and look under
+   **Documents**, where the DPA card has a **View DPA** link.
 
 **Bluehost (email sending)**
 1. Email is low-volume transactional mail; no DPA is typically required at
@@ -78,7 +90,8 @@ four:
    area — if so, accept it.
 
 **Record what you did:** open `docs/security/SUBPROCESSORS.md` and update
-the "DPA Status" column with today's date for each vendor you completed.
+the "DPA Status" column with today's date for each vendor — mark the
+automatic ones as "Automatic (incorporated in terms), copy saved".
 
 ### Part B: Set Up the Three Email Addresses (Namecheap Only)
 
