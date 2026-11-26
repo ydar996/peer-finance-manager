@@ -102,9 +102,76 @@ Replies will come from that inbox's address, which is fine at this stage.
    privacy@peerfinancemanager.com and confirm it arrives (allow up to an
    hour for DNS).
 
-If you ever want real mailboxes you can reply from later, Namecheap
-Private Email (~$42/year) or Zoho Mail free plan are the upgrades;
-not needed now.
+#### Option B — Namecheap Private Email (real mailboxes, ~$42/year, 30-day free trial)
+
+This is Namecheap's own mailbox product — everything stays inside your
+existing Namecheap account, no third party. You get three real
+@peerfinancemanager.com mailboxes you can log into at privateemail.com
+and reply from. There is a 30-day free trial, so you can test it before
+paying anything.
+
+**Cost:** Expand plan = 3 mailboxes included, $41.88/year (~$3.49/month).
+Launch plan = 1 mailbox + aliases, $14.88/year (all three addresses can
+be aliases of the one mailbox if you want the cheapest real-mailbox
+option). Scale = 5 mailboxes, $71.88/year (more than you need).
+
+**Step-by-step:**
+
+1. Go to https://www.namecheap.com and log in.
+2. In the top menu click **Email** > **Private Email** (direct link:
+   https://www.namecheap.com/hosting/email/private-email/).
+3. Click **Get Private Email** (or **Order Now**) and choose the
+   **Expand** plan — it includes exactly 3 mailboxes. If a promo code is
+   pre-filled, leave it; the first-year price will be lower than the
+   renewal price shown.
+4. When asked for the domain, select **"Use a domain I own with
+   Namecheap"** and pick **peerfinancemanager.com** from the list.
+   Because the domain is registered with Namecheap, DNS setup is
+   automatic — no manual MX record work needed.
+5. Continue to checkout. The 30-day free trial means you can start using
+   it immediately; billing kicks in after the trial unless you cancel.
+6. **Remove the old forwarding first** so the two do not conflict:
+   go to **Domain List** > peerfinancemanager.com > **Manage** >
+   **Advanced DNS** tab and delete any **Email Forwarding** entries you
+   created in Option A (or that already exist). Private Email manages
+   its own MX records.
+7. Wait for activation — usually a few minutes, up to 4 hours. You will
+   see the subscription status change to Active under **Email** >
+   **Private Email** in the left menu.
+8. Click **Manage** next to peerfinancemanager.com to open the Private
+   Email dashboard.
+9. Click **Create Mailbox** and create each of the three:
+   - Mailbox name: `security` (enter just this — the domain is appended
+     automatically, so it becomes security@peerfinancemanager.com)
+   - Password: a strong unique one, stored in your password manager
+   - Storage: keep the default
+   - Click **Save changes**. Repeat for `privacy` and `legal`.
+   You will see "Success! Mailbox ... has been set up" for each.
+10. **Add the DKIM record** (required so your outgoing mail does not
+    land in spam): in the Private Email dashboard, look for **DNS
+    Records** / **Email Deliverability** / **DKIM** and copy the TXT
+    value shown. Then go to **Domain List** > peerfinancemanager.com >
+    **Manage** > **Advanced DNS** > **Add New Record**: Type `TXT`,
+    Host `privateemail._domainkey`, Value = the copied string, Save.
+    If Namecheap already added it automatically during activation,
+    skip this step — check Advanced DNS first.
+11. **Log in to webmail:** click the **Login** button next to any
+    mailbox in the Private Email dashboard, or go to
+    https://privateemail.com and sign in with the full address
+    (security@peerfinancemanager.com) + password. The Namecheap Mail
+    mobile app also works with these credentials.
+12. **Test both directions:** send an email from another account to
+    privacy@peerfinancemanager.com (should arrive in webmail within
+    minutes), then reply from webmail to confirm outgoing works and
+    check it does not land in spam at the destination.
+
+**Optional later — system emails from the domain:** the app currently
+sends notifications through its existing relay. To make dues
+reminders/welcome emails come *from* @peerfinancemanager.com instead,
+update SMTP_HOST/SMTP_USER/SMTP_PASS/SMTP_FROM in Render env vars using
+the IMAP/SMTP settings shown in the Private Email dashboard. Not
+required now.
+
 
 ## Item 3: Designate A Second Trusted Operator
 

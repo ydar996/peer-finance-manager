@@ -175,6 +175,13 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-26** - **Owner checklist: Namecheap Private Email restored
+  as Option B.** Owner confirmed they want real mailboxes at Namecheap:
+  Part B is now Option A (free forwarding, $0) vs Option B (Private
+  Email, ~$42/yr, 30-day free trial) with full step-by-step including
+  plan choice, domain selection, forwarding cleanup, mailbox creation,
+  DKIM record, and webmail access. Zoho removed per owner preference.
+
 - **2026-11-26** - **Owner checklist simplified to Namecheap-only
   email.** Owner chose to keep everything at Namecheap: Part B is now
   just the free email-forwarding steps for security@/privacy@/legal@
