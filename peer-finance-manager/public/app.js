@@ -12320,10 +12320,10 @@ $("#retryFlexxFormsProvision")?.addEventListener("click", async () => {
     if (!res.ok) throw new Error(data.error || "Retry failed");
     setFormStatus(status, "FlexxForms workspace is ready.", true);
     await loadFlexxFormsSettings();
-    if (data.magicLinkUrl) {
+    if (data.settings?.magicLinkUrl) {
       const tempLine = $("#flexxformsTempPasswordLine");
       if (tempLine) {
-        tempLine.innerHTML = `One-Time FlexxForms Sign-In Link (expires soon, open it now): <a href="${escapeHtml(data.magicLinkUrl)}" target="_blank" rel="noopener">Sign In to FlexxForms</a>`;
+        tempLine.innerHTML = `One-Time FlexxForms Sign-In Link (expires soon, open it now): <a href="${escapeHtml(data.settings.magicLinkUrl)}" target="_blank" rel="noopener">Sign In to FlexxForms</a>`;
         tempLine.classList.remove("hidden");
       }
     }

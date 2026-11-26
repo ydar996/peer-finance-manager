@@ -2,6 +2,10 @@ const crypto = require("crypto");
 const { getRegistryDb } = require("./organization-service");
 
 const SESSION_DAYS = 7;
+// Sliding idle window matching org sessions: 24h without activity ends the
+// session even inside the 7-day absolute expiry. Touch throttled to 5 min.
+const SESSION_IDLE_MS = 24 * 60 * 60 * 1000;
+const SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 
 const DEFAULT_PLATFORM_ADMIN_EMAIL =
@@ -67,6 +71,11 @@ function ensurePlatformAuthTables(db) {
 
     CREATE INDEX IF NOT EXISTS idx_platform_sessions_user ON platform_sessions(platform_user_id);
   `);
+  try {
+    db.exec(`ALTER TABLE platform_sessions ADD COLUMN last_seen_at TEXT`);
+  } catch (_) {
+    /* column already exists */
+  }
 }
 
 function mapPlatformUser(row) {
@@ -166,8 +175,8 @@ function platformLogin(email, password) {
   }
   const token = createSessionToken();
   db.prepare(
-    `INSERT INTO platform_sessions (id, platform_user_id, expires_at) VALUES (?, ?, ?)`
-  ).run(token, row.id, sessionExpiryIso());
+    `INSERT INTO platform_sessions (id, platform_user_id, expires_at, last_seen_at) VALUES (?, ?, ?, ?)`
+  ).run(token, row.id, sessionExpiryIso(), new Date().toISOString());
   return { token, user: mapPlatformUser(row) };
 }
 
@@ -182,16 +191,28 @@ function getPlatformSession(token) {
   ensurePlatformAuthTables(db);
   const session = db
     .prepare(
-      `SELECT s.id, s.expires_at, u.id AS user_id, u.email, u.display_name, u.role, u.active
+      `SELECT s.id, s.expires_at, s.last_seen_at, u.id AS user_id, u.email, u.display_name, u.role, u.active
        FROM platform_sessions s
        JOIN platform_users u ON u.id = s.platform_user_id
        WHERE s.id = ?`
     )
     .get(token);
   if (!session) return null;
-  if (new Date(session.expires_at).getTime() < Date.now()) {
+  const now = Date.now();
+  if (new Date(session.expires_at).getTime() < now) {
     db.prepare(`DELETE FROM platform_sessions WHERE id = ?`).run(token);
     return null;
+  }
+  const lastSeen = session.last_seen_at ? new Date(session.last_seen_at).getTime() : null;
+  if (lastSeen && now - lastSeen > SESSION_IDLE_MS) {
+    db.prepare(`DELETE FROM platform_sessions WHERE id = ?`).run(token);
+    return null;
+  }
+  if (!lastSeen || now - lastSeen > SESSION_TOUCH_INTERVAL_MS) {
+    db.prepare(`UPDATE platform_sessions SET last_seen_at = ? WHERE id = ?`).run(
+      new Date(now).toISOString(),
+      token
+    );
   }
   if (!session.active) return null;
   return {

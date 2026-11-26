@@ -91,6 +91,11 @@ function getRegistryDb() {
     } catch (_) {
       /* flexxforms module optional during early boot */
     }
+    try {
+      registryDb.exec(`ALTER TABLE sessions ADD COLUMN last_seen_at TEXT`);
+    } catch (_) {
+      /* column already exists */
+    }
   }
   return registryDb;
 }

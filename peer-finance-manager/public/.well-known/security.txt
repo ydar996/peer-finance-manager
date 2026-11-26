@@ -1,0 +1,5 @@
+Contact: mailto:security@peerfinancemanager.com
+Expires: 2027-12-31T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://peerfinancemanager.com/.well-known/security.txt
+Policy: https://github.com/ydar996/peer-finance-manager/blob/main/SECURITY.md

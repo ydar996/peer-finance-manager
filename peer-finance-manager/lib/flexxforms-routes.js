@@ -13,6 +13,7 @@ const {
   approveMembershipApplication,
 } = require("./flexxforms-service");
 const { requireAuth, requireAdmin, requireActiveMemberAccount } = require("./auth-middleware");
+const { recordSecurityEvent, clientIp } = require("./security-events");
 
 function requestOrgSlug(req) {
   return req.user?.organizationSlug || req.organization?.slug || null;
@@ -58,10 +59,20 @@ function registerFlexxFormsRoutes(app) {
     try {
       const slug = requestOrgSlug(req);
       const settings = await retryProvision(slug, req.user);
+      const view = getFlexxFormsAdminView(slug, { sessionUser: req.user }) || {};
+      if (settings?.magicLinkUrl) view.magicLinkUrl = settings.magicLinkUrl;
+      recordSecurityEvent({
+        organizationSlug: slug,
+        eventType: "flexxforms.provision_retry",
+        actorUserId: req.user?.id || null,
+        actorLabel: req.user?.email || req.user?.username || null,
+        ip: clientIp(req),
+        detail: `ready=${view.provisioned ? 1 : 0}; error=${view.provisionError || ""}`,
+      });
       res.json({
         ok: true,
         success: true,
-        settings: getFlexxFormsAdminView(slug, { sessionUser: req.user }),
+        settings: view,
       });
     } catch (err) {
       console.error("FlexxForms retry provision failed:", err.message);

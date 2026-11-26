@@ -2,19 +2,15 @@ name: Dependency Audit
 
 on:
   push:
-    paths:
-      - "package.json"
-      - "package-lock.json"
+    branches: [main]
   pull_request:
-    paths:
-      - "package.json"
-      - "package-lock.json"
   schedule:
     - cron: "0 6 * * 1" # Mondays 06:00 UTC
   workflow_dispatch:
 
 jobs:
-  audit:
+  npm-audit:
+    name: npm audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

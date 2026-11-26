@@ -101,6 +101,7 @@ const upload = multer({
 const app = express();
 const { capitalizeCooperativeWording } = require("./lib/text-format");
 const { rateLimit } = require("./lib/rate-limit");
+const { httpErrorMonitor, installProcessHandlers } = require("./lib/error-monitor");
 
 // Behind a single proxy hop (Render edge / Netlify) so req.ip is the real client.
 app.set("trust proxy", 1);
@@ -130,6 +131,8 @@ app.use((req, res, next) => {
   );
   next();
 });
+
+app.use(httpErrorMonitor());
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -2350,6 +2353,7 @@ function startServer(port, callback) {
 module.exports = { app, startServer };
 
 if (require.main === module) {
+  installProcessHandlers();
   const port = Number(process.env.PORT || process.env.PFM_PORT || 3457);
   const { initPaths } = require("./lib/paths");
   initPaths();

@@ -86,7 +86,7 @@
             applyHref +
             '">Apply for Membership</a><a href="' +
             memberSignInHref +
-            '">Member Sign In</a>';
+            '">Member Sign In</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a>';
         }
 
         function showError(message) {

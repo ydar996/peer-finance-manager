@@ -7,6 +7,7 @@ const {
 const { normalizeAllProfiles } = require("./profile-normalize-service");
 const { getDb } = require("../db/database");
 const { getBankReconcileStatus } = require("./bank-reconcile-service");
+const { recordSecurityEvent, clientIp } = require("./security-events");
 
 function registerAdminDataRoutes(app, { requireAdmin, restoreOrgContext, upload }) {
   app.get("/api/admin/data-backup", requireAdmin, (req, res) => {
@@ -82,6 +83,15 @@ function registerAdminDataRoutes(app, { requireAdmin, restoreOrgContext, upload 
         const slug = req.user.organizationSlug;
         const result = restoreDatabaseFromUpload(slug, req.file.path, {
           passphrase: req.body?.passphrase,
+        });
+        recordSecurityEvent({
+          organizationSlug: slug,
+          eventType: "admin.database_restore",
+          severity: "critical",
+          actorUserId: req.user?.id || null,
+          actorLabel: req.user?.email || req.user?.username || null,
+          ip: clientIp(req),
+          detail: `filename=${req.file.originalname || ""}; tables=${result?.restoredTables || result?.tableCount || "unknown"}`,
         });
 
         try {
