@@ -6,9 +6,12 @@ Every third party that processes Platform or Cooperative data. Each
 Cooperative should be able to request this list; DPAs should be on file
 with each provider (their standard terms or a signed DPA).
 
+**DPA copies:** executed/downloaded DPA PDFs are stored in
+`vendor-dpas/` in this folder, named `Vendor-DPA-YYYY-MM-DD.pdf`.
+
 | Provider | Role | Data Touched | DPA Status |
 |---|---|---|---|
-| Render | Application hosting, database disk | All app data, env secrets | GDPR DPA downloaded from Document Center, 2026-11-25 |
+| Render | Application hosting, database disk | All app data, env secrets | GDPR DPA downloaded from Document Center, 2026-11-25 — copy in `vendor-dpas/Render-GDPR-DPA-2026-11-25.pdf` |
 | Netlify | Frontend static hosting | Public pages, static assets (no member data beyond public content) | Automatic — incorporated in Self-Serve Subscription Agreement; copy saved 2026-11-25 |
 | Stripe | Subscription payments | Billing email, payment method tokens, transaction records | Automatic — incorporated in Stripe Services Agreement (stripe.com/legal/dpa); copy saved 2026-11-25; SAQ A scope |
 | FlexxForms | Membership/loan forms (separate product, same owner) | Application form submissions, member identity data | Internal product; same controller/processor terms apply |
