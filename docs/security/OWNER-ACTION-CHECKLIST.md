@@ -1,6 +1,6 @@
 # Owner Action Checklist
 
-**Last Updated:** 2026-11-26
+**Last Updated:** 2026-11-25
 **Who this is for:** the platform owner (you). No technical background needed.
 Each item below is written as click-by-click steps. Work through them in order;
 each one is independent, so you can stop and resume anytime.
@@ -10,7 +10,11 @@ business process (weeks to months) and is explained at the end.
 
 ---
 
-## Item 1: Set Up Free Uptime Monitoring
+## Item 1: Set Up Free Uptime Monitoring — DONE 2026-11-25
+
+**Status:** Complete. UptimeRobot monitor "Peer Finance Manager API" checks
+https://peerfinancemanager.com/api/health every 5 minutes; email alerts
+enabled. Steps below kept for reference.
 
 **Why:** if the site goes down at 3am, you find out from a text/email instead
 of an angry customer. Auditors also like seeing uptime evidence.
@@ -51,7 +55,11 @@ failures too.
 
 ---
 
-## Item 2: Accept DPAs And Create Security Mailboxes
+## Item 2: Accept DPAs And Create Security Mailboxes — DONE 2026-11-25
+
+**Status:** Complete. DPAs confirmed/saved (Render downloaded from Document
+Center; Netlify, Stripe, Supabase automatic via sign-up terms). Contact
+email addresses set up. Steps below kept for reference.
 
 ### Part A: Data Processing Agreements (DPAs)
 

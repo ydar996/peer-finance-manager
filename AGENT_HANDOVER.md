@@ -175,6 +175,14 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Owner items 1 and 2 marked complete.** UptimeRobot
+  monitor live (Peer Finance Manager API, 5-min checks on
+  peerfinancemanager.com/api/health, email alerts). DPAs done: Render
+  downloaded from Document Center; Netlify/Stripe/Supabase automatic via
+  sign-up terms, copies saved. Contact email addresses configured at
+  Namecheap. SUBPROCESSORS.md DPA Status column updated with dates;
+  Uptime monitor row now names UptimeRobot.
+
 - **2026-11-26** - **Owner checklist: UptimeRobot auto-detect screen
   covered.** Onboarding auto-suggests pages like /admin and /register
   (and may pick the onrender.com address). Steps now say to uncheck
