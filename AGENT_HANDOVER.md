@@ -175,6 +175,15 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-26** - **Owner checklist email section corrected for
+  Namecheap.** peerfinancemanager.com is registered at Namecheap with
+  free email forwarding only (MX -> eforward*.registrar-servers.com);
+  the Bluehost relay in use is for outbound system mail on
+  eworkchop.com, unrelated to this domain's inbound addresses.
+  OWNER-ACTION-CHECKLIST.md Part B rewritten with Namecheap steps:
+  Option A free forwarding to an existing inbox, Option B Namecheap
+  Private Email mailboxes. SUBPROCESSORS.md gains a Namecheap row.
+
 - **2026-11-26** - **Owner action checklist.** docs/security/
   OWNER-ACTION-CHECKLIST.md: layman step-by-step for the five owner-only
   items (uptime monitor signup, vendor DPAs + security/privacy/legal
