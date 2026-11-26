@@ -80,6 +80,7 @@ function ensureFlexxFormsSchema(db) {
   add(`ADD COLUMN flexxforms_temp_password TEXT`);
   add(`ADD COLUMN flexxforms_provision_error TEXT`);
   add(`ADD COLUMN flexxforms_provisioned_at TEXT`);
+  add(`ADD COLUMN loan_docs_auto_issue INTEGER NOT NULL DEFAULT 0`);
 }
 
 function ensureLoanDocumentSchema(db) {
@@ -114,6 +115,25 @@ function ensureLoanDocumentSchema(db) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_ff_apps_kind ON flexxforms_applications(kind, status);
+
+    CREATE TABLE IF NOT EXISTS loan_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      loan_id INTEGER NOT NULL,
+      application_id INTEGER,
+      kind TEXT NOT NULL,
+      guarantor_member_id INTEGER,
+      guarantor_name TEXT,
+      flexxforms_document_id TEXT,
+      sign_url TEXT,
+      embed_url TEXT,
+      signers_json TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      completed_at TEXT,
+      UNIQUE(loan_id, kind, guarantor_member_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_loan_docs_loan ON loan_documents(loan_id);
+    CREATE INDEX IF NOT EXISTS idx_loan_docs_doc ON loan_documents(flexxforms_document_id);
   `);
 }
 
@@ -131,6 +151,7 @@ function mapFlexxFormsRow(row) {
     tempPassword: row.flexxforms_temp_password || null,
     provisionError: row.flexxforms_provision_error || null,
     provisionedAt: row.flexxforms_provisioned_at || null,
+    autoIssueLoanDocs: Number(row.loan_docs_auto_issue) === 1,
   };
 }
 
@@ -143,7 +164,7 @@ function getOrganizationFlexxForms(slug) {
       `SELECT flexxforms_tenant_id, flexxforms_api_key, flexxforms_webhook_secret,
               flexxforms_admin_email, membership_form_id, loan_form_id,
               guarantor_master_doc_id, borrower_master_doc_id, flexxforms_temp_password,
-              flexxforms_provision_error, flexxforms_provisioned_at
+              flexxforms_provision_error, flexxforms_provisioned_at, loan_docs_auto_issue
        FROM organizations WHERE slug = ?`
     )
     .get(normalized);
@@ -168,6 +189,7 @@ function updateOrganizationFlexxForms(slug, fields) {
     tempPassword: "flexxforms_temp_password",
     provisionError: "flexxforms_provision_error",
     provisionedAt: "flexxforms_provisioned_at",
+    autoIssueLoanDocs: "loan_docs_auto_issue",
   };
 
   const sets = [];
@@ -175,7 +197,7 @@ function updateOrganizationFlexxForms(slug, fields) {
   for (const [key, column] of Object.entries(allowed)) {
     if (fields[key] !== undefined) {
       sets.push(`${column} = ?`);
-      values.push(fields[key]);
+      values.push(column === "loan_docs_auto_issue" ? (fields[key] ? 1 : 0) : fields[key]);
     }
   }
   if (!sets.length) return getOrganizationFlexxForms(normalized);
@@ -230,6 +252,7 @@ function getFlexxFormsAdminView(slug, { consumeTempPassword = false, sessionUser
     loanFormId: ff.loanFormId || null,
     guarantorMasterDocId: ff.guarantorMasterDocId || null,
     borrowerMasterDocId: ff.borrowerMasterDocId || null,
+    autoIssueLoanDocs: ff.autoIssueLoanDocs === true,
     loginUrl: FLEXXFORMS_LOGIN_URL,
     embedBaseUrl: FLEXXFORMS_EMBED_BASE,
     membershipEmbedUrl: buildFlexxFormsEmbedUrl(ff.membershipFormId),
@@ -437,7 +460,213 @@ function parseFlexxFormsDocumentResponse(data) {
     sessions.map((s) => s?.signingUrl || s?.signing_url).find(Boolean) || null;
   const signUrl = signingUrl || sessionUrl;
   const embedUrl = data?.embedUrl || data?.embed_url || signUrl || null;
-  return { documentId, signUrl, embedUrl };
+  const signers = Array.isArray(data?.signers)
+    ? data.signers.map((s) => ({
+        id: s?.id || null,
+        label: s?.label || s?.role || s?.name || null,
+        name: s?.name || null,
+        email: s?.email || null,
+        memberId: s?.memberId != null ? Number(s.memberId) : null,
+        signingUrl: s?.signingUrl || s?.signing_url || null,
+      }))
+    : [];
+  return { documentId, signUrl, embedUrl, signers, signingStatus: data?.signingStatus || null };
+}
+
+function memberSignerInfo(memberId) {
+  const id = Number(memberId);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT m.id AS memberId,
+              COALESCE(NULLIF(TRIM(mp.display_name), ''), m.name) AS name,
+              COALESCE(NULLIF(TRIM(mp.email), ''), NULLIF(TRIM(u.email), '')) AS email
+       FROM members m
+       LEFT JOIN member_profiles mp ON mp.member_id = m.id
+       LEFT JOIN users u ON u.member_id = m.id AND u.active = 1
+       WHERE m.id = ?`
+    )
+    .get(id);
+  if (!row) return null;
+  return { memberId: row.memberId, name: row.name || "Member", email: row.email || "" };
+}
+
+function excoSignerInfo(slug, sessionUser) {
+  const org = getOrganization(slug);
+  const email =
+    resolveFlexxFormsAdminEmail(org, sessionUser) ||
+    sessionUser?.email ||
+    org?.adminEmail ||
+    org?.admin_email ||
+    "";
+  const name =
+    sessionUser?.displayName ||
+    sessionUser?.display_name ||
+    sessionUser?.username ||
+    org?.name ||
+    "Cooperative Representative";
+  return { label: "Cooperative Representative", name, email: String(email || "").trim() };
+}
+
+function listLoanDocumentRows(loanId) {
+  const db = getDb();
+  ensureLoanDocumentSchema(db);
+  try {
+    return db
+      .prepare(
+        `SELECT id, loan_id, application_id, kind, guarantor_member_id, guarantor_name,
+                flexxforms_document_id, sign_url, embed_url, signers_json, status,
+                created_at, completed_at
+         FROM loan_documents WHERE loan_id = ? ORDER BY id ASC`
+      )
+      .all(Number(loanId))
+      .map((row) => ({
+        id: row.id,
+        loanId: row.loan_id,
+        applicationId: row.application_id,
+        kind: row.kind,
+        guarantorMemberId: row.guarantor_member_id,
+        guarantorName: row.guarantor_name,
+        documentId: row.flexxforms_document_id,
+        signUrl: row.sign_url,
+        embedUrl: row.embed_url,
+        signers: (() => {
+          try {
+            return JSON.parse(row.signers_json || "[]");
+          } catch {
+            return [];
+          }
+        })(),
+        status: row.status,
+        createdAt: row.created_at,
+        completedAt: row.completed_at,
+      }));
+  } catch (_) {
+    return [];
+  }
+}
+
+function syncLoanDocumentLegacyColumns(db, loanId) {
+  const docs = listLoanDocumentRows(loanId);
+  const borrowerDoc = docs.find((d) => d.kind === "borrower");
+  const guarantorDocs = docs.filter((d) => d.kind === "guarantor");
+  const firstGuarantor = guarantorDocs[0];
+  const allGuarantorComplete =
+    guarantorDocs.length > 0 && guarantorDocs.every((d) => d.status === "completed");
+  const guarantorStatus = firstGuarantor
+    ? allGuarantorComplete
+      ? "completed"
+      : guarantorDocs.some((d) => d.status === "completed")
+        ? "partially_signed"
+        : "pending"
+    : null;
+  db.prepare(
+    `UPDATE loans SET
+       borrower_document_id = COALESCE(?, borrower_document_id),
+       borrower_sign_url = COALESCE(?, borrower_sign_url),
+       borrower_embed_url = COALESCE(?, borrower_embed_url),
+       borrower_doc_status = COALESCE(?, borrower_doc_status),
+       guarantor_document_id = COALESCE(?, guarantor_document_id),
+       guarantor_sign_url = COALESCE(?, guarantor_sign_url),
+       guarantor_embed_url = COALESCE(?, guarantor_embed_url),
+       guarantor_doc_status = COALESCE(?, guarantor_doc_status)
+     WHERE id = ?`
+  ).run(
+    borrowerDoc?.documentId || null,
+    borrowerDoc?.signUrl || null,
+    borrowerDoc?.embedUrl || null,
+    borrowerDoc?.status || null,
+    firstGuarantor?.documentId || null,
+    firstGuarantor?.signUrl || null,
+    firstGuarantor?.embedUrl || null,
+    guarantorStatus,
+    Number(loanId)
+  );
+}
+
+function loanDocRequirements(slug, loan) {
+  const ff = getOrganizationFlexxForms(slug) || {};
+  const issued = loan ? listLoanDocumentRows(loan.id) : [];
+  const required = [];
+  if (ff.borrowerMasterDocId || issued.some((d) => d.kind === "borrower")) {
+    required.push({ kind: "borrower", guarantorMemberId: null, label: "Personal Loan Agreement" });
+  }
+  const guarantorIds = [loan?.guarantor1Id, loan?.guarantor2Id]
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0);
+  const seen = new Set();
+  for (const gid of guarantorIds) {
+    if (seen.has(gid)) continue;
+    seen.add(gid);
+    const issuedRow = issued.find((d) => d.kind === "guarantor" && d.guarantorMemberId === gid);
+    if (ff.guarantorMasterDocId || issuedRow) {
+      const member = memberSignerInfo(gid);
+      required.push({
+        kind: "guarantor",
+        guarantorMemberId: gid,
+        guarantorName: member?.name || issuedRow?.guarantorName || null,
+        label: "Personal Loan Guaranty",
+      });
+    }
+  }
+  return { required, issued };
+}
+
+function getLoanRowForDocs(loanId) {
+  const db = getDb();
+  ensureLoanDocumentSchema(db);
+  const row = db
+    .prepare(
+      `SELECT id, borrower_id AS borrowerId, guarantor1_id AS guarantor1Id,
+              guarantor2_id AS guarantor2Id
+       FROM loans WHERE id = ?`
+    )
+    .get(Number(loanId));
+  if (!row) return null;
+  return { id: row.id, borrowerId: row.borrowerId, guarantor1Id: row.guarantor1Id, guarantor2Id: row.guarantor2Id };
+}
+
+function computeLoanSigningState(slug, loanId) {
+  const loan = getLoanRowForDocs(loanId);
+  if (!loan) return null;
+  const { required, issued } = loanDocRequirements(slug, loan);
+  const docFor = (req) =>
+    required
+      .filter((r) => r.kind === req.kind && (r.guarantorMemberId == null || r.guarantorMemberId === req.guarantorMemberId))
+      .map((r) => ({
+        ...r,
+        document: issued.find(
+          (d) => d.kind === r.kind && (r.kind === "borrower" || Number(d.guarantorMemberId) === Number(r.guarantorMemberId))
+        ) || null,
+      }));
+  const checklist = required.map((req) => {
+    const doc = issued.find(
+      (d) => d.kind === req.kind && (req.kind === "borrower" || Number(d.guarantorMemberId) === Number(req.guarantorMemberId))
+    );
+    return { ...req, document: doc || null, done: doc?.status === "completed" };
+  });
+  const missing = checklist.filter((c) => !c.document);
+  const unsigned = checklist.filter((c) => c.document && c.document.status !== "completed");
+  const allSigned = checklist.length > 0 && checklist.every((c) => c.done);
+  const stage =
+    checklist.length === 0
+      ? "documents_not_required"
+      : missing.length > 0
+        ? "awaiting_documents"
+        : unsigned.length > 0
+          ? "awaiting_signatures"
+          : "ready_for_disbursement";
+  return {
+    loanId: Number(loanId),
+    required: checklist,
+    documents: issued,
+    missingCount: missing.length,
+    pendingSignatureCount: unsigned.length,
+    allSigned,
+    documentsRequired: checklist.length > 0,
+    stage,
+  };
 }
 
 function saveFormDocumentIds(slug, ids = {}) {
@@ -452,6 +681,9 @@ function saveFormDocumentIds(slug, ids = {}) {
       const value = String(ids[key] || "").trim();
       fields[key] = value || null;
     }
+  }
+  if (ids.autoIssueLoanDocs !== undefined) {
+    fields.autoIssueLoanDocs = ids.autoIssueLoanDocs === true || ids.autoIssueLoanDocs === "true" || ids.autoIssueLoanDocs === 1;
   }
   updateOrganizationFlexxForms(slug, fields);
   return getFlexxFormsAdminView(slug, { consumeTempPassword: false });
@@ -473,7 +705,7 @@ function mapLoanDocRow(row) {
   };
 }
 
-function getLoanDocuments(loanId) {
+function getLoanDocuments(loanId, slug = null) {
   const db = getDb();
   ensureLoanDocumentSchema(db);
   const row = db
@@ -484,13 +716,38 @@ function getLoanDocuments(loanId) {
        FROM loans WHERE id = ?`
     )
     .get(Number(loanId));
-  return mapLoanDocRow(row);
+  const mapped = mapLoanDocRow(row);
+  if (!mapped) return null;
+  const orgSlug = slug || getOrgSlugOrNull();
+  const signing = orgSlug ? computeLoanSigningState(orgSlug, loanId) : null;
+  return { ...mapped, loanDocuments: listLoanDocumentRows(loanId), signing };
 }
 
-async function createLoanAgreementDocument(slug, loanId, purpose) {
-  if (purpose !== "guarantor" && purpose !== "borrower") {
-    throw new Error("Purpose must be guarantor or borrower");
+function buildDocSigners({ purpose, loan, slug, sessionUser, guarantorMemberId }) {
+  const signers = [];
+  if (purpose === "borrower") {
+    const borrower = memberSignerInfo(loan.borrowerId);
+    signers.push({
+      role: "Borrower",
+      name: borrower?.name || "Borrower",
+      email: borrower?.email || "",
+      memberId: borrower?.memberId ?? loan.borrowerId ?? null,
+    });
+  } else {
+    const guarantor = memberSignerInfo(guarantorMemberId);
+    signers.push({
+      role: "Guarantor",
+      name: guarantor?.name || "Guarantor",
+      email: guarantor?.email || "",
+      memberId: guarantor?.memberId ?? guarantorMemberId ?? null,
+    });
   }
+  const exco = excoSignerInfo(slug, sessionUser);
+  signers.push({ role: exco.label, name: exco.name, email: exco.email });
+  return signers;
+}
+
+async function issueLoanDocument(slug, loan, purpose, { sessionUser, guarantorMemberId = null, applicationId = null } = {}) {
   const ff = getOrganizationFlexxForms(slug);
   if (!ff?.apiKey) throw new Error("FlexxForms is not set up for this Cooperative yet");
   const masterId =
@@ -502,45 +759,126 @@ async function createLoanAgreementDocument(slug, loanId, purpose) {
         : "Set Borrower Master Document Id in Manage Forms & Documents"
     );
   }
-
-  const loan = getLoanDocuments(loanId);
-  if (!loan) throw new Error("Loan not found");
-
+  const db = getDb();
+  ensureLoanDocumentSchema(db);
+  if (applicationId == null) {
+    try {
+      const appRow = db
+        .prepare(
+          `SELECT id FROM flexxforms_applications
+           WHERE loan_id = ? AND kind = 'loan' ORDER BY id DESC LIMIT 1`
+        )
+        .get(loan.id);
+      if (appRow) applicationId = Number(appRow.id);
+    } catch (_) {}
+  }
+  const signers = buildDocSigners({ purpose, loan, slug, sessionUser, guarantorMemberId });
+  const guarantor = purpose === "guarantor" ? memberSignerInfo(guarantorMemberId) : null;
   const data = await flexxformsFetch("/integrations/documents", {
     method: "POST",
     apiKey: ff.apiKey,
     body: {
       sourceDocumentId: masterId,
+      signers,
       metadata: {
         cooperativeId: slug,
-        loanId: String(loanId),
+        loanId: String(loan.id),
+        applicationId: applicationId != null ? String(applicationId) : undefined,
         memberId: loan.borrowerId != null ? String(loan.borrowerId) : undefined,
+        guarantorMemberId:
+          guarantorMemberId != null ? String(guarantorMemberId) : undefined,
         purpose,
       },
     },
   });
-
-  const { documentId, signUrl, embedUrl } = parseFlexxFormsDocumentResponse(data);
+  const { documentId, signUrl, embedUrl, signers: signerUrls } =
+    parseFlexxFormsDocumentResponse(data);
   if (!documentId) throw new Error("FlexxForms did not return a document id");
-  if (!embedUrl && !signUrl) {
+  if (!embedUrl && !signUrl && !signerUrls.length) {
     throw new Error("FlexxForms did not return a signing URL for this document");
   }
-  const iframeUrl = embedUrl || signUrl;
+  const storedSigners = signerUrls.map((s, i) => ({
+    ...s,
+    memberId: signers[i]?.memberId ?? s.memberId ?? null,
+  }));
+  const iframeUrl = embedUrl || signUrl || null;
+  db.prepare(
+    `INSERT INTO loan_documents
+       (loan_id, application_id, kind, guarantor_member_id, guarantor_name,
+        flexxforms_document_id, sign_url, embed_url, signers_json, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+     ON CONFLICT(loan_id, kind, guarantor_member_id) DO UPDATE SET
+       application_id = excluded.application_id,
+       guarantor_name = excluded.guarantor_name,
+       flexxforms_document_id = excluded.flexxforms_document_id,
+       sign_url = excluded.sign_url,
+       embed_url = excluded.embed_url,
+       signers_json = excluded.signers_json,
+       status = 'pending',
+       completed_at = NULL`
+  ).run(
+    loan.id,
+    applicationId != null ? Number(applicationId) : null,
+    purpose,
+    purpose === "guarantor" ? Number(guarantorMemberId) : null,
+    purpose === "guarantor" ? guarantor?.name || null : null,
+    documentId,
+    signUrl || signerUrls[0]?.signingUrl || null,
+    iframeUrl,
+    JSON.stringify(storedSigners)
+  );
+  syncLoanDocumentLegacyColumns(db, loan.id);
+  return { documentId, signUrl: signUrl || signerUrls[0]?.signingUrl || null, embedUrl: iframeUrl, signers: signerUrls };
+}
 
-  const db = getDb();
-  ensureLoanDocumentSchema(db);
-  if (purpose === "guarantor") {
-    db.prepare(
-      `UPDATE loans SET guarantor_document_id = ?, guarantor_sign_url = ?,
-       guarantor_embed_url = ?, guarantor_doc_status = ? WHERE id = ?`
-    ).run(documentId, signUrl, iframeUrl, "pending", Number(loanId));
-  } else {
-    db.prepare(
-      `UPDATE loans SET borrower_document_id = ?, borrower_sign_url = ?,
-       borrower_embed_url = ?, borrower_doc_status = ? WHERE id = ?`
-    ).run(documentId, signUrl, iframeUrl, "pending", Number(loanId));
+async function createLoanAgreementDocument(slug, loanId, purpose, { sessionUser = null, guarantorMemberId = null, applicationId = null } = {}) {
+  if (!["guarantor", "borrower", "all"].includes(purpose)) {
+    throw new Error("Purpose must be guarantor, borrower, or all");
   }
-  return getLoanDocuments(loanId);
+  const loan = getLoanRowForDocs(loanId);
+  if (!loan) throw new Error("Loan not found");
+
+  const results = [];
+  if (purpose === "borrower" || purpose === "all") {
+    results.push(await issueLoanDocument(slug, loan, "borrower", { sessionUser, applicationId }));
+  }
+  if (purpose === "guarantor") {
+    if (guarantorMemberId != null) {
+      results.push(
+        await issueLoanDocument(slug, loan, "guarantor", { sessionUser, guarantorMemberId, applicationId })
+      );
+    } else {
+      const ids = [...new Set(
+        [loan.guarantor1Id, loan.guarantor2Id]
+          .map((id) => Number(id))
+          .filter((id) => Number.isInteger(id) && id > 0)
+      )];
+      if (!ids.length) throw new Error("This loan has no guarantors recorded");
+      for (const gid of ids) {
+        results.push(
+          await issueLoanDocument(slug, loan, "guarantor", { sessionUser, guarantorMemberId: gid, applicationId })
+        );
+      }
+    }
+  }
+  if (purpose === "all") {
+    const ids = [...new Set(
+      [loan.guarantor1Id, loan.guarantor2Id]
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    )];
+    const { issued } = loanDocRequirements(slug, loan);
+    for (const gid of ids) {
+      const existing = issued.find(
+        (d) => d.kind === "guarantor" && Number(d.guarantorMemberId) === gid
+      );
+      if (existing?.status === "completed") continue;
+      results.push(
+        await issueLoanDocument(slug, loan, "guarantor", { sessionUser, guarantorMemberId: gid, applicationId })
+      );
+    }
+  }
+  return getLoanDocuments(loanId, slug);
 }
 
 function verifyWebhookSignature(rawBody, signatureHeader, timestampHeader, secret) {
@@ -848,6 +1186,24 @@ function handleDocumentCompleted(slug, payload) {
     const documentId = data.id || data.documentId || data.document_id;
     if (!loanId) return { ok: false, reason: "missing loanId" };
 
+    if (documentId) {
+      const docRow = db
+        .prepare(
+          `SELECT id FROM loan_documents
+           WHERE loan_id = ? AND flexxforms_document_id = ? LIMIT 1`
+        )
+        .get(loanId, String(documentId));
+      if (docRow) {
+        db.prepare(
+          `UPDATE loan_documents
+           SET status = 'completed', completed_at = datetime('now')
+           WHERE id = ?`
+        ).run(docRow.id);
+        syncLoanDocumentLegacyColumns(db, loanId);
+        return { ok: true, purpose, loanId, loanDocumentId: docRow.id };
+      }
+    }
+
     if (purpose === "guarantor" || (!purpose && documentId)) {
       const loan = getLoanDocuments(loanId);
       if (loan?.guarantorDocumentId && documentId && loan.guarantorDocumentId === documentId) {
@@ -872,6 +1228,67 @@ function handleDocumentCompleted(slug, payload) {
     }
     return { ok: false, reason: "unmatched document" };
   });
+}
+
+async function refreshLoanDocumentStatuses(slug, loanId) {
+  const ff = getOrganizationFlexxForms(slug);
+  if (!ff?.apiKey) return { refreshed: 0 };
+  const docs = listLoanDocumentRows(loanId).filter(
+    (d) => d.documentId && d.status !== "completed"
+  );
+  if (!docs.length) return { refreshed: 0 };
+  const db = getDb();
+  ensureLoanDocumentSchema(db);
+  let refreshed = 0;
+  for (const doc of docs) {
+    try {
+      const data = await flexxformsFetch(
+        `/integrations/documents/${encodeURIComponent(doc.documentId)}`,
+        { apiKey: ff.apiKey }
+      );
+      const status = data?.signingStatus || data?.status || null;
+      const signers = Array.isArray(data?.signers)
+        ? data.signers.map((s) => ({
+            id: s?.id || null,
+            label: s?.label || s?.role || s?.name || null,
+            name: s?.name || null,
+            email: s?.email || null,
+            signingUrl: s?.signingUrl || s?.signing_url || null,
+          }))
+        : null;
+      const next = status === "completed" ? "completed" : status === "partially_signed" ? "partially_signed" : "pending";
+      db.prepare(
+        `UPDATE loan_documents
+         SET status = ?, signers_json = COALESCE(?, signers_json),
+             completed_at = CASE WHEN ? = 'completed' THEN COALESCE(completed_at, datetime('now')) ELSE completed_at END
+         WHERE id = ?`
+      ).run(next, signers ? JSON.stringify(signers) : null, next, doc.id);
+      refreshed += 1;
+    } catch (_) {
+      /* best-effort per document */
+    }
+  }
+  if (refreshed > 0) syncLoanDocumentLegacyColumns(db, Number(loanId));
+  return { refreshed };
+}
+
+async function issueAllLoanDocuments(slug, loanId, { sessionUser = null, applicationId = null } = {}) {
+  const result = await createLoanAgreementDocument(slug, loanId, "all", {
+    sessionUser,
+    applicationId,
+  });
+  return { ok: true, documents: result };
+}
+
+async function maybeAutoIssueLoanDocuments(slug, loanId, { sessionUser = null, applicationId = null } = {}) {
+  const ff = getOrganizationFlexxForms(slug);
+  if (!ff?.autoIssueLoanDocs || !ff?.apiKey) return { issued: false };
+  try {
+    const out = await issueAllLoanDocuments(slug, loanId, { sessionUser, applicationId });
+    return { issued: true, documents: out.documents };
+  } catch (err) {
+    return { issued: false, error: err.message };
+  }
 }
 
 async function handleWebhook(rawBody, headers) {
@@ -947,6 +1364,11 @@ module.exports = {
   saveFormDocumentIds,
   getLoanDocuments,
   createLoanAgreementDocument,
+  issueAllLoanDocuments,
+  maybeAutoIssueLoanDocuments,
+  refreshLoanDocumentStatuses,
+  computeLoanSigningState,
+  listLoanDocumentRows,
   handleWebhook,
   reprocessMembershipApplicationWithFetch,
   listPendingApplications,

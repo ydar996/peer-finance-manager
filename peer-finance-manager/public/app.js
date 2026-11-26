@@ -11403,6 +11403,8 @@ async function loadFlexxFormsSettings() {
     $("#ffLoanFormId").value = s.loanFormId || "";
     $("#ffGuarantorMasterDocId").value = s.guarantorMasterDocId || "";
     $("#ffBorrowerMasterDocId").value = s.borrowerMasterDocId || "";
+    const autoIssue = $("#ffAutoIssueLoanDocs");
+    if (autoIssue) autoIssue.checked = s.autoIssueLoanDocs === true;
     refreshFlexxFormsAssignButtons();
     await loadFlexxFormsApplications();
     await loadFlexxFormsLoanApplications();
@@ -11755,12 +11757,36 @@ function renderMemberLoanTermsActionCard(application) {
         : application.status === "terms_rejected"
           ? `<p class="status err">You Rejected These Terms.</p>`
           : `<p class="hint">Review This Schedule, Then Accept or Reject.</p>`;
+  const signing = application.signing;
+  const signingLine =
+    signing && signing.documentsRequired && !application.disbursementTxId
+      ? `<p class="hint">Signing Progress: ${escapeHtml(
+          loanSigningStageLabel(signing.stage)
+        )} (${signing.required.filter((r) => r.done).length}/${signing.required.length} Documents Signed). Disbursement Is Blocked Until All Are Signed.</p>`
+      : "";
+  const mySignLink = (() => {
+    if (!signing?.documents?.length) return "";
+    const mid = Number(application.memberId);
+    for (const doc of signing.documents) {
+      if (doc.status === "completed") continue;
+      const mine = (doc.signers || []).find(
+        (s) => (s.memberId != null && Number(s.memberId) === mid) && s.signingUrl
+      );
+      if (mine) {
+        const label = doc.kind === "guarantor" ? "Guaranty" : "Loan Agreement";
+        return `<a class="btn primary" href="${escapeHtml(mine.signingUrl)}" target="_blank" rel="noopener noreferrer">Sign ${escapeHtml(label)} ↗</a>`;
+      }
+    }
+    return "";
+  })();
   const actions = canDecide
     ? `<div class="loan-terms-inbox-actions">
         <button type="button" class="btn primary js-accept-loan-terms" data-id="${application.id}">Accept Terms</button>
         <button type="button" class="btn js-reject-loan-terms" data-id="${application.id}">Reject Terms</button>
       </div>`
-    : "";
+    : mySignLink
+      ? `<div class="loan-terms-inbox-actions">${mySignLink}</div>`
+      : "";
   const downloads =
     terms.schedule?.length
       ? repaymentPlanDownloadButtons({
@@ -11770,6 +11796,7 @@ function renderMemberLoanTermsActionCard(application) {
       : "";
   return `<h3>Repayment Plan</h3>
     ${statusLine}
+    ${signingLine}
     ${renderLoanTermsSummaryHtml(terms, { simple: true })}
     ${downloads}
     ${actions}
@@ -12304,6 +12331,7 @@ $("#flexxformsSettingsForm")?.addEventListener("submit", async (e) => {
         loanFormId: $("#ffLoanFormId")?.value,
         guarantorMasterDocId: $("#ffGuarantorMasterDocId")?.value,
         borrowerMasterDocId: $("#ffBorrowerMasterDocId")?.value,
+        autoIssueLoanDocs: $("#ffAutoIssueLoanDocs")?.checked === true,
       }),
     });
     const data = await res.json();
@@ -12610,6 +12638,16 @@ async function openLoanAgreementsPanel(loanId, borrowerName) {
   }
 }
 
+function loanSigningStageLabel(stage) {
+  const labels = {
+    documents_not_required: "No Signing Required",
+    awaiting_documents: "Awaiting Documents",
+    awaiting_signatures: "Awaiting Signatures",
+    ready_for_disbursement: "Ready for Disbursement",
+  };
+  return labels[stage] || stage || "Unknown";
+}
+
 function renderLoanAgreementEmbeds(docs) {
   const embeds = $("#loanAgreementsEmbeds");
   if (!embeds) return;
@@ -12617,20 +12655,65 @@ function renderLoanAgreementEmbeds(docs) {
     embeds.innerHTML = "";
     return;
   }
+  const signing = docs.signing;
   const blocks = [];
-  if (docs.guarantorEmbedUrl || docs.guarantorSignUrl) {
-    const url = docs.guarantorEmbedUrl || docs.guarantorSignUrl;
+  if (signing) {
+    const stageLabel = loanSigningStageLabel(signing.stage);
+    const checklist = (signing.required || [])
+      .map((req) => {
+        const doc = req.document;
+        const name =
+          req.kind === "guarantor"
+            ? `${req.label} (${req.guarantorName || "Guarantor"})`
+            : req.label;
+        const status = doc ? doc.status || "pending" : "not issued";
+        return `<li>${escapeHtml(name)}: <strong>${escapeHtml(status.replaceAll("_", " "))}</strong></li>`;
+      })
+      .join("");
     blocks.push(
-      `<div><p class="subtle">Guarantor agreement (${escapeHtml(docs.guarantorDocStatus || "pending")})</p>
-       <iframe class="loan-agreement-frame" title="Guarantor agreement" src="${escapeHtml(url)}"></iframe></div>`
+      `<div class="loan-signing-pipeline">
+         <p class="subtle">Signing Stage: <strong>${escapeHtml(stageLabel)}</strong>${
+           signing.allSigned ? " — all documents signed." : ""
+         }</p>
+         ${checklist ? `<ul class="loan-signing-checklist">${checklist}</ul>` : ""}
+       </div>`
     );
   }
-  if (docs.borrowerEmbedUrl || docs.borrowerSignUrl) {
-    const url = docs.borrowerEmbedUrl || docs.borrowerSignUrl;
+  const docRows = Array.isArray(docs.loanDocuments) ? docs.loanDocuments : [];
+  for (const doc of docRows) {
+    const signerLinks = (doc.signers || [])
+      .filter((s) => s.signingUrl)
+      .map(
+        (s) =>
+          `<a class="btn" href="${escapeHtml(s.signingUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.label || s.name || "Signer")} ↗</a>`
+      )
+      .join(" ");
+    const title =
+      doc.kind === "guarantor"
+        ? `Guarantor agreement (${doc.guarantorName || "Guarantor"})`
+        : "Borrower agreement";
+    const frame = doc.embedUrl || doc.signUrl;
     blocks.push(
-      `<div><p class="subtle">Borrower agreement (${escapeHtml(docs.borrowerDocStatus || "pending")})</p>
-       <iframe class="loan-agreement-frame" title="Borrower agreement" src="${escapeHtml(url)}"></iframe></div>`
+      `<div><p class="subtle">${escapeHtml(title)} · ${escapeHtml((doc.status || "pending").replaceAll("_", " "))}</p>
+       ${signerLinks ? `<div class="loan-signer-links">${signerLinks}</div>` : ""}
+       ${frame ? `<iframe class="loan-agreement-frame" title="${escapeHtml(title)}" src="${escapeHtml(frame)}"></iframe>` : ""}</div>`
     );
+  }
+  if (!docRows.length) {
+    if (docs.guarantorEmbedUrl || docs.guarantorSignUrl) {
+      const url = docs.guarantorEmbedUrl || docs.guarantorSignUrl;
+      blocks.push(
+        `<div><p class="subtle">Guarantor agreement (${escapeHtml(docs.guarantorDocStatus || "pending")})</p>
+         <iframe class="loan-agreement-frame" title="Guarantor agreement" src="${escapeHtml(url)}"></iframe></div>`
+      );
+    }
+    if (docs.borrowerEmbedUrl || docs.borrowerSignUrl) {
+      const url = docs.borrowerEmbedUrl || docs.borrowerSignUrl;
+      blocks.push(
+        `<div><p class="subtle">Borrower agreement (${escapeHtml(docs.borrowerDocStatus || "pending")})</p>
+         <iframe class="loan-agreement-frame" title="Borrower agreement" src="${escapeHtml(url)}"></iframe></div>`
+      );
+    }
   }
   embeds.innerHTML = blocks.join("") || '<p class="subtle">No agreements created yet.</p>';
 }
@@ -12661,6 +12744,7 @@ async function createLoanAgreement(purpose) {
 
 $("#createGuarantorAgreementBtn")?.addEventListener("click", () => createLoanAgreement("guarantor"));
 $("#createBorrowerAgreementBtn")?.addEventListener("click", () => createLoanAgreement("borrower"));
+$("#createAllAgreementsBtn")?.addEventListener("click", () => createLoanAgreement("all"));
 
 function openMembershipApplyScreen(slug) {
   hideAllScreens();
