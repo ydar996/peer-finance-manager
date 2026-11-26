@@ -39,6 +39,7 @@ const {
   updateMemberEmergencyContact,
   resolveMemberPhotoFile,
 } = require("./member-self-service");
+const { recordSecurityEvent, clientIp, listSecurityEvents } = require("./security-events");
 
 function requestOrgSlug(req) {
   return req.user?.organizationSlug || req.organization?.slug || null;
@@ -118,6 +119,15 @@ function registerAuthRoutes(app, deps = {}) {
         };
       }
 
+      recordSecurityEvent({
+        organizationSlug: result.organization?.slug || null,
+        eventType: "org.registered",
+        severity: "info",
+        actorLabel: String(adminEmail || "").trim().toLowerCase() || null,
+        ip: clientIp(req),
+        detail: `name=${result.organization?.name || name || ""}; country=${countryCode || ""}`,
+      });
+
       let welcomeEmail = { sent: false, skipped: true, reason: "not_attempted" };
       try {
         const { sendOrganizationAdminWelcomeEmail } = require("./organization-welcome-email");
@@ -153,6 +163,13 @@ function registerAuthRoutes(app, deps = {}) {
         portal || PORTALS.MEMBER,
         organizationSlug
       );
+      recordSecurityEvent({
+        organizationSlug: result.organization?.slug || (organizationSlug ? String(organizationSlug).trim().toLowerCase() : null),
+        eventType: result.mfaRequired ? "auth.login_mfa_pending" : "auth.login",
+        actorLabel: loginId ? String(loginId).slice(0, 200) : null,
+        ip: clientIp(req),
+        detail: `portal=${portal || PORTALS.MEMBER}`,
+      });
       const { getCooperativeTimezone } = require("./cooperative-time");
       const { getPublicCountryProfile } = require("./country-profile");
       const orgSlug = result.organization?.slug || null;
@@ -173,6 +190,14 @@ function registerAuthRoutes(app, deps = {}) {
         ...localeInfo,
       });
     } catch (err) {
+      recordSecurityEvent({
+        organizationSlug: organizationSlug ? String(organizationSlug).trim().toLowerCase() : null,
+        eventType: "auth.login_failed",
+        severity: "warning",
+        actorLabel: loginId ? String(loginId).slice(0, 200) : null,
+        ip: clientIp(req),
+        detail: `portal=${portal || PORTALS.MEMBER}; reason=${String(err.message || "").slice(0, 120)}`,
+      });
       res.status(401).json({ error: err.message });
     }
   });
@@ -183,6 +208,12 @@ function registerAuthRoutes(app, deps = {}) {
       const { verifyMfaChallenge } = require("./mfa-service");
       const { organizationSlug, userId } = verifyMfaChallenge(ticket, code);
       const result = createSessionForUser(organizationSlug, userId);
+      recordSecurityEvent({
+        organizationSlug,
+        eventType: "auth.mfa_verified",
+        actorUserId: userId,
+        ip: clientIp(req),
+      });
       const { getCooperativeTimezone } = require("./cooperative-time");
       const { getPublicCountryProfile } = require("./country-profile");
       const localeInfo = runWithOrg(organizationSlug, () => ({
@@ -193,6 +224,13 @@ function registerAuthRoutes(app, deps = {}) {
       setAuthCookie(res, req, result.token);
       res.json({ success: true, ...result, ...localeInfo });
     } catch (err) {
+      recordSecurityEvent({
+        organizationSlug,
+        eventType: "auth.mfa_verify_failed",
+        severity: "warning",
+        ip: clientIp(req),
+        detail: String(err.message || "").slice(0, 120),
+      });
       res.status(401).json({ error: err.message });
     }
   });
@@ -209,6 +247,13 @@ function registerAuthRoutes(app, deps = {}) {
   app.post("/api/mfa/start", requireAuth, (req, res) => {
     try {
       const { startMfaEnrollment } = require("./mfa-service");
+      recordSecurityEvent({
+        organizationSlug: requestOrgSlug(req),
+        eventType: "mfa.enroll_started",
+        actorUserId: req.user.id,
+        actorLabel: req.user.email || req.user.username || null,
+        ip: clientIp(req),
+      });
       res.json({ success: true, ...startMfaEnrollment(req.user) });
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -219,7 +264,22 @@ function registerAuthRoutes(app, deps = {}) {
     try {
       const { confirmMfaEnrollment } = require("./mfa-service");
       res.json({ success: true, ...confirmMfaEnrollment(req.user.id, req.body?.code) });
+      recordSecurityEvent({
+        organizationSlug: requestOrgSlug(req),
+        eventType: "mfa.enrolled",
+        actorUserId: req.user.id,
+        actorLabel: req.user.email || req.user.username || null,
+        ip: clientIp(req),
+      });
     } catch (err) {
+      recordSecurityEvent({
+        organizationSlug: requestOrgSlug(req),
+        eventType: "mfa.enroll_failed",
+        severity: "warning",
+        actorUserId: req.user.id,
+        ip: clientIp(req),
+        detail: String(err.message || "").slice(0, 120),
+      });
       res.status(400).json({ error: err.message });
     }
   });
@@ -232,6 +292,13 @@ function registerAuthRoutes(app, deps = {}) {
       }
       const { disableMfa } = require("./mfa-service");
       res.json({ success: true, ...disableMfa(req.user.id) });
+      recordSecurityEvent({
+        organizationSlug: requestOrgSlug(req),
+        eventType: "mfa.disabled",
+        actorUserId: req.user.id,
+        actorLabel: req.user.email || req.user.username || null,
+        ip: clientIp(req),
+      });
     } catch (err) {
       res.status(400).json({ error: err.message });
     }
@@ -243,6 +310,14 @@ function registerAuthRoutes(app, deps = {}) {
       if (!targetId) return res.status(400).json({ error: "Invalid user id" });
       const { adminResetMfa } = require("./mfa-service");
       res.json({ success: true, ...adminResetMfa(targetId) });
+      recordSecurityEvent({
+        organizationSlug: requestOrgSlug(req),
+        eventType: "mfa.admin_reset",
+        actorUserId: req.user.id,
+        actorLabel: req.user.email || req.user.username || null,
+        ip: clientIp(req),
+        detail: `target_user_id=${targetId}`,
+      });
     } catch (err) {
       res.status(400).json({ error: err.message });
     }
@@ -253,6 +328,11 @@ function registerAuthRoutes(app, deps = {}) {
       const { setPasswordFromSetupToken } = require("./auth-service");
       const { token, password, organizationSlug } = req.body || {};
       const result = setPasswordFromSetupToken({ token, password, organizationSlug });
+      recordSecurityEvent({
+        organizationSlug: result.organizationSlug || null,
+        eventType: "auth.set_password",
+        ip: clientIp(req),
+      });
       res.json({ success: true, organizationSlug: result.organizationSlug });
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -261,6 +341,13 @@ function registerAuthRoutes(app, deps = {}) {
 
   app.post("/api/auth/logout", requireAuth, (req, res) => {
     logout(getToken(req));
+    recordSecurityEvent({
+      organizationSlug: requestOrgSlug(req),
+      eventType: "auth.logout",
+      actorUserId: req.user?.id || null,
+      actorLabel: req.user?.email || req.user?.username || null,
+      ip: clientIp(req),
+    });
     const { clearAuthCookie } = require("./session-cookie");
     clearAuthCookie(res, req);
     res.json({ success: true });
@@ -280,8 +367,23 @@ function registerAuthRoutes(app, deps = {}) {
     try {
       const { currentPassword, newPassword } = req.body || {};
       const user = changePassword(req.user.id, currentPassword, newPassword);
+      recordSecurityEvent({
+        organizationSlug: requestOrgSlug(req),
+        eventType: "auth.password_changed",
+        actorUserId: req.user.id,
+        actorLabel: req.user.email || req.user.username || null,
+        ip: clientIp(req),
+      });
       res.json({ success: true, user });
     } catch (err) {
+      recordSecurityEvent({
+        organizationSlug: requestOrgSlug(req),
+        eventType: "auth.password_change_failed",
+        severity: "warning",
+        actorUserId: req.user?.id || null,
+        ip: clientIp(req),
+        detail: String(err.message || "").slice(0, 120),
+      });
       res.status(400).json({ error: err.message });
     }
   });
@@ -290,9 +392,28 @@ function registerAuthRoutes(app, deps = {}) {
     res.json({ users: listUsers() });
   });
 
+  // Read-only view of the org's security event log (recorded by
+  // lib/security-events.js). No UI surface yet; API for audits and future use.
+  app.get("/api/security-events", requireAuth, requireAdmin, (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query?.limit) || 200, 1000);
+      res.json({ events: listSecurityEvents({ organizationSlug: requestOrgSlug(req), limit }) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/users", requireAuth, requireAdmin, (req, res) => {
     try {
       const user = createUser(req.body || {});
+      recordSecurityEvent({
+        organizationSlug: requestOrgSlug(req),
+        eventType: "user.created",
+        actorUserId: req.user.id,
+        actorLabel: req.user.email || req.user.username || null,
+        ip: clientIp(req),
+        detail: `target_email=${user?.email || req.body?.email || ""}; role=${user?.role || ""}`,
+      });
       res.json({ success: true, user });
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -311,6 +432,14 @@ function registerAuthRoutes(app, deps = {}) {
         exportPath: result.exportPath,
         exportFileName: path.basename(result.exportPath),
       });
+      recordSecurityEvent({
+        organizationSlug: requestOrgSlug(req),
+        eventType: "user.provision_members",
+        actorUserId: req.user.id,
+        actorLabel: req.user.email || req.user.username || null,
+        ip: clientIp(req),
+        detail: `created=${result.created}; skipped=${result.skipped}`,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -323,6 +452,14 @@ function registerAuthRoutes(app, deps = {}) {
         memberId: req.body?.memberId,
         memberName: req.body?.memberName,
         sendEmailToMember,
+      });
+      recordSecurityEvent({
+        organizationSlug: requestOrgSlug(req),
+        eventType: "user.member_password_reset",
+        actorUserId: req.user.id,
+        actorLabel: req.user.email || req.user.username || null,
+        ip: clientIp(req),
+        detail: `member_id=${req.body?.memberId || ""}; emailed=${sendEmailToMember}`,
       });
       res.json({ success: true, ...result });
     } catch (err) {

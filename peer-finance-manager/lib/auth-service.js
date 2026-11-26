@@ -29,6 +29,11 @@ const PORTALS = {
 
 const ASSURANCE_ADMIN_EMAIL = "yinka@eworkchop.com";
 const SESSION_DAYS = 7;
+// Sliding idle window: a session dies after 24h without activity even if the
+// 7-day absolute expiry has not passed. Touch is throttled to one write per
+// 5 minutes so it does not add a write to every request.
+const SESSION_IDLE_MS = 24 * 60 * 60 * 1000;
+const SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 
 function normalizeEmail(email) {
@@ -136,12 +141,23 @@ function getSession(token) {
   if (!token) return null;
   const registry = getRegistryDb();
   const session = registry
-    .prepare(`SELECT id, organization_slug, user_id, expires_at FROM sessions WHERE id = ?`)
+    .prepare(`SELECT id, organization_slug, user_id, expires_at, last_seen_at FROM sessions WHERE id = ?`)
     .get(token);
   if (!session) return null;
-  if (new Date(session.expires_at).getTime() < Date.now()) {
+  const now = Date.now();
+  if (new Date(session.expires_at).getTime() < now) {
     registry.prepare(`DELETE FROM sessions WHERE id = ?`).run(token);
     return null;
+  }
+  const lastSeen = session.last_seen_at ? new Date(session.last_seen_at).getTime() : null;
+  if (lastSeen && now - lastSeen > SESSION_IDLE_MS) {
+    registry.prepare(`DELETE FROM sessions WHERE id = ?`).run(token);
+    return null;
+  }
+  if (!lastSeen || now - lastSeen > SESSION_TOUCH_INTERVAL_MS) {
+    registry
+      .prepare(`UPDATE sessions SET last_seen_at = ? WHERE id = ?`)
+      .run(new Date(now).toISOString(), token);
   }
   const organization = getOrganization(session.organization_slug);
   if (!organization) return null;
@@ -218,9 +234,9 @@ function createSessionForUser(slug, userId, organization) {
   const token = createSessionToken();
   getRegistryDb()
     .prepare(
-      `INSERT INTO sessions (id, organization_slug, user_id, expires_at) VALUES (?, ?, ?, ?)`
+      `INSERT INTO sessions (id, organization_slug, user_id, expires_at, last_seen_at) VALUES (?, ?, ?, ?, ?)`
     )
-    .run(token, slug, userId, sessionExpiryIso());
+    .run(token, slug, userId, sessionExpiryIso(), new Date().toISOString());
   return { token, user, mustChangePassword: user.mustChangePassword, organization: org };
 }
 

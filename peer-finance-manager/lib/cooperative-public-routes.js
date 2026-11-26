@@ -3,6 +3,7 @@ const fs = require("fs");
 const multer = require("multer");
 const { getOrgDataDir } = require("./organization-service");
 const { runWithOrg } = require("./org-context");
+const { recordSecurityEvent, clientIp } = require("./security-events");
 const {
   getPublicSummary,
   getPublicAbout,
@@ -41,6 +42,13 @@ function registerCooperativePublicRoutes(app, deps = {}) {
       }
     },
     limits: { fileSize: 15 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      const ext = path.extname(String(file.originalname || "")).toLowerCase();
+      if ([".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp"].includes(ext)) {
+        return cb(null, true);
+      }
+      cb(new Error("Only PDF or image files (PNG, JPG, GIF, WebP) are allowed"), false);
+    },
   });
 
   app.get("/api/public/organizations/:slug", (req, res) => {
@@ -137,6 +145,14 @@ function registerCooperativePublicRoutes(app, deps = {}) {
       const slug = req.user.organizationSlug;
       const { plainText, externalUrl, published } = req.body || {};
       const result = saveAboutPage(slug, { plainText, externalUrl, published });
+      recordSecurityEvent({
+        organizationSlug: slug,
+        eventType: "public_pages.about_saved",
+        actorUserId: req.user?.id || null,
+        actorLabel: req.user?.email || req.user?.username || null,
+        ip: clientIp(req),
+        detail: `published=${result?.aboutPublished ? 1 : 0}; external=${Boolean(result?.aboutExternalUrl)}`,
+      });
       res.json({ success: true, ...result });
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -148,6 +164,14 @@ function registerCooperativePublicRoutes(app, deps = {}) {
       const slug = req.user.organizationSlug;
       const { plainText, externalUrl, published } = req.body || {};
       const result = saveBylawsPage(slug, { plainText, externalUrl, published });
+      recordSecurityEvent({
+        organizationSlug: slug,
+        eventType: "public_pages.bylaws_saved",
+        actorUserId: req.user?.id || null,
+        actorLabel: req.user?.email || req.user?.username || null,
+        ip: clientIp(req),
+        detail: `published=${result?.bylawsPublished ? 1 : 0}; external=${Boolean(result?.bylawsExternalUrl)}`,
+      });
       res.json({ success: true, ...result });
     } catch (err) {
       res.status(400).json({ error: err.message });

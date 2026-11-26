@@ -175,6 +175,24 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-26** - **Security hardening program (Phases A-C of
+  SECURITY-COMPLIANCE-ROADMAP.md).** New `lib/security-events.js`:
+  append-only `security_events` table in registry.db recording auth,
+  MFA, admin, restore, public-page, FlexxForms, platform, and billing
+  events with actor/IP; read API `GET /api/security-events` (admin).
+  New `lib/error-monitor.js`: `data/security/errors.jsonl` (5MB rotate),
+  HTTP 5xx capture middleware, process handlers, optional
+  `SECURITY_ALERT_WEBHOOK_URL` alerting. Sessions: 24h sliding idle
+  timeout (`last_seen_at`, throttled touch) on org + platform sessions.
+  `/.well-known/security.txt` + SECURITY.md disclosure policy.
+  Upload filter on public-pages multer (pdf/images only). Fixed
+  flexxforms retry route discarding magicLinkUrl (frontend now reads
+  `data.settings.magicLinkUrl`). Branch protection enabled on main
+  (PR + npm audit check required); npm-audit workflow now runs on all
+  PRs. New `scripts/backup-restore-drill.js` (drill PASSED: 32 tables).
+  Public /privacy.html + /terms.html + footer links. ISMS doc set in
+  docs/security/ (policies, risk register, runbooks, reviews, tabletop).
+
 - **2026-11-25** - **Public pages plain-text parser: bullets no longer
   glued.** repairOcrWordSplits' hyphen fix (\w)\s+-\s*(\w) matched
   across newlines, so any '- ' bullet following a line ending in a word

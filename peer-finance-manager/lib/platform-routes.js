@@ -1,4 +1,5 @@
 const { getToken } = require("./auth-middleware");
+const { recordSecurityEvent, clientIp } = require("./security-events");
 const {
   platformLogin,
   platformLogout,
@@ -49,16 +50,33 @@ function registerPlatformRoutes(app) {
     try {
       const { email, password } = req.body || {};
       const result = platformLogin(email, password);
+      recordSecurityEvent({
+        eventType: "platform.login",
+        actorLabel: email ? String(email).trim().toLowerCase() : null,
+        ip: clientIp(req),
+      });
       const { setAuthCookie, PLATFORM_COOKIE } = require("./session-cookie");
       setAuthCookie(res, req, result.token, PLATFORM_COOKIE);
       res.json(result);
     } catch (err) {
+      recordSecurityEvent({
+        eventType: "platform.login_failed",
+        severity: "warning",
+        actorLabel: email ? String(email).trim().toLowerCase() : null,
+        ip: clientIp(req),
+        detail: String(err.message || "").slice(0, 120),
+      });
       res.status(401).json({ error: err.message });
     }
   });
 
   app.post("/api/platform/auth/logout", attachPlatformUser, (req, res) => {
     platformLogout(req.platformToken);
+    recordSecurityEvent({
+      eventType: "platform.logout",
+      actorLabel: req.platformUser?.email || null,
+      ip: clientIp(req),
+    });
     const { clearAuthCookie, PLATFORM_COOKIE } = require("./session-cookie");
     clearAuthCookie(res, req, PLATFORM_COOKIE);
     res.json({ success: true });
@@ -167,6 +185,14 @@ function registerPlatformRoutes(app) {
         const { deleteOrganization } = require("./organization-service");
         closeDb(slug);
         const deleted = deleteOrganization(slug);
+        recordSecurityEvent({
+          organizationSlug: slug,
+          eventType: "org.deleted",
+          severity: "critical",
+          actorLabel: req.platformUser?.email || null,
+          ip: clientIp(req),
+          detail: `deleted=${deleted}`,
+        });
         res.json({ success: true, deleted });
       } catch (err) {
         res.status(400).json({ error: err.message });
@@ -186,6 +212,13 @@ function registerPlatformRoutes(app) {
           checkNumber,
           notes,
           billingEmail,
+        });
+        recordSecurityEvent({
+          organizationSlug: req.params.slug,
+          eventType: "billing.check_payment_recorded",
+          actorLabel: req.platformUser?.email || null,
+          ip: clientIp(req),
+          detail: `plan=${plan || ""}`,
         });
         res.json({ success: true, organization: org });
       } catch (err) {
