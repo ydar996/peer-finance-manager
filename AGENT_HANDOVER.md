@@ -175,6 +175,13 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Render DPA PDF filed in repo.** Downloaded copy
+  moved to docs/security/vendor-dpas/Render-GDPR-DPA-2026-11-25.pdf;
+  SUBPROCESSORS.md references it and documents the vendor-dpas/
+  naming convention (Vendor-DPA-YYYY-MM-DD.pdf) for future DPA copies.
+  Checklist steps for Netlify/Stripe/Supabase now point copies to the
+  same folder.
+
 - **2026-11-25** - **Owner items 1 and 2 marked complete.** UptimeRobot
   monitor live (Peer Finance Manager API, 5-min checks on
   peerfinancemanager.com/api/health, email alerts). DPAs done: Render

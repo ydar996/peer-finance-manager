@@ -77,8 +77,8 @@ minutes.
 3. Choose **Compliance and Documents** (Document Center).
 4. Find **GDPR DPA** in the list — every workspace can download this
    (paid documents like the SOC 2 report are optional; the DPA is free).
-   Download it and save a copy with your records (e.g. a "Legal" folder
-   on your computer).
+   Download it and save the copy in the repo at
+   `docs/security/vendor-dpas/` — done for the Render DPA already.
 5. If the DPA is not listed there, request it at
    **https://trust.render.com** or email **support@render.com**:
    "Please send us the Data Processing Addendum for our workspace."
@@ -88,14 +88,16 @@ minutes.
    accepted at sign-up — it applies automatically, nothing to click.
 2. For your records, download the PDF at
    **https://www.netlify.com/pdf/netlify-dpa.pdf** (also available on
-   Netlify's Trust Center page at https://www.netlify.com/trust-center/).
+   Netlify's Trust Center page at https://www.netlify.com/trust-center/)
+   and save it to `docs/security/vendor-dpas/`.
 
 **Stripe (payments) — automatic, just save a copy**
 1. Stripe's DPA is already incorporated into the Stripe Services
    Agreement you accepted at sign-up — nothing to click.
 2. For your records, view/download it at
    **https://stripe.com/legal/dpa** (click "Need a copy of this Data
-   Processing Agreement? Click here" on that page).
+   Processing Agreement? Click here" on that page) and save it to
+   `docs/security/vendor-dpas/`.
 
 **Supabase (FlexxForms database) — automatic, just save a copy**
 1. Supabase's Data Processing Addendum is part of their Terms of Service
@@ -104,7 +106,8 @@ minutes.
 2. For your records, view it at
    **https://supabase.com/legal/customer-resources/data-processing-addendum**
    — or in the dashboard, open your organization and look under
-   **Documents**, where the DPA card has a **View DPA** link.
+   **Documents**, where the DPA card has a **View DPA** link. Save a
+   copy to `docs/security/vendor-dpas/` if you want it on file.
 
 **Bluehost (email sending)**
 1. Email is low-volume transactional mail; no DPA is typically required at
