@@ -175,6 +175,12 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-26** - **Owner checklist: UptimeRobot auto-detect screen
+  covered.** Onboarding auto-suggests pages like /admin and /register
+  (and may pick the onrender.com address). Steps now say to uncheck
+  them, keep ONE monitor on peerfinancemanager.com/api/health, and
+  edit any auto-created monitor's URL rather than leave extras running.
+
 - **2026-11-26** - **Owner checklist: UptimeRobot steps updated for new
   signup flow.** Signup now asks for the monitored website on the
   registration form itself (peerfinancemanager.com/api/health —
