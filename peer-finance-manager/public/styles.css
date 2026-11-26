@@ -1856,11 +1856,43 @@ tr.loan-row:hover { background: #f8fafc; }
   border-radius: 8px;
   background: #f8fafc;
 }
+.public-pages-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 12px 14px;
+  margin: 12px 0 8px;
+  border: 1px solid #cfe5d6;
+  border-radius: 10px;
+  background: #f3faf6;
+  color: #334155;
+  font-size: 13px;
+}
+.public-pages-links a {
+  color: #1e7a4e;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.public-pages-links a:hover {
+  color: #145c3a;
+}
 .public-pages-admin textarea {
   width: 100%;
   font-family: inherit;
   font-size: 14px;
   line-height: 1.5;
+}
+.public-pages-content-fields > label.btn {
+  display: inline-flex;
+  margin-top: 10px;
+}
+.public-pages-admin .file-list {
+  margin: 10px 0 4px;
+}
+.public-pages-content-fields + .panel-head-actions {
+  margin-top: 16px;
 }
 .public-pages-section {
   margin-top: 12px;
