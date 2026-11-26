@@ -10839,10 +10839,10 @@ function renderPublicPagesAdmin(data) {
   const imagesList = $("#publicAboutImagesList");
   if (!data) return;
   if (linksEl) {
-    const applyLink = data.publicApplyUrl
-      ? ` · <a href="${escapeHtml(data.publicApplyUrl)}" target="_blank" rel="noopener">Apply</a>`
-      : "";
-    linksEl.innerHTML = `Public links: <a href="${escapeHtml(data.publicAboutUrl)}" target="_blank" rel="noopener">About</a> · <a href="${escapeHtml(data.publicBylawsUrl)}" target="_blank" rel="noopener">Bylaws</a>${applyLink}`;
+    const pageLink = (url, label) =>
+      `<a class="btn public-page-link" href="${escapeHtml(url)}" target="_blank" rel="noopener"><span>${label}</span><span class="public-page-link-icon" aria-hidden="true">&#8599;</span></a>`;
+    const applyLink = data.publicApplyUrl ? pageLink(data.publicApplyUrl, "Apply for Membership") : "";
+    linksEl.innerHTML = `<span class="public-pages-links-label">Public Links:</span>${pageLink(data.publicAboutUrl, "About Us")}${pageLink(data.publicBylawsUrl, "Bylaws")}${applyLink}`;
   }
   if (aboutExternalUrl && document.activeElement !== aboutExternalUrl) {
     aboutExternalUrl.value = data.aboutExternalUrl || "";

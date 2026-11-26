@@ -175,6 +175,11 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Public links are now real buttons.** About/Bylaws/
+  Apply links render as outlined buttons (.btn.public-page-link) with an
+  external-link arrow (&#8599;) signaling new-tab behavior, inside the
+  tinted strip. Uses existing .btn base per UI conventions.
+
 - **2026-11-25** - **Public Pages panel: link strip + spacing polish.**
   "Public links: About/Bylaws/Apply" was faint helper text; now a tinted
   strip (.public-pages-links) with underlined green links. Added spacing
