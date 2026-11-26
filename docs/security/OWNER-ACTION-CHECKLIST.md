@@ -84,10 +84,10 @@ the "DPA Status" column with today's date for each vendor you completed.
 
 Your domain `peerfinancemanager.com` is registered at **Namecheap**. Its mail
 currently only has free email *forwarding* (incoming mail can be forwarded to
-an existing inbox like Gmail). There are two ways to make the three contact
-addresses work — pick one:
+an existing inbox like Gmail). There are three ways to make the three contact
+addresses work — pick one. **Two of them are free.**
 
-#### Option A — Free Email Forwarding (recommended to start, 10 minutes)
+#### Option A — Namecheap Free Forwarding ($0, simplest, receive-only)
 
 Mail to `security@`, `privacy@`, and `legal@peerfinancemanager.com` lands in
 an inbox you already check (e.g. your Gmail). Replies will come from that
@@ -96,9 +96,8 @@ inbox's address, which is fine for a small operation.
 1. Go to **https://www.namecheap.com** and log in.
 2. Click **Domain List** (left menu) > find **peerfinancemanager.com** >
    click **Manage**.
-3. In the domain management page, find **Email Forwarding** (sometimes under
-   the **Advanced DNS** tab > **Email Forwarding** section, or **Private
-   Email** > **Forwarding**).
+3. Find **Email Forwarding** (under **Advanced DNS**, or **Private Email** >
+   **Forwarding**).
 4. For each of the three addresses, click **Add Forward** and enter:
    - `security` → forward to your main email (e.g. `you@gmail.com`)
    - `privacy` → same destination
@@ -108,26 +107,62 @@ inbox's address, which is fine for a small operation.
 6. Test: send an email from another account to `privacy@peerfinancemanager.com`
    and confirm it arrives in your inbox (allow up to an hour for DNS).
 
-#### Option B — Real Mailboxes (Namecheap Private Email, ~$1/month each)
+#### Option B — Zoho Mail Free Plan ($0, real mailboxes, RECOMMENDED FREE OPTION)
 
-Use this if you want to send replies *from* `@peerfinancemanager.com`
-addresses (more professional for legal/privacy correspondence).
+Three genuine `@peerfinancemanager.com` mailboxes you can log into and reply
+from — free forever, no credit card. Limitations: webmail + Zoho mobile app
+only (no Outlook/Gmail-app syncing on the free plan), 5GB per mailbox. For
+three contact addresses that is plenty.
 
-1. In Namecheap: **Domain List** > `peerfinancemanager.com` > **Manage** >
-   **Private Email** (or **Get Private Email**).
-2. Choose the cheapest plan that includes at least 3 mailboxes (their
-   "Private Email"Starter/Pro plans cover this).
-3. During setup, set the domain's MX records when prompted — Namecheap
-   configures this automatically; say yes.
-4. Create the three mailboxes: `security@`, `privacy@`, `legal@`, each with
-   a strong password stored in your password manager.
-5. You can then also point the app's `SMTP_FROM` at one of these mailboxes
-   later if you want system emails to come from the domain (optional —
-   current sending already works).
+1. Go to **https://www.zoho.com/mail/** and click **SIGN UP FOR FREE** /
+   **Forever Free Plan**. Important: choose the **US, EU, or India data
+   center** during signup — the free plan is only offered there (pick US).
+   Do NOT register a new domain through Zoho; you are bringing your own.
+2. When asked for a domain, choose **"I own a domain"** and enter
+   `peerfinancemanager.com`.
+3. Zoho gives you two DNS records to add. In **Namecheap**: **Domain List** >
+   `peerfinancemanager.com` > **Manage** > **Advanced DNS** > **Add New
+   Record**:
+   - A **TXT** record for domain verification (host `@`, value = the string
+     Zoho shows you)
+   - The **MX** records Zoho lists (host `@`, pointing to `mx.zoho.com`,
+     priority 10 — **first delete the existing Namecheap forwarding MX
+     records** or mail will split between the two)
+   - Also update the **SPF TXT** record if Zoho provides one (it usually
+     combines verification + SPF guidance on the same screen)
+4. Back in Zoho, click **Verify**. Then create three users/mailboxes:
+   `security@peerfinancemanager.com`, `privacy@peerfinancemanager.com`,
+   `legal@peerfinancemanager.com` — each with a strong password in your
+   password manager. Zoho may email a temporary password; set the real one
+   on first login.
+5. Log in at **https://mail.zoho.com** (or the Zoho Mail mobile app) to
+   confirm each mailbox works, and send a test email to one of them.
+
+#### Option C — Namecheap Private Email (~$42/year, full-featured)
+
+Use this only if you later need IMAP/POP/SMTP access (syncing these
+mailboxes into Gmail/Outlook apps) or more than 5 users. The Expand plan
+includes exactly 3 mailboxes for $41.88/year; Launch ($14.88/year, 1
+mailbox) can cover all three addresses via aliases into one inbox.
+
+1. Go to **https://www.namecheap.com** > **Email** > **Private Email** >
+   **Get Private Email** > choose **Expand** (3 mailboxes).
+2. Domain: **"Use a domain I own with Namecheap"** > select
+   `peerfinancemanager.com` (activation is automatic for Namecheap domains).
+3. Pay (~$41.88/year), then in **Domain List** > `peerfinancemanager.com`
+   > **Manage**, remove any leftover email-forwarding entries so Private
+   Email's MX records work cleanly.
+4. **Private Email** (left menu) > **Manage** > **Create Mailbox** for
+   `security`, `privacy`, and `legal` (enter just the name part; set strong
+   passwords).
+5. Add the **DKIM TXT record** Private Email shows you under Advanced DNS
+   (host `privateemail._domainkey`) so outgoing mail avoids spam folders.
+6. Access via **https://privateemail.com** or add to mail apps using the
+   IMAP/SMTP settings in the dashboard.
 
 **Either way, record what you chose** in `docs/security/SUBPROCESSORS.md`
-under a note that domain email is handled by Namecheap (forwarding or
-Private Email).
+under a note that domain email is handled by Namecheap (forwarding),
+Zoho (free plan), or Namecheap Private Email.
 
 ---
 

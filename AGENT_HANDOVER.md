@@ -175,6 +175,13 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-26** - **Owner checklist: free email path added.** Part B
+  now offers three options: Namecheap free forwarding ($0,
+  receive-only), Zoho Mail Forever Free plan ($0, up to 5 real
+  mailboxes, webmail+mobile only, US/EU/IN data centers), or
+  Namecheap Private Email (~$42/yr, IMAP/SMTP). SUBPROCESSORS.md
+  gains a conditional Zoho row.
+
 - **2026-11-26** - **Owner checklist email section corrected for
   Namecheap.** peerfinancemanager.com is registered at Namecheap with
   free email forwarding only (MX -> eforward*.registrar-servers.com);
