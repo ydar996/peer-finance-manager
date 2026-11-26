@@ -175,6 +175,12 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Public Pages panel: link strip + spacing polish.**
+  "Public links: About/Bylaws/Apply" was faint helper text; now a tinted
+  strip (.public-pages-links) with underlined green links. Added spacing
+  between the upload button, image list, and Save buttons on both About
+  and Bylaws sections.
+
 - **2026-11-25** - **Public Pages: image upload no longer wipes form
   state.** Uploading/removing an About image re-rendered the whole
   panel via renderPublicPagesAdmin, which reset the Publish checkbox
