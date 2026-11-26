@@ -80,12 +80,22 @@ four:
 **Record what you did:** open `docs/security/SUBPROCESSORS.md` and update
 the "DPA Status" column with today's date for each vendor you completed.
 
-### Part B: Set Up the Three Email Addresses (Namecheap, Free)
+### Part B: Set Up the Three Email Addresses (Namecheap Only)
 
-Your domain peerfinancemanager.com is at Namecheap, which includes free
-email forwarding: mail sent to security@, privacy@, and legal@
-peerfinancemanager.com lands in an inbox you already use (e.g. Gmail).
-Replies will come from that inbox's address, which is fine at this stage.
+Your domain peerfinancemanager.com is at Namecheap, so everything below
+stays inside your existing Namecheap account — no third-party email
+service needed. Pick ONE of the two options:
+
+- **Option A — Free Forwarding ($0):** the three addresses receive mail
+  into your existing inbox (e.g. Gmail). Replies you send come from that
+  inbox's address, not @peerfinancemanager.com. Good enough to start.
+- **Option B — Private Email Launch ($14.88/year, 30-day free trial):**
+  one real mailbox plus aliases, all inside Namecheap. You can both
+  receive AND send as security@, privacy@, and legal@
+  @peerfinancemanager.com. This is the recommended option — it is one
+  login, one inbox, and replies come from the correct domain address.
+
+#### Option A — Free Forwarding ($0)
 
 1. Go to https://www.namecheap.com and log in.
 2. Click Domain List (left menu) > find peerfinancemanager.com >
@@ -102,18 +112,18 @@ Replies will come from that inbox's address, which is fine at this stage.
    privacy@peerfinancemanager.com and confirm it arrives (allow up to an
    hour for DNS).
 
-#### Option B — Namecheap Private Email (real mailboxes, ~$42/year, 30-day free trial)
+#### Option B — Namecheap Private Email Launch ($14.88/year, 30-day free trial)
 
 This is Namecheap's own mailbox product — everything stays inside your
-existing Namecheap account, no third party. You get three real
-@peerfinancemanager.com mailboxes you can log into at privateemail.com
-and reply from. There is a 30-day free trial, so you can test it before
-paying anything.
+existing Namecheap account. The **Launch** plan gives you ONE real
+mailbox plus **10 aliases**, and aliases work for BOTH receiving and
+sending. That means one login covers all three addresses at the lowest
+price. There is a 30-day free trial, so you can test it before paying.
 
-**Cost:** Expand plan = 3 mailboxes included, $41.88/year (~$3.49/month).
-Launch plan = 1 mailbox + aliases, $14.88/year (all three addresses can
-be aliases of the one mailbox if you want the cheapest real-mailbox
-option). Scale = 5 mailboxes, $71.88/year (more than you need).
+**Why Launch and not Expand:** Expand ($41.88/year) gives you 3 separate
+mailboxes — only needed if different people must log in separately. For
+you, one person checking one inbox, Launch + aliases does the same job
+for $14.88/year.
 
 **Step-by-step:**
 
@@ -121,7 +131,7 @@ option). Scale = 5 mailboxes, $71.88/year (more than you need).
 2. In the top menu click **Email** > **Private Email** (direct link:
    https://www.namecheap.com/hosting/email/private-email/).
 3. Click **Get Private Email** (or **Order Now**) and choose the
-   **Expand** plan — it includes exactly 3 mailboxes. If a promo code is
+   **Launch** plan — $14.88/year, 1 mailbox included. If a promo code is
    pre-filled, leave it; the first-year price will be lower than the
    renewal price shown.
 4. When asked for the domain, select **"Use a domain I own with
@@ -140,14 +150,17 @@ option). Scale = 5 mailboxes, $71.88/year (more than you need).
    **Private Email** in the left menu.
 8. Click **Manage** next to peerfinancemanager.com to open the Private
    Email dashboard.
-9. Click **Create Mailbox** and create each of the three:
-   - Mailbox name: `security` (enter just this — the domain is appended
-     automatically, so it becomes security@peerfinancemanager.com)
-   - Password: a strong unique one, stored in your password manager
-   - Storage: keep the default
-   - Click **Save changes**. Repeat for `privacy` and `legal`.
-   You will see "Success! Mailbox ... has been set up" for each.
-10. **Add the DKIM record** (required so your outgoing mail does not
+9. **Create the main mailbox:** click **Create Mailbox**, enter a name
+   like `contact` (becomes contact@peerfinancemanager.com — the domain
+   is appended automatically), set a strong password, keep default
+   storage, click **Save changes**.
+10. **Add the three aliases:** in the Private Email dashboard, find the
+    mailbox you just created, open its **Manage Aliases** menu, click
+    **Add Alias**, and create each of these one at a time:
+    `security`, `privacy`, `legal`.
+    All mail to those addresses lands in your one inbox, and you can
+    send FROM any of them.
+11. **Add the DKIM record** (required so your outgoing mail does not
     land in spam): in the Private Email dashboard, look for **DNS
     Records** / **Email Deliverability** / **DKIM** and copy the TXT
     value shown. Then go to **Domain List** > peerfinancemanager.com >
@@ -155,15 +168,18 @@ option). Scale = 5 mailboxes, $71.88/year (more than you need).
     Host `privateemail._domainkey`, Value = the copied string, Save.
     If Namecheap already added it automatically during activation,
     skip this step — check Advanced DNS first.
-11. **Log in to webmail:** click the **Login** button next to any
+12. **Log in to webmail:** click the **Login** button next to the
     mailbox in the Private Email dashboard, or go to
     https://privateemail.com and sign in with the full address
-    (security@peerfinancemanager.com) + password. The Namecheap Mail
-    mobile app also works with these credentials.
-12. **Test both directions:** send an email from another account to
+    (contact@peerfinancemanager.com) + password. The Namecheap Mail
+    mobile app also works with these credentials. Note: you log in as
+    the main mailbox only — aliases cannot be used to log in, they just
+    send and receive.
+13. **Test both directions:** send an email from another account to
     privacy@peerfinancemanager.com (should arrive in webmail within
-    minutes), then reply from webmail to confirm outgoing works and
-    check it does not land in spam at the destination.
+    minutes), then compose a reply and set the **From** field to
+    privacy@peerfinancemanager.com to confirm sending as an alias
+    works and does not land in spam at the destination.
 
 **Optional later — system emails from the domain:** the app currently
 sends notifications through its existing relay. To make dues
@@ -171,6 +187,10 @@ reminders/welcome emails come *from* @peerfinancemanager.com instead,
 update SMTP_HOST/SMTP_USER/SMTP_PASS/SMTP_FROM in Render env vars using
 the IMAP/SMTP settings shown in the Private Email dashboard. Not
 required now.
+
+**If you later want 3 separate mailboxes** (e.g. different people
+handling security vs legal), upgrade to the Expand plan
+($41.88/year) — the aliases you created carry over.
 
 
 ## Item 3: Designate A Second Trusted Operator
