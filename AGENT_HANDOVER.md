@@ -175,6 +175,17 @@ Source of truth: `peer-finance-manager/lib/platform-billing-constants.js`. Strip
 
 ## Changelog
 
+- **2026-11-25** - **Document template picker: borrower docs were
+  unlinkable.** The FlexxForms catalog classified master documents only
+  by name (guarantor/guarantee -> guarantor group, borrower -> borrower
+  group). "Personal Loan Agreement" fell into the unrecognized bucket,
+  which hardcoded the Guarantor Master Document button, so a borrower
+  agreement could never be linked. Fixed: "Guaranty" now classifies as
+  guarantor (was missed entirely), generic agreement/loan names classify
+  as borrower, and unrecognized documents get a "Use as" dropdown with
+  both targets plus a "Use This Document" button (the use-as handler now
+  resolves against all assign targets, not just form targets).
+
 - **2026-11-25** - **Loan signing pipeline: agreement + per-guarantor
   guaranty documents gate disbursement.** New `loan_documents` table
   (one row per issued document: borrower agreement + one Personal Loan

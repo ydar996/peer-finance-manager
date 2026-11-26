@@ -11158,8 +11158,9 @@ function inferPublishedDocumentKind(name) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
-  if (/\bguarantor\b|\bguarantee\b/.test(n)) return "guarantor";
+  if (/\bguarantor\b|\bguarantee\b|\bguaranty\b/.test(n)) return "guarantor";
   if (/\bborrower\b/.test(n)) return "borrower";
+  if (/\bagreement\b|\bloan\b/.test(n)) return "borrower";
   return "unknown";
 }
 
@@ -11309,9 +11310,28 @@ function renderFlexxFormsCatalog(forms, templates, statusEl) {
     )
   );
   if (otherDocs.length) {
+    chunks.push('<p class="subtle flexxforms-catalog-group-title">Other Master Documents</p>');
     chunks.push(
       otherDocs
-        .map((t) => renderFlexxFormsCatalogItem(t, "Master Document", FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS[0]))
+        .map((t) => {
+          const id = t.id || t.templateId || t.template_id || "";
+          const name = t.name || t.title || "Untitled";
+          const options = FLEXXFORMS_DOCUMENT_ASSIGN_TARGETS.map(
+            (t) => `<option value="${escapeHtml(t.inputId)}">${escapeHtml(t.label)}</option>`
+          ).join("");
+          return `<article class="flexxforms-catalog-item">
+            <div class="flexxforms-catalog-item-main">
+              <strong class="flexxforms-catalog-item-title">${escapeHtml(name)}</strong>
+              <span class="badge">Master Document</span>
+            </div>
+            <div class="flexxforms-catalog-item-actions">
+              <label class="flexxforms-use-as">Use as
+                <select class="flexxforms-use-as-select" data-form-id="${escapeHtml(id)}">${options}</select>
+              </label>
+              <button type="button" class="btn small flexxforms-use-as-btn" data-form-id="${escapeHtml(id)}">Use This Document</button>
+            </div>
+          </article>`;
+        })
         .join("")
     );
   } else if (formItems.length && !templateItems.length) {
@@ -11330,7 +11350,7 @@ function renderFlexxFormsCatalog(forms, templates, statusEl) {
     btn.addEventListener("click", () => {
       const select = picker.querySelector(`.flexxforms-use-as-select[data-form-id="${btn.dataset.formId}"]`);
       const inputId = select?.value;
-      const target = FLEXXFORMS_FORM_ASSIGN_TARGETS.find((t) => t.inputId === inputId);
+      const target = FLEXXFORMS_ASSIGN_TARGETS.find((t) => t.inputId === inputId);
       if (!target) return;
       assignFlexxFormToField(target.inputId, btn.dataset.formId, target.label, statusEl);
     });
